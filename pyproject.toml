@@ -67,7 +67,7 @@ Changelog = "https://github.com/jumodada/Drissionpage-MCP-Server/blob/main/CHANG
 drissionpage-mcp = "drissionpage_mcp.cli:main"
 
 [tool.setuptools]
-packages = ["drissionpage_mcp", "drissionpage_mcp.tools", "src", "src.tools"]
+packages = ["drissionpage_mcp", "drissionpage_mcp.tools"]
 
 [tool.setuptools.package-data]
 drissionpage_mcp = ["py.typed"]
