@@ -216,7 +216,7 @@ drissionpage-mcp doctor --launch-browser
 python -m pip install -e ".[dev]"
 python -m pytest tests/
 
-# Coverage report (CI enforces the current 60% floor and uploads coverage.xml)
+# Coverage report (CI enforces the current 75% floor and uploads coverage.xml)
 python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 ```
 
