@@ -71,3 +71,21 @@ Thumbs.db
 # Logs
 *.log
 CLAUDE.md
+
+# Local Python tooling
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+pip-wheel-metadata/
+
+# Local environments
+.venv/
+
+# Generated project artifacts
+*.screenshot.*
+playground/screenshots/
+playground/output/
+test-results/
+
+# Local automation/runtime state
+.omx/

@@ -5,8 +5,8 @@
 [![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg)](https://pypi.org/project/drissionpage-mcp/)
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Status](https://img.shields.io/badge/status-production-green.svg)]()
+[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
 **官方仓库**: [GitHub](https://github.com/jumodada/DrissionMCP) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
@@ -16,7 +16,7 @@
 
 ## 🚀 什么是 DrissionPage MCP？
 
-**DrissionPage MCP Server** 是一个生产就绪的模型上下文协议（MCP）服务器，为 Claude Code、Claude Desktop 和其他 MCP 客户端提供专业的浏览器自动化能力。
+**DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
 与基于截图的方法不同，它通过 21 个强大工具提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
@@ -26,20 +26,23 @@
 - **确定性**：通过 CSS 和 XPath 支持实现可靠的元素选择
 - **快速轻量**：基于 DrissionPage 高效引擎构建，开销最小
 - **类型安全**：所有工具都具有完整的类型提示和 Pydantic 验证
-- **生产就绪**：经过充分测试和文档化，可用于实际生产环境
+- **开源友好**：包含兼容性说明、故障排除和 CI 检查，便于维护和贡献
 - **易于集成**：简单的 `pip install` + JSON 配置即可使用
 
 ---
 
-## ⚡ 快速安装
+## ⚡ 首次成功路径
 
 ```bash
 # 从 PyPI 安装
-pip install drissionpage-mcp
+python -m pip install -U drissionpage-mcp
 
-# 验证安装
+# 验证包和本地环境
 drissionpage-mcp --version
+drissionpage-mcp doctor
 ```
+
+然后添加下面的 MCP 客户端配置并重启客户端。
 
 ---
 
@@ -123,8 +126,11 @@ drissionpage-mcp --version
 | 指南 | 描述 |
 |-------|-------------|
 | [README_CN.md](README_CN.md) | 安装、工具和架构说明 |
+| [docs/compatibility.md](docs/compatibility.md) | Python、DrissionPage、MCP 和浏览器兼容性 |
+| [docs/tool-contract.md](docs/tool-contract.md) | MCP 工具名称、输入、注解和响应格式 |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | doctor 命令、浏览器启动和客户端配置排查 |
+| [docs/release-checklist.md](docs/release-checklist.md) | 发布验证和发布清单 |
 | [examples/README.md](examples/README.md) | MCP 客户端配置示例 |
-| [playground/README.md](playground/README.md) | 本地测试工具和场景 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本变更 |
 
 ---
@@ -152,7 +158,7 @@ DrissionMCP/
 - ✅ 全面使用 async/await
 - ✅ 清晰的关注点分离
 - ✅ 全面的错误处理
-- ✅ 完整的测试覆盖率
+- ✅ 核心工具注册和响应行为具有单元/协议测试覆盖
 
 ---
 
@@ -190,7 +196,7 @@ DrissionMCP/
 
 ## 📋 环境要求
 
-- **Python 3.8+**（推荐 3.11+）
+- **Python 3.10+**（推荐 3.11+）
 - **Chrome 或 Chromium** 浏览器
 - **任何 MCP 兼容客户端**：Claude Code、Claude Desktop、Cursor、VS Code 等
 
@@ -200,12 +206,13 @@ DrissionMCP/
 
 ### 验证安装
 ```bash
-# 快速验证
-python -c "from DrissionPage import Chromium; b = Chromium(); print('✅ Ready'); b.quit()"
+# 环境诊断；加 --launch-browser 可测试浏览器启动
+drissionpage-mcp doctor
+drissionpage-mcp doctor --launch-browser
 
-# 或运行测试
-pip install -e ".[dev]"
-pytest tests/
+# 源码检出测试
+python -m pip install -e ".[dev]"
+python -m pytest tests/
 ```
 
 ### 试用
@@ -236,7 +243,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-应输出：`drissionpage-mcp 0.1.0`
+应输出已安装的包版本，例如：`drissionpage-mcp 0.2.0`。
 
 ### 浏览器问题？
 ```bash
@@ -250,7 +257,7 @@ which chromium         # macOS
 - 修改后重启 Claude Code
 - 检查日志：`drissionpage-mcp --log-level DEBUG`
 
-完整故障排除指南请参阅 [TESTING_AND_INTEGRATION.md](TESTING_AND_INTEGRATION.md#troubleshooting)。
+完整故障排除指南请参阅 [docs/troubleshooting.md](docs/troubleshooting.md)。
 
 ---
 
@@ -259,22 +266,22 @@ which chromium         # macOS
 | 组件 | 状态 |
 |-----------|--------|
 | **核心功能** | ✅ 完成 |
-| **测试** | ✅ 100% 覆盖率 |
-| **文档** | ✅ 全面 |
-| **生产就绪** | ✅ 是 |
-| **PyPI 包** | ✅ 已发布 |
+| **测试** | ✅ 单元/协议检查，可选浏览器烟测 |
+| **文档** | ✅ 安装、兼容性、故障排除、发布清单 |
+| **包** | ✅ PyPI 元数据和构建检查 |
+| **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.1.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.2.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.1.0)
+### 当前版本 (v0.2.0)
 - [x] 21 个核心自动化工具
-- [x] 完整 MCP 协议支持
-- [x] 生产就绪代码库
-- [x] 全面文档
+- [x] stdio MCP 服务器集成
+- [x] 本地环境 doctor 诊断
+- [x] 兼容性和故障排除文档
 - [x] PyPI 发布
 
 ### 未来版本 (v0.2+)
@@ -321,24 +328,26 @@ which chromium         # macOS
 
 1. Fork 仓库
 2. 创建功能分支
-3. 进行修改
-4. 根据需要添加测试
+3. 进行聚焦修改
+4. 运行相关检查
 5. 提交 Pull Request
+
+开发设置、验证和兼容性要求请参阅 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ---
 
 ## 🔒 安全
 
-- 不存储或传输敏感数据
 - 在您的本地环境中运行
-- 无外部 API 调用
-- 尊重网站服务条款
+- 使用本地浏览器，可能访问已登录会话、Cookie、下载内容和页面内容
+- 可以打开并操作本机可访问的网站
+- 不需要外部 API 凭据
 
 **最佳实践**：
-- 未经许可不要自动化操作
-- 尽可能在测试环境中使用
-- 遵守 robots.txt
-- 在操作之间添加适当的延迟
+- 对敏感工作流使用专用浏览器配置文件
+- 在认证站点或生产系统上执行操作前，先检查 MCP 客户端提示
+- 遵守网站服务条款、robots.txt 和速率限制
+- 安全报告和使用建议见 [SECURITY.md](SECURITY.md)
 
 ---
 
@@ -358,7 +367,7 @@ which chromium         # macOS
 
 ## 💬 支持
 
-- 📖 **[完整文档](USAGE_GUIDE.md)**
+- 📖 **[故障排除](docs/troubleshooting.md)**
 - 🐛 **[报告问题](https://github.com/jumodada/DrissionMCP/issues)**
 - 💡 **[功能请求](https://github.com/jumodada/DrissionMCP/discussions)**
 - 🔗 **[GitHub 仓库](https://github.com/jumodada/DrissionMCP)**
@@ -385,4 +394,4 @@ which chromium         # macOS
 
 **用 ❤️ 制作，作者 [Wukunyun](https://github.com/jumodada)**
 
-**准备好自动化您的工作流程了吗？** 立即安装：`pip install drissionpage-mcp`
+**准备好自动化您的工作流程了吗？** 立即安装：`python -m pip install -U drissionpage-mcp`
