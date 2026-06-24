@@ -35,6 +35,8 @@ def test_ci_browser_integration_is_not_manual_only() -> None:
     assert "github.event_name == 'workflow_dispatch'" not in browser_job
     assert "tests/test_browser_integration.py" in browser_job
     assert "chromium" in browser_job.lower()
+    assert "CHROME_PATH=$BROWSER_BIN" in browser_job
+    assert 'DP_HEADLESS: "1"' in browser_job
 
 
 def test_ci_uploads_xml_coverage_to_codecov() -> None:
@@ -48,9 +50,12 @@ def test_ci_uploads_xml_coverage_to_codecov() -> None:
     assert "python-version: \"3.11\"" in coverage_job
     assert "--cov=drissionpage_mcp" in coverage_job
     assert "--cov-report=xml:coverage.xml" in coverage_job
+    assert "CHROME_PATH=$BROWSER_BIN" in coverage_job
+    assert 'DP_HEADLESS: "1"' in coverage_job
     assert "codecov/codecov-action@v7" in coverage_job
-    assert "use_oidc: true" in coverage_job
-    assert "id-token: write" in coverage_job
+    assert "token: ${{ secrets.CODECOV_TOKEN }}" in coverage_job
+    assert "use_oidc:" not in coverage_job
+    assert "id-token: write" not in coverage_job
 
 
 def test_readmes_publish_ci_and_codecov_badges() -> None:

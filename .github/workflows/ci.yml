@@ -82,7 +82,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -93,9 +92,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+          BROWSER_BIN="$(command -v chromium-browser || command -v chromium || true)"
+          test -n "$BROWSER_BIN"
+          echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
+          "$BROWSER_BIN" --version
       - name: Install dependencies
         run: python -m pip install -e ".[dev]"
       - name: Run tests with coverage
+        env:
+          DP_HEADLESS: "1"
+          DP_NO_SANDBOX: "1"
         run: |
           python -m pytest tests/ \
             --cov=drissionpage_mcp \
@@ -107,7 +113,7 @@ jobs:
           files: ./coverage.xml
           flags: all-tests
           name: python-3.11
-          use_oidc: true
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
 
   package:
@@ -139,9 +145,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+          BROWSER_BIN="$(command -v chromium-browser || command -v chromium || true)"
+          test -n "$BROWSER_BIN"
+          echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
+          "$BROWSER_BIN" --version
       - name: Install dependencies
         run: python -m pip install -e ".[dev]"
       - name: Tool registry smoke
         run: python playground/quick_start.py
       - name: Run browser integration fixture tests
+        env:
+          DP_HEADLESS: "1"
+          DP_NO_SANDBOX: "1"
         run: python -m pytest tests/test_browser_integration.py

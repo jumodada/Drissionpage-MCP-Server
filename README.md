@@ -222,8 +222,8 @@ python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-r
 
 GitHub Actions runs lint, unit, protocol, package, browser integration, and
 coverage jobs. Codecov is configured through `codecov.yml` and the CI workflow;
-public repositories can use the configured OIDC upload, while private mirrors may
-need Codecov enabled for the repository first.
+set the `CODECOV_TOKEN` repository secret so the upload step can publish
+`coverage.xml` reliably from GitHub Actions.
 
 ### Try It Out
 ```bash

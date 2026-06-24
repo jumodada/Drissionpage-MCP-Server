@@ -221,8 +221,8 @@ python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-r
 ```
 
 GitHub Actions 已配置 lint、单元、协议、打包、浏览器集成和覆盖率检查。
-Codecov 通过 `codecov.yml` 和 CI workflow 上传覆盖率；公开仓库可使用当前
-OIDC 上传配置，私有镜像通常需要先在 Codecov 中启用仓库。
+Codecov 通过 `codecov.yml` 和 CI workflow 上传覆盖率；请配置仓库 secret
+`CODECOV_TOKEN`，让 GitHub Actions 能稳定上传 `coverage.xml`。
 
 ### 试用
 ```bash
