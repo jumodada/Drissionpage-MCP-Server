@@ -1,50 +1,64 @@
 """Command line interface for DrissionPage MCP Server."""
 
-import asyncio
 import argparse
+import asyncio
 import logging
 import sys
-from typing import Optional
+from typing import List, Optional
 
-try:
-    from mcp.server.stdio import stdio_server
-except ImportError:
-    # Fallback for different MCP SDK versions
-    from mcp.server import stdio_server
+from mcp.server.stdio import stdio_server
 
-from .server import DrissionPageMCPServer
 from . import __version__
+from .server import DrissionPageMCPServer
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-async def main_async(args: Optional[list[str]] = None) -> None:
+async def main_async(args: Optional[List[str]] = None) -> None:
     """Main async function."""
     parser = argparse.ArgumentParser(
         description="DrissionPage MCP Server - Web automation tools for MCP",
-        prog="drissionpage-mcp"
+        prog="drissionpage-mcp",
     )
     parser.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         default="INFO",
-        help="Set the logging level"
+        help="Set the logging level",
     )
     parser.add_argument(
-        "--version",
-        action="version",
-        version=f"%(prog)s {__version__}"
+        "--version", action="version", version=f"%(prog)s {__version__}"
     )
-    
+    subparsers = parser.add_subparsers(dest="command")
+    doctor_parser = subparsers.add_parser(
+        "doctor",
+        aliases=["self-test"],
+        help="Print package, MCP, DrissionPage, browser, and config diagnostics",
+    )
+    doctor_parser.add_argument(
+        "--launch-browser",
+        action="store_true",
+        help="Also attempt to launch and close a browser",
+    )
+
     parsed_args = parser.parse_args(args)
-    
+
     # Set logging level
     logging.getLogger().setLevel(getattr(logging, parsed_args.log_level))
-    
+
+    if parsed_args.command in {"doctor", "self-test"}:
+        from .doctor import format_diagnostics, run_diagnostics
+
+        report = run_diagnostics(launch_browser=parsed_args.launch_browser)
+        print(format_diagnostics(report))
+        if not report.get("ok"):
+            raise SystemExit(1)
+        return
+
     # Create the MCP server
     server = DrissionPageMCPServer()
-    
+
     # Run with stdio transport
     try:
         async with stdio_server() as (read_stream, write_stream):
@@ -61,7 +75,7 @@ async def main_async(args: Optional[list[str]] = None) -> None:
         await server.cleanup()
 
 
-def main(args: Optional[list[str]] = None) -> None:
+def main(args: Optional[List[str]] = None) -> None:
     """Main entry point."""
     try:
         asyncio.run(main_async(args))

@@ -1,0 +1,60 @@
+# Release Checklist
+
+Use this checklist before publishing a DrissionPage MCP release.
+
+## 1. Version and Metadata
+
+- [ ] Update `drissionpage_mcp/__init__.py` version.
+- [ ] Update `pyproject.toml` version.
+- [ ] Update `CHANGELOG.md` with user-visible changes.
+- [ ] Confirm supported Python and DrissionPage ranges in [compatibility.md](compatibility.md).
+
+## 2. Local Validation
+
+Run from a clean checkout:
+
+```bash
+python -m pip install -e ".[dev]"
+python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb'))"
+python -m pytest tests/
+python -m ruff check drissionpage_mcp tests playground
+python -m build
+python -m twine check dist/*
+```
+
+Notes:
+
+- On Python 3.10, use `python -c "import tomli; tomli.load(open('pyproject.toml', 'rb'))"` after installing development dependencies; Python 3.11+ can use stdlib `tomllib`.
+- Remove or archive stale `dist/` files before building a final release artifact.
+
+## 3. Browser Smoke Test
+
+With Chrome or Chromium installed, run at least one browser-backed smoke test:
+
+```bash
+python playground/quick_start.py
+python -c "from DrissionPage import Chromium; b = Chromium(); print(b.latest_tab.url); b.quit()"
+```
+
+If the smoke test cannot run in the release environment, document the gap in the release notes.
+
+## 4. Documentation
+
+- [ ] README quick start matches the released package name and version.
+- [ ] MCP client config examples are valid JSON.
+- [ ] Troubleshooting steps still match current CLI behavior.
+- [ ] Tool inventory matches the registered tools.
+
+## 5. Publish
+
+```bash
+python -m build
+python -m twine check dist/*
+python -m twine upload dist/*
+```
+
+After publish:
+
+- [ ] Install from PyPI in a fresh environment.
+- [ ] Run `drissionpage-mcp --version`.
+- [ ] Create a GitHub release with changelog highlights.

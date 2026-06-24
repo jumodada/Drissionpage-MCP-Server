@@ -1,0 +1,614 @@
+[
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Navigate to URL"
+    },
+    "description": "Navigate to a specific URL in the browser",
+    "inputSchema": {
+      "description": "Input schema for navigate tool.",
+      "properties": {
+        "url": {
+          "description": "The URL to navigate to",
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "NavigateInput",
+      "type": "object"
+    },
+    "name": "page_navigate",
+    "title": "Navigate to URL"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Go Back"
+    },
+    "description": "Go back to the previous page in browser history",
+    "inputSchema": {
+      "description": "Empty input schema for tools that don't require parameters.",
+      "properties": {},
+      "title": "EmptyInput",
+      "type": "object"
+    },
+    "name": "page_go_back",
+    "title": "Go Back"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Go Forward"
+    },
+    "description": "Go forward to the next page in browser history",
+    "inputSchema": {
+      "description": "Empty input schema for tools that don't require parameters.",
+      "properties": {},
+      "title": "EmptyInput",
+      "type": "object"
+    },
+    "name": "page_go_forward",
+    "title": "Go Forward"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Refresh Page"
+    },
+    "description": "Refresh the current page",
+    "inputSchema": {
+      "description": "Empty input schema for tools that don't require parameters.",
+      "properties": {},
+      "title": "EmptyInput",
+      "type": "object"
+    },
+    "name": "page_refresh",
+    "title": "Refresh Page"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Resize Window"
+    },
+    "description": "Resize the browser window to specified dimensions",
+    "inputSchema": {
+      "description": "Input schema for resize tool.",
+      "properties": {
+        "height": {
+          "description": "Height of the browser window",
+          "title": "Height",
+          "type": "integer"
+        },
+        "width": {
+          "description": "Width of the browser window",
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "title": "ResizeInput",
+      "type": "object"
+    },
+    "name": "page_resize",
+    "title": "Resize Window"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Take Screenshot"
+    },
+    "description": "Take a screenshot of the current page",
+    "inputSchema": {
+      "description": "Input schema for screenshot tool.",
+      "properties": {
+        "full_page": {
+          "default": false,
+          "description": "Take a full page screenshot",
+          "title": "Full Page",
+          "type": "boolean"
+        },
+        "path": {
+          "default": "",
+          "description": "Optional local file path to save screenshot",
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "title": "ScreenshotInput",
+      "type": "object"
+    },
+    "name": "page_screenshot",
+    "title": "Take Screenshot"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Click Coordinates"
+    },
+    "description": "Click at specific coordinates on the page",
+    "inputSchema": {
+      "description": "Input schema for clicking at coordinates.",
+      "properties": {
+        "element": {
+          "default": "",
+          "description": "Human-readable element description for permission",
+          "title": "Element",
+          "type": "string"
+        },
+        "x": {
+          "description": "X coordinate to click",
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "description": "Y coordinate to click",
+          "title": "Y",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "ClickCoordinatesInput",
+      "type": "object"
+    },
+    "name": "page_click_xy",
+    "title": "Click Coordinates"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Close Browser"
+    },
+    "description": "Close the current page/browser",
+    "inputSchema": {
+      "description": "Empty input schema.",
+      "properties": {},
+      "title": "EmptyInput",
+      "type": "object"
+    },
+    "name": "page_close",
+    "title": "Close Browser"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Get Current URL"
+    },
+    "description": "Get the current URL of the page",
+    "inputSchema": {
+      "description": "Empty input schema.",
+      "properties": {},
+      "title": "EmptyInput",
+      "type": "object"
+    },
+    "name": "page_get_url",
+    "title": "Get Current URL"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Find Element"
+    },
+    "description": "Find an element on the page using CSS selector or XPath",
+    "inputSchema": {
+      "description": "Input schema for finding elements.",
+      "properties": {
+        "selector": {
+          "description": "CSS selector or XPath to find the element",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "description": "Timeout in seconds to wait for element",
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "FindElementInput",
+      "type": "object"
+    },
+    "name": "element_find",
+    "title": "Find Element"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Click Element"
+    },
+    "description": "Click on an element found by CSS selector or XPath",
+    "inputSchema": {
+      "description": "Input schema for clicking elements.",
+      "properties": {
+        "selector": {
+          "description": "CSS selector or XPath to find the element",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "description": "Timeout in seconds to wait for element",
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "ClickElementInput",
+      "type": "object"
+    },
+    "name": "element_click",
+    "title": "Click Element"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Type Text"
+    },
+    "description": "Type text into an input element",
+    "inputSchema": {
+      "description": "Input schema for typing text.",
+      "properties": {
+        "clear": {
+          "default": true,
+          "description": "Clear existing input content before typing",
+          "title": "Clear",
+          "type": "boolean"
+        },
+        "selector": {
+          "description": "CSS selector or XPath to find the input element",
+          "title": "Selector",
+          "type": "string"
+        },
+        "text": {
+          "description": "Text to type into the element",
+          "title": "Text",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "description": "Timeout in seconds to wait for element",
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector",
+        "text"
+      ],
+      "title": "TypeTextInput",
+      "type": "object"
+    },
+    "name": "element_type",
+    "title": "Type Text"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Input Text"
+    },
+    "description": "Input text into an element (backward-compatible alias of element_type)",
+    "inputSchema": {
+      "description": "Input schema for typing text.",
+      "properties": {
+        "clear": {
+          "default": true,
+          "description": "Clear existing input content before typing",
+          "title": "Clear",
+          "type": "boolean"
+        },
+        "selector": {
+          "description": "CSS selector or XPath to find the input element",
+          "title": "Selector",
+          "type": "string"
+        },
+        "text": {
+          "description": "Text to type into the element",
+          "title": "Text",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "description": "Timeout in seconds to wait for element",
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector",
+        "text"
+      ],
+      "title": "TypeTextInput",
+      "type": "object"
+    },
+    "name": "element_input_text",
+    "title": "Input Text"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Get Text"
+    },
+    "description": "Get text from an element or the whole page",
+    "inputSchema": {
+      "description": "Input schema for getting text.",
+      "properties": {
+        "selector": {
+          "default": "",
+          "description": "CSS selector or XPath; empty means whole page",
+          "title": "Selector",
+          "type": "string"
+        }
+      },
+      "title": "GetTextInput",
+      "type": "object"
+    },
+    "name": "element_get_text",
+    "title": "Get Text"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Get Attribute"
+    },
+    "description": "Get an attribute value from an element",
+    "inputSchema": {
+      "description": "Input schema for getting an element attribute.",
+      "properties": {
+        "attribute": {
+          "description": "Attribute name to retrieve",
+          "title": "Attribute",
+          "type": "string"
+        },
+        "selector": {
+          "description": "CSS selector or XPath to find the element",
+          "title": "Selector",
+          "type": "string"
+        }
+      },
+      "required": [
+        "selector",
+        "attribute"
+      ],
+      "title": "GetAttributeInput",
+      "type": "object"
+    },
+    "name": "element_get_attribute",
+    "title": "Get Attribute"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Get Property"
+    },
+    "description": "Get a live DOM property value from an element, such as an input's current value",
+    "inputSchema": {
+      "description": "Input schema for getting a live DOM property.",
+      "properties": {
+        "property_name": {
+          "description": "DOM property name to retrieve, e.g. value",
+          "title": "Property Name",
+          "type": "string"
+        },
+        "selector": {
+          "description": "CSS selector or XPath to find the element",
+          "title": "Selector",
+          "type": "string"
+        }
+      },
+      "required": [
+        "selector",
+        "property_name"
+      ],
+      "title": "GetPropertyInput",
+      "type": "object"
+    },
+    "name": "element_get_property",
+    "title": "Get Property"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Get HTML"
+    },
+    "description": "Get HTML from an element or the whole page",
+    "inputSchema": {
+      "description": "Input schema for getting HTML.",
+      "properties": {
+        "selector": {
+          "default": "",
+          "description": "CSS selector or XPath; empty means whole page",
+          "title": "Selector",
+          "type": "string"
+        }
+      },
+      "title": "GetHtmlInput",
+      "type": "object"
+    },
+    "name": "element_get_html",
+    "title": "Get HTML"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Wait for Element"
+    },
+    "description": "Wait for an element to appear on the page",
+    "inputSchema": {
+      "description": "Input schema for waiting for elements.",
+      "properties": {
+        "selector": {
+          "description": "CSS selector or XPath to wait for",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "description": "Timeout in seconds",
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "WaitElementInput",
+      "type": "object"
+    },
+    "name": "wait_for_element",
+    "title": "Wait for Element"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Wait for URL"
+    },
+    "description": "Wait for the current URL to contain a substring",
+    "inputSchema": {
+      "description": "Input schema for waiting for URL changes.",
+      "properties": {
+        "timeout": {
+          "default": 10,
+          "description": "Timeout in seconds",
+          "title": "Timeout",
+          "type": "integer"
+        },
+        "url_pattern": {
+          "description": "Substring or pattern expected in the current URL",
+          "title": "Url Pattern",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url_pattern"
+      ],
+      "title": "WaitUrlInput",
+      "type": "object"
+    },
+    "name": "wait_for_url",
+    "title": "Wait for URL"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Wait Time"
+    },
+    "description": "Wait for a specific amount of time",
+    "inputSchema": {
+      "description": "Input schema for waiting a specific time.",
+      "properties": {
+        "seconds": {
+          "description": "Number of seconds to wait",
+          "title": "Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "seconds"
+      ],
+      "title": "WaitTimeInput",
+      "type": "object"
+    },
+    "name": "wait_time",
+    "title": "Wait Time"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Sleep"
+    },
+    "description": "Wait for a specific amount of time (backward-compatible alias of wait_time)",
+    "inputSchema": {
+      "description": "Input schema for waiting a specific time.",
+      "properties": {
+        "seconds": {
+          "description": "Number of seconds to wait",
+          "title": "Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "seconds"
+      ],
+      "title": "WaitTimeInput",
+      "type": "object"
+    },
+    "name": "wait_sleep",
+    "title": "Sleep"
+  }
+]

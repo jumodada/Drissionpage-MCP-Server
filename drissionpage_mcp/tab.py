@@ -5,7 +5,7 @@ import base64
 import logging
 import os
 import tempfile
-from typing import Any, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from DrissionPage.errors import ElementNotFoundError, PageDisconnectedError
 
@@ -164,16 +164,16 @@ class PageTab:
             if selector:
                 element = self.page.ele(selector)
                 if element:
-                    return element.text
+                    return str(element.text)
                 else:
                     raise ElementNotFoundError(f"Element not found: {selector}")
             else:
                 # Get page text
                 if hasattr(self.page, "text"):
-                    return self.page.text
+                    return str(self.page.text)
                 body = self.page.ele("tag:body", timeout=0)
                 if body:
-                    return body.text
+                    return str(body.text)
                 return ""
         except Exception as e:
             logger.error(f"Failed to get text from {selector or 'page'}: {e}")
@@ -184,7 +184,8 @@ class PageTab:
         try:
             element = self.page.ele(selector)
             if element:
-                return element.attr(attribute)
+                value = element.attr(attribute)
+                return None if value is None else str(value)
             else:
                 raise ElementNotFoundError(f"Element not found: {selector}")
         except Exception as e:
@@ -209,11 +210,11 @@ class PageTab:
             if selector:
                 element = self.page.ele(selector)
                 if element:
-                    return element.html
+                    return str(element.html)
                 else:
                     raise ElementNotFoundError(f"Element not found: {selector}")
             else:
-                return self.page.html
+                return str(self.page.html)
         except Exception as e:
             logger.error(f"Failed to get HTML from {selector or 'page'}: {e}")
             raise

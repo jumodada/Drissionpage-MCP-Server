@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from .base import define_tool, ToolType
+from .base import ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext

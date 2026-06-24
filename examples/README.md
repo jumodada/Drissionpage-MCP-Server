@@ -18,9 +18,10 @@ This directory contains configuration examples for different MCP clients and ins
 **Example**:
 ```bash
 # Install in development mode
-git clone https://github.com/your-username/DrissionMCP.git
+git clone https://github.com/jumodada/DrissionMCP.git
 cd DrissionMCP
-pip install -e .
+python -m pip install -e ".[dev]"
+python playground/quick_start.py
 
 # For Claude Code
 # Edit: ~/.config/claude-code/mcp_settings.json
@@ -42,7 +43,7 @@ pip install -e .
 **Example**:
 ```bash
 # Install from PyPI
-pip install drissionpage-mcp
+python -m pip install -U drissionpage-mcp
 
 # For Claude Code
 # Edit: ~/.config/claude-code/mcp_settings.json
@@ -70,28 +71,33 @@ pip install drissionpage-mcp
 
 ```bash
 # 1. Install
-pip install drissionpage-mcp
+python -m pip install -U drissionpage-mcp
 
-# 2. Add to Claude Code config
-cat examples/pypi-install-config.json >> ~/.config/claude-code/mcp_settings.json
+# 2. Verify the command and environment
+drissionpage-mcp --version
+drissionpage-mcp doctor
 
-# 3. Restart Claude Code
+# 3. Copy examples/pypi-install-config.json into your MCP settings JSON
+# Do not append raw JSON to an existing file unless you merge it into mcpServers.
+
+# 4. Restart Claude Code
 ```
 
 ### Method 2: From Source (Recommended for Developers)
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/your-username/DrissionMCP.git
+git clone https://github.com/jumodada/DrissionMCP.git
 cd DrissionMCP
-pip install -e .
+python -m pip install -e ".[dev]"
+python playground/quick_start.py
 
 # 2. Copy config and edit path
 cp examples/claude-code-config.json temp-config.json
 # Edit temp-config.json and replace <REPLACE_WITH_YOUR_DRISSIONMCP_PATH>
 
-# 3. Add to your MCP settings
-cat temp-config.json >> ~/.config/claude-code/mcp_settings.json
+# 3. Merge temp-config.json into your MCP settings JSON
+# Do not append raw JSON to an existing file unless you merge it into mcpServers.
 
 # 4. Restart Claude Code
 ```
@@ -157,6 +163,8 @@ After configuration, test your setup:
 "Use DrissionPage to navigate to https://example.com and take a screenshot"
 
 # Or test manually:
+drissionpage-mcp --version
+drissionpage-mcp doctor
 python playground/quick_start.py
 ```
 
@@ -166,11 +174,12 @@ python playground/quick_start.py
 
 ### Config not loading?
 - Check file path is correct
-- Ensure JSON syntax is valid (use jsonlint.com)
+- Ensure JSON syntax is valid
 - Restart Claude Code/Desktop after changes
 
 ### Server not starting?
 - Verify Python and dependencies are installed
+- Run `drissionpage-mcp doctor`
 - Check the `cwd` path exists (for source installation)
 - Try running manually: `python -m drissionpage_mcp.cli --log-level DEBUG`
 
@@ -184,5 +193,7 @@ python playground/quick_start.py
 ## 📚 More Information
 
 - [Main README](../README.md)
-- [Playground Testing](../playground/README.md)
+- [Compatibility](../docs/compatibility.md)
+- [Tool contract](../docs/tool-contract.md)
+- [Troubleshooting](../docs/troubleshooting.md)
 - [Changelog](../CHANGELOG.md)

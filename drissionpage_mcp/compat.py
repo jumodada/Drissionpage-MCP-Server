@@ -12,12 +12,12 @@ from DrissionPage import ChromiumOptions
 try:  # DrissionPage 4.x exports Chromium; 4.2 makes it the preferred API.
     from DrissionPage import Chromium
 except ImportError:  # pragma: no cover - kept for older/partial installs.
-    Chromium = None  # type: ignore[assignment]
+    Chromium = None
 
 try:
     from DrissionPage import ChromiumPage
 except ImportError:  # pragma: no cover - 4.2 still exports it, but it is deprecated.
-    ChromiumPage = None  # type: ignore[assignment]
+    ChromiumPage = None
 
 try:
     from DrissionPage.version import __version__ as DRISSIONPAGE_VERSION

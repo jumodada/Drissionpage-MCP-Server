@@ -5,8 +5,8 @@
 [![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg)](https://pypi.org/project/drissionpage-mcp/)
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![Status](https://img.shields.io/badge/status-production-green.svg)]()
+[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
 **Official Repositories**: [GitHub](https://github.com/jumodada/DrissionMCP) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
@@ -16,7 +16,7 @@
 
 ## 🚀 What is DrissionPage MCP?
 
-**DrissionPage MCP Server** is a production-ready Model Context Protocol (MCP) server that brings professional browser automation capabilities to Claude Code, Claude Desktop, and other MCP clients.
+**DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Claude Code, Claude Desktop, and other MCP clients.
 
 Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 21 powerful tools that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
@@ -26,20 +26,23 @@ Unlike screenshot-based approaches, it provides **structured, deterministic web 
 - **Deterministic**: Reliable element selection with CSS and XPath support
 - **Fast & Lightweight**: Built on DrissionPage's efficient engine with minimal overhead
 - **Type-Safe**: Full type hints and Pydantic validation for all tools
-- **Production Ready**: Thoroughly tested and documented, ready for real-world use
+- **Open-source Friendly**: Includes compatibility notes, troubleshooting, and CI checks for maintainable contributions
 - **Easy Integration**: Simple `pip install` + JSON configuration
 
 ---
 
-## ⚡ Quick Install
+## ⚡ First Success Path
 
 ```bash
 # Install from PyPI
-pip install drissionpage-mcp
+python -m pip install -U drissionpage-mcp
 
-# Verify installation
+# Verify package and environment
 drissionpage-mcp --version
+drissionpage-mcp doctor
 ```
+
+Then add the MCP client configuration below and restart your client.
 
 ---
 
@@ -123,8 +126,11 @@ drissionpage-mcp --version
 | Guide | Description |
 |-------|-------------|
 | [README.md](README.md) | Installation, tools, and architecture |
+| [docs/compatibility.md](docs/compatibility.md) | Supported Python, DrissionPage, MCP, and browser versions |
+| [docs/tool-contract.md](docs/tool-contract.md) | Public MCP tool names, inputs, annotations, and response shape |
+| [docs/troubleshooting.md](docs/troubleshooting.md) | Doctor command, browser startup, and client setup fixes |
+| [docs/release-checklist.md](docs/release-checklist.md) | Release validation and publishing checklist |
 | [examples/README.md](examples/README.md) | MCP client configuration examples |
-| [playground/README.md](playground/README.md) | Local testing utilities and scenarios |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes |
 
 ---
@@ -152,7 +158,7 @@ DrissionMCP/
 - ✅ Async/await throughout
 - ✅ Clean separation of concerns
 - ✅ Comprehensive error handling
-- ✅ Full test coverage
+- ✅ Unit and protocol test coverage for core tool registration/response behavior
 
 ---
 
@@ -190,7 +196,7 @@ See [examples/README.md](examples/README.md) for more configuration options.
 
 ## 📋 Requirements
 
-- **Python 3.8+** (3.11+ recommended)
+- **Python 3.10+** (3.11+ recommended)
 - **Chrome or Chromium** browser
 - **Any MCP-compatible client**: Claude Code, Claude Desktop, Cursor, VS Code, etc.
 
@@ -200,12 +206,13 @@ See [examples/README.md](examples/README.md) for more configuration options.
 
 ### Verify Installation
 ```bash
-# Quick verification
-python -c "from DrissionPage import Chromium; b = Chromium(); print('✅ Ready'); b.quit()"
+# Environment diagnostics; add --launch-browser for a browser startup check
+drissionpage-mcp doctor
+drissionpage-mcp doctor --launch-browser
 
-# Or run tests
-pip install -e ".[dev]"
-pytest tests/
+# Source checkout tests
+python -m pip install -e ".[dev]"
+python -m pytest tests/
 ```
 
 ### Try It Out
@@ -236,7 +243,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output: `drissionpage-mcp 0.1.0`
+Should output the installed package version, for example `drissionpage-mcp 0.2.0`.
 
 ### Browser Issues?
 ```bash
@@ -250,7 +257,7 @@ which chromium         # macOS
 - Restart Claude Code after changes
 - Check logs: `drissionpage-mcp --log-level DEBUG`
 
-See [TESTING_AND_INTEGRATION.md](TESTING_AND_INTEGRATION.md#troubleshooting) for complete troubleshooting guide.
+See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubleshooting guide.
 
 ---
 
@@ -259,22 +266,22 @@ See [TESTING_AND_INTEGRATION.md](TESTING_AND_INTEGRATION.md#troubleshooting) for
 | Component | Status |
 |-----------|--------|
 | **Core Features** | ✅ Complete |
-| **Testing** | ✅ 100% Coverage |
-| **Documentation** | ✅ Comprehensive |
-| **Production Ready** | ✅ Yes |
-| **PyPI Package** | ✅ Published |
+| **Testing** | ✅ Unit/protocol checks, optional browser smoke |
+| **Documentation** | ✅ Setup, compatibility, troubleshooting, release checklist |
+| **Package** | ✅ PyPI metadata and build checks |
+| **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.1.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.2.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.1.0)
+### Current (v0.2.0)
 - [x] 21 core automation tools
-- [x] Full MCP protocol support
-- [x] Production-ready codebase
-- [x] Comprehensive documentation
+- [x] stdio MCP server integration
+- [x] Doctor diagnostics for local setup
+- [x] Compatibility and troubleshooting documentation
 - [x] PyPI distribution
 
 ### Future (v0.2+)
@@ -321,24 +328,26 @@ Contributions are welcome!
 
 1. Fork the repository
 2. Create a feature branch
-3. Make your changes
-4. Add tests if needed
+3. Make focused changes
+4. Run the relevant checks
 5. Submit a pull request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, validation, and compatibility expectations.
 
 ---
 
 ## 🔒 Security
 
-- Does not store or transmit sensitive data
 - Runs locally in your environment
-- No external API calls
-- Respects website terms of service
+- Uses a local browser that may have access to authenticated sessions, cookies, downloads, and page content
+- Can open and interact with any site reachable from the local machine
+- Does not require external API credentials
 
 **Best Practices**:
-- Don't automate without permission
-- Use on test environments when possible
-- Respect robots.txt
-- Add appropriate delays between actions
+- Use a dedicated browser profile for sensitive workflows
+- Review MCP client prompts before allowing actions on authenticated or production systems
+- Respect website terms of service, robots.txt, and rate limits
+- See [SECURITY.md](SECURITY.md) for reporting and safe-usage guidance
 
 ---
 
@@ -358,7 +367,7 @@ Licensed under **Apache License 2.0** - see [LICENSE](LICENSE)
 
 ## 💬 Support
 
-- 📖 **[Full Documentation](USAGE_GUIDE.md)**
+- 📖 **[Troubleshooting](docs/troubleshooting.md)**
 - 🐛 **[Report Issues](https://github.com/jumodada/DrissionMCP/issues)**
 - 💡 **[Feature Requests](https://github.com/jumodada/DrissionMCP/discussions)**
 - 🔗 **[GitHub Repository](https://github.com/jumodada/DrissionMCP)**
@@ -385,4 +394,4 @@ If you find this project useful, please consider:
 
 **Made with ❤️ by [Wukunyun](https://github.com/jumodada)**
 
-**Ready to automate your workflows?** Install now: `pip install drissionpage-mcp`
+**Ready to automate your workflows?** Install now: `python -m pip install -U drissionpage-mcp`
