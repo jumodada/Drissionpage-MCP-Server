@@ -18,8 +18,8 @@ This directory contains configuration examples for different MCP clients and ins
 **Example**:
 ```bash
 # Install in development mode
-git clone https://github.com/jumodada/DrissionMCP.git
-cd DrissionMCP
+git clone https://github.com/jumodada/Drissionpage-MCP-Server.git
+cd Drissionpage-MCP-Server
 python -m pip install -e ".[dev]"
 python playground/quick_start.py
 
@@ -87,8 +87,8 @@ drissionpage-mcp doctor
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/jumodada/DrissionMCP.git
-cd DrissionMCP
+git clone https://github.com/jumodada/Drissionpage-MCP-Server.git
+cd Drissionpage-MCP-Server
 python -m pip install -e ".[dev]"
 python playground/quick_start.py
 

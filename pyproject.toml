@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "drissionpage-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "Professional browser automation for Claude Code and MCP clients powered by DrissionPage"
 authors = [
     { name = "Wukunyun", email = "864353360@qq.com" }
@@ -57,11 +57,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/jumodada/DrissionMCP"
-Documentation = "https://github.com/jumodada/DrissionMCP#readme"
-Repository = "https://github.com/jumodada/DrissionMCP"
-Issues = "https://github.com/jumodada/DrissionMCP/issues"
-Changelog = "https://github.com/jumodada/DrissionMCP/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/jumodada/Drissionpage-MCP-Server"
+Documentation = "https://github.com/jumodada/Drissionpage-MCP-Server#readme"
+Repository = "https://github.com/jumodada/Drissionpage-MCP-Server"
+Issues = "https://github.com/jumodada/Drissionpage-MCP-Server/issues"
+Changelog = "https://github.com/jumodada/Drissionpage-MCP-Server/blob/main/CHANGELOG.md"
 
 [project.scripts]
 drissionpage-mcp = "drissionpage_mcp.cli:main"
@@ -132,6 +132,9 @@ omit = [
 ]
 
 [tool.coverage.report]
+fail_under = 60
+precision = 2
+show_missing = true
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",
@@ -141,3 +144,6 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "@abstractmethod",
 ]
+
+[tool.coverage.xml]
+output = "coverage.xml"

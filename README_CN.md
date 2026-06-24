@@ -6,9 +6,11 @@
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server/branch/main/graph/badge.svg)](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server)
 [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
-**官方仓库**: [GitHub](https://github.com/jumodada/DrissionMCP) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
+**官方仓库**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
@@ -213,7 +215,14 @@ drissionpage-mcp doctor --launch-browser
 # 源码检出测试
 python -m pip install -e ".[dev]"
 python -m pytest tests/
+
+# 覆盖率报告（CI 会执行当前 60% 覆盖率底线并上传 coverage.xml）
+python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 ```
+
+GitHub Actions 已配置 lint、单元、协议、打包、浏览器集成和覆盖率检查。
+Codecov 通过 `codecov.yml` 和 CI workflow 上传覆盖率；公开仓库可使用当前
+OIDC 上传配置，私有镜像通常需要先在 Codecov 中启用仓库。
 
 ### 试用
 ```bash
@@ -243,7 +252,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.2.0`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.3.0`。
 
 ### 浏览器问题？
 ```bash
@@ -271,13 +280,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.2.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.3.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.2.0)
+### 当前版本 (v0.3.0)
 - [x] 21 个核心自动化工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -368,9 +377,9 @@ which chromium         # macOS
 ## 💬 支持
 
 - 📖 **[故障排除](docs/troubleshooting.md)**
-- 🐛 **[报告问题](https://github.com/jumodada/DrissionMCP/issues)**
-- 💡 **[功能请求](https://github.com/jumodada/DrissionMCP/discussions)**
-- 🔗 **[GitHub 仓库](https://github.com/jumodada/DrissionMCP)**
+- 🐛 **[报告问题](https://github.com/jumodada/Drissionpage-MCP-Server/issues)**
+- 💡 **[功能请求](https://github.com/jumodada/Drissionpage-MCP-Server/discussions)**
+- 🔗 **[GitHub 仓库](https://github.com/jumodada/Drissionpage-MCP-Server)**
 - 📦 **[PyPI 包](https://pypi.org/project/drissionpage-mcp/)**
 
 ---
@@ -385,7 +394,7 @@ which chromium         # macOS
 ## 🌟 表达支持
 
 如果您觉得这个项目有用，请考虑：
-- ⭐ 在 [GitHub](https://github.com/jumodada/DrissionMCP) 上加星
+- ⭐ 在 [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) 上加星
 - 📤 分享给您的网络
 - 💬 留下反馈或建议
 - 🐛 报告问题以帮助改进
