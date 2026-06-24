@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 
 CI_WORKFLOW = Path(".github/workflows/ci.yml")
+CODECOV_CONFIG = Path("codecov.yml")
+README_FILES = (Path("README.md"), Path("README_CN.md"))
 
 
 def test_ci_separates_required_quality_gates() -> None:
@@ -18,6 +20,7 @@ def test_ci_separates_required_quality_gates() -> None:
         "lint",
         "unit",
         "protocol",
+        "coverage",
         "package",
         "browser-integration",
     } <= job_names
@@ -32,3 +35,39 @@ def test_ci_browser_integration_is_not_manual_only() -> None:
     assert "github.event_name == 'workflow_dispatch'" not in browser_job
     assert "tests/test_browser_integration.py" in browser_job
     assert "chromium" in browser_job.lower()
+
+
+def test_ci_uploads_xml_coverage_to_codecov() -> None:
+    """publishes a deterministic XML coverage report through the Codecov action."""
+
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
+        "\n  package:\n", maxsplit=1
+    )[0]
+
+    assert "python-version: \"3.11\"" in coverage_job
+    assert "--cov=drissionpage_mcp" in coverage_job
+    assert "--cov-report=xml:coverage.xml" in coverage_job
+    assert "codecov/codecov-action@v7" in coverage_job
+    assert "use_oidc: true" in coverage_job
+    assert "id-token: write" in coverage_job
+
+
+def test_readmes_publish_ci_and_codecov_badges() -> None:
+    """shows readers the live test and coverage state from the canonical repo."""
+
+    for readme in README_FILES:
+        text = readme.read_text(encoding="utf-8")
+        assert "actions/workflows/ci.yml/badge.svg?branch=main" in text
+        assert "codecov.io/gh/jumodada/Drissionpage-MCP-Server" in text
+
+
+def test_codecov_policy_matches_current_project_baseline() -> None:
+    """keeps Codecov thresholds realistic while the project grows coverage."""
+
+    config = CODECOV_CONFIG.read_text(encoding="utf-8")
+
+    assert "target: auto" in config
+    assert "threshold: 2%" in config
+    assert "target: 70%" in config
+    assert "threshold: 5%" in config

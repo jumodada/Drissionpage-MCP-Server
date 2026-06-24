@@ -5,6 +5,7 @@ from unittest.mock import Mock
 import pytest
 from mcp.types import CallToolResult
 
+from drissionpage_mcp import __version__
 from drissionpage_mcp.response import JSON_RESULT_SENTINEL
 from drissionpage_mcp.server import DrissionPageMCPServer
 from drissionpage_mcp.tools import get_all_tools
@@ -17,7 +18,7 @@ class TestDrissionPageMCPServer:
         """Test server can be initialized."""
         server = DrissionPageMCPServer()
         assert server.name == "DrissionPage MCP"
-        assert server.version == "0.2.0"
+        assert server.version == __version__
         assert server.context is None
 
     def test_server_custom_name_version(self):

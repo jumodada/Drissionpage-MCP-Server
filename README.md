@@ -6,9 +6,11 @@
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server/branch/main/graph/badge.svg)](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server)
 [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
-**Official Repositories**: [GitHub](https://github.com/jumodada/DrissionMCP) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
+**Official Repositories**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
@@ -213,7 +215,15 @@ drissionpage-mcp doctor --launch-browser
 # Source checkout tests
 python -m pip install -e ".[dev]"
 python -m pytest tests/
+
+# Coverage report (CI enforces the current 60% floor and uploads coverage.xml)
+python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 ```
+
+GitHub Actions runs lint, unit, protocol, package, browser integration, and
+coverage jobs. Codecov is configured through `codecov.yml` and the CI workflow;
+public repositories can use the configured OIDC upload, while private mirrors may
+need Codecov enabled for the repository first.
 
 ### Try It Out
 ```bash
@@ -243,7 +253,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.2.0`.
+Should output the installed package version, for example `drissionpage-mcp 0.3.0`.
 
 ### Browser Issues?
 ```bash
@@ -271,13 +281,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.2.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.3.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.2.0)
+### Current (v0.3.0)
 - [x] 21 core automation tools
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -368,9 +378,9 @@ Licensed under **Apache License 2.0** - see [LICENSE](LICENSE)
 ## 💬 Support
 
 - 📖 **[Troubleshooting](docs/troubleshooting.md)**
-- 🐛 **[Report Issues](https://github.com/jumodada/DrissionMCP/issues)**
-- 💡 **[Feature Requests](https://github.com/jumodada/DrissionMCP/discussions)**
-- 🔗 **[GitHub Repository](https://github.com/jumodada/DrissionMCP)**
+- 🐛 **[Report Issues](https://github.com/jumodada/Drissionpage-MCP-Server/issues)**
+- 💡 **[Feature Requests](https://github.com/jumodada/Drissionpage-MCP-Server/discussions)**
+- 🔗 **[GitHub Repository](https://github.com/jumodada/Drissionpage-MCP-Server)**
 - 📦 **[PyPI Package](https://pypi.org/project/drissionpage-mcp/)**
 
 ---
@@ -385,7 +395,7 @@ Licensed under **Apache License 2.0** - see [LICENSE](LICENSE)
 ## 🌟 Show Your Support
 
 If you find this project useful, please consider:
-- ⭐ Starring on [GitHub](https://github.com/jumodada/DrissionMCP)
+- ⭐ Starring on [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server)
 - 📤 Sharing with your network
 - 💬 Leaving feedback or suggestions
 - 🐛 Reporting issues to help improve

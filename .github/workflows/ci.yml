@@ -6,6 +6,13 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint
@@ -15,6 +22,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
       - name: Install dependencies
         run: python -m pip install -e ".[dev]"
       - name: Ruff check
@@ -32,6 +40,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
       - name: Install dependencies
         run: python -m pip install -e ".[dev]"
       - name: Parse pyproject
@@ -48,9 +57,7 @@ jobs:
             tests/test_response_contract.py \
             tests/test_doctor.py \
             tests/test_tool_schema_snapshot.py \
-            tests/test_ci_workflow.py \
-            --cov=drissionpage_mcp \
-            --cov-report=term-missing
+            tests/test_ci_workflow.py
 
   protocol:
     name: MCP protocol tests
@@ -64,10 +71,44 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
       - name: Install dependencies
         run: python -m pip install -e ".[dev]"
       - name: Run MCP protocol tests
         run: python -m pytest tests/test_mcp_protocol.py
+
+  coverage:
+    name: Coverage and Codecov
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install Chromium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Run tests with coverage
+        run: |
+          python -m pytest tests/ \
+            --cov=drissionpage_mcp \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./coverage.xml
+          flags: all-tests
+          name: python-3.11
+          use_oidc: true
+          fail_ci_if_error: true
 
   package:
     name: Package build
@@ -77,6 +118,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
       - name: Install build tools
         run: python -m pip install -e ".[dev]"
       - name: Build package
@@ -92,6 +134,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
       - name: Install Chromium
         run: |
           sudo apt-get update

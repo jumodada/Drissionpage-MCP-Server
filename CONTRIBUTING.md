@@ -5,8 +5,8 @@ Thank you for improving DrissionPage MCP. Keep changes small, tested, and focuse
 ## Development Setup
 
 ```bash
-git clone https://github.com/jumodada/DrissionMCP.git
-cd DrissionMCP
+git clone https://github.com/jumodada/Drissionpage-MCP-Server.git
+cd Drissionpage-MCP-Server
 python -m pip install -e ".[dev]"
 python playground/quick_start.py
 ```
@@ -19,7 +19,7 @@ Run the checks that match your change:
 
 ```bash
 python -c "import tomllib; tomllib.load(open('pyproject.toml','rb'))"
-python -m pytest tests/
+python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 python -m ruff check drissionpage_mcp tests playground
 python -m build
 python -m twine check dist/*
