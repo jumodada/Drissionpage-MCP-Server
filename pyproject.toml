@@ -132,7 +132,7 @@ omit = [
 ]
 
 [tool.coverage.report]
-fail_under = 60
+fail_under = 75
 precision = 2
 show_missing = true
 exclude_lines = [
