@@ -1,7 +1,8 @@
-"""Base classes for DrissionPage MCP tools."""
+"""Base classes and helpers for DrissionPage MCP tools."""
 
+from contextlib import asynccontextmanager
 from enum import Enum
-from typing import TYPE_CHECKING, Awaitable, Callable
+from typing import TYPE_CHECKING, AsyncIterator, Awaitable, Callable
 
 from pydantic import BaseModel
 
@@ -105,3 +106,16 @@ def define_tool(
         return Tool(schema, func)
 
     return decorator
+
+
+@asynccontextmanager
+async def tool_errors(
+    response: "ToolResponse", message: Callable[[Exception], str] | str
+) -> AsyncIterator[None]:
+    """Convert tool implementation exceptions into a stable ToolResponse error."""
+
+    try:
+        yield
+    except Exception as exc:
+        error_message = message(exc) if callable(message) else f"{message}: {exc}"
+        response.add_error(error_message)

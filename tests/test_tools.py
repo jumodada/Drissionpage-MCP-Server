@@ -77,6 +77,47 @@ class TestNavigateTools:
         )
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool_name", "arguments", "expected_message", "expected_code"),
+    [
+        (
+            "page_resize",
+            {"width": 800, "height": 600},
+            "Failed to resize window",
+            "BROWSER_NOT_INITIALIZED",
+        ),
+        ("page_get_url", {}, "Failed to get URL", "BROWSER_NOT_INITIALIZED"),
+        ("element_get_text", {}, "Failed to get text", "BROWSER_NOT_INITIALIZED"),
+        (
+            "wait_for_element",
+            {"selector": "#missing", "timeout": 1},
+            "did not appear",
+            "BROWSER_NOT_INITIALIZED",
+        ),
+    ],
+)
+async def test_tool_handlers_convert_exceptions_to_structured_errors(
+    tool_name, arguments, expected_message, expected_code
+):
+    """Tool handlers keep failures in ToolResponse instead of leaking exceptions."""
+
+    tool = next(tool for tool in get_all_tools() if tool.name == tool_name)
+    response = ToolResponse()
+
+    await tool.execute(
+        DrissionPageContext(),
+        tool.input_schema.model_validate(arguments),
+        response,
+    )
+
+    payload = response.get_structured_content()
+    assert response.is_error()
+    assert payload["ok"] is False
+    assert payload["error"]["code"] == expected_code
+    assert expected_message in payload["message"]
+
+
 class TestToolResponse:
     """Test ToolResponse functionality."""
 
