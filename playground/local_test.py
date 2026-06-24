@@ -11,9 +11,9 @@ import sys
 from pathlib import Path
 from typing import Dict, Any
 
-# Add src to Python path
+# Add project root to Python path for source checkouts
 PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
+sys.path.insert(0, str(PROJECT_ROOT))
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -55,6 +55,10 @@ class LocalMCPTester:
             def __init__(self, *args, **kwargs):
                 self.url = "about:blank"
             
+            @property
+            def latest_tab(self):
+                return self
+
             def get(self, url):
                 self.url = url
                 logger.info(f"🌐 Mock: Navigated to {url}")
@@ -113,7 +117,7 @@ class LocalMCPTester:
     async def load_tools(self):
         """Load all available tools."""
         try:
-            from tools import get_all_tools
+            from drissionpage_mcp.tools import get_all_tools
             self.tools = get_all_tools()
             logger.info(f"✅ Loaded {len(self.tools)} tools")
             return True
@@ -124,7 +128,7 @@ class LocalMCPTester:
     async def setup_context(self):
         """Setup DrissionPage context."""
         try:
-            from context import DrissionPageContext
+            from drissionpage_mcp.context import DrissionPageContext
             self.context = DrissionPageContext()
             logger.info("✅ Context initialized")
             return True
@@ -150,7 +154,7 @@ class LocalMCPTester:
             validated_args = tool.input_schema.model_validate(arguments)
 
             # Create response
-            from response import ToolResponse
+            from drissionpage_mcp.response import ToolResponse
             response = ToolResponse()
             
             # Execute tool

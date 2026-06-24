@@ -109,7 +109,7 @@ playground/
     └── data_extraction.py      # Data scraping tests
 ```
 
-## 🛠️ Available MCP Tools
+## 🛠️ Available MCP Tools (21)
 
 ### Navigation (4 tools)
 - `page_navigate`: Navigate to URL
@@ -117,11 +117,14 @@ playground/
 - `page_go_forward`: Go forward in history
 - `page_refresh`: Refresh current page
 
-### Element Interaction (5 tools)
+### Element Interaction & Extraction (8 tools)
+- `element_find`: Find element metadata by selector
 - `element_click`: Click element by selector
-- `element_input_text`: Input text into fields
+- `element_type`: Input text into fields
+- `element_input_text`: Backward-compatible input alias
 - `element_get_text`: Extract text content
-- `element_get_attribute`: Get element attributes  
+- `element_get_attribute`: Get HTML attributes
+- `element_get_property`: Get live DOM properties such as input value
 - `element_get_html`: Get HTML content
 
 ### Common Actions (5 tools)
@@ -131,10 +134,11 @@ playground/
 - `page_close`: Close browser
 - `page_get_url`: Get current URL
 
-### Wait Operations (3 tools)
+### Wait Operations (4 tools)
 - `wait_for_element`: Wait for element to appear
 - `wait_for_url`: Wait for URL pattern
-- `wait_sleep`: Simple time delay
+- `wait_time`: Simple time delay
+- `wait_sleep`: Backward-compatible sleep alias
 
 ## 🎯 Testing Tips
 

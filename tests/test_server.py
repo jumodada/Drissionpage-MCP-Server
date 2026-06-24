@@ -14,7 +14,7 @@ class TestDrissionPageMCPServer:
         """Test server can be initialized."""
         server = DrissionPageMCPServer()
         assert server.name == "DrissionPage MCP"
-        assert server.version == "0.1.0"
+        assert server.version == "0.2.0"
         assert server.context is None
     
     def test_server_custom_name_version(self):
@@ -83,16 +83,21 @@ class TestToolsIntegration:
         assert "page_get_url" in tool_names
         
         # Element tools
+        assert "element_find" in tool_names
         assert "element_click" in tool_names
+        assert "element_type" in tool_names
         assert "element_input_text" in tool_names
         assert "element_get_text" in tool_names
         assert "element_get_attribute" in tool_names
+        assert "element_get_property" in tool_names
         assert "element_get_html" in tool_names
         
         # Wait tools
         assert "wait_for_element" in tool_names
         assert "wait_for_url" in tool_names
+        assert "wait_time" in tool_names
         assert "wait_sleep" in tool_names
+        assert len(tool_names) == 21
 
 
 if __name__ == "__main__":

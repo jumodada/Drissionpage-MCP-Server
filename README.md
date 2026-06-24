@@ -18,7 +18,7 @@
 
 **DrissionPage MCP Server** is a production-ready Model Context Protocol (MCP) server that brings professional browser automation capabilities to Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 14 powerful tools that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 21 powerful tools that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -88,17 +88,21 @@ drissionpage-mcp --version
 
 ---
 
-## 🛠️ 14 Powerful Tools
+## 🛠️ 21 Powerful Tools
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL
 - `page_go_back` / `page_go_forward` - Browser history
 - `page_refresh` - Reload current page
 
-### 🎯 Element Interaction (3 tools)
+### 🎯 Element Interaction & Extraction (8 tools)
 - `element_find` - Find elements by CSS selector or XPath
 - `element_click` - Click any element
-- `element_type` - Input text into elements
+- `element_type` / `element_input_text` - Input text into elements
+- `element_get_text` - Get element or page text
+- `element_get_attribute` - Get an HTML attribute
+- `element_get_property` - Get a live DOM property such as an input value
+- `element_get_html` - Get element or page HTML
 
 ### 📸 Page Operations (5 tools)
 - `page_screenshot` - Capture full page or viewport
@@ -107,9 +111,10 @@ drissionpage-mcp --version
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
 
-### ⏱️ Wait Operations (2 tools)
+### ⏱️ Wait Operations (4 tools)
 - `wait_for_element` - Wait for element to appear (with timeout)
-- `wait_time` - Delay execution
+- `wait_for_url` - Wait until the current URL contains text
+- `wait_time` / `wait_sleep` - Delay execution
 
 ---
 
@@ -117,10 +122,10 @@ drissionpage-mcp --version
 
 | Guide | Description |
 |-------|-------------|
-| [QUICKSTART.md](QUICKSTART.md) | 5-minute setup guide |
-| [USAGE_GUIDE.md](USAGE_GUIDE.md) | Complete usage reference |
-| [TESTING_AND_INTEGRATION.md](TESTING_AND_INTEGRATION.md) | Integration with MCP clients |
-| [examples/README.md](examples/README.md) | Configuration examples |
+| [README.md](README.md) | Installation, tools, and architecture |
+| [examples/README.md](examples/README.md) | MCP client configuration examples |
+| [playground/README.md](playground/README.md) | Local testing utilities and scenarios |
+| [CHANGELOG.md](CHANGELOG.md) | Release notes |
 
 ---
 
@@ -130,13 +135,13 @@ Built with **clean, modular design**:
 
 ```
 DrissionMCP/
-├── src/
+├── drissionpage_mcp/
 │   ├── cli.py              # Entry point
 │   ├── server.py           # MCP server
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 14 automation tools
+│   └── tools/              # 21 automation tools
 ├── examples/               # Configuration templates
 ├── tests/                  # Unit tests
 └── playground/             # Testing utilities
@@ -196,7 +201,7 @@ See [examples/README.md](examples/README.md) for more configuration options.
 ### Verify Installation
 ```bash
 # Quick verification
-python -c "from DrissionPage import ChromiumPage; p = ChromiumPage(); print('✅ Ready')"
+python -c "from DrissionPage import Chromium; b = Chromium(); print('✅ Ready'); b.quit()"
 
 # Or run tests
 pip install -e ".[dev]"
@@ -266,7 +271,7 @@ See [TESTING_AND_INTEGRATION.md](TESTING_AND_INTEGRATION.md#troubleshooting) for
 ## 🗺️ Roadmap
 
 ### Current (v0.1.0)
-- [x] 14 core automation tools
+- [x] 21 core automation tools
 - [x] Full MCP protocol support
 - [x] Production-ready codebase
 - [x] Comprehensive documentation

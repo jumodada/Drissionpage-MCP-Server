@@ -1,8 +1,7 @@
 """Test tools functionality."""
 
 import pytest
-import asyncio
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.response import ToolResponse
@@ -52,8 +51,8 @@ class TestNavigateTools:
         # Create mocked context and tab
         mock_context = Mock(spec=DrissionPageContext)
         mock_tab = Mock()
-        mock_tab.navigate = Mock(return_value=asyncio.coroutine(lambda: None)())
-        mock_context.ensure_tab = Mock(return_value=asyncio.coroutine(lambda: mock_tab)())
+        mock_tab.navigate = AsyncMock(return_value=None)
+        mock_context.ensure_tab = AsyncMock(return_value=mock_tab)
         
         # Create response object
         response = ToolResponse()

@@ -119,7 +119,7 @@ cat temp-config.json >> ~/.config/claude-code/mcp_settings.json
   "mcpServers": {
     "drissionpage": {
       "command": "python",
-      "args": ["-m", "src.cli", "--log-level", "DEBUG"],
+      "args": ["-m", "drissionpage_mcp.cli", "--log-level", "DEBUG"],
       "cwd": "/path/to/DrissionMCP",
       "env": {
         "CHROME_PATH": "/custom/path/to/chrome",
@@ -137,7 +137,7 @@ cat temp-config.json >> ~/.config/claude-code/mcp_settings.json
   - Source install: `"python"`
 
 - **`args`**: Command line arguments
-  - `["-m", "src.cli"]` - Run as Python module
+  - `["-m", "drissionpage_mcp.cli"]` - Run as Python module
   - `["--log-level", "DEBUG"]` - Set logging level
 
 - **`cwd`**: Working directory (required for source installation)
@@ -172,7 +172,7 @@ python playground/quick_start.py
 ### Server not starting?
 - Verify Python and dependencies are installed
 - Check the `cwd` path exists (for source installation)
-- Try running manually: `python -m src.cli --log-level DEBUG`
+- Try running manually: `python -m drissionpage_mcp.cli --log-level DEBUG`
 
 ### Tools not appearing?
 - Ensure server started successfully
@@ -184,6 +184,5 @@ python playground/quick_start.py
 ## 📚 More Information
 
 - [Main README](../README.md)
-- [Testing Guide](../TESTING_AND_INTEGRATION.md)
-- [Quick Start](../QUICKSTART.md)
-- [Publishing Guide](../PUBLISHING.md)
+- [Playground Testing](../playground/README.md)
+- [Changelog](../CHANGELOG.md)

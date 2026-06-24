@@ -1,5 +1,7 @@
 # Core dependencies
-DrissionPage>=4.0.0
+# Supports current stable 4.1.x and DrissionPage 4.2 pre-releases via:
+#   pip install --pre --upgrade DrissionPage
+DrissionPage>=4.1.1.4,<5
 pydantic>=2.0.0
 typing-extensions>=4.0.0
 

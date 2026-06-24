@@ -18,7 +18,7 @@
 
 **DrissionPage MCP Server** 是一个生产就绪的模型上下文协议（MCP）服务器，为 Claude Code、Claude Desktop 和其他 MCP 客户端提供专业的浏览器自动化能力。
 
-与基于截图的方法不同，它通过 14 个强大工具提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+与基于截图的方法不同，它通过 21 个强大工具提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -88,17 +88,21 @@ drissionpage-mcp --version
 
 ---
 
-## 🛠️ 14 个强大工具
+## 🛠️ 21 个强大工具
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL
 - `page_go_back` / `page_go_forward` - 浏览器历史记录
 - `page_refresh` - 重新加载当前页面
 
-### 🎯 元素交互（3 个）
+### 🎯 元素交互与提取（8 个）
 - `element_find` - 通过 CSS 选择器或 XPath 查找元素
 - `element_click` - 点击任意元素
-- `element_type` - 向元素输入文本
+- `element_type` / `element_input_text` - 向元素输入文本
+- `element_get_text` - 获取元素或整页文本
+- `element_get_attribute` - 获取 HTML attribute
+- `element_get_property` - 获取实时 DOM property，例如输入框当前 value
+- `element_get_html` - 获取元素或整页 HTML
 
 ### 📸 页面操作（5 个）
 - `page_screenshot` - 捕获完整页面或视口
@@ -107,9 +111,10 @@ drissionpage-mcp --version
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
 
-### ⏱️ 等待操作（2 个）
+### ⏱️ 等待操作（4 个）
 - `wait_for_element` - 等待元素出现（带超时）
-- `wait_time` - 延迟执行
+- `wait_for_url` - 等待当前 URL 包含指定文本
+- `wait_time` / `wait_sleep` - 延迟执行
 
 ---
 
@@ -117,10 +122,10 @@ drissionpage-mcp --version
 
 | 指南 | 描述 |
 |-------|-------------|
-| [QUICKSTART.md](QUICKSTART.md) | 5 分钟设置指南 |
-| [USAGE_GUIDE.md](USAGE_GUIDE.md) | 完整使用参考 |
-| [TESTING_AND_INTEGRATION.md](TESTING_AND_INTEGRATION.md) | MCP 客户端集成 |
-| [examples/README.md](examples/README.md) | 配置示例 |
+| [README_CN.md](README_CN.md) | 安装、工具和架构说明 |
+| [examples/README.md](examples/README.md) | MCP 客户端配置示例 |
+| [playground/README.md](playground/README.md) | 本地测试工具和场景 |
+| [CHANGELOG.md](CHANGELOG.md) | 版本变更 |
 
 ---
 
@@ -130,13 +135,13 @@ drissionpage-mcp --version
 
 ```
 DrissionMCP/
-├── src/
+├── drissionpage_mcp/
 │   ├── cli.py              # 入口点
 │   ├── server.py           # MCP 服务器
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 14 个自动化工具
+│   └── tools/              # 21 个自动化工具
 ├── examples/               # 配置模板
 ├── tests/                  # 单元测试
 └── playground/             # 测试工具
@@ -196,7 +201,7 @@ DrissionMCP/
 ### 验证安装
 ```bash
 # 快速验证
-python -c "from DrissionPage import ChromiumPage; p = ChromiumPage(); print('✅ Ready')"
+python -c "from DrissionPage import Chromium; b = Chromium(); print('✅ Ready'); b.quit()"
 
 # 或运行测试
 pip install -e ".[dev]"
@@ -266,7 +271,7 @@ which chromium         # macOS
 ## 🗺️ 路线图
 
 ### 当前版本 (v0.1.0)
-- [x] 14 个核心自动化工具
+- [x] 21 个核心自动化工具
 - [x] 完整 MCP 协议支持
 - [x] 生产就绪代码库
 - [x] 全面文档

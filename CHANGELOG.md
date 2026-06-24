@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- DrissionPage 4.2 beta compatibility using the `Chromium` browser API instead of relying on deprecated `ChromiumPage`.
+- Extraction tools: `element_get_text`, `element_get_attribute`, `element_get_property`, and `element_get_html`.
+- Backward-compatible aliases: `element_input_text` and `wait_sleep`; URL wait tool `wait_for_url`.
+
+### Fixed
+- Correct package import path from the generic `src` package to `drissionpage_mcp`, with old `src` shims retained for source checkouts.
+- MCP tool annotations now expose read-only/destructive hints.
+- Screenshot responses no longer leak temporary files.
+- Response rendering is idempotent when `get_content()` is called more than once.
+- Browser startup no longer disables web security by default.
+
 ### Planned
 - Form handling utilities
 - File upload support

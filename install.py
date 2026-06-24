@@ -52,7 +52,7 @@ def create_config(config_path, project_root, use_pypi=False):
     else:
         server_config = {
             "command": "python",
-            "args": ["-m", "src.cli"],
+            "args": ["-m", "drissionpage_mcp.cli"],
             "cwd": str(project_root)
         }
 

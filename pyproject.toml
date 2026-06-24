@@ -1,16 +1,16 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "drissionpage-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Professional browser automation for Claude Code and MCP clients powered by DrissionPage"
 authors = [
     { name = "Wukunyun", email = "864353360@qq.com" }
 ]
 readme = "README.md"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 requires-python = ">=3.8"
 keywords = [
     "mcp",
@@ -25,7 +25,6 @@ keywords = [
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
@@ -40,7 +39,7 @@ classifiers = [
 
 dependencies = [
     "mcp>=1.0.0",
-    "DrissionPage>=4.0.0",
+    "DrissionPage>=4.1.1.4,<5",
     "pydantic>=2.0.0",
     "typing-extensions>=4.0.0",
 ]
@@ -64,13 +63,13 @@ Issues = "https://github.com/jumodada/DrissionMCP/issues"
 Changelog = "https://github.com/jumodada/DrissionMCP/blob/main/CHANGELOG.md"
 
 [project.scripts]
-drissionpage-mcp = "src.cli:main"
+drissionpage-mcp = "drissionpage_mcp.cli:main"
 
 [tool.setuptools]
-packages = ["src", "src.tools"]
+packages = ["drissionpage_mcp", "drissionpage_mcp.tools", "src", "src.tools"]
 
 [tool.setuptools.package-data]
-src = ["py.typed"]
+drissionpage_mcp = ["py.typed"]
 
 [tool.black]
 line-length = 88
@@ -121,7 +120,7 @@ ignore_missing_imports = true
 minversion = "7.0"
 addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["."]
 asyncio_mode = "auto"
 
 [tool.coverage.run]
