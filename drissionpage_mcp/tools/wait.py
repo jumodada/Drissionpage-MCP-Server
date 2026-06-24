@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from .base import ToolType, define_tool
+from .base import ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -45,7 +45,13 @@ async def wait_for_element(
     context: "DrissionPageContext", args: WaitElementInput, response: "ToolResponse"
 ) -> None:
     """Wait for an element to appear."""
-    try:
+    async with tool_errors(
+        response,
+        lambda e: (
+            f"Element '{args.selector}' did not appear within "
+            f"{args.timeout} seconds: {e}"
+        ),
+    ):
         tab = context.current_tab_or_die()
         found = await tab.wait_for_element(args.selector, timeout=args.timeout)
         if not found:
@@ -56,11 +62,6 @@ async def wait_for_element(
         )
         response.add_result(
             f"Element '{args.selector}' appeared within {args.timeout} seconds"
-        )
-
-    except Exception as e:
-        response.add_error(
-            f"Element '{args.selector}' did not appear within {args.timeout} seconds: {str(e)}"
         )
 
 
@@ -76,7 +77,13 @@ async def wait_for_url(
     context: "DrissionPageContext", args: WaitUrlInput, response: "ToolResponse"
 ) -> None:
     """Wait for URL to match a pattern."""
-    try:
+    async with tool_errors(
+        response,
+        lambda e: (
+            f"URL did not match '{args.url_pattern}' within "
+            f"{args.timeout} seconds: {e}"
+        ),
+    ):
         tab = context.current_tab_or_die()
         matched = await tab.wait_for_url(args.url_pattern, timeout=args.timeout)
         if not matched:
@@ -85,11 +92,6 @@ async def wait_for_url(
         response.add_code(f"# wait until {args.url_pattern!r} in page.url")
         response.add_result(
             f"URL matched '{args.url_pattern}' within {args.timeout} seconds"
-        )
-
-    except Exception as e:
-        response.add_error(
-            f"URL did not match '{args.url_pattern}' within {args.timeout} seconds: {str(e)}"
         )
 
 
@@ -105,14 +107,11 @@ async def wait_time(
     context: "DrissionPageContext", args: WaitTimeInput, response: "ToolResponse"
 ) -> None:
     """Wait for a specific time."""
-    try:
+    async with tool_errors(response, "Failed to wait"):
         await context.wait(args.seconds)
 
         response.add_code(f"time.sleep({args.seconds})")
         response.add_result(f"Waited for {args.seconds} seconds")
-
-    except Exception as e:
-        response.add_error(f"Failed to wait: {str(e)}")
 
 
 @define_tool(

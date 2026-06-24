@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from .base import ToolType, define_tool
+from .base import ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -89,15 +89,14 @@ async def find_element(
     context: "DrissionPageContext", args: FindElementInput, response: "ToolResponse"
 ) -> None:
     """Find an element on the page."""
-    try:
+    async with tool_errors(
+        response, lambda e: f"Failed to find element '{args.selector}': {e}"
+    ):
         tab = context.current_tab_or_die()
         element = await tab.find_element(args.selector, timeout=args.timeout)
 
         response.add_code(f"element = page.ele({args.selector!r})")
         response.add_result(json.dumps(element, ensure_ascii=False, indent=2))
-
-    except Exception as e:
-        response.add_error(f"Failed to find element '{args.selector}': {str(e)}")
 
 
 @define_tool(
@@ -111,16 +110,15 @@ async def click_element(
     context: "DrissionPageContext", args: ClickElementInput, response: "ToolResponse"
 ) -> None:
     """Click on an element."""
-    try:
+    async with tool_errors(
+        response, lambda e: f"Failed to click element '{args.selector}': {e}"
+    ):
         tab = context.current_tab_or_die()
         await tab.click_element(args.selector, timeout=args.timeout)
 
         response.add_code(f"page.ele({args.selector!r}).click()")
         response.add_result(f"Successfully clicked element: {args.selector}")
         response.set_include_snapshot(True)
-
-    except Exception as e:
-        response.add_error(f"Failed to click element '{args.selector}': {str(e)}")
 
 
 @define_tool(
@@ -134,7 +132,9 @@ async def type_text(
     context: "DrissionPageContext", args: TypeTextInput, response: "ToolResponse"
 ) -> None:
     """Type text into an element."""
-    try:
+    async with tool_errors(
+        response, lambda e: f"Failed to type text into element '{args.selector}': {e}"
+    ):
         tab = context.current_tab_or_die()
         await tab.type_text(
             args.selector, args.text, timeout=args.timeout, clear=args.clear
@@ -145,11 +145,6 @@ async def type_text(
         )
         response.add_result(f"Successfully typed text into element: {args.selector}")
         response.set_include_snapshot(True)
-
-    except Exception as e:
-        response.add_error(
-            f"Failed to type text into element '{args.selector}': {str(e)}"
-        )
 
 
 @define_tool(
@@ -178,17 +173,16 @@ async def get_text(
     context: "DrissionPageContext", args: GetTextInput, response: "ToolResponse"
 ) -> None:
     """Get text from an element or the page."""
-    try:
+    async with tool_errors(
+        response,
+        lambda e: f"Failed to get text from '{args.selector or 'page'}': {e}",
+    ):
         tab = context.current_tab_or_die()
         text = await tab.get_text(args.selector)
 
         code = f"page.ele({args.selector!r}).text" if args.selector else "page.text"
         response.add_code(code)
         response.add_result(text or "")
-
-    except Exception as e:
-        target = args.selector or "page"
-        response.add_error(f"Failed to get text from '{target}': {str(e)}")
 
 
 @define_tool(
@@ -203,17 +197,18 @@ async def get_attribute(
     context: "DrissionPageContext", args: GetAttributeInput, response: "ToolResponse"
 ) -> None:
     """Get an attribute value from an element."""
-    try:
+    async with tool_errors(
+        response,
+        lambda e: (
+            f"Failed to get attribute '{args.attribute}' "
+            f"from '{args.selector}': {e}"
+        ),
+    ):
         tab = context.current_tab_or_die()
         value = await tab.get_attribute(args.selector, args.attribute)
 
         response.add_code(f"page.ele({args.selector!r}).attr({args.attribute!r})")
         response.add_result("" if value is None else str(value))
-
-    except Exception as e:
-        response.add_error(
-            f"Failed to get attribute '{args.attribute}' from '{args.selector}': {str(e)}"
-        )
 
 
 @define_tool(
@@ -228,7 +223,13 @@ async def get_property(
     context: "DrissionPageContext", args: GetPropertyInput, response: "ToolResponse"
 ) -> None:
     """Get a live DOM property value from an element."""
-    try:
+    async with tool_errors(
+        response,
+        lambda e: (
+            f"Failed to get property '{args.property_name}' "
+            f"from '{args.selector}': {e}"
+        ),
+    ):
         tab = context.current_tab_or_die()
         value = await tab.get_property(args.selector, args.property_name)
 
@@ -236,11 +237,6 @@ async def get_property(
             f"page.ele({args.selector!r}).property({args.property_name!r})"
         )
         response.add_result("" if value is None else str(value))
-
-    except Exception as e:
-        response.add_error(
-            f"Failed to get property '{args.property_name}' from '{args.selector}': {str(e)}"
-        )
 
 
 @define_tool(
@@ -255,17 +251,16 @@ async def get_html(
     context: "DrissionPageContext", args: GetHtmlInput, response: "ToolResponse"
 ) -> None:
     """Get HTML from an element or the page."""
-    try:
+    async with tool_errors(
+        response,
+        lambda e: f"Failed to get HTML from '{args.selector or 'page'}': {e}",
+    ):
         tab = context.current_tab_or_die()
         html = await tab.get_html(args.selector)
 
         code = f"page.ele({args.selector!r}).html" if args.selector else "page.html"
         response.add_code(code)
         response.add_result(html or "")
-
-    except Exception as e:
-        target = args.selector or "page"
-        response.add_error(f"Failed to get HTML from '{target}': {str(e)}")
 
 
 # Export all tools

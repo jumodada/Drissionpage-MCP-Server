@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from ..response import build_screenshot_metadata
-from .base import ToolType, define_tool
+from .base import ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -55,7 +55,7 @@ async def resize(
     context: "DrissionPageContext", args: ResizeInput, response: "ToolResponse"
 ) -> None:
     """Resize the browser window."""
-    try:
+    async with tool_errors(response, "Failed to resize window"):
         tab = context.current_tab_or_die()
         await tab.resize(args.width, args.height)
 
@@ -63,9 +63,6 @@ async def resize(
         response.add_result(
             f"Successfully resized window to {args.width}x{args.height}"
         )
-
-    except Exception as e:
-        response.add_error(f"Failed to resize window: {str(e)}")
 
 
 @define_tool(
@@ -80,7 +77,7 @@ async def screenshot(
     context: "DrissionPageContext", args: ScreenshotInput, response: "ToolResponse"
 ) -> None:
     """Take a screenshot."""
-    try:
+    async with tool_errors(response, "Failed to take screenshot"):
         tab = context.current_tab_or_die()
         screenshot_data = await tab.screenshot(
             path=args.path or None, full_page=args.full_page
@@ -101,9 +98,6 @@ async def screenshot(
         else:
             response.add_screenshot(screenshot_data, {"full_page": args.full_page})
 
-    except Exception as e:
-        response.add_error(f"Failed to take screenshot: {str(e)}")
-
 
 @define_tool(
     name="page_click_xy",
@@ -118,16 +112,15 @@ async def click_coordinates(
     response: "ToolResponse",
 ) -> None:
     """Click at coordinates."""
-    try:
+    async with tool_errors(
+        response, lambda e: f"Failed to click at ({args.x}, {args.y}): {e}"
+    ):
         tab = context.current_tab_or_die()
         await tab.click(args.x, args.y)
 
         response.add_code(f"page.actions.click(({args.x}, {args.y}))")
         response.add_result(f"Successfully clicked at coordinates ({args.x}, {args.y})")
         response.set_include_snapshot(True)
-
-    except Exception as e:
-        response.add_error(f"Failed to click at ({args.x}, {args.y}): {str(e)}")
 
 
 @define_tool(
@@ -141,14 +134,11 @@ async def close(
     context: "DrissionPageContext", args: EmptyInput, response: "ToolResponse"
 ) -> None:
     """Close the browser."""
-    try:
+    async with tool_errors(response, "Failed to close browser"):
         await context.close_browser()
 
         response.add_code("page.quit()")
         response.add_result("Successfully closed browser")
-
-    except Exception as e:
-        response.add_error(f"Failed to close browser: {str(e)}")
 
 
 @define_tool(
@@ -163,15 +153,12 @@ async def get_url(
     context: "DrissionPageContext", args: EmptyInput, response: "ToolResponse"
 ) -> None:
     """Get current URL."""
-    try:
+    async with tool_errors(response, "Failed to get URL"):
         tab = context.current_tab_or_die()
         url = tab.url
 
         response.add_code("page.url")
         response.add_result(f"Current URL: {url}")
-
-    except Exception as e:
-        response.add_error(f"Failed to get URL: {str(e)}")
 
 
 # Export all tools
