@@ -216,7 +216,7 @@ drissionpage-mcp doctor --launch-browser
 python -m pip install -e ".[dev]"
 python -m pytest tests/
 
-# 覆盖率报告（CI 会执行当前 60% 覆盖率底线并上传 coverage.xml）
+# 覆盖率报告（CI 会执行当前 75% 覆盖率底线并上传 coverage.xml）
 python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 ```
 
