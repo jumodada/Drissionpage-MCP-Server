@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-06-24
+
 ### Added
-- CI coverage upload to Codecov with README badges and a local 60% coverage floor.
+- CI coverage upload to Codecov with README badges and a local 75% coverage floor.
+- CI wheel-content check to prevent broad top-level packages from leaking into release artifacts.
+
+### Removed
+- Removed the legacy top-level `src` compatibility shim package from source and release artifacts.
+
+### Fixed
+- `element_type` now stops immediately when its element wait fails instead of continuing to input.
+- Release wheels now expose only the canonical `drissionpage_mcp` top-level package.
 
 ## [0.3.0] - 2026-06-24
 
@@ -106,7 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.2.0...v0.3.0
 [0.1.0]: https://github.com/jumodada/Drissionpage-MCP-Server/releases/tag/v0.1.0
 [0.0.1]: https://github.com/jumodada/Drissionpage-MCP-Server/releases/tag/v0.0.1
