@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 
 class PageTab:
     """Wrapper around a DrissionPage Chromium tab/page object."""
-    
+
     def __init__(self, page: Any, context: "DrissionPageContext"):
         # Keep the historical ``page`` attribute name while allowing it to hold
         # DrissionPage 4.2 ChromiumTab objects.
         self.page = page
         self.context = context
         self._url = ""
-    
+
     @property
     def url(self) -> str:
         """Get the current URL of the tab."""
@@ -32,7 +32,7 @@ class PageTab:
             return self.page.url or self._url
         except (PageDisconnectedError, Exception):
             return self._url
-    
+
     async def navigate(self, url: str) -> None:
         """Navigate to a URL."""
         try:
@@ -46,7 +46,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to navigate to {url}: {e}")
             raise
-    
+
     async def go_back(self) -> None:
         """Go back in history."""
         try:
@@ -55,7 +55,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to go back: {e}")
             raise
-    
+
     async def go_forward(self) -> None:
         """Go forward in history."""
         try:
@@ -64,7 +64,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to go forward: {e}")
             raise
-    
+
     async def refresh(self) -> None:
         """Refresh the page."""
         try:
@@ -73,7 +73,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to refresh: {e}")
             raise
-    
+
     async def click(self, x: int, y: int) -> None:
         """Click at coordinates."""
         try:
@@ -82,7 +82,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to click at ({x}, {y}): {e}")
             raise
-    
+
     async def click_element(self, selector: str, timeout: int = 10) -> None:
         """Click an element by selector."""
         try:
@@ -101,7 +101,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to click element {selector}: {e}")
             raise
-    
+
     async def input_text(self, selector: str, text: str, clear: bool = True) -> None:
         """Input text into an element."""
         try:
@@ -120,12 +120,15 @@ class PageTab:
             logger.error(f"Failed to input text to {selector}: {e}")
             raise
 
-    async def type_text(self, selector: str, text: str, timeout: int = 10, clear: bool = True) -> None:
-        """Type text into an element (alias for input_text with timeout support)."""
+    async def type_text(
+        self, selector: str, text: str, timeout: int = 10, clear: bool = True
+    ) -> None:
+        """Type text into an element after waiting for it to appear."""
         try:
-            # Wait for element if timeout is specified
             if timeout > 0:
-                await self.wait_for_element(selector, timeout)
+                loaded = await self.wait_for_element(selector, timeout)
+                if not loaded:
+                    raise ElementNotFoundError(f"Element not found: {selector}")
 
             await self.input_text(selector, text, clear)
         except Exception as e:
@@ -150,14 +153,14 @@ class PageTab:
                 "found": True,
                 "selector": selector,
                 "text": element.text or "",
-                "tag": element.tag if hasattr(element, 'tag') else "unknown",
+                "tag": element.tag if hasattr(element, "tag") else "unknown",
                 "html": element.html if hasattr(element, "html") else "",
-                "visible": True  # DrissionPage elements are visible if found
+                "visible": True,  # DrissionPage elements are visible if found
             }
         except Exception as e:
             logger.error(f"Failed to find element {selector}: {e}")
             raise
-    
+
     async def get_text(self, selector: str = "") -> str:
         """Get text content from element or page."""
         try:
@@ -178,7 +181,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to get text from {selector or 'page'}: {e}")
             raise
-    
+
     async def get_attribute(self, selector: str, attribute: str) -> Optional[str]:
         """Get attribute value from an element."""
         try:
@@ -203,7 +206,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to get property {property_name} from {selector}: {e}")
             raise
-    
+
     async def get_html(self, selector: str = "") -> str:
         """Get HTML content."""
         try:
@@ -218,8 +221,10 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to get HTML from {selector or 'page'}: {e}")
             raise
-    
-    async def screenshot(self, path: Optional[str] = None, full_page: bool = False) -> str:
+
+    async def screenshot(
+        self, path: Optional[str] = None, full_page: bool = False
+    ) -> str:
         """Take a screenshot."""
         try:
             if path:
@@ -255,7 +260,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to take screenshot: {e}")
             raise
-    
+
     async def wait_for_element(self, selector: str, timeout: int = 10) -> bool:
         """Wait for an element to appear."""
         try:
@@ -270,12 +275,13 @@ class PageTab:
         except Exception as e:
             logger.warning(f"Element {selector} not found within {timeout}s: {e}")
             return False
-    
+
     async def wait_for_url(self, url_pattern: str, timeout: int = 10) -> bool:
         """Wait for URL to match pattern."""
         try:
             # Simple implementation - can be improved with proper pattern matching
             import time
+
             start_time = time.time()
             while time.time() - start_time < timeout:
                 if url_pattern in self.url:
@@ -283,9 +289,11 @@ class PageTab:
                 await asyncio.sleep(0.5)
             return False
         except Exception as e:
-            logger.warning(f"URL pattern {url_pattern} not matched within {timeout}s: {e}")
+            logger.warning(
+                f"URL pattern {url_pattern} not matched within {timeout}s: {e}"
+            )
             return False
-    
+
     async def resize(self, width: int, height: int) -> None:
         """Resize the browser window."""
         try:
@@ -293,7 +301,7 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to resize window to {width}x{height}: {e}")
             raise
-    
+
     async def close(self) -> None:
         """Close the tab."""
         try:
@@ -306,7 +314,7 @@ class PageTab:
             logger.info("Tab closed")
         except Exception as e:
             logger.error(f"Failed to close tab: {e}")
-    
+
     def is_connected(self) -> bool:
         """Check if the tab is still connected."""
         try:

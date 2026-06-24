@@ -227,6 +227,20 @@ async def test_missing_element_paths_raise() -> None:
 
 
 @pytest.mark.asyncio
+async def test_type_text_stops_when_wait_times_out() -> None:
+    element = FakeElement()
+    page = FakePage(element)
+    page.wait = FakeWait(loaded=False)
+    tab = PageTab(page, FakeContext())
+
+    with pytest.raises(Exception, match="Element not found"):
+        await tab.type_text("#delayed", "should-not-type", timeout=1)
+
+    assert element.inputs == []
+    assert ("ele", "#delayed") not in page.calls
+
+
+@pytest.mark.asyncio
 async def test_screenshot_inline_path_and_legacy_fallback(tmp_path) -> None:
     tab = PageTab(FakePage(), FakeContext())
 

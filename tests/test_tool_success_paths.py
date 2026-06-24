@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from DrissionPage.errors import ElementNotFoundError
 
 from drissionpage_mcp.response import ToolResponse
 from drissionpage_mcp.tools import common, element, navigate, wait
@@ -344,3 +345,32 @@ async def test_element_tools_success_paths() -> None:
         _message(await _execute(element.get_html, ctx, element.GetHtmlInput()))
         == "<html></html>"
     )
+
+
+class MissingElementTypeTab(FakeTab):
+    async def type_text(
+        self,
+        selector: str,
+        text: str,
+        timeout: int = 10,
+        clear: bool = True,
+    ) -> None:
+        self._record("type_text", selector, text, timeout=timeout, clear=clear)
+        raise ElementNotFoundError(f"Element not found: {selector}")
+
+
+@pytest.mark.asyncio
+async def test_element_type_reports_structured_not_found_error() -> None:
+    ctx = FakeContext()
+    ctx.tab = MissingElementTypeTab()
+
+    response = await _execute(
+        element.type_text,
+        ctx,
+        element.TypeTextInput(selector="#missing", text="Ada", timeout=1),
+    )
+
+    payload = response.get_structured_content()
+    assert response.is_error() is True
+    assert payload["error"]["code"] == "ELEMENT_NOT_FOUND"
+    assert "#missing" in payload["message"]

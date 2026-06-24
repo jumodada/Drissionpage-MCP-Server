@@ -129,6 +129,24 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Build package
         run: python -m build
+      - name: Check wheel package contents
+        run: |
+          python - <<'PY'
+          import glob
+          import zipfile
+
+          wheels = glob.glob("dist/*.whl")
+          assert len(wheels) == 1, wheels
+          with zipfile.ZipFile(wheels[0]) as wheel:
+              names = wheel.namelist()
+              top_level_file = next(
+                  name for name in names if name.endswith(".dist-info/top_level.txt")
+              )
+              top_level = wheel.read(top_level_file).decode().splitlines()
+
+          assert top_level == ["drissionpage_mcp"], top_level
+          assert not any(name == "src/" or name.startswith("src/") for name in names)
+          PY
       - name: Check package metadata
         run: python -m twine check dist/*
 
