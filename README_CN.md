@@ -252,7 +252,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.3.0`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.3.2`。
 
 ### 浏览器问题？
 ```bash
@@ -280,20 +280,22 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.3.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.3.2 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.3.0)
+### 当前版本 (v0.3.2)
 - [x] 21 个核心自动化工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
+- [x] 稳定 JSON fallback、`structuredContent` 和共享 MCP `outputSchema`
+- [x] 针对导航和截图路径的可选本地安全策略
 - [x] 兼容性和故障排除文档
 - [x] PyPI 发布
 
-### 未来版本 (v0.2+)
+### 未来版本 (v0.4+)
 - [ ] 表单处理工具
 - [ ] 文件上传支持
 - [ ] Shadow DOM 选择器

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-06-25
+
+### Added
+- Shared MCP `outputSchema` envelope for tools when supported by the installed MCP Python SDK.
+- Opt-in local safety policy for navigation allowlists/blocklists, private-network blocking, and screenshot save-root restrictions.
+- Release/documentation checks for version drift, Codecov upload configuration, and package-content expectations.
+
+### Changed
+- Navigation, history, refresh, click, and typing paths now prefer DrissionPage-native load stabilization with bounded async fallback sleeps.
+- README and release docs now describe the current 0.3.2 package state and compatibility-alias policy.
+
+### Security
+- Disallowed navigation is rejected before browser initialization when safety policy variables are configured.
+- Runtime request throttling remains deferred for the local stdio server; users should respect target-site rate limits and revisit throttling before adding remote transport.
+
 ## [0.3.1] - 2026-06-24
 
 ### Added
@@ -116,7 +131,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.2.0...v0.3.0
 [0.1.0]: https://github.com/jumodada/Drissionpage-MCP-Server/releases/tag/v0.1.0

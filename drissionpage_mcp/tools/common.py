@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
-from ..response import build_screenshot_metadata
+from ..policy import PolicyDeniedError, validate_screenshot_path
+from ..response import ErrorCode, build_screenshot_metadata
 from .base import ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
@@ -77,6 +78,17 @@ async def screenshot(
     context: "DrissionPageContext", args: ScreenshotInput, response: "ToolResponse"
 ) -> None:
     """Take a screenshot."""
+    try:
+        validate_screenshot_path(args.path)
+    except PolicyDeniedError as exc:
+        response.add_error(
+            str(exc),
+            ErrorCode.POLICY_DENIED,
+            rule=exc.rule,
+            value=exc.value,
+        )
+        return
+
     async with tool_errors(response, "Failed to take screenshot"):
         tab = context.current_tab_or_die()
         screenshot_data = await tab.screenshot(

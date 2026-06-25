@@ -24,6 +24,46 @@
       "type": "object"
     },
     "name": "page_navigate",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Navigate to URL"
   },
   {
@@ -42,6 +82,46 @@
       "type": "object"
     },
     "name": "page_go_back",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Go Back"
   },
   {
@@ -60,6 +140,46 @@
       "type": "object"
     },
     "name": "page_go_forward",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Go Forward"
   },
   {
@@ -78,6 +198,46 @@
       "type": "object"
     },
     "name": "page_refresh",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Refresh Page"
   },
   {
@@ -111,6 +271,46 @@
       "type": "object"
     },
     "name": "page_resize",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Resize Window"
   },
   {
@@ -142,6 +342,46 @@
       "type": "object"
     },
     "name": "page_screenshot",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Take Screenshot"
   },
   {
@@ -181,6 +421,46 @@
       "type": "object"
     },
     "name": "page_click_xy",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Click Coordinates"
   },
   {
@@ -199,6 +479,46 @@
       "type": "object"
     },
     "name": "page_close",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Close Browser"
   },
   {
@@ -217,6 +537,46 @@
       "type": "object"
     },
     "name": "page_get_url",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Get Current URL"
   },
   {
@@ -250,6 +610,46 @@
       "type": "object"
     },
     "name": "element_find",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Find Element"
   },
   {
@@ -283,6 +683,46 @@
       "type": "object"
     },
     "name": "element_click",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Click Element"
   },
   {
@@ -328,6 +768,46 @@
       "type": "object"
     },
     "name": "element_type",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Type Text"
   },
   {
@@ -373,6 +853,46 @@
       "type": "object"
     },
     "name": "element_input_text",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Input Text"
   },
   {
@@ -398,6 +918,46 @@
       "type": "object"
     },
     "name": "element_get_text",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Get Text"
   },
   {
@@ -431,6 +991,46 @@
       "type": "object"
     },
     "name": "element_get_attribute",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Get Attribute"
   },
   {
@@ -464,6 +1064,46 @@
       "type": "object"
     },
     "name": "element_get_property",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Get Property"
   },
   {
@@ -489,6 +1129,46 @@
       "type": "object"
     },
     "name": "element_get_html",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Get HTML"
   },
   {
@@ -522,6 +1202,46 @@
       "type": "object"
     },
     "name": "wait_for_element",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Wait for Element"
   },
   {
@@ -555,6 +1275,46 @@
       "type": "object"
     },
     "name": "wait_for_url",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Wait for URL"
   },
   {
@@ -582,6 +1342,46 @@
       "type": "object"
     },
     "name": "wait_time",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Wait Time"
   },
   {
@@ -609,6 +1409,46 @@
       "type": "object"
     },
     "name": "wait_sleep",
+    "outputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        "error": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "details": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code",
+            "message"
+          ],
+          "type": "object"
+        },
+        "message": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "ok",
+        "message"
+      ],
+      "type": "object"
+    },
     "title": "Sleep"
   }
 ]

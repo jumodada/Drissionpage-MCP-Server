@@ -16,7 +16,7 @@ from pydantic import ValidationError
 
 from . import __version__
 from .context import DrissionPageContext
-from .response import ErrorCode, ToolResponse, classify_error
+from .response import ErrorCode, ToolResponse, classify_error, tool_result_output_schema
 from .tools import Tool as DrissionTool
 from .tools import get_all_tools
 from .tools.base import ToolType
@@ -52,22 +52,7 @@ class DrissionPageMCPServer:
         @self.server.list_tools()
         async def list_tools() -> List[Tool]:
             """List available tools."""
-            return [
-                Tool(
-                    name=tool.name,
-                    title=tool.title,
-                    description=tool.description,
-                    inputSchema=tool.input_schema.model_json_schema(),
-                    annotations=ToolAnnotations(
-                        title=tool.title,
-                        readOnlyHint=tool.tool_type == ToolType.READ_ONLY,
-                        destructiveHint=tool.tool_type == ToolType.DESTRUCTIVE,
-                        idempotentHint=tool.idempotent,
-                        openWorldHint=True,
-                    ),
-                )
-                for tool in self.tools.values()
-            ]
+            return [self._tool_to_mcp_tool(tool) for tool in self.tools.values()]
 
         async def call_tool_impl(
             name: str, arguments: Optional[Dict[str, Any]] = None
@@ -133,6 +118,26 @@ class DrissionPageMCPServer:
         self.server.request_handlers[CallToolRequest] = call_tool_handler
         self._call_tool_impl = call_tool_impl
 
+    def _tool_to_mcp_tool(self, tool: DrissionTool) -> Tool:
+        """Convert an internal tool definition to an MCP SDK Tool model."""
+
+        kwargs: Dict[str, Any] = {
+            "name": tool.name,
+            "title": tool.title,
+            "description": tool.description,
+            "inputSchema": tool.input_schema.model_json_schema(),
+            "annotations": ToolAnnotations(
+                title=tool.title,
+                readOnlyHint=tool.tool_type == ToolType.READ_ONLY,
+                destructiveHint=tool.tool_type == ToolType.DESTRUCTIVE,
+                idempotentHint=tool.idempotent,
+                openWorldHint=True,
+            ),
+        }
+        if _tool_supports_output_schema():
+            kwargs["outputSchema"] = tool_result_output_schema()
+        return Tool(**kwargs)
+
     def _call_result(self, response: ToolResponse) -> CallToolResult:
         """Build a direct MCP call result for tests and internal callers."""
         return CallToolResult(
@@ -161,3 +166,15 @@ class DrissionPageMCPServer:
                 await result
             self.context = None
         logger.info("Server cleanup completed")
+
+
+def _tool_supports_output_schema() -> bool:
+    """Return whether the installed MCP SDK Tool model accepts outputSchema."""
+
+    fields = getattr(Tool, "model_fields", None) or getattr(Tool, "__fields__", {})
+    if "outputSchema" in fields:
+        return True
+    try:
+        return "outputSchema" in inspect.signature(Tool).parameters
+    except (TypeError, ValueError):
+        return False

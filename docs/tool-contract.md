@@ -38,6 +38,7 @@ Tools return MCP content blocks plus a stable machine-readable result payload:
 
 - The first text item starts with `### JSON_RESULT` and contains a fenced JSON object.
 - When supported by the active MCP Python SDK, the same object is also returned as `structuredContent`.
+- When supported by the active MCP Python SDK, each listed tool exposes the same shared `outputSchema` envelope.
 - Successful results use `ok: true`; tool-execution failures use `ok: false` with `error.code` and `error.message`.
 - Human-readable compatibility text still follows as `### Result`, `### Error`, and optional `### Code` blocks.
 - Screenshots include `ImageContent` with PNG data plus the JSON result block.
@@ -56,7 +57,19 @@ Example failure payload:
 }
 ```
 
-Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `SCREENSHOT_FAILED`, and `UNKNOWN_ERROR`. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
+All tools share this base output envelope:
+
+```json
+{
+  "ok": true,
+  "message": "Operation completed successfully.",
+  "data": {}
+}
+```
+
+For failures, `error` contains `code`, `message`, and optional `details`.
+
+Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `SCREENSHOT_FAILED`, `POLICY_DENIED`, and `UNKNOWN_ERROR`. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
 
 ## Tool Annotations
 
@@ -114,4 +127,18 @@ The server marks tools with MCP annotations:
 
 - Selectors are passed to DrissionPage and may be CSS selectors, XPath, or DrissionPage-supported selector forms.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
-- `element_input_text` and `wait_sleep` are compatibility aliases and should remain available until a documented deprecation.
+- `element_type` and `wait_time` are the primary tool names for new usage.
+- `element_input_text` and `wait_sleep` are compatibility aliases that remain available through 0.3.x; any removal would require a future documented 0.4.0 migration notice.
+
+## Optional Local Safety Policy
+
+By default, DrissionPage MCP remains a local stdio browser automation server with open navigation behavior. Operators can opt in to stricter controls with environment variables:
+
+| Variable | Effect |
+| --- | --- |
+| `DP_MCP_NAV_ALLOWLIST` | Comma-separated host names or URL prefixes. When set, navigation is allowlist-first. |
+| `DP_MCP_NAV_BLOCKLIST` | Comma-separated host names or URL prefixes rejected after allowlist checks. |
+| `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost/private/link-local navigation. |
+| `DP_MCP_SCREENSHOT_ROOT` | Restrict `page_screenshot.path` saves to this directory tree. |
+
+Denied navigation is checked before `context.ensure_tab()`, so policy rejection does not start or initialize a browser.

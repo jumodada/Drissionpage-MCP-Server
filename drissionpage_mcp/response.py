@@ -29,6 +29,7 @@ class ErrorCode(str, Enum):
     UNKNOWN_ERROR = "UNKNOWN_ERROR"
     TOOL_NOT_FOUND = "TOOL_NOT_FOUND"
     MCP_ARGUMENT_INVALID = "MCP_ARGUMENT_INVALID"
+    POLICY_DENIED = "POLICY_DENIED"
 
 
 @dataclass
@@ -100,6 +101,9 @@ def _json_text(payload: Dict[str, Any]) -> TextContent:
 def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
     """Best-effort mapping from runtime exceptions to stable tool error codes."""
 
+    if getattr(exc, "code", None) == ErrorCode.POLICY_DENIED:
+        return ErrorCode.POLICY_DENIED
+
     if isinstance(exc, TimeoutError):
         return ErrorCode.TIMEOUT
 
@@ -122,11 +126,38 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
         return ErrorCode.PAGE_NAVIGATION_FAILED
     if "screenshot" in text or tool == "page_screenshot":
         return ErrorCode.SCREENSHOT_FAILED
+    if "policy" in text or "allowlist" in text or "blocklist" in text:
+        return ErrorCode.POLICY_DENIED
     if "browser" in text and (
         "start" in text or "initialize" in text or "launch" in text
     ):
         return ErrorCode.BROWSER_START_FAILED
     return ErrorCode.UNKNOWN_ERROR
+
+
+def tool_result_output_schema() -> Dict[str, Any]:
+    """Return the shared MCP outputSchema for every tool result envelope."""
+
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["ok", "message"],
+        "properties": {
+            "ok": {"type": "boolean"},
+            "message": {"type": "string"},
+            "data": {"type": "object", "additionalProperties": True},
+            "error": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["code", "message"],
+                "properties": {
+                    "code": {"type": "string"},
+                    "message": {"type": "string"},
+                    "details": {"type": "object", "additionalProperties": True},
+                },
+            },
+        },
+    }
 
 
 class ToolResponse:

@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from drissionpage_mcp.server import DrissionPageMCPServer
-from drissionpage_mcp.tools.base import ToolType
 
 SNAPSHOT_PATH = Path(__file__).parent / "snapshots" / "tools_schema.json"
 
@@ -30,21 +29,11 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
     mcp_server = DrissionPageMCPServer()
     tools = []
     for tool in mcp_server.tools.values():
-        schema = tool.input_schema.model_json_schema()
         tools.append(
-            {
-                "name": tool.name,
-                "title": tool.title,
-                "description": tool.description,
-                "inputSchema": schema,
-                "annotations": {
-                    "title": tool.title,
-                    "readOnlyHint": tool.tool_type == ToolType.READ_ONLY,
-                    "destructiveHint": tool.tool_type == ToolType.DESTRUCTIVE,
-                    "idempotentHint": tool.idempotent,
-                    "openWorldHint": True,
-                },
-            }
+            mcp_server._tool_to_mcp_tool(tool).model_dump(
+                by_alias=True,
+                exclude_none=True,
+            )
         )
 
     assert len(tools) == 21

@@ -306,3 +306,44 @@ async def test_navigation_failure_is_reraised() -> None:
 
     with pytest.raises(RuntimeError, match="Navigation failed"):
         await tab.navigate("https://bad.test")
+
+
+@pytest.mark.asyncio
+async def test_post_action_stabilization_prefers_doc_loaded() -> None:
+    class WaitWithDocLoaded(FakeWait):
+        def __init__(self) -> None:
+            super().__init__()
+            self.doc_loaded_calls = []
+
+        def doc_loaded(self, **kwargs):
+            self.doc_loaded_calls.append(kwargs)
+            return True
+
+    page = FakePage()
+    page.wait = WaitWithDocLoaded()
+    tab = PageTab(page, FakeContext())
+
+    await tab.navigate("https://example.test")
+    await tab.click(1, 2)
+
+    assert page.wait.doc_loaded_calls[0] == {"timeout": 5.0, "raise_err": False}
+    assert page.wait.doc_loaded_calls[1] == {"timeout": 1.0, "raise_err": False}
+
+
+@pytest.mark.asyncio
+async def test_post_action_stabilization_falls_back_to_bounded_sleep(
+    monkeypatch,
+) -> None:
+    sleeps = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", fake_sleep)
+    page = FakePage()
+    page.wait = object()
+    tab = PageTab(page, FakeContext())
+
+    await tab.go_back()
+
+    assert sleeps == [0.05]
