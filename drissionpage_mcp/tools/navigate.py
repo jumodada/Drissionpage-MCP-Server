@@ -4,6 +4,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
+from ..policy import PolicyDeniedError, validate_navigation
+from ..response import ErrorCode
 from .base import ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
@@ -34,6 +36,17 @@ async def navigate(
     context: "DrissionPageContext", args: NavigateInput, response: "ToolResponse"
 ) -> None:
     """Navigate to a URL."""
+    try:
+        validate_navigation(args.url)
+    except PolicyDeniedError as exc:
+        response.add_error(
+            str(exc),
+            ErrorCode.POLICY_DENIED,
+            rule=exc.rule,
+            value=exc.value,
+        )
+        return
+
     async with tool_errors(
         response, lambda e: f"Failed to navigate to {args.url}: {e}"
     ):

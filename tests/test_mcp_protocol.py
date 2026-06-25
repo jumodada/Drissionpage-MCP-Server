@@ -111,3 +111,23 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert result.isError is True
             assert result.structuredContent["error"]["code"] == "TOOL_NOT_FOUND"
             assert result.content[0].text.startswith("### JSON_RESULT")
+
+
+@pytest.mark.asyncio
+async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
+    """exposes the stable ToolResult envelope through MCP outputSchema."""
+
+    server = DrissionPageMCPServer()
+    handler = server.server.request_handlers[ListToolsRequest]
+
+    result = await handler(ListToolsRequest(method="tools/list"))
+
+    for tool in result.root.tools:
+        if getattr(tool, "outputSchema", None) is None:
+            pytest.skip("Installed MCP SDK Tool model does not expose outputSchema")
+        schema = tool.outputSchema
+        assert schema["type"] == "object"
+        assert schema["required"] == ["ok", "message"]
+        assert schema["properties"]["ok"]["type"] == "boolean"
+        assert schema["properties"]["message"]["type"] == "string"
+        assert schema["properties"]["error"]["required"] == ["code", "message"]

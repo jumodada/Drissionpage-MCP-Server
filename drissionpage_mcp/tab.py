@@ -40,8 +40,7 @@ class PageTab:
             if result is False or (hasattr(result, "ok") and result.ok is False):
                 raise RuntimeError(f"Navigation failed: {result}")
             self._url = getattr(result, "url", None) or self.page.url or url
-            # Wait for page load
-            await asyncio.sleep(0.5)  # Basic wait, can be improved
+            await self._stabilize("navigation", timeout=5.0, fallback_sleep=0.05)
             logger.info(f"Navigated to: {url}")
         except Exception as e:
             logger.error(f"Failed to navigate to {url}: {e}")
@@ -51,7 +50,7 @@ class PageTab:
         """Go back in history."""
         try:
             self.page.back()
-            await asyncio.sleep(0.5)
+            await self._stabilize("go_back", timeout=5.0, fallback_sleep=0.05)
         except Exception as e:
             logger.error(f"Failed to go back: {e}")
             raise
@@ -60,7 +59,7 @@ class PageTab:
         """Go forward in history."""
         try:
             self.page.forward()
-            await asyncio.sleep(0.5)
+            await self._stabilize("go_forward", timeout=5.0, fallback_sleep=0.05)
         except Exception as e:
             logger.error(f"Failed to go forward: {e}")
             raise
@@ -69,7 +68,7 @@ class PageTab:
         """Refresh the page."""
         try:
             self.page.refresh()
-            await asyncio.sleep(0.5)
+            await self._stabilize("refresh", timeout=5.0, fallback_sleep=0.05)
         except Exception as e:
             logger.error(f"Failed to refresh: {e}")
             raise
@@ -78,7 +77,7 @@ class PageTab:
         """Click at coordinates."""
         try:
             self.page.actions.click((x, y))
-            await asyncio.sleep(0.1)
+            await self._stabilize("click", timeout=1.0, fallback_sleep=0.02)
         except Exception as e:
             logger.error(f"Failed to click at ({x}, {y}): {e}")
             raise
@@ -95,7 +94,7 @@ class PageTab:
             element = self.page.ele(selector)
             if element:
                 element.click()
-                await asyncio.sleep(0.1)
+                await self._stabilize("element_click", timeout=1.0, fallback_sleep=0.02)
             else:
                 raise ElementNotFoundError(f"Element not found: {selector}")
         except Exception as e:
@@ -113,7 +112,7 @@ class PageTab:
                 if clear:
                     element.clear()
                 element.input(text)
-                await asyncio.sleep(0.1)
+                await self._stabilize("input_text", timeout=1.0, fallback_sleep=0.02)
             else:
                 raise ElementNotFoundError(f"Element not found: {selector}")
         except Exception as e:
@@ -301,6 +300,39 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to resize window to {width}x{height}: {e}")
             raise
+
+    async def _stabilize(
+        self,
+        action: str,
+        *,
+        timeout: float = 1.0,
+        fallback_sleep: float = 0.02,
+    ) -> None:
+        """Prefer DrissionPage-native load waits with a bounded async fallback."""
+
+        wait = getattr(self.page, "wait", None)
+        doc_loaded = getattr(wait, "doc_loaded", None)
+        if callable(doc_loaded):
+            call_shapes: tuple[dict[str, Any], ...] = (
+                {"timeout": timeout, "raise_err": False},
+                {"timeout": timeout},
+                {},
+            )
+            for kwargs in call_shapes:
+                try:
+                    doc_loaded(**kwargs)
+                    return
+                except TypeError:
+                    continue
+                except Exception:
+                    logger.debug(
+                        "Post-%s stabilization via doc_loaded failed",
+                        action,
+                        exc_info=True,
+                    )
+                    break
+
+        await asyncio.sleep(fallback_sleep)
 
     async def close(self) -> None:
         """Close the tab."""

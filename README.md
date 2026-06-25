@@ -253,7 +253,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.3.0`.
+Should output the installed package version, for example `drissionpage-mcp 0.3.2`.
 
 ### Browser Issues?
 ```bash
@@ -281,20 +281,22 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.3.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.3.2 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.3.0)
+### Current (v0.3.2)
 - [x] 21 core automation tools
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
+- [x] Stable JSON fallback, `structuredContent`, and shared MCP `outputSchema`
+- [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Compatibility and troubleshooting documentation
 - [x] PyPI distribution
 
-### Future (v0.2+)
+### Future (v0.4+)
 - [ ] Form handling utilities
 - [ ] File upload support
 - [ ] Shadow DOM selectors

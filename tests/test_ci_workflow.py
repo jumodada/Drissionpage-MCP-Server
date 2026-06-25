@@ -109,3 +109,37 @@ def test_codecov_policy_matches_current_project_baseline() -> None:
     assert "threshold: 2%" in config
     assert "target: 70%" in config
     assert "threshold: 5%" in config
+
+
+def test_release_versions_are_in_sync() -> None:
+    """keeps package metadata, runtime version, and README examples aligned."""
+
+    import drissionpage_mcp
+
+    pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
+    version = pyproject["project"]["version"]
+
+    assert version == "0.3.2"
+    assert drissionpage_mcp.__version__ == version
+    for readme in README_FILES:
+        text = readme.read_text(encoding="utf-8")
+        assert "0.3.0" not in text
+        assert f"drissionpage-mcp {version}" in text
+
+
+def test_security_policy_and_release_checklist_document_0_3_2_controls() -> None:
+    security = Path("SECURITY.md").read_text(encoding="utf-8")
+    checklist = Path("docs/release-checklist.md").read_text(encoding="utf-8")
+
+    for name in (
+        "DP_MCP_NAV_ALLOWLIST",
+        "DP_MCP_NAV_BLOCKLIST",
+        "DP_MCP_BLOCK_PRIVATE_NETWORK",
+        "DP_MCP_SCREENSHOT_ROOT",
+    ):
+        assert name in security
+    assert "local stdio" in security.lower()
+    assert "runtime request throttling" in security.lower()
+    assert "CODECOV_TOKEN" in checklist
+    assert "coverage.xml" in checklist
+    assert "Check wheel package contents" in checklist

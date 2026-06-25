@@ -8,6 +8,7 @@ Use this checklist before publishing a DrissionPage MCP release.
 - [ ] Update `pyproject.toml` version.
 - [ ] Update `CHANGELOG.md` with user-visible changes.
 - [ ] Confirm supported Python and DrissionPage ranges in [compatibility.md](compatibility.md).
+- [ ] Confirm `drissionpage-mcp --version`, `drissionpage_mcp.__version__`, `pyproject.toml`, and built wheel metadata agree.
 
 ## 2. Local Validation
 
@@ -17,6 +18,7 @@ Run from a clean checkout:
 python -m pip install -e ".[dev]"
 python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb'))"
 python -m pytest tests/
+python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml:coverage.xml
 python -m ruff check drissionpage_mcp tests playground
 python -m build
 python -m twine check dist/*
@@ -26,6 +28,8 @@ Notes:
 
 - On Python 3.10, use `python -c "import tomli; tomli.load(open('pyproject.toml', 'rb'))"` after installing development dependencies; Python 3.11+ can use stdlib `tomllib`.
 - Remove or archive stale `dist/` files before building a final release artifact.
+- Confirm `coverage.xml` is generated and the GitHub repository has `CODECOV_TOKEN` configured for the Codecov upload job.
+- Confirm CI still runs the package job step named `Check wheel package contents` so the wheel exposes only `drissionpage_mcp`.
 
 ## 3. Browser Smoke Test
 
