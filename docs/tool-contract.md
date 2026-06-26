@@ -6,7 +6,16 @@ This document summarizes the public MCP tool contract exposed by DrissionPage MC
 
 DrissionPage MCP runs as a local stdio MCP server. MCP clients start the server process and communicate through standard input/output.
 
-Minimal client configuration:
+Minimal Codex CLI/IDE configuration (`~/.codex/config.toml`, or project `.codex/config.toml` in a trusted project):
+
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
+Minimal JSON MCP client configuration:
 
 ```json
 {
@@ -18,7 +27,18 @@ Minimal client configuration:
 }
 ```
 
-Source checkout configuration:
+Codex source checkout configuration:
+
+```toml
+[mcp_servers.drissionpage]
+command = "python"
+args = ["-m", "drissionpage_mcp.cli"]
+cwd = "/absolute/path/to/DrissionMCP"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
+JSON source checkout configuration:
 
 ```json
 {

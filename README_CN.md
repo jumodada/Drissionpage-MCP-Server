@@ -1,6 +1,6 @@
 # DrissionPage MCP Server
 
-> 基于 DrissionPage 为 Claude Code 和 MCP 客户端提供专业的浏览器自动化能力
+> 基于 DrissionPage 为 Codex、Claude Code 和 MCP 客户端提供专业的浏览器自动化能力
 
 [![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg)](https://pypi.org/project/drissionpage-mcp/)
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
@@ -18,7 +18,7 @@
 
 ## 🚀 什么是 DrissionPage MCP？
 
-**DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
+**DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
 与基于截图的方法不同，它通过 19 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
@@ -29,7 +29,7 @@
 - **快速轻量**：基于 DrissionPage 高效引擎构建，开销最小
 - **类型安全**：所有工具都具有完整的类型提示和 Pydantic 验证
 - **开源友好**：包含兼容性说明、故障排除和 CI 检查，便于维护和贡献
-- **易于集成**：简单的 `pip install` + JSON 配置即可使用
+- **易于集成**：简单的 `pip install` + Codex TOML 或 MCP JSON 配置即可使用
 
 ---
 
@@ -44,28 +44,29 @@ drissionpage-mcp --version
 drissionpage-mcp doctor
 ```
 
-然后添加下面的 MCP 客户端配置并重启客户端。
+然后添加下面的 Codex 或 MCP 客户端配置并重启客户端。
 
 ---
 
-## 📦 在 Claude Code 中配置（30 秒）
+## 📦 在 Codex CLI/IDE 中配置（30 秒）
 
-1. **编辑 MCP 配置文件**：
-   - macOS/Linux: `~/.config/claude-code/mcp_settings.json`
-   - Windows: `%APPDATA%\\claude-code\\mcp_settings.json`
+Codex 通过 `config.toml` 支持本地 stdio MCP Server；Codex CLI 和 IDE 扩展共用同一份 MCP 配置。
+
+1. **编辑 Codex 配置文件**：
+   - 用户级：`~/.codex/config.toml`
+   - 项目级：受信任项目中的 `.codex/config.toml`
 
 2. **添加以下配置**：
-   ```json
-   {
-     "mcpServers": {
-       "drissionpage": {
-         "command": "drissionpage-mcp"
-       }
-     }
-   }
+   ```toml
+   [mcp_servers.drissionpage]
+   command = "drissionpage-mcp"
+   startup_timeout_sec = 20
+   tool_timeout_sec = 60
    ```
 
-3. **重启 Claude Code** 即可开始使用！
+3. **重启 Codex**。TUI 中可运行 `/mcp`，终端可运行 `codex mcp list` 检查连接。
+
+Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例](#-集成示例)。
 
 ---
 
@@ -170,7 +171,27 @@ DrissionMCP/
 
 ## 🔧 配置
 
-### 基础配置（推荐）
+### Codex CLI / IDE（推荐）
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+
+# 可选浏览器/运行时环境变量：
+# [mcp_servers.drissionpage.env]
+# CHROME_PATH = "/custom/path/to/chrome"
+# DP_HEADLESS = "1"
+# DP_NO_SANDBOX = "1"
+```
+
+也可以用 Codex CLI 添加：
+
+```bash
+codex mcp add drissionpage -- drissionpage-mcp
+```
+
+### JSON MCP 客户端
 ```json
 {
   "mcpServers": {
@@ -181,7 +202,7 @@ DrissionMCP/
 }
 ```
 
-### 高级配置
+### JSON 高级配置
 ```json
 {
   "mcpServers": {
@@ -204,7 +225,7 @@ DrissionMCP/
 
 - **Python 3.10+**（推荐 3.11+）
 - **Chrome 或 Chromium** 浏览器
-- **任何 MCP 兼容客户端**：Claude Code、Claude Desktop、Cursor、VS Code 等
+- **任何 MCP 兼容客户端**：Codex CLI/IDE、Claude Code、Claude Desktop、Cursor、VS Code 等
 
 ---
 
@@ -265,9 +286,10 @@ which google-chrome    # Linux
 which chromium         # macOS
 ```
 
-### Claude Code 找不到服务器？
-- 验证配置文件路径
-- 修改后重启 Claude Code
+### Codex / MCP 客户端找不到服务器？
+- Codex：运行 `codex mcp list`，TUI 中运行 `/mcp`
+- JSON 客户端：验证配置文件路径和 JSON 语法
+- 修改后重启 Codex 或 MCP 客户端
 - 检查日志：`drissionpage-mcp --log-level DEBUG`
 
 完整故障排除指南请参阅 [docs/troubleshooting.md](docs/troubleshooting.md)。
@@ -310,6 +332,20 @@ which chromium         # macOS
 ---
 
 ## 📖 集成示例
+
+### Codex CLI / IDE
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
+验证：
+
+```bash
+codex mcp list
+```
 
 ### Claude Code
 ```json

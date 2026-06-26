@@ -1,0 +1,15 @@
+# Codex CLI / IDE configuration for a source checkout.
+# Replace cwd with the absolute path to your local DrissionMCP checkout.
+
+[mcp_servers.drissionpage]
+command = "python"
+args = ["-m", "drissionpage_mcp.cli"]
+cwd = "<REPLACE_WITH_YOUR_DRISSIONMCP_PATH>"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+
+# Optional browser/runtime environment variables:
+# [mcp_servers.drissionpage.env]
+# CHROME_PATH = "/custom/path/to/chrome"
+# DP_HEADLESS = "1"
+# DP_NO_SANDBOX = "1"
