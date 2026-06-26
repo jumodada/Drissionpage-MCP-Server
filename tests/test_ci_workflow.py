@@ -101,6 +101,18 @@ def test_distribution_does_not_publish_src_compat_shim() -> None:
     assert not Path("src").exists()
 
 
+def test_browser_jobs_require_browser_after_installing_chromium() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in workflow
+    coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
+        "\n  package:\n", maxsplit=1
+    )[0]
+    browser_job = workflow.split("  browser-integration:\n", maxsplit=1)[1]
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in browser_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
+
+
 def test_codecov_policy_matches_current_project_baseline() -> None:
     """keeps Codecov thresholds realistic while the project grows coverage."""
 
@@ -120,7 +132,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.4.0"
+    assert version == "0.4.1"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")

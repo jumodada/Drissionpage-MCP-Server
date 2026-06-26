@@ -76,7 +76,7 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current 0.4.0 tool registry should load 19 tools.
+The current 0.4.1 tool registry should load 19 tools.
 
 ## Browser Does Not Start
 
@@ -106,7 +106,7 @@ Useful recovery steps:
 1. Navigate to a simple public page such as `https://example.com`.
 2. Use `element_get_text` with an empty selector to inspect page text.
 3. Use `wait_for_element` before `element_click` or `element_type`.
-4. Increase the per-tool timeout where supported.
+4. Increase the per-tool timeout where supported. `element_find` defaults to 3 seconds for fast feedback; explicit wait tools keep longer waits.
 5. Re-check selectors in the browser devtools. Bare selectors are treated as CSS; use `text:Submit` for text matching and explicit `tag:`, `css:`, `xpath:`, or `@name=value` forms when needed.
 
 ## Screenshots Fail

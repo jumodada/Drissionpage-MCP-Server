@@ -284,6 +284,25 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
     )
 
 
+def test_element_find_default_timeout_is_llm_friendly() -> None:
+    args = element.FindElementInput(selector="h1")
+
+    assert args.timeout == 3
+
+
+def test_get_property_input_uses_property_field_only() -> None:
+    args = element.GetPropertyInput.model_validate(
+        {"selector": "#name", "property": "value"}
+    )
+
+    assert args.property == "value"
+
+    with pytest.raises(Exception, match="property"):
+        element.GetPropertyInput.model_validate(
+            {"selector": "#name", "property_name": "value"}
+        )
+
+
 @pytest.mark.asyncio
 async def test_element_tools_success_paths() -> None:
     ctx = FakeContext()
@@ -374,17 +393,17 @@ async def test_element_tools_success_paths() -> None:
     prop_response = await _execute(
         element.get_property,
         ctx,
-        element.GetPropertyInput(selector="#name", property_name="value"),
+        element.GetPropertyInput(selector="#name", property="value"),
     )
     assert prop_response.get_structured_content()["data"] == {
         **selector_metadata,
-        "property_name": "value",
+        "property": "value",
         "value": "prop-value",
     }
     missing_prop_response = await _execute(
         element.get_property,
         ctx,
-        element.GetPropertyInput(selector="#name", property_name="missing"),
+        element.GetPropertyInput(selector="#name", property="missing"),
     )
     assert missing_prop_response.get_structured_content()["data"]["value"] is None
 

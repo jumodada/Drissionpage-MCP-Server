@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.4.0."""
+"""Release metadata and documentation checks for 0.4.1."""
 
 from __future__ import annotations
 
@@ -13,26 +13,43 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_4_0() -> None:
+def test_package_version_metadata_is_0_4_1() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.4.0"
-    assert drissionpage_mcp.__version__ == "0.4.0"
+    assert pyproject["project"]["version"] == "0.4.1"
+    assert drissionpage_mcp.__version__ == "0.4.1"
 
 
-def test_docs_describe_0_4_0_breaking_alias_removal() -> None:
+def test_docs_describe_breaking_alias_removal() -> None:
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
     contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
     compatibility = Path("docs/compatibility.md").read_text(encoding="utf-8")
 
+    assert "## [0.4.1]" in changelog
     assert "## [0.4.0]" in changelog
     assert "element_input_text" in changelog
     assert "wait_sleep" in changelog
-    assert "0.4.0" in compatibility
+    assert "0.4.1" in compatibility
+    assert "property_name" in compatibility
+    assert "text:..." in compatibility
     assert "element_input_text" not in _tool_inventory(contract)
     assert "wait_sleep" not in _tool_inventory(contract)
     assert "drissionpage://session/summary" in contract
     assert "browser_navigate_and_summarize" in contract
+
+
+def test_readmes_end_with_latest_0_4_1_fix_summary() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
+
+    assert "## 🆕 Latest Version: v0.4.1" in readme
+    assert "selector normalization" in readme
+    assert "serverInfo.version" in readme
+    assert "property_name" in readme
+    assert "## 🆕 最新版本：v0.4.1" in readme_cn
+    assert "选择器归一化" in readme_cn
+    assert "serverInfo.version" in readme_cn
+    assert "property_name" in readme_cn
 
 
 def test_public_guides_do_not_advertise_removed_alias_tools() -> None:

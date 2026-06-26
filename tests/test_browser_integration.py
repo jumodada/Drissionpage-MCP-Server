@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import os
 from typing import Any, Dict, List, Tuple
 from urllib.request import urlopen
 
@@ -81,7 +82,7 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             value = await _execute_tool_text(
                 server,
                 "element_get_property",
-                {"selector": "#name", "property_name": "value"},
+                {"selector": "#name", "property": "value"},
             )
             _skip_if_browser_unavailable(value)
             assert "Ada" in value
@@ -200,11 +201,36 @@ def _read(url: str) -> Tuple[int, str]:
         raise
 
 
+def test_browser_unavailable_helper_skips_by_default(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("DP_MCP_REQUIRE_BROWSER", raising=False)
+
+    with pytest.raises(pytest.skip.Exception):
+        _skip_if_browser_unavailable("### Error\nChrome failed to initialize")
+
+
+def test_browser_unavailable_helper_fails_when_required(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DP_MCP_REQUIRE_BROWSER", "1")
+
+    with pytest.raises(pytest.fail.Exception):
+        _skip_if_browser_unavailable("### Error\nChrome failed to initialize")
+
+
 def _skip_if_browser_unavailable(text: str) -> None:
     lowered = text.lower()
     if "### Error" in text and any(
         marker in lowered for marker in _BROWSER_UNAVAILABLE_MARKERS
     ):
+        if os.environ.get("DP_MCP_REQUIRE_BROWSER", "").lower() in {
+            "1",
+            "true",
+            "yes",
+        }:
+            pytest.fail(
+                "Chrome/Chromium browser is required but unavailable for "
+                "DrissionPage integration: {0}".format(text[:300])
+            )
         pytest.skip(
             "Chrome/Chromium browser unavailable for DrissionPage integration: {0}".format(
                 text[:300]

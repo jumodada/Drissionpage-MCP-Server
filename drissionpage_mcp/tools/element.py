@@ -24,7 +24,7 @@ class FindElementInput(BaseModel):
         ),
     )
     timeout: int = Field(
-        default=10, description="Timeout in seconds to wait for element"
+        default=3, description="Timeout in seconds to wait for element"
     )
 
 
@@ -97,9 +97,7 @@ class GetPropertyInput(BaseModel):
             "use text:... for text matching or explicit tag:/css:/xpath:/@attr locators."
         ),
     )
-    property_name: str = Field(
-        ..., description="DOM property name to retrieve, e.g. value"
-    )
+    property: str = Field(..., description="DOM property to retrieve, e.g. value")
 
 
 class GetHtmlInput(BaseModel):
@@ -273,21 +271,19 @@ async def get_property(
     async with tool_errors(
         response,
         lambda e: (
-            f"Failed to get property '{args.property_name}' "
+            f"Failed to get property '{args.property}' "
             f"from '{args.selector}': {e}"
         ),
-        ):
+    ):
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
-        value = await tab.get_property(args.selector, args.property_name)
+        value = await tab.get_property(args.selector, args.property)
 
-        response.add_code(
-            f"page.ele({plan.locator!r}).property({args.property_name!r})"
-        )
+        response.add_code(f"page.ele({plan.locator!r}).property({args.property!r})")
         response.add_result(
             "" if value is None else str(value),
             **plan.metadata(),
-            property_name=args.property_name,
+            property=args.property,
             value=_json_safe(value),
         )
 
