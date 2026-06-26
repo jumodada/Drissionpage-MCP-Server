@@ -230,6 +230,26 @@ async def test_missing_element_paths_raise() -> None:
 
 
 @pytest.mark.asyncio
+async def test_element_wait_success_but_lookup_missing_paths_raise() -> None:
+    """wait success must not hide a second failed element lookup."""
+
+    page = FakePage(element=None)
+    page.wait = FakeWait(loaded=True)
+    tab = PageTab(page, FakeContext())
+
+    for call in (
+        tab.click_element("#missing"),
+        tab.find_element("#missing"),
+        tab.get_text("#missing"),
+        tab.get_attribute("#missing", "id"),
+        tab.get_property("#missing", "value"),
+        tab.get_html("#missing"),
+    ):
+        with pytest.raises(Exception, match="Element not found"):
+            await call
+
+
+@pytest.mark.asyncio
 async def test_type_text_stops_when_wait_times_out() -> None:
     element = FakeElement()
     page = FakePage(element)
@@ -241,6 +261,22 @@ async def test_type_text_stops_when_wait_times_out() -> None:
 
     assert element.inputs == []
     assert ("ele", "#delayed") not in page.calls
+
+
+@pytest.mark.asyncio
+async def test_page_text_falls_back_to_body_when_text_property_is_absent() -> None:
+    page = FakePage()
+    del page.text
+    tab = PageTab(page, FakeContext())
+
+    assert await tab.get_text() == "Ada"
+    assert ("ele", "tag:body") in page.calls
+
+    empty_page = FakePage(element=None)
+    del empty_page.text
+    empty_tab = PageTab(empty_page, FakeContext())
+
+    assert await empty_tab.get_text() == ""
 
 
 @pytest.mark.asyncio
@@ -261,6 +297,37 @@ async def test_screenshot_inline_path_and_legacy_fallback(tmp_path) -> None:
 
     legacy_tab = PageTab(LegacyScreenshotPage(), FakeContext())
     assert await legacy_tab.screenshot() == base64.b64encode(b"legacy-png").decode()
+
+
+@pytest.mark.asyncio
+async def test_screenshot_cleans_temp_file_best_effort_and_reraises_failures(
+    monkeypatch,
+) -> None:
+    class LegacyScreenshotPage(FakePage):
+        def get_screenshot(self, **kwargs):
+            if kwargs.get("as_base64"):
+                raise TypeError("old DrissionPage")
+            Path(kwargs["path"]).write_bytes(b"legacy-png")
+
+    removed_paths = []
+
+    def fail_remove(path: str) -> None:
+        removed_paths.append(path)
+        raise OSError("already gone")
+
+    monkeypatch.setattr("drissionpage_mcp.tab.os.remove", fail_remove)
+    tab = PageTab(LegacyScreenshotPage(), FakeContext())
+
+    assert await tab.screenshot() == base64.b64encode(b"legacy-png").decode()
+    assert removed_paths
+
+    class BrokenScreenshotPage(FakePage):
+        def get_screenshot(self, **_kwargs):
+            raise RuntimeError("screenshot failed")
+
+    broken_tab = PageTab(BrokenScreenshotPage(), FakeContext())
+    with pytest.raises(RuntimeError, match="screenshot failed"):
+        await broken_tab.screenshot()
 
 
 @pytest.mark.asyncio
@@ -300,6 +367,31 @@ async def test_wait_close_url_and_connection_helpers() -> None:
 
 
 @pytest.mark.asyncio
+async def test_wait_for_url_polls_and_handles_polling_errors(monkeypatch) -> None:
+    page = FakePage()
+    page.url = "https://example.test/loading"
+    tab = PageTab(page, FakeContext())
+    sleeps = []
+
+    async def finish_after_first_poll(seconds: float) -> None:
+        sleeps.append(seconds)
+        page.url = "https://example.test/done"
+
+    monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", finish_after_first_poll)
+
+    assert await tab.wait_for_url("done", timeout=1) is True
+    assert sleeps == [0.5]
+
+    async def fail_sleep(_seconds: float) -> None:
+        raise RuntimeError("clock failed")
+
+    page.url = "https://example.test/loading"
+    monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", fail_sleep)
+
+    assert await tab.wait_for_url("done", timeout=1) is False
+
+
+@pytest.mark.asyncio
 async def test_navigation_failure_is_reraised() -> None:
     class FailedNavigationPage(FakePage):
         def get(self, url: str):
@@ -309,6 +401,54 @@ async def test_navigation_failure_is_reraised() -> None:
 
     with pytest.raises(RuntimeError, match="Navigation failed"):
         await tab.navigate("https://bad.test")
+
+
+@pytest.mark.asyncio
+async def test_page_action_failures_are_reraised() -> None:
+    class BrokenActions(FakeActions):
+        def click(self, point):
+            raise RuntimeError(f"cannot click {point}")
+
+    class BrokenWindow(FakeWindow):
+        def size(self, width: int, height: int) -> None:
+            raise RuntimeError(f"cannot resize {width}x{height}")
+
+    class BrokenSet(FakeSet):
+        def __init__(self) -> None:
+            self.window = BrokenWindow()
+
+    class BrokenPage(FakePage):
+        def __init__(self, broken_action: str) -> None:
+            super().__init__()
+            self.broken_action = broken_action
+            self.actions = BrokenActions()
+            self.set = BrokenSet()
+
+        def back(self) -> None:
+            if self.broken_action == "back":
+                raise RuntimeError("back failed")
+            super().back()
+
+        def forward(self) -> None:
+            if self.broken_action == "forward":
+                raise RuntimeError("forward failed")
+            super().forward()
+
+        def refresh(self) -> None:
+            if self.broken_action == "refresh":
+                raise RuntimeError("refresh failed")
+            super().refresh()
+
+    for action, call in (
+        ("back", lambda tab: tab.go_back()),
+        ("forward", lambda tab: tab.go_forward()),
+        ("refresh", lambda tab: tab.refresh()),
+        ("click", lambda tab: tab.click(1, 2)),
+        ("resize", lambda tab: tab.resize(800, 600)),
+    ):
+        tab = PageTab(BrokenPage(action), FakeContext())
+        with pytest.raises(RuntimeError):
+            await call(tab)
 
 
 @pytest.mark.asyncio
@@ -334,6 +474,55 @@ async def test_post_action_stabilization_prefers_doc_loaded() -> None:
 
 
 @pytest.mark.asyncio
+async def test_post_action_stabilization_tries_compatible_doc_loaded_signatures() -> None:
+    class WaitWithStrictDocLoaded(FakeWait):
+        def __init__(self) -> None:
+            super().__init__()
+            self.doc_loaded_calls = []
+
+        def doc_loaded(self, **kwargs):
+            self.doc_loaded_calls.append(kwargs)
+            if "raise_err" in kwargs or "timeout" in kwargs:
+                raise TypeError("unsupported keyword")
+            return True
+
+    page = FakePage()
+    page.wait = WaitWithStrictDocLoaded()
+    tab = PageTab(page, FakeContext())
+
+    await tab.refresh()
+
+    assert page.wait.doc_loaded_calls == [
+        {"timeout": 5.0, "raise_err": False},
+        {"timeout": 5.0},
+        {},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_post_action_stabilization_falls_back_when_doc_loaded_fails(
+    monkeypatch,
+) -> None:
+    class WaitWithFailingDocLoaded(FakeWait):
+        def doc_loaded(self, **_kwargs):
+            raise RuntimeError("load waiter disconnected")
+
+    sleeps = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", fake_sleep)
+    page = FakePage()
+    page.wait = WaitWithFailingDocLoaded()
+    tab = PageTab(page, FakeContext())
+
+    await tab.click(1, 2)
+
+    assert sleeps == [0.02]
+
+
+@pytest.mark.asyncio
 async def test_post_action_stabilization_falls_back_to_bounded_sleep(
     monkeypatch,
 ) -> None:
@@ -350,3 +539,14 @@ async def test_post_action_stabilization_falls_back_to_bounded_sleep(
     await tab.go_back()
 
     assert sleeps == [0.05]
+
+
+@pytest.mark.asyncio
+async def test_close_swallows_browser_close_errors() -> None:
+    class BrokenBrowser(FakeBrowser):
+        def close_tabs(self, tab_id: str) -> None:
+            raise RuntimeError(f"cannot close {tab_id}")
+
+    tab = PageTab(FakePage(), FakeContext(BrokenBrowser()))
+
+    await tab.close()

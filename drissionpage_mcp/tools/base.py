@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, AsyncIterator, Awaitable, Callable
 
 from pydantic import BaseModel
 
+from ..response import classify_error
+
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
     from ..response import ToolResponse
@@ -111,4 +113,4 @@ async def tool_errors(
         yield
     except Exception as exc:
         error_message = message(exc) if callable(message) else f"{message}: {exc}"
-        response.add_error(error_message)
+        response.add_error(error_message, classify_error(exc))

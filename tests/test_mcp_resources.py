@@ -12,6 +12,9 @@ from drissionpage_mcp.resources import (
     PAGE_HTML_EXCERPT_CHARS,
     PAGE_TEXT_EXCERPT_CHARS,
     RESOURCE_JSON_MAX_CHARS,
+    _fit_resource_budget,
+    _safe_string_attr,
+    _truncate,
 )
 from drissionpage_mcp.server import DrissionPageMCPServer
 
@@ -147,6 +150,36 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
         "idempotentHint": False,
         "output_schema": "PageNavigateData",
     }
+
+
+@pytest.mark.asyncio
+async def test_read_unknown_resource_reports_value_error() -> None:
+    server = DrissionPageMCPServer()
+    handler = server.server.request_handlers[ReadResourceRequest]
+
+    with pytest.raises(ValueError, match="Unknown resource URI"):
+        await handler(
+            ReadResourceRequest(
+                method="resources/read",
+                params=ReadResourceRequestParams(uri="drissionpage://unknown"),
+            )
+        )
+
+
+def test_resource_helpers_handle_budget_and_attribute_edges() -> None:
+    small = {"html_excerpt": "ok", "text_excerpt": "ok", "truncated": False}
+    assert _fit_resource_budget(small) is small
+
+    value, metadata = _truncate("short", 20)
+    assert value == "short"
+    assert metadata == {"truncated": False, "original_length": 5, "limit": 20}
+
+    class BrokenPage:
+        @property
+        def text(self):
+            raise RuntimeError("detached")
+
+    assert _safe_string_attr(BrokenPage(), "text") == ""
 
 
 async def _read_json(server: DrissionPageMCPServer, uri: str) -> dict[str, Any]:
