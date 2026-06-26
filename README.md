@@ -14,6 +14,16 @@
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
+## 🧭 Client Setup Navigation
+
+- [Install + screenshot walkthrough](#-first-success-path)
+- [Codex CLI/IDE quick setup](#-setup-in-codex-cliide-30-seconds)
+- [Codex CLI/IDE integration example](#codex-cli--ide)
+- [Claude Code setup](#claude-code)
+- [Cursor setup](#cursor)
+- [Claude Desktop setup](#claude-desktop)
+- [Troubleshooting](#-troubleshooting)
+
 ---
 
 ## 🚀 What is DrissionPage MCP?

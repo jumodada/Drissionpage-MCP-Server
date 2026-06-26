@@ -72,31 +72,23 @@ def test_public_guides_include_codex_mcp_configuration() -> None:
 
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
-    examples = Path("examples/README.md").read_text(encoding="utf-8")
     contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
+    troubleshooting = Path("docs/troubleshooting.md").read_text(encoding="utf-8")
     manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    for text in (readme, readme_cn, examples, contract):
+    for text in (readme, readme_cn, contract, troubleshooting):
         assert "[mcp_servers.drissionpage]" in text
         assert 'command = "drissionpage-mcp"' in text
 
     assert "Codex CLI/IDE" in readme
     assert "Codex CLI/IDE" in readme_cn
-    assert "codex mcp list" in examples
-    assert "recursive-include examples *.json *.toml *.md" in manifest
+    assert "codex mcp list" in troubleshooting
+    assert "recursive-include examples" not in manifest
     assert "Codex" in pyproject["project"]["description"]
     assert "codex" in pyproject["project"]["keywords"]
-
-    codex_config = tomllib.loads(Path("examples/codex-config.toml").read_text())
-    source_config = tomllib.loads(Path("examples/codex-source-config.toml").read_text())
-
-    assert codex_config["mcp_servers"]["drissionpage"]["command"] == "drissionpage-mcp"
-    assert source_config["mcp_servers"]["drissionpage"]["command"] == "python"
-    assert source_config["mcp_servers"]["drissionpage"]["args"] == [
-        "-m",
-        "drissionpage_mcp.cli",
-    ]
+    assert 'command = "python"' in contract
+    assert 'args = ["-m", "drissionpage_mcp.cli"]' in contract
 
 
 def _tool_inventory(contract: str) -> str:
