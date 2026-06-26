@@ -14,6 +14,16 @@
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
+## 🧭 客户端安装导航
+
+- [安装与截图指引](#-首次成功路径)
+- [Codex CLI/IDE 快速配置](#-在-codex-cliide-中配置30-秒)
+- [Codex CLI/IDE 集成示例](#codex-cli--ide)
+- [Claude Code 配置](#claude-code)
+- [Cursor 配置](#cursor)
+- [Claude Desktop 配置](#claude-desktop)
+- [故障排除](#-故障排除)
+
 ---
 
 ## 🚀 什么是 DrissionPage MCP？
