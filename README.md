@@ -1,6 +1,6 @@
 # DrissionPage MCP Server
 
-> Professional browser automation for Claude Code and MCP clients powered by DrissionPage
+> Professional browser automation for Codex, Claude Code, and MCP clients powered by DrissionPage
 
 [![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg)](https://pypi.org/project/drissionpage-mcp/)
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
@@ -18,9 +18,9 @@
 
 ## 🚀 What is DrissionPage MCP?
 
-**DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Claude Code, Claude Desktop, and other MCP clients.
+**DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 21 powerful tools that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 19 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -29,7 +29,7 @@ Unlike screenshot-based approaches, it provides **structured, deterministic web 
 - **Fast & Lightweight**: Built on DrissionPage's efficient engine with minimal overhead
 - **Type-Safe**: Full type hints and Pydantic validation for all tools
 - **Open-source Friendly**: Includes compatibility notes, troubleshooting, and CI checks for maintainable contributions
-- **Easy Integration**: Simple `pip install` + JSON configuration
+- **Easy Integration**: Simple `pip install` + Codex TOML or MCP JSON configuration
 
 ---
 
@@ -44,28 +44,29 @@ drissionpage-mcp --version
 drissionpage-mcp doctor
 ```
 
-Then add the MCP client configuration below and restart your client.
+Then add the Codex or MCP client configuration below and restart your client.
 
 ---
 
-## 📦 Setup in Claude Code (30 seconds)
+## 📦 Setup in Codex CLI/IDE (30 seconds)
 
-1. **Edit MCP configuration**:
-   - macOS/Linux: `~/.config/claude-code/mcp_settings.json`
-   - Windows: `%APPDATA%\claude-code\mcp_settings.json`
+Codex supports local stdio MCP servers through `config.toml`; the CLI and IDE extension share the same MCP configuration.
+
+1. **Edit Codex configuration**:
+   - User-level: `~/.codex/config.toml`
+   - Project-level: `.codex/config.toml` inside a trusted project
 
 2. **Add this configuration**:
-   ```json
-   {
-     "mcpServers": {
-       "drissionpage": {
-         "command": "drissionpage-mcp"
-       }
-     }
-   }
+   ```toml
+   [mcp_servers.drissionpage]
+   command = "drissionpage-mcp"
+   startup_timeout_sec = 20
+   tool_timeout_sec = 60
    ```
 
-3. **Restart Claude Code** and start using!
+3. **Restart Codex**. In the TUI, run `/mcp`; from a shell, run `codex mcp list`.
+
+For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integration Examples](#-integration-examples).
 
 ---
 
@@ -153,7 +154,7 @@ DrissionMCP/
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 21 automation tools
+│   └── tools/              # 19 automation tools
 ├── examples/               # Configuration templates
 ├── tests/                  # Unit tests
 └── playground/             # Testing utilities
@@ -170,7 +171,27 @@ DrissionMCP/
 
 ## 🔧 Configuration
 
-### Basic Setup (Recommended)
+### Codex CLI / IDE (Recommended)
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+
+# Optional browser/runtime environment variables:
+# [mcp_servers.drissionpage.env]
+# CHROME_PATH = "/custom/path/to/chrome"
+# DP_HEADLESS = "1"
+# DP_NO_SANDBOX = "1"
+```
+
+You can also add it with the Codex CLI:
+
+```bash
+codex mcp add drissionpage -- drissionpage-mcp
+```
+
+### JSON MCP Clients
 ```json
 {
   "mcpServers": {
@@ -181,7 +202,7 @@ DrissionMCP/
 }
 ```
 
-### Advanced Setup
+### Advanced JSON Setup
 ```json
 {
   "mcpServers": {
@@ -204,7 +225,7 @@ See [examples/README.md](examples/README.md) for more configuration options.
 
 - **Python 3.10+** (3.11+ recommended)
 - **Chrome or Chromium** browser
-- **Any MCP-compatible client**: Claude Code, Claude Desktop, Cursor, VS Code, etc.
+- **Any MCP-compatible client**: Codex CLI/IDE, Claude Code, Claude Desktop, Cursor, VS Code, etc.
 
 ---
 
@@ -266,9 +287,10 @@ which google-chrome    # Linux
 which chromium         # macOS
 ```
 
-### Claude Code Not Finding Server?
-- Verify config file path
-- Restart Claude Code after changes
+### Codex / MCP Client Not Finding Server?
+- Codex: run `codex mcp list`; in the TUI, run `/mcp`
+- JSON clients: verify config file path and JSON syntax
+- Restart Codex or your MCP client after changes
 - Check logs: `drissionpage-mcp --log-level DEBUG`
 
 See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubleshooting guide.
@@ -311,6 +333,20 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 ---
 
 ## 📖 Integration Examples
+
+### Codex CLI / IDE
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
+Verify with:
+
+```bash
+codex mcp list
+```
 
 ### Claude Code
 ```json

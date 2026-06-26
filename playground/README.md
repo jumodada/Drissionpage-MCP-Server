@@ -49,10 +49,11 @@ python playground/test_scenarios/data_extraction.py
    ```
 
 2. **Copy Configuration**
-   See `mcp-config.json` in the project root for configuration example.
-   Add it to your MCP client configuration:
+   Use the examples in `examples/` for your MCP client.
+   Add the server to your MCP client configuration:
+   - **Codex CLI/IDE**: `~/.codex/config.toml` or trusted project `.codex/config.toml`
    - **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **VS Code**: See project README for setup instructions
+   - **VS Code / other MCP clients**: See project README for setup instructions
 
 3. **Restart MCP Client**
 
@@ -63,7 +64,7 @@ python playground/test_scenarios/data_extraction.py
    "Get all text from the page"
    ```
 
-### Example Commands for Claude Code
+### Example Commands for Codex / Claude Code
 
 #### Basic Navigation
 ```
@@ -164,13 +165,13 @@ python -m drissionpage_mcp.cli --log-level DEBUG
 
 ### Server Won't Start
 1. Check dependencies: `pip install -r requirements.txt`
-2. Verify Python version: `python --version` (need 3.8+)
+2. Verify Python version: `python --version` (need 3.10+)
 3. Check Chrome installation
 
 ### MCP Client Can't Connect
-1. Verify config file path and format
+1. Verify config file path and format (`codex mcp list` for Codex)
 2. Restart MCP client after config changes
-3. Check server is running: `python -m drissionpage_mcp.cli`
+3. Check server is runnable: `python -m drissionpage_mcp.cli`
 
 ### Tools Not Working
 1. Test locally first: `python playground/local_test.py`

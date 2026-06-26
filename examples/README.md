@@ -1,73 +1,78 @@
 # Configuration Examples
 
-This directory contains configuration examples for different MCP clients and installation methods.
+This directory contains configuration examples for Codex, Claude, and other MCP clients.
 
 ## 📁 Files
 
-### For Source Installation (Development)
+### Codex CLI / IDE
 
-- **`claude-code-config.json`** - Configuration for Claude Code CLI
-- **`claude-desktop-config.json`** - Configuration for Claude Desktop App
+- **`codex-config.toml`** - Codex configuration after installing from PyPI
+- **`codex-source-config.toml`** - Codex configuration for a source checkout
 
-**Usage**:
-1. Clone the repository and install in development mode
-2. Copy the appropriate config file
-3. Replace `<REPLACE_WITH_YOUR_DRISSIONMCP_PATH>` with your actual project path
-4. Add the configuration to your MCP settings file
+Codex reads MCP servers from `~/.codex/config.toml`, or from `.codex/config.toml` inside a trusted project. The Codex CLI and IDE extension share this configuration.
 
-**Example**:
-```bash
-# Install in development mode
-git clone https://github.com/jumodada/Drissionpage-MCP-Server.git
-cd Drissionpage-MCP-Server
-python -m pip install -e ".[dev]"
-python playground/quick_start.py
+### JSON MCP Clients
 
-# For Claude Code
-# Edit: ~/.config/claude-code/mcp_settings.json
-# Copy content from claude-code-config.json and replace path
-```
-
----
-
-### For PyPI Installation (Recommended)
-
-- **`pypi-install-config.json`** - Configuration after installing from PyPI
-
-**Usage**:
-1. Install the package from PyPI
-2. Copy the configuration content
-3. Add to your MCP settings file
-4. No need to specify `cwd` - it works globally!
-
-**Example**:
-```bash
-# Install from PyPI
-python -m pip install -U drissionpage-mcp
-
-# For Claude Code
-# Edit: ~/.config/claude-code/mcp_settings.json
-# Copy content from pypi-install-config.json
-```
-
----
-
-## 🗂️ Configuration File Locations
-
-### Claude Code
-- **macOS/Linux**: `~/.config/claude-code/mcp_settings.json`
-- **Windows**: `%APPDATA%\claude-code\mcp_settings.json`
-
-### Claude Desktop
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
-- **Linux**: `~/.config/Claude/claude_desktop_config.json`
+- **`pypi-install-config.json`** - JSON MCP configuration after installing from PyPI
+- **`claude-code-config.json`** - JSON MCP configuration for source/development use
+- **`claude-desktop-config.json`** - Claude Desktop configuration for source/development use
 
 ---
 
 ## 🚀 Quick Setup
 
-### Method 1: From PyPI (Recommended for Users)
+### Method 1: Codex from PyPI (Recommended)
+
+```bash
+# 1. Install from official PyPI
+python -m pip install -U drissionpage-mcp
+
+# 2. Verify the command and environment
+drissionpage-mcp --version
+drissionpage-mcp doctor
+
+# 3. Add examples/codex-config.toml to ~/.codex/config.toml
+#    or to .codex/config.toml in a trusted project.
+
+# 4. Verify Codex can see the server
+codex mcp list
+```
+
+Expected Codex TOML:
+
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
+You can also add it with the Codex CLI:
+
+```bash
+codex mcp add drissionpage -- drissionpage-mcp
+```
+
+### Method 2: Codex from Source (Developers)
+
+```bash
+# 1. Clone and install
+git clone https://github.com/jumodada/Drissionpage-MCP-Server.git
+cd Drissionpage-MCP-Server
+python -m pip install -e ".[dev]"
+python playground/quick_start.py
+
+# 2. Copy config and edit path
+cp examples/codex-source-config.toml temp-codex-config.toml
+# Replace <REPLACE_WITH_YOUR_DRISSIONMCP_PATH> with this checkout's absolute path.
+
+# 3. Merge it into ~/.codex/config.toml or trusted project .codex/config.toml
+
+# 4. Verify
+codex mcp list
+```
+
+### Method 3: JSON MCP Clients from PyPI
 
 ```bash
 # 1. Install
@@ -80,10 +85,10 @@ drissionpage-mcp doctor
 # 3. Copy examples/pypi-install-config.json into your MCP settings JSON
 # Do not append raw JSON to an existing file unless you merge it into mcpServers.
 
-# 4. Restart Claude Code
+# 4. Restart your MCP client
 ```
 
-### Method 2: From Source (Recommended for Developers)
+### Method 4: JSON MCP Clients from Source
 
 ```bash
 # 1. Clone and install
@@ -99,14 +104,53 @@ cp examples/claude-code-config.json temp-config.json
 # 3. Merge temp-config.json into your MCP settings JSON
 # Do not append raw JSON to an existing file unless you merge it into mcpServers.
 
-# 4. Restart Claude Code
+# 4. Restart your MCP client
 ```
+
+---
+
+## 🗂️ Configuration File Locations
+
+### Codex CLI / IDE
+- **User config**: `~/.codex/config.toml`
+- **Project config**: `.codex/config.toml` inside a trusted project
+- **TUI check**: run `/mcp`
+- **Shell check**: run `codex mcp list`
+
+### Claude Code / JSON MCP Clients
+- **Claude Code**: `~/.config/claude-code/mcp_settings.json`
+- **Claude Desktop macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Claude Desktop Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Claude Desktop Linux**: `~/.config/Claude/claude_desktop_config.json`
 
 ---
 
 ## 🔧 Configuration Options
 
-### Basic Configuration
+### Codex Basic Configuration
+
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
+### Codex Advanced Configuration with Environment Variables
+
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+
+[mcp_servers.drissionpage.env]
+CHROME_PATH = "/custom/path/to/chrome"
+DP_HEADLESS = "1"
+DP_NO_SANDBOX = "1"
+```
+
+### JSON Basic Configuration
 
 ```json
 {
@@ -118,7 +162,7 @@ cp examples/claude-code-config.json temp-config.json
 }
 ```
 
-### Advanced Configuration with Environment Variables
+### JSON Advanced Configuration with Environment Variables
 
 ```json
 {
@@ -141,16 +185,13 @@ cp examples/claude-code-config.json temp-config.json
 - **`command`**: The command to start the MCP server
   - PyPI install: `"drissionpage-mcp"`
   - Source install: `"python"`
-
 - **`args`**: Command line arguments
   - `["-m", "drissionpage_mcp.cli"]` - Run as Python module
   - `["--log-level", "DEBUG"]` - Set logging level
-
-- **`cwd`**: Working directory (required for source installation)
+- **`cwd`**: Working directory for source installation
   - Absolute path to your DrissionMCP project directory
-
 - **`env`**: Environment variables
-  - Custom browser path, logging configuration, etc.
+  - Custom browser path, headless mode, sandbox flags, logging configuration, etc.
 
 ---
 
@@ -159,34 +200,51 @@ cp examples/claude-code-config.json temp-config.json
 After configuration, test your setup:
 
 ```bash
-# In Claude Code, try:
+# Codex CLI / IDE
+codex mcp list
+# In the Codex TUI, run: /mcp
+
+# JSON MCP client prompt example
 "Use DrissionPage to navigate to https://example.com and take a screenshot"
 
-# Or test manually:
+# Manual checks
 drissionpage-mcp --version
 drissionpage-mcp doctor
 python playground/quick_start.py
+```
+
+If `pip install drissionpage-mcp==0.4.0` cannot find the latest version, your package mirror may be stale. Retry with official PyPI:
+
+```bash
+python -m pip install -U --index-url https://pypi.org/simple drissionpage-mcp
 ```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### Config not loading?
-- Check file path is correct
-- Ensure JSON syntax is valid
-- Restart Claude Code/Desktop after changes
+### Codex server not appearing?
+- Run `codex mcp list` from the same shell.
+- In the Codex TUI, run `/mcp`.
+- Confirm `~/.codex/config.toml` TOML syntax is valid.
+- If using project `.codex/config.toml`, make sure the project is trusted.
+- Restart Codex after configuration changes.
+
+### JSON client config not loading?
+- Check file path is correct.
+- Ensure JSON syntax is valid.
+- Restart the MCP client after changes.
 
 ### Server not starting?
-- Verify Python and dependencies are installed
-- Run `drissionpage-mcp doctor`
-- Check the `cwd` path exists (for source installation)
-- Try running manually: `python -m drissionpage_mcp.cli --log-level DEBUG`
+- Verify Python and dependencies are installed.
+- Run `drissionpage-mcp doctor`.
+- Check the `cwd` path exists for source installation.
+- Try running manually: `python -m drissionpage_mcp.cli --log-level DEBUG`.
 
 ### Tools not appearing?
-- Ensure server started successfully
-- Check Claude Code logs
-- Verify the configuration was added to the right JSON file
+- Ensure server started successfully.
+- Check client logs.
+- Verify the configuration was added to the right file.
 
 ---
 

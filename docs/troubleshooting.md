@@ -28,7 +28,18 @@ python playground/quick_start.py
 
 ## MCP Client Cannot Find the Server
 
-Check the MCP client configuration uses the installed command:
+Check the MCP client configuration uses the installed command.
+
+For Codex CLI/IDE, `~/.codex/config.toml` or a trusted project `.codex/config.toml` should contain:
+
+```toml
+[mcp_servers.drissionpage]
+command = "drissionpage-mcp"
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
+For JSON MCP clients, configure:
 
 ```json
 {
@@ -42,10 +53,12 @@ Check the MCP client configuration uses the installed command:
 
 Then verify:
 
-- Restart the MCP client after editing JSON.
-- Confirm the JSON is valid.
+- Codex: run `codex mcp list`; in the TUI, run `/mcp`.
+- JSON clients: restart the MCP client after editing JSON.
+- Confirm the TOML or JSON syntax is valid.
 - Confirm `drissionpage-mcp --version` works in the same shell environment used by the client.
 - For source installs, prefer `python -m drissionpage_mcp.cli` with an absolute `cwd`.
+- If `pip` cannot find a newly published version, your package mirror may be stale; retry with `python -m pip install -U --index-url https://pypi.org/simple drissionpage-mcp`.
 
 ## Tools Do Not Appear
 
@@ -56,7 +69,7 @@ Then verify:
    python -m drissionpage_mcp.cli --log-level DEBUG
    ```
 
-2. Check the MCP client logs for startup or JSON configuration errors.
+2. Check the MCP client logs for startup, TOML, or JSON configuration errors.
 3. Confirm the package imports correctly:
 
    ```bash
