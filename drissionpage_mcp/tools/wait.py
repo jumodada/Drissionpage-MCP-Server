@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
+from ..selector import normalize_selector
 from .base import ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
@@ -14,7 +15,13 @@ if TYPE_CHECKING:
 class WaitElementInput(BaseModel):
     """Input schema for waiting for elements."""
 
-    selector: str = Field(..., description="CSS selector or XPath to wait for")
+    selector: str = Field(
+        ...,
+        description=(
+            "CSS selector or XPath to wait for. Bare selectors are CSS; "
+            "use text:... for text matching or explicit tag:/css:/xpath:/@attr locators."
+        ),
+    )
     timeout: int = Field(default=10, description="Timeout in seconds")
 
 
@@ -36,7 +43,10 @@ class WaitUrlInput(BaseModel):
 @define_tool(
     name="wait_for_element",
     title="Wait for Element",
-    description="Wait for an element to appear on the page",
+    description=(
+        "Wait for an element to appear on the page. Bare selectors are treated "
+        "as CSS; use text:... for text matching."
+    ),
     input_schema=WaitElementInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
@@ -51,18 +61,19 @@ async def wait_for_element(
             f"Element '{args.selector}' did not appear within "
             f"{args.timeout} seconds: {e}"
         ),
-    ):
+        ):
         tab = context.current_tab_or_die()
+        plan = normalize_selector(args.selector)
         found = await tab.wait_for_element(args.selector, timeout=args.timeout)
         if not found:
             raise TimeoutError(f"Element '{args.selector}' not found")
 
         response.add_code(
-            f"page.wait.ele_loaded({args.selector!r}, timeout={args.timeout!r})"
+            f"page.wait.ele_loaded({plan.locator!r}, timeout={args.timeout!r})"
         )
         response.add_result(
             f"Element '{args.selector}' appeared within {args.timeout} seconds",
-            selector=args.selector,
+            **plan.metadata(),
             found=True,
             timeout=args.timeout,
         )

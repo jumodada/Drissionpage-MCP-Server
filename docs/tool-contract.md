@@ -126,9 +126,9 @@ The server marks tools with MCP annotations:
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
-| `element_find` | Read-only | `selector` | Find an element by CSS selector or XPath. Optional: `timeout`. |
-| `element_click` | Destructive | `selector` | Click an element. Optional: `timeout`. |
-| `element_type` | Destructive | `selector`, `text` | Type text into an element. Optional: `timeout`, `clear`. |
+| `element_find` | Read-only | `selector` | Find an element by CSS selector or XPath. Bare selectors are treated as CSS. Optional: `timeout`. |
+| `element_click` | Destructive | `selector` | Click an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`. |
+| `element_type` | Destructive | `selector`, `text` | Type text into an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `clear`. |
 | `element_get_text` | Read-only | none | Get page text, or element text when `selector` is set. |
 | `element_get_attribute` | Read-only | `selector`, `attribute` | Read an HTML attribute. |
 | `element_get_property` | Read-only | `selector`, `property_name` | Read a live DOM property such as `value`. |
@@ -138,7 +138,7 @@ The server marks tools with MCP annotations:
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
-| `wait_for_element` | Read-only | `selector` | Wait for an element to load. Optional: `timeout`. |
+| `wait_for_element` | Read-only | `selector` | Wait for an element to load. Bare selectors are treated as CSS. Optional: `timeout`. |
 | `wait_for_url` | Read-only | `url_pattern` | Wait until the current URL contains text. Optional: `timeout`. |
 | `wait_time` | Read-only | `seconds` | Sleep for a fixed duration. |
 
@@ -172,7 +172,8 @@ The server exposes user-controlled workflow prompts:
 
 ## Compatibility Notes
 
-- Selectors are passed to DrissionPage and may be CSS selectors, XPath, or DrissionPage-supported selector forms.
+- Selectors are normalized before calling DrissionPage: bare selectors are treated as CSS (`h1` -> `css:h1`, `input[name=q]` -> `css:input[name=q]`), XPath-looking strings are prefixed as XPath (`//h1` -> `xpath://h1`), and explicit DrissionPage forms such as `tag:h1`, `text:Submit`, `css:...`, `xpath:...`, and `@name=value` are preserved.
+- Tool responses include selector metadata: `selector`, `locator`, `selector_strategy`, and `selector_normalized`.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
 - `element_input_text` and `wait_sleep` were removed in 0.4.0. Use
   `element_type` and `wait_time`.

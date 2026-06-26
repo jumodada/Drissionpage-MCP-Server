@@ -971,12 +971,12 @@
       "readOnlyHint": true,
       "title": "Find Element"
     },
-    "description": "Find an element on the page using CSS selector or XPath",
+    "description": "Find an element on the page using CSS selector or XPath. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
       "description": "Input schema for finding elements.",
       "properties": {
         "selector": {
-          "description": "CSS selector or XPath to find the element",
+          "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
           "title": "Selector",
           "type": "string"
         },
@@ -1012,7 +1012,16 @@
                     "html": {
                       "type": "string"
                     },
+                    "locator": {
+                      "type": "string"
+                    },
                     "selector": {
+                      "type": "string"
+                    },
+                    "selector_normalized": {
+                      "type": "boolean"
+                    },
+                    "selector_strategy": {
                       "type": "string"
                     },
                     "tag": {
@@ -1028,6 +1037,9 @@
                   "required": [
                     "found",
                     "selector",
+                    "locator",
+                    "selector_strategy",
+                    "selector_normalized",
                     "text"
                   ],
                   "title": "ElementInfo",
@@ -1108,12 +1120,12 @@
       "readOnlyHint": false,
       "title": "Click Element"
     },
-    "description": "Click on an element found by CSS selector or XPath",
+    "description": "Click an element found by CSS selector or XPath. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
       "description": "Input schema for clicking elements.",
       "properties": {
         "selector": {
-          "description": "CSS selector or XPath to find the element",
+          "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
           "title": "Selector",
           "type": "string"
         },
@@ -1140,7 +1152,16 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "locator": {
+                  "type": "string"
+                },
                 "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
                   "type": "string"
                 },
                 "url": {
@@ -1149,6 +1170,9 @@
               },
               "required": [
                 "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
                 "url"
               ],
               "title": "ElementClickData",
@@ -1233,7 +1257,7 @@
           "type": "boolean"
         },
         "selector": {
-          "description": "CSS selector or XPath to find the input element",
+          "description": "CSS selector or XPath to find the input element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
           "title": "Selector",
           "type": "string"
         },
@@ -1269,7 +1293,16 @@
                 "cleared": {
                   "type": "boolean"
                 },
+                "locator": {
+                  "type": "string"
+                },
                 "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
                   "type": "string"
                 },
                 "typed": {
@@ -1278,6 +1311,9 @@
               },
               "required": [
                 "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
                 "typed",
                 "cleared"
               ],
@@ -1358,7 +1394,7 @@
       "properties": {
         "selector": {
           "default": "",
-          "description": "CSS selector or XPath; empty means whole page",
+          "description": "CSS selector or XPath; empty means whole page. Bare selectors are CSS; use text:... for text matching.",
           "title": "Selector",
           "type": "string"
         }
@@ -1376,7 +1412,16 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "locator": {
+                  "type": "string"
+                },
                 "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
                   "type": "string"
                 },
                 "text": {
@@ -1385,7 +1430,10 @@
               },
               "required": [
                 "text",
-                "selector"
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized"
               ],
               "title": "ElementGetTextData",
               "type": "object"
@@ -1468,7 +1516,7 @@
           "type": "string"
         },
         "selector": {
-          "description": "CSS selector or XPath to find the element",
+          "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
           "title": "Selector",
           "type": "string"
         }
@@ -1493,7 +1541,16 @@
                 "attribute": {
                   "type": "string"
                 },
+                "locator": {
+                  "type": "string"
+                },
                 "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
                   "type": "string"
                 },
                 "value": {
@@ -1505,6 +1562,9 @@
               },
               "required": [
                 "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
                 "attribute",
                 "value"
               ],
@@ -1589,7 +1649,7 @@
           "type": "string"
         },
         "selector": {
-          "description": "CSS selector or XPath to find the element",
+          "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
           "title": "Selector",
           "type": "string"
         }
@@ -1611,16 +1671,28 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "locator": {
+                  "type": "string"
+                },
                 "property_name": {
                   "type": "string"
                 },
                 "selector": {
                   "type": "string"
                 },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                },
                 "value": {}
               },
               "required": [
                 "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
                 "property_name",
                 "value"
               ],
@@ -1701,7 +1773,7 @@
       "properties": {
         "selector": {
           "default": "",
-          "description": "CSS selector or XPath; empty means whole page",
+          "description": "CSS selector or XPath; empty means whole page. Bare selectors are CSS; use text:... for text matching.",
           "title": "Selector",
           "type": "string"
         }
@@ -1722,13 +1794,25 @@
                 "html": {
                   "type": "string"
                 },
+                "locator": {
+                  "type": "string"
+                },
                 "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
                   "type": "string"
                 }
               },
               "required": [
                 "html",
-                "selector"
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized"
               ],
               "title": "ElementGetHtmlData",
               "type": "object"
@@ -1801,12 +1885,12 @@
       "readOnlyHint": true,
       "title": "Wait for Element"
     },
-    "description": "Wait for an element to appear on the page",
+    "description": "Wait for an element to appear on the page. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
       "description": "Input schema for waiting for elements.",
       "properties": {
         "selector": {
-          "description": "CSS selector or XPath to wait for",
+          "description": "CSS selector or XPath to wait for. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
           "title": "Selector",
           "type": "string"
         },
@@ -1836,7 +1920,16 @@
                 "found": {
                   "const": true
                 },
+                "locator": {
+                  "type": "string"
+                },
                 "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
                   "type": "string"
                 },
                 "timeout": {
@@ -1845,6 +1938,9 @@
               },
               "required": [
                 "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
                 "found",
                 "timeout"
               ],

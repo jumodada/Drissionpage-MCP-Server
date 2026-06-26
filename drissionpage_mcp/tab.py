@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from DrissionPage.errors import ElementNotFoundError, PageDisconnectedError
 
+from .selector import SelectorPlan, normalize_selector
+
 if TYPE_CHECKING:
     from .context import DrissionPageContext
 
@@ -85,13 +87,14 @@ class PageTab:
     async def click_element(self, selector: str, timeout: int = 10) -> None:
         """Click an element by selector."""
         try:
+            plan = normalize_selector(selector)
             # Wait for element if timeout is specified
             if timeout > 0:
-                loaded = await self.wait_for_element(selector, timeout)
+                loaded = await self._wait_for_selector_plan(plan, timeout)
                 if not loaded:
                     raise ElementNotFoundError(f"Element not found: {selector}")
 
-            element = self.page.ele(selector)
+            element = self.page.ele(plan.locator)
             if element:
                 element.click()
                 await self._stabilize("element_click", timeout=1.0, fallback_sleep=0.02)
@@ -104,7 +107,8 @@ class PageTab:
     async def input_text(self, selector: str, text: str, clear: bool = True) -> None:
         """Input text into an element."""
         try:
-            element = self.page.ele(selector)
+            plan = normalize_selector(selector)
+            element = self.page.ele(plan.locator)
             if element:
                 # DrissionPage 4.2.0b20 accepts input(clear=True) but leaves
                 # some fields empty in practice. The explicit clear-then-input
@@ -124,12 +128,13 @@ class PageTab:
     ) -> None:
         """Type text into an element after waiting for it to appear."""
         try:
+            plan = normalize_selector(selector)
             if timeout > 0:
-                loaded = await self.wait_for_element(selector, timeout)
+                loaded = await self._wait_for_selector_plan(plan, timeout)
                 if not loaded:
                     raise ElementNotFoundError(f"Element not found: {selector}")
 
-            await self.input_text(selector, text, clear)
+            await self.input_text(plan.locator, text, clear)
         except Exception as e:
             logger.error(f"Failed to type text to {selector}: {e}")
             raise
@@ -137,20 +142,21 @@ class PageTab:
     async def find_element(self, selector: str, timeout: int = 10) -> Dict[str, Any]:
         """Find an element and return its information."""
         try:
+            plan = normalize_selector(selector)
             # Wait for element to appear
-            element_exists = await self.wait_for_element(selector, timeout)
+            element_exists = await self._wait_for_selector_plan(plan, timeout)
 
             if not element_exists:
                 raise ElementNotFoundError(f"Element not found: {selector}")
 
-            element = self.page.ele(selector)
+            element = self.page.ele(plan.locator)
             if not element:
                 raise ElementNotFoundError(f"Element not found: {selector}")
 
             # Return element information
             return {
                 "found": True,
-                "selector": selector,
+                **plan.metadata(),
                 "text": element.text or "",
                 "tag": element.tag if hasattr(element, "tag") else "unknown",
                 "html": element.html if hasattr(element, "html") else "",
@@ -164,7 +170,8 @@ class PageTab:
         """Get text content from element or page."""
         try:
             if selector:
-                element = self.page.ele(selector)
+                plan = normalize_selector(selector)
+                element = self.page.ele(plan.locator)
                 if element:
                     return str(element.text)
                 else:
@@ -184,7 +191,8 @@ class PageTab:
     async def get_attribute(self, selector: str, attribute: str) -> Optional[str]:
         """Get attribute value from an element."""
         try:
-            element = self.page.ele(selector)
+            plan = normalize_selector(selector)
+            element = self.page.ele(plan.locator)
             if element:
                 value = element.attr(attribute)
                 return None if value is None else str(value)
@@ -197,7 +205,8 @@ class PageTab:
     async def get_property(self, selector: str, property_name: str) -> Any:
         """Get a live DOM property value from an element."""
         try:
-            element = self.page.ele(selector)
+            plan = normalize_selector(selector)
+            element = self.page.ele(plan.locator)
             if element:
                 return element.property(property_name)
             else:
@@ -210,7 +219,8 @@ class PageTab:
         """Get HTML content."""
         try:
             if selector:
-                element = self.page.ele(selector)
+                plan = normalize_selector(selector)
+                element = self.page.ele(plan.locator)
                 if element:
                     return str(element.html)
                 else:
@@ -262,17 +272,29 @@ class PageTab:
 
     async def wait_for_element(self, selector: str, timeout: int = 10) -> bool:
         """Wait for an element to appear."""
+        return await self._wait_for_selector_plan(normalize_selector(selector), timeout)
+
+    async def _wait_for_selector_plan(
+        self, plan: SelectorPlan, timeout: int = 10
+    ) -> bool:
+        """Wait for a normalized selector to appear."""
         try:
             waiter = self.page.wait
             if hasattr(waiter, "ele_loaded"):
-                result = waiter.ele_loaded(selector, timeout=timeout)
+                result = waiter.ele_loaded(plan.locator, timeout=timeout)
             else:
                 # DrissionPage 4.1/4.2 exposes eles_loaded() instead of the
                 # older singular helper.
-                result = waiter.eles_loaded(selector, timeout=timeout, any_one=True)
+                result = waiter.eles_loaded(plan.locator, timeout=timeout, any_one=True)
             return bool(result)
         except Exception as e:
-            logger.warning(f"Element {selector} not found within {timeout}s: {e}")
+            logger.warning(
+                "Element %s (%s) not found within %ss: %s",
+                plan.original,
+                plan.locator,
+                timeout,
+                e,
+            )
             return False
 
     async def wait_for_url(self, url_pattern: str, timeout: int = 10) -> bool:
