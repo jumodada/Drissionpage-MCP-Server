@@ -82,6 +82,26 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/selectors":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head>
+                    <title>Fixture Selectors</title>
+                    <style>h1 { color: red; }</style>
+                  </head>
+                  <body>
+                    <main id="selector-root">
+                      <h1 id="selector-title">Title</h1>
+                      <input id="cust" name="custname" value="Ada" />
+                    </main>
+                  </body>
+                </html>
+                """
+            )
+            return
+
         if path == "/redirect":
             self.send_response(302)
             self.send_header("Location", "/")

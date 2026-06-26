@@ -193,6 +193,18 @@ BOOLEAN = {"type": "boolean"}
 INTEGER = {"type": "integer"}
 NUMBER = {"type": "number"}
 ANY_JSON: Dict[str, Any] = {}
+SELECTOR_METADATA_SCHEMA = {
+    "selector": STRING,
+    "locator": STRING,
+    "selector_strategy": STRING,
+    "selector_normalized": BOOLEAN,
+}
+SELECTOR_METADATA_REQUIRED = [
+    "selector",
+    "locator",
+    "selector_strategy",
+    "selector_normalized",
+]
 
 ERROR_SCHEMA: Dict[str, Any] = {
     "type": "object",
@@ -224,13 +236,13 @@ ELEMENT_INFO_SCHEMA = _data_schema(
     "ElementInfo",
     {
         "found": {"const": True},
-        "selector": STRING,
+        **SELECTOR_METADATA_SCHEMA,
         "text": STRING,
         "tag": STRING,
         "html": STRING,
         "visible": BOOLEAN,
     },
-    ["found", "selector", "text"],
+    ["found", *SELECTOR_METADATA_REQUIRED, "text"],
 )
 
 _GENERIC_DATA_SCHEMA = _data_schema(
@@ -276,38 +288,46 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
     ),
     "element_click": _data_schema(
         "ElementClickData",
-        {"selector": STRING, "url": STRING},
-        ["selector", "url"],
+        {**SELECTOR_METADATA_SCHEMA, "url": STRING},
+        [*SELECTOR_METADATA_REQUIRED, "url"],
     ),
     "element_type": _data_schema(
         "ElementTypeData",
-        {"selector": STRING, "typed": {"const": True}, "cleared": BOOLEAN},
-        ["selector", "typed", "cleared"],
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "typed": {"const": True},
+            "cleared": BOOLEAN,
+        },
+        [*SELECTOR_METADATA_REQUIRED, "typed", "cleared"],
     ),
     "element_get_text": _data_schema(
         "ElementGetTextData",
-        {"text": STRING, "selector": STRING},
-        ["text", "selector"],
+        {"text": STRING, **SELECTOR_METADATA_SCHEMA},
+        ["text", *SELECTOR_METADATA_REQUIRED],
     ),
     "element_get_attribute": _data_schema(
         "ElementGetAttributeData",
-        {"selector": STRING, "attribute": STRING, "value": {"type": ["string", "null"]}},
-        ["selector", "attribute", "value"],
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "attribute": STRING,
+            "value": {"type": ["string", "null"]},
+        },
+        [*SELECTOR_METADATA_REQUIRED, "attribute", "value"],
     ),
     "element_get_property": _data_schema(
         "ElementGetPropertyData",
-        {"selector": STRING, "property_name": STRING, "value": ANY_JSON},
-        ["selector", "property_name", "value"],
+        {**SELECTOR_METADATA_SCHEMA, "property_name": STRING, "value": ANY_JSON},
+        [*SELECTOR_METADATA_REQUIRED, "property_name", "value"],
     ),
     "element_get_html": _data_schema(
         "ElementGetHtmlData",
-        {"html": STRING, "selector": STRING},
-        ["html", "selector"],
+        {"html": STRING, **SELECTOR_METADATA_SCHEMA},
+        ["html", *SELECTOR_METADATA_REQUIRED],
     ),
     "wait_for_element": _data_schema(
         "WaitForElementData",
-        {"selector": STRING, "found": {"const": True}, "timeout": NUMBER},
-        ["selector", "found", "timeout"],
+        {**SELECTOR_METADATA_SCHEMA, "found": {"const": True}, "timeout": NUMBER},
+        [*SELECTOR_METADATA_REQUIRED, "found", "timeout"],
     ),
     "wait_for_url": _data_schema(
         "WaitForUrlData",

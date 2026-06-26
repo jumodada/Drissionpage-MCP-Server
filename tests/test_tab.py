@@ -198,6 +198,9 @@ async def test_element_actions_and_readers() -> None:
     assert found == {
         "found": True,
         "selector": "#name",
+        "locator": "css:#name",
+        "selector_strategy": "css",
+        "selector_normalized": True,
         "text": "Lovelace",
         "tag": "input",
         "html": '<input id="name" value="Ada">',
@@ -271,7 +274,7 @@ async def test_wait_close_url_and_connection_helpers() -> None:
 
     page.wait = FakeWaitFallback()
     assert await tab.wait_for_element("#ready", timeout=2) is True
-    assert page.wait.calls == [("#ready", 2, True)]
+    assert page.wait.calls == [("css:#ready", 2, True)]
 
     page.wait = FakeWait(fail=True)
     assert await tab.wait_for_element("#ready") is False

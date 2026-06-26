@@ -25,7 +25,7 @@ Unlike screenshot-based approaches, it provides **structured, deterministic web 
 ### 🌟 Why Choose DrissionPage MCP?
 
 - **LLM-Optimized**: Works with structured data instead of requiring vision models
-- **Deterministic**: Reliable element selection with CSS and XPath support
+- **Deterministic**: Reliable element selection with CSS/XPath normalization for LLM-friendly selectors
 - **Fast & Lightweight**: Built on DrissionPage's efficient engine with minimal overhead
 - **Type-Safe**: Full type hints and Pydantic validation for all tools
 - **Open-source Friendly**: Includes compatibility notes, troubleshooting, and CI checks for maintainable contributions
@@ -102,7 +102,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_refresh` - Reload current page
 
 ### 🎯 Element Interaction & Extraction (7 tools)
-- `element_find` - Find elements by CSS selector or XPath
+- `element_find` - Find elements by CSS selector or XPath; bare selectors like `h1` are treated as CSS
 - `element_click` - Click any element
 - `element_type` - Input text into elements
 - `element_get_text` - Get element or page text
