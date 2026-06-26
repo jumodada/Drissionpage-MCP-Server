@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-26
+
+### Added
+- MCP Resources for `drissionpage://session/summary`, `drissionpage://page/current`, `drissionpage://tools/catalog`, and `drissionpage://policy/summary`.
+- MCP Prompts for navigation summaries, structured extraction, safe form filling, and page debugging.
+- Typed per-tool MCP `outputSchema` data contracts for all 19 public tools.
+- Deterministic pytest eval harness under `tests/evals/`.
+
+### Changed
+- Tool success responses now put primary machine-readable values in `structuredContent.data` instead of relying on result text.
+- Documentation now describes the 0.4.0 resource, prompt, typed-output, and eval contracts.
+
+### Removed
+- Removed the 0.3.x public tool aliases `element_input_text` and `wait_sleep`; use `element_type` and `wait_time`.
+- Removed internal compatibility facades used by older tests in favor of direct tool definitions.
+
 ## [0.3.2] - 2026-06-25
 
 ### Added
@@ -131,7 +147,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.2...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.2.0...v0.3.0

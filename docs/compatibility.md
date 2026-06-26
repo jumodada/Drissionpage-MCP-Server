@@ -14,10 +14,23 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 
 ## Stability Expectations
 
-- Tool names are treated as public API. Existing tool names should not be removed without a deprecation period.
+- Tool names are treated as public API. `0.4.0` is a documented breaking
+  cleanup release that removes the two 0.3.x alias names listed below; future
+  removals must be documented in release notes and migration guidance.
 - Input schema changes should be backward compatible when possible.
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
+
+## 0.3.x to 0.4.0 Migration
+
+| Removed 0.3.x tool | 0.4.0 replacement | Notes |
+| --- | --- | --- |
+| `element_input_text` | `element_type` | Same input fields: `selector`, `text`, optional `timeout`, `clear`. |
+| `wait_sleep` | `wait_time` | Same input field: `seconds`. |
+
+Removed alias calls now return `TOOL_NOT_FOUND` instead of being silently
+redirected. Update MCP client prompts, saved workflows, and docs to use the
+replacement names.
 
 ## Browser Requirements
 
@@ -44,6 +57,5 @@ The repository CI checks are intended to cover:
 For public tool contract changes:
 
 1. Document the upcoming change in the release notes.
-2. Keep a compatibility alias when practical.
-3. Add or update tests that describe the old and new behavior.
-4. Remove deprecated behavior only in a later minor or major release.
+2. Add or update tests that describe the old and new behavior.
+3. Remove deprecated behavior only in a documented breaking release.

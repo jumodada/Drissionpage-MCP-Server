@@ -8,6 +8,10 @@ from mcp.server import Server
 from mcp.types import (
     CallToolRequest,
     CallToolResult,
+    GetPromptRequest,
+    ListPromptsRequest,
+    ListResourcesRequest,
+    ReadResourceRequest,
     ServerResult,
     Tool,
     ToolAnnotations,
@@ -16,6 +20,10 @@ from pydantic import ValidationError
 
 from . import __version__
 from .context import DrissionPageContext
+from .prompts import get_prompt as get_prompt_definition
+from .prompts import list_prompts as list_prompt_definitions
+from .resources import list_resources as list_resource_definitions
+from .resources import read_resource as read_resource_definition
 from .response import ErrorCode, ToolResponse, classify_error, tool_result_output_schema
 from .tools import Tool as DrissionTool
 from .tools import get_all_tools
@@ -54,6 +62,30 @@ class DrissionPageMCPServer:
             """List available tools."""
             return [self._tool_to_mcp_tool(tool) for tool in self.tools.values()]
 
+        @self.server.list_resources()
+        async def list_resources():
+            """List MCP resources."""
+            return list_resource_definitions()
+
+        @self.server.read_resource()
+        async def read_resource(uri):
+            """Read an MCP resource without initializing the browser."""
+            return read_resource_definition(
+                str(uri),
+                context=self.context,
+                tools=self.tools,
+            )
+
+        @self.server.list_prompts()
+        async def list_prompts():
+            """List MCP prompts."""
+            return list_prompt_definitions()
+
+        @self.server.get_prompt()
+        async def get_prompt(name: str, arguments: Optional[Dict[str, str]] = None):
+            """Render an MCP prompt."""
+            return get_prompt_definition(name, arguments)
+
         async def call_tool_impl(
             name: str, arguments: Optional[Dict[str, Any]] = None
         ) -> CallToolResult:
@@ -67,10 +99,16 @@ class DrissionPageMCPServer:
             # Find tool
             tool = self.tools.get(name)
             if not tool:
+                replacement = REMOVED_TOOL_REPLACEMENTS.get(name)
+                message = f"Tool '{name}' not found"
+                details: Dict[str, Any] = {"tool_name": name}
+                if replacement:
+                    message = f"{message}. Use '{replacement}' instead."
+                    details["suggested_tool"] = replacement
                 response.add_error(
-                    f"Tool '{name}' not found",
+                    message,
                     ErrorCode.TOOL_NOT_FOUND,
-                    tool_name=name,
+                    **details,
                 )
                 return self._call_result(response)
 
@@ -118,6 +156,10 @@ class DrissionPageMCPServer:
         self.server.request_handlers[CallToolRequest] = call_tool_handler
         self._call_tool_impl = call_tool_impl
 
+        # Touch these imports so static analysis keeps the request types associated
+        # with the decorators above.
+        _ = (ListResourcesRequest, ReadResourceRequest, ListPromptsRequest, GetPromptRequest)
+
     def _tool_to_mcp_tool(self, tool: DrissionTool) -> Tool:
         """Convert an internal tool definition to an MCP SDK Tool model."""
 
@@ -135,7 +177,7 @@ class DrissionPageMCPServer:
             ),
         }
         if _tool_supports_output_schema():
-            kwargs["outputSchema"] = tool_result_output_schema()
+            kwargs["outputSchema"] = tool_result_output_schema(tool.name)
         return Tool(**kwargs)
 
     def _call_result(self, response: ToolResponse) -> CallToolResult:
@@ -178,3 +220,9 @@ def _tool_supports_output_schema() -> bool:
         return "outputSchema" in inspect.signature(Tool).parameters
     except (TypeError, ValueError):
         return False
+
+
+REMOVED_TOOL_REPLACEMENTS = {
+    "element_input_text": "element_type",
+    "wait_sleep": "wait_time",
+}

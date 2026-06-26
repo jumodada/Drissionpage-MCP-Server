@@ -48,6 +48,8 @@ If the smoke test cannot run in the release environment, document the gap in the
 - [ ] MCP client config examples are valid JSON.
 - [ ] Troubleshooting steps still match current CLI behavior.
 - [ ] Tool inventory matches the registered tools.
+- [ ] Resource and prompt inventories match MCP `resources/list` and `prompts/list`.
+- [ ] `python -m pytest tests/evals -q` passes or browser-required evals skip with explicit local-browser diagnostics.
 
 ## 5. Publish
 

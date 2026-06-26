@@ -62,7 +62,9 @@ async def resize(
 
         response.add_code(f"page.set.window.size({args.width}, {args.height})")
         response.add_result(
-            f"Successfully resized window to {args.width}x{args.height}"
+            f"Successfully resized window to {args.width}x{args.height}",
+            width=args.width,
+            height=args.height,
         )
 
 
@@ -131,7 +133,13 @@ async def click_coordinates(
         await tab.click(args.x, args.y)
 
         response.add_code(f"page.actions.click(({args.x}, {args.y}))")
-        response.add_result(f"Successfully clicked at coordinates ({args.x}, {args.y})")
+        response.add_result(
+            f"Successfully clicked at coordinates ({args.x}, {args.y})",
+            x=args.x,
+            y=args.y,
+            element=args.element,
+            url=tab.url,
+        )
         response.set_include_snapshot(True)
 
 
@@ -150,7 +158,7 @@ async def close(
         await context.close_browser()
 
         response.add_code("page.quit()")
-        response.add_result("Successfully closed browser")
+        response.add_result("Successfully closed browser", closed=True)
 
 
 @define_tool(
@@ -170,7 +178,7 @@ async def get_url(
         url = tab.url
 
         response.add_code("page.url")
-        response.add_result(f"Current URL: {url}")
+        response.add_result(f"Current URL: {url}", url=url)
 
 
 # Export all tools

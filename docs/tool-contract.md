@@ -38,9 +38,10 @@ Tools return MCP content blocks plus a stable machine-readable result payload:
 
 - The first text item starts with `### JSON_RESULT` and contains a fenced JSON object.
 - When supported by the active MCP Python SDK, the same object is also returned as `structuredContent`.
-- When supported by the active MCP Python SDK, each listed tool exposes the same shared `outputSchema` envelope.
+- When supported by the active MCP Python SDK, each listed tool exposes a typed
+  `outputSchema` envelope with a tool-specific success `data` schema.
 - Successful results use `ok: true`; tool-execution failures use `ok: false` with `error.code` and `error.message`.
-- Human-readable compatibility text still follows as `### Result`, `### Error`, and optional `### Code` blocks.
+- Human-readable MCP text content still follows as `### Result`, `### Error`, and optional `### Code` blocks.
 - Screenshots include `ImageContent` with PNG data plus the JSON result block.
 
 Example failure payload:
@@ -57,7 +58,7 @@ Example failure payload:
 }
 ```
 
-All tools share this base output envelope:
+All tools share this base output envelope, while success `data` is typed per tool:
 
 ```json
 {
@@ -108,7 +109,6 @@ The server marks tools with MCP annotations:
 | `element_find` | Read-only | `selector` | Find an element by CSS selector or XPath. Optional: `timeout`. |
 | `element_click` | Destructive | `selector` | Click an element. Optional: `timeout`. |
 | `element_type` | Destructive | `selector`, `text` | Type text into an element. Optional: `timeout`, `clear`. |
-| `element_input_text` | Destructive | `selector`, `text` | Backward-compatible alias of `element_type`. |
 | `element_get_text` | Read-only | none | Get page text, or element text when `selector` is set. |
 | `element_get_attribute` | Read-only | `selector`, `attribute` | Read an HTML attribute. |
 | `element_get_property` | Read-only | `selector`, `property_name` | Read a live DOM property such as `value`. |
@@ -121,14 +121,41 @@ The server marks tools with MCP annotations:
 | `wait_for_element` | Read-only | `selector` | Wait for an element to load. Optional: `timeout`. |
 | `wait_for_url` | Read-only | `url_pattern` | Wait until the current URL contains text. Optional: `timeout`. |
 | `wait_time` | Read-only | `seconds` | Sleep for a fixed duration. |
-| `wait_sleep` | Read-only | `seconds` | Backward-compatible alias of `wait_time`. |
+
+## Resources
+
+The server exposes deterministic JSON resources:
+
+| URI | Purpose |
+| --- | --- |
+| `drissionpage://session/summary` | Browser/session activity, tab count, current URL, and policy flags. |
+| `drissionpage://page/current` | Bounded current page title, URL, text excerpt, and HTML excerpt. |
+| `drissionpage://tools/catalog` | Public tool catalog with annotations and output data schema names. |
+| `drissionpage://policy/summary` | Redacted local safety policy summary. |
+
+Resource caps:
+
+- page text excerpt: 4000 characters
+- page HTML excerpt: 8000 characters
+- resource JSON payload target maximum: 12000 characters
+
+## Prompts
+
+The server exposes user-controlled workflow prompts:
+
+| Prompt | Purpose |
+| --- | --- |
+| `browser_navigate_and_summarize` | Navigate, inspect text, and summarize with source URL. |
+| `browser_extract_structured_data` | Navigate, inspect text/HTML, and return schema-shaped JSON. |
+| `browser_fill_form_safely` | Fill forms with confirmation guidance before submission. |
+| `browser_debug_page_issue` | Gather page text/HTML/screenshot evidence for debugging. |
 
 ## Compatibility Notes
 
 - Selectors are passed to DrissionPage and may be CSS selectors, XPath, or DrissionPage-supported selector forms.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
-- `element_type` and `wait_time` are the primary tool names for new usage.
-- `element_input_text` and `wait_sleep` are compatibility aliases that remain available through 0.3.x; any removal would require a future documented 0.4.0 migration notice.
+- `element_input_text` and `wait_sleep` were removed in 0.4.0. Use
+  `element_type` and `wait_time`.
 
 ## Optional Local Safety Policy
 

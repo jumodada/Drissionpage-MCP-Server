@@ -61,7 +61,10 @@ async def wait_for_element(
             f"page.wait.ele_loaded({args.selector!r}, timeout={args.timeout!r})"
         )
         response.add_result(
-            f"Element '{args.selector}' appeared within {args.timeout} seconds"
+            f"Element '{args.selector}' appeared within {args.timeout} seconds",
+            selector=args.selector,
+            found=True,
+            timeout=args.timeout,
         )
 
 
@@ -91,7 +94,11 @@ async def wait_for_url(
 
         response.add_code(f"# wait until {args.url_pattern!r} in page.url")
         response.add_result(
-            f"URL matched '{args.url_pattern}' within {args.timeout} seconds"
+            f"URL matched '{args.url_pattern}' within {args.timeout} seconds",
+            url_pattern=args.url_pattern,
+            matched=True,
+            url=tab.url,
+            timeout=args.timeout,
         )
 
 
@@ -111,23 +118,11 @@ async def wait_time(
         await context.wait(args.seconds)
 
         response.add_code(f"time.sleep({args.seconds})")
-        response.add_result(f"Waited for {args.seconds} seconds")
-
-
-@define_tool(
-    name="wait_sleep",
-    title="Sleep",
-    description="Wait for a specific amount of time (backward-compatible alias of wait_time)",
-    input_schema=WaitTimeInput,
-    tool_type=ToolType.READ_ONLY,
-    idempotent=True,
-)
-async def wait_sleep(
-    context: "DrissionPageContext", args: WaitTimeInput, response: "ToolResponse"
-) -> None:
-    """Backward-compatible alias for wait_time."""
-    await wait_time.handler(context, args, response)
+        response.add_result(
+            f"Waited for {args.seconds} seconds",
+            waited_seconds=args.seconds,
+        )
 
 
 # Export all tools
-tools = [wait_for_element, wait_for_url, wait_time, wait_sleep]
+tools = [wait_for_element, wait_for_url, wait_time]

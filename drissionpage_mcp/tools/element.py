@@ -96,7 +96,7 @@ async def find_element(
         element = await tab.find_element(args.selector, timeout=args.timeout)
 
         response.add_code(f"element = page.ele({args.selector!r})")
-        response.add_result(json.dumps(element, ensure_ascii=False, indent=2))
+        response.add_result(f"Found element: {args.selector}", element=element)
 
 
 @define_tool(
@@ -117,7 +117,11 @@ async def click_element(
         await tab.click_element(args.selector, timeout=args.timeout)
 
         response.add_code(f"page.ele({args.selector!r}).click()")
-        response.add_result(f"Successfully clicked element: {args.selector}")
+        response.add_result(
+            f"Successfully clicked element: {args.selector}",
+            selector=args.selector,
+            url=tab.url,
+        )
         response.set_include_snapshot(True)
 
 
@@ -143,22 +147,13 @@ async def type_text(
         response.add_code(
             f"page.ele({args.selector!r}).input({args.text!r}, clear={args.clear!r})"
         )
-        response.add_result(f"Successfully typed text into element: {args.selector}")
+        response.add_result(
+            f"Successfully typed text into element: {args.selector}",
+            selector=args.selector,
+            typed=True,
+            cleared=args.clear,
+        )
         response.set_include_snapshot(True)
-
-
-@define_tool(
-    name="element_input_text",
-    title="Input Text",
-    description="Input text into an element (backward-compatible alias of element_type)",
-    input_schema=TypeTextInput,
-    tool_type=ToolType.DESTRUCTIVE,
-)
-async def input_text(
-    context: "DrissionPageContext", args: TypeTextInput, response: "ToolResponse"
-) -> None:
-    """Input text into an element."""
-    await type_text.handler(context, args, response)
 
 
 @define_tool(
@@ -182,7 +177,7 @@ async def get_text(
 
         code = f"page.ele({args.selector!r}).text" if args.selector else "page.text"
         response.add_code(code)
-        response.add_result(text or "")
+        response.add_result(text or "", text=text or "", selector=args.selector)
 
 
 @define_tool(
@@ -208,7 +203,12 @@ async def get_attribute(
         value = await tab.get_attribute(args.selector, args.attribute)
 
         response.add_code(f"page.ele({args.selector!r}).attr({args.attribute!r})")
-        response.add_result("" if value is None else str(value))
+        response.add_result(
+            "" if value is None else str(value),
+            selector=args.selector,
+            attribute=args.attribute,
+            value=value,
+        )
 
 
 @define_tool(
@@ -236,7 +236,12 @@ async def get_property(
         response.add_code(
             f"page.ele({args.selector!r}).property({args.property_name!r})"
         )
-        response.add_result("" if value is None else str(value))
+        response.add_result(
+            "" if value is None else str(value),
+            selector=args.selector,
+            property_name=args.property_name,
+            value=_json_safe(value),
+        )
 
 
 @define_tool(
@@ -260,7 +265,7 @@ async def get_html(
 
         code = f"page.ele({args.selector!r}).html" if args.selector else "page.html"
         response.add_code(code)
-        response.add_result(html or "")
+        response.add_result(html or "", html=html or "", selector=args.selector)
 
 
 # Export all tools
@@ -268,9 +273,16 @@ tools = [
     find_element,
     click_element,
     type_text,
-    input_text,
     get_text,
     get_attribute,
     get_property,
     get_html,
 ]
+
+
+def _json_safe(value):
+    try:
+        json.dumps(value)
+    except TypeError:
+        return str(value)
+    return value

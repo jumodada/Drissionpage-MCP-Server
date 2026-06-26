@@ -26,41 +26,82 @@
     "name": "page_navigate",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "final_url": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url",
+                "final_url"
+              ],
+              "title": "PageNavigateData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -84,41 +125,78 @@
     "name": "page_go_back",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "title": "PageGoBackData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -142,41 +220,78 @@
     "name": "page_go_forward",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "title": "PageGoForwardData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -200,41 +315,78 @@
     "name": "page_refresh",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "title": "PageRefreshData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -273,41 +425,82 @@
     "name": "page_resize",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "height": {
+                  "type": "integer"
+                },
+                "width": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "width",
+                "height"
+              ],
+              "title": "PageResizeData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -344,41 +537,109 @@
     "name": "page_screenshot",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "screenshot": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "bytes": {
+                      "type": "integer"
+                    },
+                    "encoding": {
+                      "type": "string"
+                    },
+                    "full_page": {
+                      "type": "boolean"
+                    },
+                    "height": {
+                      "type": "integer"
+                    },
+                    "inline": {
+                      "type": "boolean"
+                    },
+                    "mime_type": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "width": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "mime_type"
+                  ],
+                  "title": "ScreenshotMetadata",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "screenshot"
+              ],
+              "title": "PageScreenshotData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -423,41 +684,90 @@
     "name": "page_click_xy",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "element": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "integer"
+                },
+                "y": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "element",
+                "url"
+              ],
+              "title": "PageClickXYData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -481,41 +791,78 @@
     "name": "page_close",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "closed": {
+                  "const": true
+                }
+              },
+              "required": [
+                "closed"
+              ],
+              "title": "PageCloseData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -539,41 +886,78 @@
     "name": "page_get_url",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url"
+              ],
+              "title": "PageGetUrlData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -612,41 +996,105 @@
     "name": "element_find",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "element": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "found": {
+                      "const": true
+                    },
+                    "html": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "tag": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "visible": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "found",
+                    "selector",
+                    "text"
+                  ],
+                  "title": "ElementInfo",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "element"
+              ],
+              "title": "ElementFindData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -685,41 +1133,82 @@
     "name": "element_click",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "selector": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "url"
+              ],
+              "title": "ElementClickData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -770,130 +1259,90 @@
     "name": "element_type",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "cleared": {
+                  "type": "boolean"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "typed": {
+                  "const": true
+                }
+              },
+              "required": [
+                "selector",
+                "typed",
+                "cleared"
+              ],
+              "title": "ElementTypeData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
     "title": "Type Text"
-  },
-  {
-    "annotations": {
-      "destructiveHint": true,
-      "idempotentHint": false,
-      "openWorldHint": true,
-      "readOnlyHint": false,
-      "title": "Input Text"
-    },
-    "description": "Input text into an element (backward-compatible alias of element_type)",
-    "inputSchema": {
-      "description": "Input schema for typing text.",
-      "properties": {
-        "clear": {
-          "default": true,
-          "description": "Clear existing input content before typing",
-          "title": "Clear",
-          "type": "boolean"
-        },
-        "selector": {
-          "description": "CSS selector or XPath to find the input element",
-          "title": "Selector",
-          "type": "string"
-        },
-        "text": {
-          "description": "Text to type into the element",
-          "title": "Text",
-          "type": "string"
-        },
-        "timeout": {
-          "default": 10,
-          "description": "Timeout in seconds to wait for element",
-          "title": "Timeout",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "selector",
-        "text"
-      ],
-      "title": "TypeTextInput",
-      "type": "object"
-    },
-    "name": "element_input_text",
-    "outputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
-          "additionalProperties": false,
-          "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "code",
-            "message"
-          ],
-          "type": "object"
-        },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "ok",
-        "message"
-      ],
-      "type": "object"
-    },
-    "title": "Input Text"
   },
   {
     "annotations": {
@@ -920,41 +1369,82 @@
     "name": "element_get_text",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "selector": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "text",
+                "selector"
+              ],
+              "title": "ElementGetTextData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -993,41 +1483,89 @@
     "name": "element_get_attribute",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "attribute": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "selector",
+                "attribute",
+                "value"
+              ],
+              "title": "ElementGetAttributeData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -1066,41 +1604,84 @@
     "name": "element_get_property",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "property_name": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "value": {}
+              },
+              "required": [
+                "selector",
+                "property_name",
+                "value"
+              ],
+              "title": "ElementGetPropertyData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -1131,41 +1712,82 @@
     "name": "element_get_html",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "html": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "html",
+                "selector"
+              ],
+              "title": "ElementGetHtmlData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -1204,41 +1826,86 @@
     "name": "wait_for_element",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "found": {
+                  "const": true
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "timeout": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "selector",
+                "found",
+                "timeout"
+              ],
+              "title": "WaitForElementData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -1277,41 +1944,90 @@
     "name": "wait_for_url",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "matched": {
+                  "const": true
+                },
+                "timeout": {
+                  "type": "number"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "url_pattern": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url_pattern",
+                "matched",
+                "url",
+                "timeout"
+              ],
+              "title": "WaitForUrlData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
@@ -1344,111 +2060,81 @@
     "name": "wait_time",
     "outputSchema": {
       "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
+      "oneOf": [
+        {
           "additionalProperties": false,
           "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "waited_seconds": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "waited_seconds"
+              ],
+              "title": "WaitTimeData",
               "type": "object"
             },
             "message": {
               "type": "string"
+            },
+            "ok": {
+              "const": true
             }
           },
           "required": [
-            "code",
-            "message"
+            "ok",
+            "message",
+            "data"
           ],
           "type": "object"
         },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "ok",
-        "message"
       ],
       "type": "object"
     },
     "title": "Wait Time"
-  },
-  {
-    "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true,
-      "title": "Sleep"
-    },
-    "description": "Wait for a specific amount of time (backward-compatible alias of wait_time)",
-    "inputSchema": {
-      "description": "Input schema for waiting a specific time.",
-      "properties": {
-        "seconds": {
-          "description": "Number of seconds to wait",
-          "title": "Seconds",
-          "type": "number"
-        }
-      },
-      "required": [
-        "seconds"
-      ],
-      "title": "WaitTimeInput",
-      "type": "object"
-    },
-    "name": "wait_sleep",
-    "outputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "data": {
-          "additionalProperties": true,
-          "type": "object"
-        },
-        "error": {
-          "additionalProperties": false,
-          "properties": {
-            "code": {
-              "type": "string"
-            },
-            "details": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "code",
-            "message"
-          ],
-          "type": "object"
-        },
-        "message": {
-          "type": "string"
-        },
-        "ok": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "ok",
-        "message"
-      ],
-      "type": "object"
-    },
-    "title": "Sleep"
   }
 ]

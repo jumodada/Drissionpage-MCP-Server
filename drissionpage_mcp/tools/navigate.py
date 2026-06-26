@@ -54,7 +54,11 @@ async def navigate(
         await tab.navigate(args.url)
 
         response.add_code(f"page.get({args.url!r})")
-        response.add_result(f"Successfully navigated to: {args.url}")
+        response.add_result(
+            f"Successfully navigated to: {args.url}",
+            url=args.url,
+            final_url=tab.url,
+        )
         response.set_include_snapshot(True)
 
 
@@ -74,7 +78,7 @@ async def go_back(
         await tab.go_back()
 
         response.add_code("page.back()")
-        response.add_result("Successfully went back to previous page")
+        response.add_result("Successfully went back to previous page", url=tab.url)
         response.set_include_snapshot(True)
 
 
@@ -94,7 +98,7 @@ async def go_forward(
         await tab.go_forward()
 
         response.add_code("page.forward()")
-        response.add_result("Successfully went forward to next page")
+        response.add_result("Successfully went forward to next page", url=tab.url)
         response.set_include_snapshot(True)
 
 
@@ -114,19 +118,9 @@ async def refresh(
         await tab.refresh()
 
         response.add_code("page.refresh()")
-        response.add_result("Successfully refreshed page")
+        response.add_result("Successfully refreshed page", url=tab.url)
         response.set_include_snapshot(True)
 
 
 # Export all tools
 tools = [navigate, go_back, go_forward, refresh]
-
-
-class NavigateTools:
-    """Backward-compatible facade for older tests/integrations."""
-
-    @staticmethod
-    def get_tools():
-        return tools
-
-    _navigate = staticmethod(navigate.handler)

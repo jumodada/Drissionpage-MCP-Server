@@ -93,17 +93,17 @@ Then add the MCP client configuration below and restart your client.
 
 ---
 
-## 🛠️ 21 Powerful Tools
+## 🛠️ 19 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL
 - `page_go_back` / `page_go_forward` - Browser history
 - `page_refresh` - Reload current page
 
-### 🎯 Element Interaction & Extraction (8 tools)
+### 🎯 Element Interaction & Extraction (7 tools)
 - `element_find` - Find elements by CSS selector or XPath
 - `element_click` - Click any element
-- `element_type` / `element_input_text` - Input text into elements
+- `element_type` - Input text into elements
 - `element_get_text` - Get element or page text
 - `element_get_attribute` - Get an HTML attribute
 - `element_get_property` - Get a live DOM property such as an input value
@@ -116,10 +116,14 @@ Then add the MCP client configuration below and restart your client.
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
 
-### ⏱️ Wait Operations (4 tools)
+### ⏱️ Wait Operations (3 tools)
 - `wait_for_element` - Wait for element to appear (with timeout)
 - `wait_for_url` - Wait until the current URL contains text
-- `wait_time` / `wait_sleep` - Delay execution
+- `wait_time` - Delay execution
+
+### 🧩 MCP Resources and Prompts
+- Resources: `drissionpage://session/summary`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
+- Prompts: `browser_navigate_and_summarize`, `browser_extract_structured_data`, `browser_fill_form_safely`, `browser_debug_page_issue`
 
 ---
 
@@ -253,7 +257,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.3.2`.
+Should output the installed package version, for example `drissionpage-mcp 0.4.0`.
 
 ### Browser Issues?
 ```bash
@@ -281,22 +285,22 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.3.2 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.4.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.3.2)
-- [x] 21 core automation tools
+### Current (v0.4.0)
+- [x] 19 core automation tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
-- [x] Stable JSON fallback, `structuredContent`, and shared MCP `outputSchema`
+- [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
 - [x] Opt-in local safety policy for navigation and screenshot paths
-- [x] Compatibility and troubleshooting documentation
+- [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
 - [x] PyPI distribution
 
-### Future (v0.4+)
+### Future (v0.5+)
 - [ ] Form handling utilities
 - [ ] File upload support
 - [ ] Shadow DOM selectors

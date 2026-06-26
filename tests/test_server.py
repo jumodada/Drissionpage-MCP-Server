@@ -54,7 +54,7 @@ class TestToolsIntegration:
             assert hasattr(tool, "name")
             assert hasattr(tool, "description")
             assert hasattr(tool, "input_schema")
-            assert hasattr(tool, "execute_func")
+            assert hasattr(tool, "handler")
 
             assert isinstance(tool.name, str)
             assert isinstance(tool.description, str)
@@ -90,7 +90,7 @@ class TestToolsIntegration:
         assert "element_find" in tool_names
         assert "element_click" in tool_names
         assert "element_type" in tool_names
-        assert "element_input_text" in tool_names
+        assert "element_input_text" not in tool_names
         assert "element_get_text" in tool_names
         assert "element_get_attribute" in tool_names
         assert "element_get_property" in tool_names
@@ -100,8 +100,8 @@ class TestToolsIntegration:
         assert "wait_for_element" in tool_names
         assert "wait_for_url" in tool_names
         assert "wait_time" in tool_names
-        assert "wait_sleep" in tool_names
-        assert len(tool_names) == 21
+        assert "wait_sleep" not in tool_names
+        assert len(tool_names) == 19
 
 
 if __name__ == "__main__":
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 class TestCallToolResultContract:
     """Test server call result shape."""
 
-    def test_call_result_has_structured_content_and_fallback(self):
+    def test_call_result_has_structured_content_and_text_mirror(self):
         server = DrissionPageMCPServer()
         from drissionpage_mcp.response import ToolResponse
 

@@ -113,6 +113,41 @@ class SafetyPolicy:
                 value=path,
             ) from exc
 
+    def profile(self) -> str:
+        """Return a compact public profile name for configured controls."""
+
+        return "restricted" if any(self.control_flags().values()) else "open-local"
+
+    def control_flags(self) -> dict[str, bool]:
+        """Return non-sensitive booleans for active policy controls."""
+
+        return {
+            "navigation_allowlist": bool(self.navigation_allowlist),
+            "navigation_blocklist": bool(self.navigation_blocklist),
+            "block_private_network": self.block_private_network,
+            "screenshot_root": self.screenshot_root is not None,
+        }
+
+    def public_summary(self) -> dict[str, object]:
+        """Return a redacted JSON-safe policy summary for MCP Resources."""
+
+        return {
+            "profile": self.profile(),
+            "controls": {
+                "navigation_allowlist": _redacted_sequence(self.navigation_allowlist),
+                "navigation_blocklist": _redacted_sequence(self.navigation_blocklist),
+                "block_private_network": self.block_private_network,
+                "screenshot_root": {
+                    "configured": self.screenshot_root is not None,
+                    **(
+                        {"value": "<redacted>"}
+                        if self.screenshot_root is not None
+                        else {}
+                    ),
+                },
+            },
+        }
+
 
 def validate_navigation(url: str) -> None:
     """Validate navigation against the current environment policy."""
@@ -130,6 +165,14 @@ def _split_env(value: str | None) -> tuple[str, ...]:
     if not value:
         return ()
     return tuple(part.strip() for part in value.split(",") if part.strip())
+
+
+def _redacted_sequence(values: tuple[str, ...]) -> dict[str, object]:
+    configured = bool(values)
+    payload: dict[str, object] = {"configured": configured, "count": len(values)}
+    if configured:
+        payload["values"] = "<redacted>"
+    return payload
 
 
 def _env_bool(name: str) -> bool:

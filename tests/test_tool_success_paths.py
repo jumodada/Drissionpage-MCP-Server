@@ -63,7 +63,14 @@ class FakeTab:
 
     async def find_element(self, selector: str, timeout: int = 10) -> dict[str, Any]:
         self._record("find_element", selector, timeout=timeout)
-        return {"found": True, "selector": selector, "text": "Ada"}
+        return {
+            "found": True,
+            "selector": selector,
+            "text": "Ada",
+            "tag": "input",
+            "html": "<input id='name'>",
+            "visible": True,
+        }
 
     async def click_element(self, selector: str, timeout: int = 10) -> None:
         self._record("click_element", selector, timeout=timeout)
@@ -133,6 +140,10 @@ async def test_common_tools_success_paths(tmp_path) -> None:
     resize_response = await _execute(
         common.resize, ctx, common.ResizeInput(width=640, height=480)
     )
+    assert resize_response.get_structured_content()["data"] == {
+        "width": 640,
+        "height": 480,
+    }
     assert "640x480" in _message(resize_response)
     assert ctx.tab.calls[-1] == ("resize", (640, 480), {})
 
@@ -158,14 +169,24 @@ async def test_common_tools_success_paths(tmp_path) -> None:
         ctx,
         common.ClickCoordinatesInput(x=7, y=9),
     )
+    assert click_response.get_structured_content()["data"] == {
+        "x": 7,
+        "y": 9,
+        "element": "",
+        "url": "https://example.test/current",
+    }
     assert "(7, 9)" in _message(click_response)
     assert click_response.should_include_snapshot() is True
 
     close_response = await _execute(common.close, ctx, common.EmptyInput())
+    assert close_response.get_structured_content()["data"] == {"closed": True}
     assert ctx.closed is True
     assert "closed browser" in _message(close_response)
 
     url_response = await _execute(common.get_url, ctx, common.EmptyInput())
+    assert url_response.get_structured_content()["data"] == {
+        "url": "https://example.test/current"
+    }
     assert "https://example.test/current" in _message(url_response)
 
 
@@ -178,6 +199,10 @@ async def test_navigation_tools_success_paths() -> None:
         ctx,
         navigate.NavigateInput(url="https://example.test/next"),
     )
+    assert nav_response.get_structured_content()["data"] == {
+        "url": "https://example.test/next",
+        "final_url": "https://example.test/next",
+    }
     assert "Successfully navigated" in _message(nav_response)
     assert nav_response.should_include_snapshot() is True
     assert ctx.tab.url == "https://example.test/next"
@@ -188,6 +213,9 @@ async def test_navigation_tools_success_paths() -> None:
         (navigate.refresh, "refresh", "refreshed page"),
     ]:
         response = await _execute(tool, ctx, navigate.EmptyInput())
+        assert response.get_structured_content()["data"] == {
+            "url": "https://example.test/next"
+        }
         assert expected_message in _message(response)
         assert response.should_include_snapshot() is True
         assert ctx.tab.calls[-1][0] == expected_call
@@ -202,6 +230,11 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
         ctx,
         wait.WaitElementInput(selector="#ready", timeout=2),
     )
+    assert element_response.get_structured_content()["data"] == {
+        "selector": "#ready",
+        "found": True,
+        "timeout": 2,
+    }
     assert "appeared within 2 seconds" in _message(element_response)
 
     url_response = await _execute(
@@ -209,19 +242,20 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
         ctx,
         wait.WaitUrlInput(url_pattern="ready", timeout=3),
     )
+    assert url_response.get_structured_content()["data"] == {
+        "url_pattern": "ready",
+        "matched": True,
+        "url": "https://example.test/current",
+        "timeout": 3,
+    }
     assert "URL matched" in _message(url_response)
 
     time_response = await _execute(
         wait.wait_time, ctx, wait.WaitTimeInput(seconds=0.25)
     )
+    assert time_response.get_structured_content()["data"] == {"waited_seconds": 0.25}
     assert ctx.waited == [0.25]
     assert "Waited for 0.25 seconds" in _message(time_response)
-
-    sleep_response = await _execute(
-        wait.wait_sleep, ctx, wait.WaitTimeInput(seconds=0.5)
-    )
-    assert ctx.waited == [0.25, 0.5]
-    assert "Waited for 0.5 seconds" in _message(sleep_response)
 
     ctx.tab.wait_element_result = False
     timeout_response = await _execute(
@@ -253,13 +287,27 @@ async def test_element_tools_success_paths() -> None:
         ctx,
         element.FindElementInput(selector="#name", timeout=1),
     )
-    assert '"selector": "#name"' in _message(found_response)
+    assert found_response.get_structured_content()["data"] == {
+        "element": {
+            "found": True,
+            "selector": "#name",
+            "text": "Ada",
+            "tag": "input",
+            "html": "<input id='name'>",
+            "visible": True,
+        }
+    }
+    assert found_response.get_structured_content()["message"] == "Found element: #name"
 
     click_response = await _execute(
         element.click_element,
         ctx,
         element.ClickElementInput(selector="#name", timeout=1),
     )
+    assert click_response.get_structured_content()["data"] == {
+        "selector": "#name",
+        "url": "https://example.test/current",
+    }
     assert "Successfully clicked element" in _message(click_response)
     assert click_response.should_include_snapshot() is True
 
@@ -268,83 +316,75 @@ async def test_element_tools_success_paths() -> None:
         ctx,
         element.TypeTextInput(selector="#name", text="Ada", clear=False),
     )
+    assert type_response.get_structured_content()["data"] == {
+        "selector": "#name",
+        "typed": True,
+        "cleared": False,
+    }
+    assert "Ada" not in str(type_response.get_structured_content()["data"])
     assert "Successfully typed" in _message(type_response)
     assert type_response.should_include_snapshot() is True
 
-    alias_response = await _execute(
-        element.input_text,
+    text_response = await _execute(
+        element.get_text, ctx, element.GetTextInput(selector="#name")
+    )
+    assert text_response.get_structured_content()["data"] == {
+        "text": "element text",
+        "selector": "#name",
+    }
+    page_text_response = await _execute(element.get_text, ctx, element.GetTextInput())
+    assert page_text_response.get_structured_content()["data"] == {
+        "text": "page text",
+        "selector": "",
+    }
+
+    attr_response = await _execute(
+        element.get_attribute,
         ctx,
-        element.TypeTextInput(selector="#name", text="Lovelace"),
+        element.GetAttributeInput(selector="#name", attribute="id"),
     )
-    assert "Successfully typed" in _message(alias_response)
+    assert attr_response.get_structured_content()["data"] == {
+        "selector": "#name",
+        "attribute": "id",
+        "value": "attr-value",
+    }
 
-    assert (
-        _message(
-            await _execute(
-                element.get_text, ctx, element.GetTextInput(selector="#name")
-            )
-        )
-        == "element text"
+    missing_attr_response = await _execute(
+        element.get_attribute,
+        ctx,
+        element.GetAttributeInput(selector="#name", attribute="missing"),
     )
-    assert (
-        _message(await _execute(element.get_text, ctx, element.GetTextInput()))
-        == "page text"
-    )
+    assert missing_attr_response.get_structured_content()["data"]["value"] is None
 
-    assert (
-        _message(
-            await _execute(
-                element.get_attribute,
-                ctx,
-                element.GetAttributeInput(selector="#name", attribute="id"),
-            )
-        )
-        == "attr-value"
+    prop_response = await _execute(
+        element.get_property,
+        ctx,
+        element.GetPropertyInput(selector="#name", property_name="value"),
     )
-    assert (
-        _message(
-            await _execute(
-                element.get_attribute,
-                ctx,
-                element.GetAttributeInput(selector="#name", attribute="missing"),
-            )
-        )
-        == ""
+    assert prop_response.get_structured_content()["data"] == {
+        "selector": "#name",
+        "property_name": "value",
+        "value": "prop-value",
+    }
+    missing_prop_response = await _execute(
+        element.get_property,
+        ctx,
+        element.GetPropertyInput(selector="#name", property_name="missing"),
     )
+    assert missing_prop_response.get_structured_content()["data"]["value"] is None
 
-    assert (
-        _message(
-            await _execute(
-                element.get_property,
-                ctx,
-                element.GetPropertyInput(selector="#name", property_name="value"),
-            )
-        )
-        == "prop-value"
+    html_response = await _execute(
+        element.get_html, ctx, element.GetHtmlInput(selector="#name")
     )
-    assert (
-        _message(
-            await _execute(
-                element.get_property,
-                ctx,
-                element.GetPropertyInput(selector="#name", property_name="missing"),
-            )
-        )
-        == ""
-    )
-
-    assert (
-        _message(
-            await _execute(
-                element.get_html, ctx, element.GetHtmlInput(selector="#name")
-            )
-        )
-        == "<input>"
-    )
-    assert (
-        _message(await _execute(element.get_html, ctx, element.GetHtmlInput()))
-        == "<html></html>"
-    )
+    assert html_response.get_structured_content()["data"] == {
+        "html": "<input>",
+        "selector": "#name",
+    }
+    page_html_response = await _execute(element.get_html, ctx, element.GetHtmlInput())
+    assert page_html_response.get_structured_content()["data"] == {
+        "html": "<html></html>",
+        "selector": "",
+    }
 
 
 class MissingElementTypeTab(FakeTab):

@@ -75,13 +75,6 @@ class Tool:
     def idempotent(self) -> bool:
         return self.schema.idempotent
 
-    @property
-    def execute_func(
-        self,
-    ) -> Callable[["DrissionPageContext", BaseModel, "ToolResponse"], Awaitable[None]]:
-        """Backward-compatible alias for older tests/integrations."""
-        return self.handler
-
     async def execute(
         self, context: "DrissionPageContext", args: BaseModel, response: "ToolResponse"
     ) -> None:
