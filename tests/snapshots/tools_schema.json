@@ -981,7 +981,7 @@
           "type": "string"
         },
         "timeout": {
-          "default": 10,
+          "default": 3,
           "description": "Timeout in seconds to wait for element",
           "title": "Timeout",
           "type": "integer"
@@ -1643,9 +1643,9 @@
     "inputSchema": {
       "description": "Input schema for getting a live DOM property.",
       "properties": {
-        "property_name": {
-          "description": "DOM property name to retrieve, e.g. value",
-          "title": "Property Name",
+        "property": {
+          "description": "DOM property to retrieve, e.g. value",
+          "title": "Property",
           "type": "string"
         },
         "selector": {
@@ -1656,7 +1656,7 @@
       },
       "required": [
         "selector",
-        "property_name"
+        "property"
       ],
       "title": "GetPropertyInput",
       "type": "object"
@@ -1674,7 +1674,7 @@
                 "locator": {
                   "type": "string"
                 },
-                "property_name": {
+                "property": {
                   "type": "string"
                 },
                 "selector": {
@@ -1693,7 +1693,7 @@
                 "locator",
                 "selector_strategy",
                 "selector_normalized",
-                "property_name",
+                "property",
                 "value"
               ],
               "title": "ElementGetPropertyData",

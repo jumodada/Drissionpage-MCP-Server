@@ -278,7 +278,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.4.0`.
+Should output the installed package version, for example `drissionpage-mcp 0.4.1`.
 
 ### Browser Issues?
 ```bash
@@ -307,13 +307,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.4.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.4.1 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.4.0)
+### Current (v0.4.1)
 - [x] 19 core automation tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -447,3 +447,17 @@ If you find this project useful, please consider:
 **Made with ❤️ by [Wukunyun](https://github.com/jumodada)**
 
 **Ready to automate your workflows?** Install now: `python -m pip install -U drissionpage-mcp`
+
+---
+
+## 🆕 Latest Version: v0.4.1
+
+Released on 2026-06-26. This release focuses on MCP client reliability and the issues found during real Codex/LLM browser testing:
+
+- Fixed selector normalization: bare selectors such as `h1` and `input[name=q]` are now treated as CSS before calling DrissionPage.
+- Preserved explicit DrissionPage locators such as `tag:h1`, `text:Submit`, `xpath://h1`, and `@name=value`.
+- Added selector metadata to tool responses so clients can see the original selector, normalized locator, strategy, and whether normalization happened.
+- Fixed MCP `serverInfo.version` to report the `drissionpage-mcp` package version instead of the MCP SDK version.
+- Renamed the public `element_get_property` input field from `property_name` to `property` with no compatibility alias.
+- Reduced `element_find` default timeout to 3 seconds for faster failed-selector feedback.
+- Made browser-backed CI jobs fail when Chromium is installed but browser integration cannot run.

@@ -126,12 +126,12 @@ The server marks tools with MCP annotations:
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
-| `element_find` | Read-only | `selector` | Find an element by CSS selector or XPath. Bare selectors are treated as CSS. Optional: `timeout`. |
+| `element_find` | Read-only | `selector` | Find an element by CSS selector or XPath. Bare selectors are treated as CSS. Optional: `timeout` (default 3s). |
 | `element_click` | Destructive | `selector` | Click an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`. |
 | `element_type` | Destructive | `selector`, `text` | Type text into an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `clear`. |
 | `element_get_text` | Read-only | none | Get page text, or element text when `selector` is set. |
 | `element_get_attribute` | Read-only | `selector`, `attribute` | Read an HTML attribute. |
-| `element_get_property` | Read-only | `selector`, `property_name` | Read a live DOM property such as `value`. |
+| `element_get_property` | Read-only | `selector`, `property` | Read a live DOM property such as `value`. |
 | `element_get_html` | Read-only | none | Get page HTML, or element HTML when `selector` is set. |
 
 ### Wait Operations

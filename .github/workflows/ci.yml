@@ -121,6 +121,7 @@ jobs:
         env:
           DP_HEADLESS: "1"
           DP_NO_SANDBOX: "1"
+          DP_MCP_REQUIRE_BROWSER: "1"
         run: |
           python -m pytest tests/ \
             --cov=drissionpage_mcp \
@@ -194,4 +195,5 @@ jobs:
         env:
           DP_HEADLESS: "1"
           DP_NO_SANDBOX: "1"
+          DP_MCP_REQUIRE_BROWSER: "1"
         run: python -m pytest tests/test_browser_integration.py

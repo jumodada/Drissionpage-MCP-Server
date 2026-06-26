@@ -316,8 +316,8 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
     ),
     "element_get_property": _data_schema(
         "ElementGetPropertyData",
-        {**SELECTOR_METADATA_SCHEMA, "property_name": STRING, "value": ANY_JSON},
-        [*SELECTOR_METADATA_REQUIRED, "property_name", "value"],
+        {**SELECTOR_METADATA_SCHEMA, "property": STRING, "value": ANY_JSON},
+        [*SELECTOR_METADATA_REQUIRED, "property", "value"],
     ),
     "element_get_html": _data_schema(
         "ElementGetHtmlData",

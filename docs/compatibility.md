@@ -17,9 +17,16 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Tool names are treated as public API. `0.4.0` is a documented breaking
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
-- Input schema changes should be backward compatible when possible.
+- Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
+
+## 0.4.0 to 0.4.1 Migration
+
+| 0.4.0 input | 0.4.1 input | Notes |
+| --- | --- | --- |
+| `element_get_property` `property_name` | `element_get_property` `property` | The old field is rejected; update saved MCP workflows and prompts. |
+| Bare DrissionPage text-like selectors | Explicit `text:...` | Bare selectors are now normalized as CSS. Use `text:Submit` for text matching. |
 
 ## 0.3.x to 0.4.0 Migration
 
