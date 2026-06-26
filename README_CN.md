@@ -25,7 +25,7 @@
 ### 🌟 为什么选择 DrissionPage MCP？
 
 - **LLM 优化**：使用结构化数据而不需要视觉模型
-- **确定性**：通过 CSS 和 XPath 支持实现可靠的元素选择
+- **确定性**：通过 CSS/XPath 归一化实现适合 LLM 的可靠元素选择
 - **快速轻量**：基于 DrissionPage 高效引擎构建，开销最小
 - **类型安全**：所有工具都具有完整的类型提示和 Pydantic 验证
 - **开源友好**：包含兼容性说明、故障排除和 CI 检查，便于维护和贡献
@@ -102,7 +102,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_refresh` - 重新加载当前页面
 
 ### 🎯 元素交互与提取（7 个）
-- `element_find` - 通过 CSS 选择器或 XPath 查找元素
+- `element_find` - 通过 CSS 选择器或 XPath 查找元素；`h1` 等裸选择器按 CSS 处理
 - `element_click` - 点击任意元素
 - `element_type` - 向元素输入文本
 - `element_get_text` - 获取元素或整页文本

@@ -111,6 +111,51 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
         await server.cleanup()
 
 
+@pytest.mark.asyncio
+async def test_mcp_browser_tools_normalize_llm_friendly_selectors() -> None:
+    """treats bare selectors as CSS and preserves explicit DrissionPage locators."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/selectors"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, h1_payload = await _execute_tool(
+                server, "element_find", {"selector": "h1", "timeout": 2}
+            )
+            assert h1_payload["ok"] is True
+            h1 = h1_payload["data"]["element"]
+            assert h1["tag"] == "h1"
+            assert h1["locator"] == "css:h1"
+            assert h1["selector_strategy"] == "css"
+            assert h1["selector_normalized"] is True
+
+            _content, input_payload = await _execute_tool(
+                server,
+                "element_find",
+                {"selector": "input[name='custname']", "timeout": 2},
+            )
+            assert input_payload["ok"] is True
+            input_element = input_payload["data"]["element"]
+            assert input_element["tag"] == "input"
+            assert input_element["locator"] == "css:input[name='custname']"
+
+            _content, explicit_payload = await _execute_tool(
+                server, "element_find", {"selector": "tag:h1", "timeout": 2}
+            )
+            assert explicit_payload["ok"] is True
+            explicit = explicit_payload["data"]["element"]
+            assert explicit["tag"] == "h1"
+            assert explicit["locator"] == "tag:h1"
+            assert explicit["selector_normalized"] is False
+    finally:
+        await server.cleanup()
+
+
 async def _execute_tool_text(
     server: DrissionPageMCPServer, name: str, arguments: Dict[str, Any]
 ) -> str:

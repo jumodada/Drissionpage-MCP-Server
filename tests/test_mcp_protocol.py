@@ -11,6 +11,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.types import CallToolRequest, CallToolRequestParams, ListToolsRequest
 
+import drissionpage_mcp
 from drissionpage_mcp.server import DrissionPageMCPServer
 
 
@@ -116,6 +117,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
         async with ClientSession(read_stream, write_stream) as session:
             init = await session.initialize()
             assert init.serverInfo.name == "DrissionPage MCP"
+            assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
             assert len(tools.tools) == 19

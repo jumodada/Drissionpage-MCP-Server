@@ -5,6 +5,8 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from mcp.server import Server
+from mcp.server.lowlevel import NotificationOptions
+from mcp.server.models import InitializationOptions
 from mcp.types import (
     CallToolRequest,
     CallToolResult,
@@ -192,7 +194,16 @@ class DrissionPageMCPServer:
         """Run the MCP server with stdio streams."""
         try:
             await self.server.run(
-                read_stream, write_stream, self.server.create_initialization_options()
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name=self.name,
+                    server_version=self.version,
+                    capabilities=self.server.get_capabilities(
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
+                    ),
+                ),
             )
         except Exception as e:
             logger.error(f"Server run error: {e}")

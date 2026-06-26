@@ -66,6 +66,9 @@ class FakeTab:
         return {
             "found": True,
             "selector": selector,
+            "locator": "css:#name",
+            "selector_strategy": "css",
+            "selector_normalized": True,
             "text": "Ada",
             "tag": "input",
             "html": "<input id='name'>",
@@ -232,6 +235,9 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
     )
     assert element_response.get_structured_content()["data"] == {
         "selector": "#ready",
+        "locator": "css:#ready",
+        "selector_strategy": "css",
+        "selector_normalized": True,
         "found": True,
         "timeout": 2,
     }
@@ -281,6 +287,12 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
 @pytest.mark.asyncio
 async def test_element_tools_success_paths() -> None:
     ctx = FakeContext()
+    selector_metadata = {
+        "selector": "#name",
+        "locator": "css:#name",
+        "selector_strategy": "css",
+        "selector_normalized": True,
+    }
 
     found_response = await _execute(
         element.find_element,
@@ -290,7 +302,7 @@ async def test_element_tools_success_paths() -> None:
     assert found_response.get_structured_content()["data"] == {
         "element": {
             "found": True,
-            "selector": "#name",
+            **selector_metadata,
             "text": "Ada",
             "tag": "input",
             "html": "<input id='name'>",
@@ -305,7 +317,7 @@ async def test_element_tools_success_paths() -> None:
         element.ClickElementInput(selector="#name", timeout=1),
     )
     assert click_response.get_structured_content()["data"] == {
-        "selector": "#name",
+        **selector_metadata,
         "url": "https://example.test/current",
     }
     assert "Successfully clicked element" in _message(click_response)
@@ -317,7 +329,7 @@ async def test_element_tools_success_paths() -> None:
         element.TypeTextInput(selector="#name", text="Ada", clear=False),
     )
     assert type_response.get_structured_content()["data"] == {
-        "selector": "#name",
+        **selector_metadata,
         "typed": True,
         "cleared": False,
     }
@@ -330,12 +342,15 @@ async def test_element_tools_success_paths() -> None:
     )
     assert text_response.get_structured_content()["data"] == {
         "text": "element text",
-        "selector": "#name",
+        **selector_metadata,
     }
     page_text_response = await _execute(element.get_text, ctx, element.GetTextInput())
     assert page_text_response.get_structured_content()["data"] == {
         "text": "page text",
         "selector": "",
+        "locator": "",
+        "selector_strategy": "page",
+        "selector_normalized": False,
     }
 
     attr_response = await _execute(
@@ -344,7 +359,7 @@ async def test_element_tools_success_paths() -> None:
         element.GetAttributeInput(selector="#name", attribute="id"),
     )
     assert attr_response.get_structured_content()["data"] == {
-        "selector": "#name",
+        **selector_metadata,
         "attribute": "id",
         "value": "attr-value",
     }
@@ -362,7 +377,7 @@ async def test_element_tools_success_paths() -> None:
         element.GetPropertyInput(selector="#name", property_name="value"),
     )
     assert prop_response.get_structured_content()["data"] == {
-        "selector": "#name",
+        **selector_metadata,
         "property_name": "value",
         "value": "prop-value",
     }
@@ -378,12 +393,15 @@ async def test_element_tools_success_paths() -> None:
     )
     assert html_response.get_structured_content()["data"] == {
         "html": "<input>",
-        "selector": "#name",
+        **selector_metadata,
     }
     page_html_response = await _execute(element.get_html, ctx, element.GetHtmlInput())
     assert page_html_response.get_structured_content()["data"] == {
         "html": "<html></html>",
         "selector": "",
+        "locator": "",
+        "selector_strategy": "page",
+        "selector_normalized": False,
     }
 
 
