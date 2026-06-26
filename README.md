@@ -2,7 +2,7 @@
 
 > Professional browser automation for Codex, Claude Code, and MCP clients powered by DrissionPage
 
-[![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg)](https://pypi.org/project/drissionpage-mcp/)
+[![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/)
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
@@ -430,7 +430,7 @@ Licensed under **Apache License 2.0** - see [LICENSE](LICENSE)
 ## 📈 Statistics
 
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp)](https://pepy.tech/project/drissionpage-mcp)
-[![PyPI Version](https://badge.fury.io/py/drissionpage-mcp.svg)](https://pypi.org/project/drissionpage-mcp/)
+[![PyPI Version](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/)
 
 ---
 
