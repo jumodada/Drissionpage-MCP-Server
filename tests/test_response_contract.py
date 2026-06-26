@@ -68,10 +68,10 @@ def test_screenshot_result_includes_image_content_and_json_metadata() -> None:
         "height": 1,
     }
 
-    fallback_payload = json.loads(
+    text_mirror_payload = json.loads(
         re.search(r"```json\n(.*?)\n```", content[0].text, re.S).group(1)
     )
-    assert fallback_payload["data"]["screenshot"] == screenshot
+    assert text_mirror_payload["data"]["screenshot"] == screenshot
 
 
 def test_errors_module_reexports_stable_error_api() -> None:

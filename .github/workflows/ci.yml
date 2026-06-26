@@ -57,6 +57,7 @@ jobs:
             tests/test_response_contract.py \
             tests/test_doctor.py \
             tests/test_tool_schema_snapshot.py \
+            tests/test_release_metadata.py \
             tests/test_ci_workflow.py
 
   protocol:
@@ -75,7 +76,25 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -e ".[dev]"
       - name: Run MCP protocol tests
-        run: python -m pytest tests/test_mcp_protocol.py
+        run: |
+          python -m pytest \
+            tests/test_mcp_protocol.py \
+            tests/test_mcp_resources.py \
+            tests/test_mcp_prompts.py
+
+  evals:
+    name: MCP eval harness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Run deterministic evals
+        run: python -m pytest tests/evals -q
 
   coverage:
     name: Coverage and Codecov

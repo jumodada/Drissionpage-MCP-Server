@@ -27,6 +27,7 @@ def test_ci_separates_required_quality_gates() -> None:
         "lint",
         "unit",
         "protocol",
+        "evals",
         "coverage",
         "package",
         "browser-integration",
@@ -119,7 +120,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.3.2"
+    assert version == "0.4.0"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")
@@ -127,7 +128,15 @@ def test_release_versions_are_in_sync() -> None:
         assert f"drissionpage-mcp {version}" in text
 
 
-def test_security_policy_and_release_checklist_document_0_3_2_controls() -> None:
+def test_ci_runs_0_4_0_resource_prompt_and_eval_gates() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "tests/test_mcp_resources.py" in workflow
+    assert "tests/test_mcp_prompts.py" in workflow
+    assert "python -m pytest tests/evals -q" in workflow
+
+
+def test_security_policy_and_release_checklist_document_0_4_0_controls() -> None:
     security = Path("SECURITY.md").read_text(encoding="utf-8")
     checklist = Path("docs/release-checklist.md").read_text(encoding="utf-8")
 
@@ -143,3 +152,5 @@ def test_security_policy_and_release_checklist_document_0_3_2_controls() -> None
     assert "CODECOV_TOKEN" in checklist
     assert "coverage.xml" in checklist
     assert "Check wheel package contents" in checklist
+    assert "Resource and prompt inventories" in checklist
+    assert "tests/evals -q" in checklist

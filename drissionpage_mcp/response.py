@@ -7,7 +7,7 @@ import struct
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union, cast
 
 from mcp.types import ImageContent, TextContent
 
@@ -52,7 +52,7 @@ class ToolError:
 
 @dataclass
 class ToolResult:
-    """Stable tool result payload for MCP structuredContent/fallback text."""
+    """Stable tool result payload for MCP structuredContent and TextContent mirror."""
 
     ok: bool
     message: str = ""
@@ -64,7 +64,7 @@ class ToolResult:
             "ok": self.ok,
             "message": self.message,
         }
-        if self.data:
+        if self.ok or self.data:
             payload["data"] = self.data
         if self.error is not None:
             payload["error"] = self.error.to_dict()
@@ -90,7 +90,7 @@ class ToolResult:
 
 
 def _json_text(payload: Dict[str, Any]) -> TextContent:
-    """Build the sentinel text fallback for clients without structuredContent."""
+    """Build the sentinel TextContent mirror for structured tool results."""
 
     body = json.dumps(payload, ensure_ascii=False, sort_keys=True)
     return TextContent(
@@ -135,29 +135,196 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
     return ErrorCode.UNKNOWN_ERROR
 
 
-def tool_result_output_schema() -> Dict[str, Any]:
-    """Return the shared MCP outputSchema for every tool result envelope."""
+def tool_data_schema_title(tool_name: str) -> str:
+    """Return the public data schema title for a tool."""
 
+    return cast(str, TOOL_DATA_SCHEMAS.get(tool_name, _GENERIC_DATA_SCHEMA)["title"])
+
+
+def tool_result_output_schema(tool_name: str = "") -> Dict[str, Any]:
+    """Return the MCP outputSchema for a tool-specific result envelope."""
+
+    data_schema = TOOL_DATA_SCHEMAS.get(tool_name, _GENERIC_DATA_SCHEMA)
     return {
         "type": "object",
         "additionalProperties": False,
-        "required": ["ok", "message"],
-        "properties": {
-            "ok": {"type": "boolean"},
-            "message": {"type": "string"},
-            "data": {"type": "object", "additionalProperties": True},
-            "error": {
+        "oneOf": [
+            {
                 "type": "object",
                 "additionalProperties": False,
-                "required": ["code", "message"],
+                "required": ["ok", "message", "data"],
                 "properties": {
-                    "code": {"type": "string"},
+                    "ok": {"const": True},
                     "message": {"type": "string"},
-                    "details": {"type": "object", "additionalProperties": True},
+                    "data": data_schema,
                 },
             },
-        },
+            {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["ok", "message", "error"],
+                "properties": {
+                    "ok": {"const": False},
+                    "message": {"type": "string"},
+                    "error": ERROR_SCHEMA,
+                    "data": {"type": "object", "additionalProperties": True},
+                },
+            },
+        ],
     }
+
+
+def _data_schema(
+    title: str,
+    properties: Dict[str, Any],
+    required: Sequence[str],
+) -> Dict[str, Any]:
+    return {
+        "title": title,
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(required),
+        "properties": properties,
+    }
+
+
+STRING = {"type": "string"}
+BOOLEAN = {"type": "boolean"}
+INTEGER = {"type": "integer"}
+NUMBER = {"type": "number"}
+ANY_JSON: Dict[str, Any] = {}
+
+ERROR_SCHEMA: Dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["code", "message"],
+    "properties": {
+        "code": {"type": "string"},
+        "message": {"type": "string"},
+        "details": {"type": "object", "additionalProperties": True},
+    },
+}
+
+SCREENSHOT_METADATA_SCHEMA = _data_schema(
+    "ScreenshotMetadata",
+    {
+        "mime_type": STRING,
+        "inline": BOOLEAN,
+        "encoding": STRING,
+        "path": STRING,
+        "full_page": BOOLEAN,
+        "bytes": INTEGER,
+        "width": INTEGER,
+        "height": INTEGER,
+    },
+    ["mime_type"],
+)
+
+ELEMENT_INFO_SCHEMA = _data_schema(
+    "ElementInfo",
+    {
+        "found": {"const": True},
+        "selector": STRING,
+        "text": STRING,
+        "tag": STRING,
+        "html": STRING,
+        "visible": BOOLEAN,
+    },
+    ["found", "selector", "text"],
+)
+
+_GENERIC_DATA_SCHEMA = _data_schema(
+    "GenericToolData",
+    {},
+    [],
+)
+
+TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
+    "page_navigate": _data_schema(
+        "PageNavigateData",
+        {"url": STRING, "final_url": STRING},
+        ["url", "final_url"],
+    ),
+    "page_go_back": _data_schema("PageGoBackData", {"url": STRING}, ["url"]),
+    "page_go_forward": _data_schema("PageGoForwardData", {"url": STRING}, ["url"]),
+    "page_refresh": _data_schema("PageRefreshData", {"url": STRING}, ["url"]),
+    "page_resize": _data_schema(
+        "PageResizeData",
+        {"width": INTEGER, "height": INTEGER},
+        ["width", "height"],
+    ),
+    "page_screenshot": _data_schema(
+        "PageScreenshotData",
+        {"screenshot": SCREENSHOT_METADATA_SCHEMA},
+        ["screenshot"],
+    ),
+    "page_click_xy": _data_schema(
+        "PageClickXYData",
+        {"x": INTEGER, "y": INTEGER, "element": STRING, "url": STRING},
+        ["x", "y", "element", "url"],
+    ),
+    "page_close": _data_schema(
+        "PageCloseData",
+        {"closed": {"const": True}},
+        ["closed"],
+    ),
+    "page_get_url": _data_schema("PageGetUrlData", {"url": STRING}, ["url"]),
+    "element_find": _data_schema(
+        "ElementFindData",
+        {"element": ELEMENT_INFO_SCHEMA},
+        ["element"],
+    ),
+    "element_click": _data_schema(
+        "ElementClickData",
+        {"selector": STRING, "url": STRING},
+        ["selector", "url"],
+    ),
+    "element_type": _data_schema(
+        "ElementTypeData",
+        {"selector": STRING, "typed": {"const": True}, "cleared": BOOLEAN},
+        ["selector", "typed", "cleared"],
+    ),
+    "element_get_text": _data_schema(
+        "ElementGetTextData",
+        {"text": STRING, "selector": STRING},
+        ["text", "selector"],
+    ),
+    "element_get_attribute": _data_schema(
+        "ElementGetAttributeData",
+        {"selector": STRING, "attribute": STRING, "value": {"type": ["string", "null"]}},
+        ["selector", "attribute", "value"],
+    ),
+    "element_get_property": _data_schema(
+        "ElementGetPropertyData",
+        {"selector": STRING, "property_name": STRING, "value": ANY_JSON},
+        ["selector", "property_name", "value"],
+    ),
+    "element_get_html": _data_schema(
+        "ElementGetHtmlData",
+        {"html": STRING, "selector": STRING},
+        ["html", "selector"],
+    ),
+    "wait_for_element": _data_schema(
+        "WaitForElementData",
+        {"selector": STRING, "found": {"const": True}, "timeout": NUMBER},
+        ["selector", "found", "timeout"],
+    ),
+    "wait_for_url": _data_schema(
+        "WaitForUrlData",
+        {
+            "url_pattern": STRING,
+            "matched": {"const": True},
+            "url": STRING,
+            "timeout": NUMBER,
+        },
+        ["url_pattern", "matched", "url", "timeout"],
+    ),
+    "wait_time": _data_schema(
+        "WaitTimeData",
+        {"waited_seconds": NUMBER},
+        ["waited_seconds"],
+    ),
+}
 
 
 class ToolResponse:
@@ -237,7 +404,7 @@ class ToolResponse:
         self._include_snapshot = include
 
     def get_structured_content(self) -> Dict[str, Any]:
-        """Return the stable structuredContent-compatible payload."""
+        """Return the stable structuredContent payload."""
         if self._tool_result is None:
             if self._is_error:
                 self._tool_result = ToolResult.failure(
@@ -251,7 +418,7 @@ class ToolResponse:
         return self._tool_result.to_dict()
 
     def get_content(self) -> Sequence[Union[TextContent, ImageContent]]:
-        """Get all response content with machine-readable fallback first."""
+        """Get all response content with the machine-readable TextContent mirror first."""
         content = list(self._content)
 
         # Add code snippets if any. Do not mutate internal content here because

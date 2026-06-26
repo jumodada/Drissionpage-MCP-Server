@@ -20,7 +20,7 @@
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-与基于截图的方法不同，它通过 21 个强大工具提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+与基于截图的方法不同，它通过 19 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -93,17 +93,17 @@ drissionpage-mcp doctor
 
 ---
 
-## 🛠️ 21 个强大工具
+## 🛠️ 19 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL
 - `page_go_back` / `page_go_forward` - 浏览器历史记录
 - `page_refresh` - 重新加载当前页面
 
-### 🎯 元素交互与提取（8 个）
+### 🎯 元素交互与提取（7 个）
 - `element_find` - 通过 CSS 选择器或 XPath 查找元素
 - `element_click` - 点击任意元素
-- `element_type` / `element_input_text` - 向元素输入文本
+- `element_type` - 向元素输入文本
 - `element_get_text` - 获取元素或整页文本
 - `element_get_attribute` - 获取 HTML attribute
 - `element_get_property` - 获取实时 DOM property，例如输入框当前 value
@@ -116,10 +116,14 @@ drissionpage-mcp doctor
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
 
-### ⏱️ 等待操作（4 个）
+### ⏱️ 等待操作（3 个）
 - `wait_for_element` - 等待元素出现（带超时）
 - `wait_for_url` - 等待当前 URL 包含指定文本
-- `wait_time` / `wait_sleep` - 延迟执行
+- `wait_time` - 延迟执行
+
+### 🧩 MCP Resources 和 Prompts
+- Resources：`drissionpage://session/summary`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
+- Prompts：`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_fill_form_safely`、`browser_debug_page_issue`
 
 ---
 
@@ -149,7 +153,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 21 个自动化工具
+│   └── tools/              # 19 个自动化工具
 ├── examples/               # 配置模板
 ├── tests/                  # 单元测试
 └── playground/             # 测试工具
@@ -252,7 +256,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.3.2`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.4.0`。
 
 ### 浏览器问题？
 ```bash
@@ -280,22 +284,22 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.3.2 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.4.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.3.2)
-- [x] 21 个核心自动化工具
+### 当前版本 (v0.4.0)
+- [x] 19 个核心自动化工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
-- [x] 稳定 JSON fallback、`structuredContent` 和共享 MCP `outputSchema`
+- [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
 - [x] 针对导航和截图路径的可选本地安全策略
-- [x] 兼容性和故障排除文档
+- [x] Resources、Prompts、eval harness、兼容性和故障排除文档
 - [x] PyPI 发布
 
-### 未来版本 (v0.4+)
+### 未来版本 (v0.5+)
 - [ ] 表单处理工具
 - [ ] 文件上传支持
 - [ ] Shadow DOM 选择器
