@@ -157,6 +157,140 @@ async def test_mcp_browser_tools_normalize_llm_friendly_selectors() -> None:
         await server.cleanup()
 
 
+@pytest.mark.asyncio
+async def test_mcp_browser_tools_complete_form_submission_flow() -> None:
+    """fills and submits a local form through public MCP tools."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/form"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, field_payload = await _execute_tool(
+                server, "element_find", {"selector": "#name", "timeout": 2}
+            )
+            assert field_payload["ok"] is True
+            field = field_payload["data"]["element"]
+            assert field["tag"] == "input"
+            assert field["locator"] == "css:#name"
+            assert field["selector_normalized"] is True
+
+            _content, typed_payload = await _execute_tool(
+                server,
+                "element_type",
+                {
+                    "selector": "#name",
+                    "text": "Ada Lovelace",
+                    "clear": True,
+                    "timeout": 2,
+                },
+            )
+            assert typed_payload["ok"] is True
+            assert typed_payload["data"]["typed"] is True
+            assert typed_payload["data"]["cleared"] is True
+
+            _content, value_payload = await _execute_tool(
+                server,
+                "element_get_property",
+                {"selector": "#name", "property": "value"},
+            )
+            assert value_payload["ok"] is True
+            assert value_payload["data"]["value"] == "Ada Lovelace"
+
+            _content, click_payload = await _execute_tool(
+                server, "element_click", {"selector": "#submit", "timeout": 2}
+            )
+            assert click_payload["ok"] is True
+            assert click_payload["data"]["locator"] == "css:#submit"
+
+            _content, url_payload = await _execute_tool(
+                server, "wait_for_url", {"url_pattern": "name=Ada", "timeout": 3}
+            )
+            assert url_payload["ok"] is True
+            assert "name=Ada" in url_payload["data"]["url"]
+
+            _content, submitted_payload = await _execute_tool(
+                server, "element_get_text", {"selector": "#submitted"}
+            )
+            assert submitted_payload["ok"] is True
+            assert submitted_payload["data"]["text"] == "Ada Lovelace"
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_browser_tools_wait_for_dynamic_dom_content() -> None:
+    """waits for deterministic JavaScript-rendered content before reading it."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/dynamic"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, wait_payload = await _execute_tool(
+                server, "wait_for_element", {"selector": "#dynamic-ready", "timeout": 3}
+            )
+            assert wait_payload["ok"] is True
+            assert wait_payload["data"] == {
+                "selector": "#dynamic-ready",
+                "locator": "css:#dynamic-ready",
+                "selector_strategy": "css",
+                "selector_normalized": True,
+                "found": True,
+                "timeout": 3,
+            }
+
+            _content, text_payload = await _execute_tool(
+                server, "element_get_text", {"selector": "#dynamic-ready"}
+            )
+            assert text_payload["ok"] is True
+            assert text_payload["data"]["text"] == "dynamic content ready"
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions() -> None:
+    """returns machine-readable errors for common LLM recovery paths."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            missing_content, missing_payload = await _execute_tool(
+                server,
+                "element_find",
+                {"selector": "#never-appears", "timeout": 1},
+            )
+            assert missing_payload["ok"] is False
+            assert missing_payload["error"]["code"] == "ELEMENT_NOT_FOUND"
+            assert missing_payload["message"].startswith("Failed to find element")
+            assert missing_content[0].text.startswith("### JSON_RESULT")
+
+            _content, wait_payload = await _execute_tool(
+                server,
+                "wait_for_url",
+                {"url_pattern": "not-in-current-url", "timeout": 0},
+            )
+            assert wait_payload["ok"] is False
+            assert wait_payload["error"]["code"] == "TIMEOUT"
+    finally:
+        await server.cleanup()
+
+
 async def _execute_tool_text(
     server: DrissionPageMCPServer, name: str, arguments: Dict[str, Any]
 ) -> str:
