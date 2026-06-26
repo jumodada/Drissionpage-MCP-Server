@@ -6,5 +6,4 @@ include requirements.txt
 include install.py
 
 recursive-include drissionpage_mcp *.py py.typed
-recursive-include examples *.json *.toml *.md
 recursive-include tests *.py

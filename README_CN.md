@@ -46,6 +46,12 @@ drissionpage-mcp doctor
 
 然后添加下面的 Codex 或 MCP 客户端配置并重启客户端。
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/01-install.png" width="700" alt="pip install drissionpage-mcp">
+  <br><br>
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/03-doctor.png" width="700" alt="drissionpage-mcp doctor 全部检查通过">
+</p>
+
 ---
 
 ## 📦 在 Codex CLI/IDE 中配置（30 秒）
@@ -65,6 +71,10 @@ Codex 通过 `config.toml` 支持本地 stdio MCP Server；Codex CLI 和 IDE 扩
    ```
 
 3. **重启 Codex**。TUI 中可运行 `/mcp`，终端可运行 `codex mcp list` 检查连接。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/06-codex.png" width="700" alt="Codex config.toml 配置">
+</p>
 
 Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例](#-集成示例)。
 
@@ -137,7 +147,6 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 | [docs/tool-contract.md](docs/tool-contract.md) | MCP 工具名称、输入、注解和响应格式 |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | doctor 命令、浏览器启动和客户端配置排查 |
 | [docs/release-checklist.md](docs/release-checklist.md) | 发布验证和发布清单 |
-| [examples/README.md](examples/README.md) | MCP 客户端配置示例 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本变更 |
 
 ---
@@ -155,7 +164,6 @@ DrissionMCP/
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
 │   └── tools/              # 19 个自动化工具
-├── examples/               # 配置模板
 ├── tests/                  # 单元测试
 └── playground/             # 测试工具
 ```
@@ -216,8 +224,6 @@ codex mcp add drissionpage -- drissionpage-mcp
   }
 }
 ```
-
-更多配置选项请参阅 [examples/README.md](examples/README.md)。
 
 ---
 
@@ -358,6 +364,33 @@ codex mcp list
 }
 ```
 
+配置文件：`~/.config/claude-code/mcp_settings.json`（macOS/Linux）或
+`%APPDATA%\claude-code\mcp_settings.json`（Windows）。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/04-claude-code.png" width="700" alt="Claude Code mcp_settings.json 配置">
+</p>
+
+### Cursor
+```json
+{
+  "mcpServers": {
+    "drissionpage": {
+      "command": "drissionpage-mcp"
+    }
+  }
+}
+```
+
+配置文件：`~/.cursor/mcp.json`（全局）或 `.cursor/mcp.json`（项目）。也可以从
+**Cursor Settings → Tools & MCPs → New MCP Server** 添加。
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/05-cursor.png" width="700" alt="Cursor mcp.json 配置">
+  <br><br>
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/08-cursor-ui.png" width="540" alt="Cursor 设置 — 添加新的 MCP 服务器">
+</p>
+
 ### Claude Desktop
 ```json
 {
@@ -369,7 +402,11 @@ codex mcp list
 }
 ```
 
-更多客户端配置请参阅 [examples/](examples/)。
+连接成功后，工具会自动加载：
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/07-connected.png" width="700" alt="MCP 客户端已加载 DrissionPage 工具">
+</p>
 
 ---
 
@@ -405,24 +442,6 @@ codex mcp list
 ## 📄 许可证
 
 采用 **Apache License 2.0** 许可 - 详见 [LICENSE](LICENSE)
-
----
-
-## 🙏 致谢
-
-- **[DrissionPage](https://github.com/g1879/DrissionPage)** - 优秀的浏览器自动化库
-- **[Model Context Protocol](https://modelcontextprotocol.io/)** - 协议规范
-- **[Claude](https://claude.ai)** - 使 AI 助手更强大和有用
-
----
-
-## 💬 支持
-
-- 📖 **[故障排除](docs/troubleshooting.md)**
-- 🐛 **[报告问题](https://github.com/jumodada/Drissionpage-MCP-Server/issues)**
-- 💡 **[功能请求](https://github.com/jumodada/Drissionpage-MCP-Server/discussions)**
-- 🔗 **[GitHub 仓库](https://github.com/jumodada/Drissionpage-MCP-Server)**
-- 📦 **[PyPI 包](https://pypi.org/project/drissionpage-mcp/)**
 
 ---
 

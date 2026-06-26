@@ -45,7 +45,7 @@ If the smoke test cannot run in the release environment, document the gap in the
 ## 4. Documentation
 
 - [ ] README quick start matches the released package name, version, and Codex/JSON MCP setup.
-- [ ] MCP client config examples are valid JSON/TOML, including Codex `config.toml` examples.
+- [ ] MCP client config snippets in the README are valid JSON/TOML, including the Codex `config.toml` block.
 - [ ] Troubleshooting steps still match current CLI behavior.
 - [ ] Tool inventory matches the registered tools.
 - [ ] Resource and prompt inventories match MCP `resources/list` and `prompts/list`.
