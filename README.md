@@ -46,6 +46,12 @@ drissionpage-mcp doctor
 
 Then add the Codex or MCP client configuration below and restart your client.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/01-install.png" width="700" alt="pip install drissionpage-mcp">
+  <br><br>
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/03-doctor.png" width="700" alt="drissionpage-mcp doctor — all checks green">
+</p>
+
 ---
 
 ## 📦 Setup in Codex CLI/IDE (30 seconds)
@@ -65,6 +71,10 @@ Codex supports local stdio MCP servers through `config.toml`; the CLI and IDE ex
    ```
 
 3. **Restart Codex**. In the TUI, run `/mcp`; from a shell, run `codex mcp list`.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/06-codex.png" width="700" alt="Codex config.toml">
+</p>
 
 For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integration Examples](#-integration-examples).
 
@@ -137,7 +147,6 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 | [docs/tool-contract.md](docs/tool-contract.md) | Public MCP tool names, inputs, annotations, and response shape |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Doctor command, browser startup, and client setup fixes |
 | [docs/release-checklist.md](docs/release-checklist.md) | Release validation and publishing checklist |
-| [examples/README.md](examples/README.md) | MCP client configuration examples |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes |
 
 ---
@@ -155,7 +164,6 @@ DrissionMCP/
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
 │   └── tools/              # 19 automation tools
-├── examples/               # Configuration templates
 ├── tests/                  # Unit tests
 └── playground/             # Testing utilities
 ```
@@ -216,8 +224,6 @@ codex mcp add drissionpage -- drissionpage-mcp
   }
 }
 ```
-
-See [examples/README.md](examples/README.md) for more configuration options.
 
 ---
 
@@ -359,6 +365,33 @@ codex mcp list
 }
 ```
 
+Config file: `~/.config/claude-code/mcp_settings.json` (macOS/Linux) or
+`%APPDATA%\claude-code\mcp_settings.json` (Windows).
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/04-claude-code.png" width="700" alt="Claude Code mcp_settings.json">
+</p>
+
+### Cursor
+```json
+{
+  "mcpServers": {
+    "drissionpage": {
+      "command": "drissionpage-mcp"
+    }
+  }
+}
+```
+
+Config file: `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project). You
+can also add it from **Cursor Settings → Tools & MCPs → New MCP Server**.
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/05-cursor.png" width="700" alt="Cursor mcp.json">
+  <br><br>
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/08-cursor-ui.png" width="540" alt="Cursor Settings — add a new MCP server">
+</p>
+
 ### Claude Desktop
 ```json
 {
@@ -370,7 +403,11 @@ codex mcp list
 }
 ```
 
-See [examples/](examples/) for more client configurations.
+Once connected, the tools load automatically:
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/07-connected.png" width="700" alt="MCP client with DrissionPage tools loaded">
+</p>
 
 ---
 
@@ -406,24 +443,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, validation, and compatibility 
 ## 📄 License
 
 Licensed under **Apache License 2.0** - see [LICENSE](LICENSE)
-
----
-
-## 🙏 Acknowledgments
-
-- **[DrissionPage](https://github.com/g1879/DrissionPage)** - Excellent browser automation library
-- **[Model Context Protocol](https://modelcontextprotocol.io/)** - Protocol specification
-- **[Claude](https://claude.ai)** - Making AI assistants capable and useful
-
----
-
-## 💬 Support
-
-- 📖 **[Troubleshooting](docs/troubleshooting.md)**
-- 🐛 **[Report Issues](https://github.com/jumodada/Drissionpage-MCP-Server/issues)**
-- 💡 **[Feature Requests](https://github.com/jumodada/Drissionpage-MCP-Server/discussions)**
-- 🔗 **[GitHub Repository](https://github.com/jumodada/Drissionpage-MCP-Server)**
-- 📦 **[PyPI Package](https://pypi.org/project/drissionpage-mcp/)**
 
 ---
 
