@@ -25,11 +25,13 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 19
+    assert len(tools) == 21
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
         "page_navigate",
+        "page_snapshot",
+        "element_find_all",
         "element_get_text",
         "wait_time",
     }
@@ -138,10 +140,12 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 19
+            assert len(tools.tools) == 21
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
+                "page_snapshot",
+                "element_find_all",
             }
             assert "element_input_text" not in {tool.name for tool in tools.tools}
             assert "wait_sleep" not in {tool.name for tool in tools.tools}
@@ -196,3 +200,15 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     assert schemas["wait_time"]["oneOf"][0]["properties"]["data"]["title"] == (
         "WaitTimeData"
     )
+    assert schemas["page_snapshot"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "PageSnapshotData"
+    )
+    assert "links" in schemas["page_snapshot"]["oneOf"][0]["properties"]["data"][
+        "properties"
+    ]
+    assert schemas["element_find_all"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "ElementFindAllData"
+    )
+    assert "elements" in schemas["element_find_all"]["oneOf"][0]["properties"]["data"][
+        "required"
+    ]

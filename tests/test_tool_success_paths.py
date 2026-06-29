@@ -37,6 +37,48 @@ class FakeTab:
             return path
         return PNG_1X1_B64
 
+    async def page_snapshot(
+        self,
+        *,
+        include_html: bool = False,
+        max_elements: int = 50,
+        max_text_chars: int = 4000,
+    ) -> dict[str, Any]:
+        self._record(
+            "page_snapshot",
+            include_html=include_html,
+            max_elements=max_elements,
+            max_text_chars=max_text_chars,
+        )
+        return {
+            "url": self.url,
+            "title": "Fake Catalog",
+            "text_excerpt": "Alpha Beta",
+            "headings": [
+                {
+                    "index": 0,
+                    "tag": "h1",
+                    "text": "Fake Catalog",
+                    "selector": "#title",
+                    "attributes": {"id": "title"},
+                }
+            ],
+            "links": [],
+            "buttons": [],
+            "inputs": [],
+            "forms": [],
+            "counts": {"headings": 1},
+            "truncated": {
+                "text": False,
+                "elements": False,
+                "returned_elements": 1,
+            },
+            "limits": {
+                "max_elements": max_elements,
+                "max_text_chars": max_text_chars,
+            },
+        }
+
     async def click(self, x: int, y: int) -> None:
         self._record("click", x, y)
 
@@ -73,6 +115,50 @@ class FakeTab:
             "tag": "input",
             "html": "<input id='name'>",
             "visible": True,
+        }
+
+    async def find_elements(
+        self,
+        selector: str,
+        *,
+        limit: int = 20,
+        include_html: bool = False,
+    ) -> dict[str, Any]:
+        self._record(
+            "find_elements",
+            selector,
+            limit=limit,
+            include_html=include_html,
+        )
+        elements = [
+            {
+                "index": 0,
+                "tag": "article",
+                "text": "Alpha",
+                "selector": "#alpha",
+                "attributes": {"id": "alpha", "class": "product-card"},
+            },
+            {
+                "index": 1,
+                "tag": "article",
+                "text": "Beta",
+                "selector": "#beta",
+                "attributes": {"id": "beta", "class": "product-card"},
+            },
+        ][:limit]
+        if include_html:
+            for item in elements:
+                item["html"] = f"<article>{item['text']}</article>"
+        return {
+            "selector": selector,
+            "locator": "css:.product-card",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+            "count": 2,
+            "returned": len(elements),
+            "limit": limit,
+            "truncated": limit < 2,
+            "elements": elements,
         }
 
     async def click_element(self, selector: str, timeout: int = 10) -> None:
@@ -166,6 +252,27 @@ async def test_common_tools_success_paths(tmp_path) -> None:
     path_payload = path_response.get_structured_content()
     assert path_payload["data"]["screenshot"]["path"] == str(screenshot_path)
     assert path_payload["data"]["screenshot"]["inline"] is False
+
+    snapshot_response = await _execute(
+        common.page_snapshot,
+        ctx,
+        common.PageSnapshotInput(
+            include_html=True,
+            max_elements=5,
+            max_text_chars=100,
+        ),
+    )
+    snapshot_payload = snapshot_response.get_structured_content()
+    assert snapshot_payload["data"]["title"] == "Fake Catalog"
+    assert snapshot_payload["data"]["limits"] == {
+        "max_elements": 5,
+        "max_text_chars": 100,
+    }
+    assert ctx.tab.calls[-1] == (
+        "page_snapshot",
+        (),
+        {"include_html": True, "max_elements": 5, "max_text_chars": 100},
+    )
 
     click_response = await _execute(
         common.click_coordinates,
@@ -306,10 +413,12 @@ def test_get_property_input_uses_property_field_only() -> None:
 @pytest.mark.parametrize(
     ("model", "payload"),
     [
+        (common.PageSnapshotInput, {"maxElements": 10}),
         (common.ScreenshotInput, {"fullPage": True}),
         (common.ResizeInput, {"width": 800, "height": 600, "extra": True}),
         (navigate.NavigateInput, {"url": "https://example.test", "new_tab": True}),
         (element.FindElementInput, {"selector": "h1", "timeout_ms": 1}),
+        (element.FindAllElementsInput, {"selector": "li", "max_items": 10}),
         (
             element.TypeTextInput,
             {"selector": "#name", "text": "Ada", "clear_first": False},
@@ -354,6 +463,37 @@ async def test_element_tools_success_paths() -> None:
         }
     }
     assert found_response.get_structured_content()["message"] == "Found element: #name"
+
+    found_all_response = await _execute(
+        element.find_all_elements,
+        ctx,
+        element.FindAllElementsInput(
+            selector=".product-card",
+            limit=1,
+            include_html=True,
+        ),
+    )
+    found_all_payload = found_all_response.get_structured_content()
+    assert found_all_payload["data"] == {
+        "selector": ".product-card",
+        "locator": "css:.product-card",
+        "selector_strategy": "css",
+        "selector_normalized": True,
+        "count": 2,
+        "returned": 1,
+        "limit": 1,
+        "truncated": True,
+        "elements": [
+            {
+                "index": 0,
+                "tag": "article",
+                "text": "Alpha",
+                "selector": "#alpha",
+                "attributes": {"id": "alpha", "class": "product-card"},
+                "html": "<article>Alpha</article>",
+            }
+        ],
+    }
 
     click_response = await _execute(
         element.click_element,

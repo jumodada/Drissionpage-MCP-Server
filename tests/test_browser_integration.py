@@ -32,6 +32,7 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "DrissionMCP Fixture" in _read(base_url + "/")[1]
         assert "fixture-form" in _read(base_url + "/form")[1]
         assert "dynamic-root" in _read(base_url + "/dynamic")[1]
+        assert "Automation Catalog" in _read(base_url + "/catalog")[1]
         assert _read(base_url + "/redirect")[0] == 200
         assert _read(base_url + "/status/404")[0] == 404
         assert _read(base_url + "/status/500")[0] == 500
@@ -253,6 +254,71 @@ async def test_mcp_browser_tools_wait_for_dynamic_dom_content() -> None:
             )
             assert text_payload["ok"] is True
             assert text_payload["data"]["text"] == "dynamic content ready"
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_page_understanding_tools_extract_catalog_outline() -> None:
+    """uses 0.4.9 preview tools to inspect repeated cards and page controls."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/catalog"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, snapshot_payload = await _execute_tool(
+                server,
+                "page_snapshot",
+                {"max_elements": 30, "max_text_chars": 1000},
+            )
+            assert snapshot_payload["ok"] is True
+            snapshot = snapshot_payload["data"]
+            assert snapshot["title"] == "Fixture Catalog"
+            assert "Automation Catalog" in snapshot["text_excerpt"]
+            assert snapshot["headings"][0]["selector"] == "#catalog-title"
+            assert {link["text"] for link in snapshot["links"]} >= {
+                "Docs",
+                "Pricing",
+            }
+            assert any(button["text"] == "Choose Alpha" for button in snapshot["buttons"])
+            assert any(input_["selector"] == "#query" for input_ in snapshot["inputs"])
+            assert snapshot["limits"] == {"max_elements": 30, "max_text_chars": 1000}
+
+            _content, cards_payload = await _execute_tool(
+                server,
+                "element_find_all",
+                {"selector": ".product-card", "limit": 2, "include_html": True},
+            )
+            assert cards_payload["ok"] is True
+            cards = cards_payload["data"]
+            assert cards["locator"] == "css:.product-card"
+            assert cards["count"] == 3
+            assert cards["returned"] == 2
+            assert cards["truncated"] is True
+            assert [card["text"].split()[0] for card in cards["elements"]] == [
+                "Alpha",
+                "Beta",
+            ]
+            assert cards["elements"][0]["selector"] == "#alpha"
+            assert "html" in cards["elements"][0]
+
+            _content, rows_payload = await _execute_tool(
+                server,
+                "element_find_all",
+                {"selector": "#people tbody tr", "limit": 5},
+            )
+            assert rows_payload["ok"] is True
+            rows = rows_payload["data"]["elements"]
+            assert [row["text"] for row in rows] == [
+                "Ada Engineer",
+                "Grace Researcher",
+                "Katherine Mathematician",
+            ]
     finally:
         await server.cleanup()
 

@@ -67,11 +67,20 @@ class FakeWaitFallback:
 
 
 class FakeElement:
-    tag = "input"
-    html = '<input id="name" value="Ada">'
-
-    def __init__(self) -> None:
-        self.text = "Ada"
+    def __init__(
+        self,
+        *,
+        tag: str = "input",
+        text: str = "Ada",
+        html: str = '<input id="name" value="Ada">',
+        attrs: dict[str, str | None] | None = None,
+    ) -> None:
+        self.tag = tag
+        self.html = html
+        self.text = text
+        self.attrs = {"id": "name", "missing": None}
+        if attrs:
+            self.attrs.update(attrs)
         self.clicked = False
         self.cleared = False
         self.inputs = []
@@ -87,7 +96,21 @@ class FakeElement:
         self.text = text
 
     def attr(self, attribute: str):
-        return {"id": "name", "missing": None}.get(attribute, "attr-value")
+        if attribute in self.attrs:
+            return self.attrs[attribute]
+        if attribute in {
+            "class",
+            "name",
+            "type",
+            "href",
+            "value",
+            "placeholder",
+            "role",
+            "aria-label",
+            "data-testid",
+        }:
+            return None
+        return "attr-value"
 
     def property(self, property_name: str):
         return {"value": self.text}.get(property_name)
@@ -106,8 +129,26 @@ class FakePage:
         self.wait = FakeWait()
         self.set = FakeSet()
         self.element = FakeElement() if element is _DEFAULT_ELEMENT else element
+        self.elements = [self.element] if self.element is not None else []
         self.calls = []
         self.closed = False
+        self.snapshot = {
+            "url": self.url,
+            "title": "Fake Page",
+            "text_excerpt": "Whole page text",
+            "headings": [],
+            "links": [],
+            "buttons": [],
+            "inputs": [],
+            "forms": [],
+            "counts": {},
+            "truncated": {
+                "text": False,
+                "elements": False,
+                "returned_elements": 0,
+            },
+            "limits": {"max_elements": 50, "max_text_chars": 4000},
+        }
 
     def get(self, url: str):
         self.calls.append(("get", url))
@@ -126,6 +167,14 @@ class FakePage:
     def ele(self, selector: str, **_kwargs):
         self.calls.append(("ele", selector))
         return self.element
+
+    def eles(self, selector: str, **kwargs):
+        self.calls.append(("eles", selector, kwargs))
+        return self.elements
+
+    def run_js(self, script: str, **kwargs):
+        self.calls.append(("run_js", script[:40], kwargs))
+        return self.snapshot
 
     def get_screenshot(self, **kwargs):
         self.calls.append(("screenshot", kwargs))
@@ -213,6 +262,77 @@ async def test_element_actions_and_readers() -> None:
     assert await tab.get_property("#name", "value") == "Lovelace"
     assert await tab.get_html("#name") == '<input id="name" value="Ada">'
     assert await tab.get_html() == "<html><body>Whole page text</body></html>"
+
+
+@pytest.mark.asyncio
+async def test_page_snapshot_and_find_elements_return_bounded_summaries() -> None:
+    page = FakePage()
+    page.snapshot = {
+        "url": "https://example.test/catalog",
+        "title": "Catalog",
+        "text_excerpt": "Products",
+        "headings": [
+            {
+                "index": 0,
+                "tag": "h1",
+                "text": "Products",
+                "selector": "#title",
+                "attributes": {"id": "title"},
+            }
+        ],
+        "links": [],
+        "buttons": [],
+        "inputs": [],
+        "forms": [],
+        "counts": {"headings": 1},
+        "truncated": {"text": False, "elements": False, "returned_elements": 1},
+        "limits": {"max_elements": 5, "max_text_chars": 100},
+    }
+    page.elements = [
+        FakeElement(
+            tag="article",
+            text="Alpha card",
+            html="<article id='alpha'>Alpha card</article>",
+            attrs={"id": "alpha", "class": "product-card"},
+        ),
+        FakeElement(
+            tag="article",
+            text="Beta card",
+            html="<article id='beta'>Beta card</article>",
+            attrs={"id": "beta", "class": "product-card"},
+        ),
+    ]
+    tab = PageTab(page, FakeContext())
+
+    snapshot = await tab.page_snapshot(
+        include_html=True,
+        max_elements=5,
+        max_text_chars=100,
+    )
+    found = await tab.find_elements(".product-card", limit=1, include_html=True)
+
+    assert snapshot["title"] == "Catalog"
+    assert ("run_js",) == (page.calls[-2][0],)
+    assert found == {
+        "selector": ".product-card",
+        "locator": "css:.product-card",
+        "selector_strategy": "css",
+        "selector_normalized": True,
+        "count": 2,
+        "returned": 1,
+        "limit": 1,
+        "truncated": True,
+        "elements": [
+            {
+                "index": 0,
+                "tag": "article",
+                "text": "Alpha card",
+                "selector": "#alpha",
+                "attributes": {"id": "alpha", "class": "product-card"},
+                "html": "<article id='alpha'>Alpha card</article>",
+            }
+        ],
+    }
 
 
 @pytest.mark.asyncio

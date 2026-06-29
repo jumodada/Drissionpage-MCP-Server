@@ -244,6 +244,51 @@ ELEMENT_INFO_SCHEMA = _data_schema(
     ["found", *SELECTOR_METADATA_REQUIRED, "text"],
 )
 
+ELEMENT_ATTRIBUTES_SCHEMA = {
+    "type": "object",
+    "additionalProperties": {"type": ["string", "null"]},
+}
+
+OUTLINE_ELEMENT_SCHEMA = _data_schema(
+    "OutlineElement",
+    {
+        "index": INTEGER,
+        "tag": STRING,
+        "text": STRING,
+        "selector": STRING,
+        "attributes": ELEMENT_ATTRIBUTES_SCHEMA,
+        "html": STRING,
+        "href": STRING,
+        "method": STRING,
+        "action": STRING,
+    },
+    ["index", "tag", "text", "selector", "attributes"],
+)
+
+OUTLINE_COUNTS_SCHEMA = {
+    "type": "object",
+    "additionalProperties": INTEGER,
+}
+
+PAGE_SNAPSHOT_TRUNCATION_SCHEMA = _data_schema(
+    "PageSnapshotTruncation",
+    {
+        "text": BOOLEAN,
+        "elements": BOOLEAN,
+        "returned_elements": INTEGER,
+    },
+    ["text", "elements", "returned_elements"],
+)
+
+PAGE_SNAPSHOT_LIMITS_SCHEMA = _data_schema(
+    "PageSnapshotLimits",
+    {
+        "max_elements": INTEGER,
+        "max_text_chars": INTEGER,
+    },
+    ["max_elements", "max_text_chars"],
+)
+
 _GENERIC_DATA_SCHEMA = _data_schema(
     "GenericToolData",
     {},
@@ -269,6 +314,35 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
         {"screenshot": SCREENSHOT_METADATA_SCHEMA},
         ["screenshot"],
     ),
+    "page_snapshot": _data_schema(
+        "PageSnapshotData",
+        {
+            "url": STRING,
+            "title": STRING,
+            "text_excerpt": STRING,
+            "headings": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "links": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "buttons": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "inputs": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "forms": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "counts": OUTLINE_COUNTS_SCHEMA,
+            "truncated": PAGE_SNAPSHOT_TRUNCATION_SCHEMA,
+            "limits": PAGE_SNAPSHOT_LIMITS_SCHEMA,
+        },
+        [
+            "url",
+            "title",
+            "text_excerpt",
+            "headings",
+            "links",
+            "buttons",
+            "inputs",
+            "forms",
+            "counts",
+            "truncated",
+            "limits",
+        ],
+    ),
     "page_click_xy": _data_schema(
         "PageClickXYData",
         {"x": INTEGER, "y": INTEGER, "element": STRING, "url": STRING},
@@ -284,6 +358,25 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "ElementFindData",
         {"element": ELEMENT_INFO_SCHEMA},
         ["element"],
+    ),
+    "element_find_all": _data_schema(
+        "ElementFindAllData",
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "count": INTEGER,
+            "returned": INTEGER,
+            "limit": INTEGER,
+            "truncated": BOOLEAN,
+            "elements": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+        },
+        [
+            *SELECTOR_METADATA_REQUIRED,
+            "count",
+            "returned",
+            "limit",
+            "truncated",
+            "elements",
+        ],
     ),
     "element_click": _data_schema(
         "ElementClickData",

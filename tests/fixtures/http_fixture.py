@@ -102,6 +102,60 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/catalog":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Catalog</title></head>
+                  <body>
+                    <main id="catalog">
+                      <h1 id="catalog-title">Automation Catalog</h1>
+                      <p class="intro">Pick a deterministic browser automation task.</p>
+                      <nav>
+                        <a id="docs-link" href="/docs">Docs</a>
+                        <a data-testid="pricing-link" href="/pricing">Pricing</a>
+                      </nav>
+                      <section id="cards" aria-label="Products">
+                        <article id="alpha" class="product-card" data-testid="product-alpha">
+                          <h2>Alpha Browser</h2>
+                          <p class="role">Navigation helper</p>
+                          <a class="details" href="/products/alpha">Details</a>
+                          <button class="buy" type="button">Choose Alpha</button>
+                        </article>
+                        <article id="beta" class="product-card" data-testid="product-beta">
+                          <h2>Beta Extractor</h2>
+                          <p class="role">Structured extraction</p>
+                          <a class="details" href="/products/beta">Details</a>
+                          <button class="buy" type="button">Choose Beta</button>
+                        </article>
+                        <article id="gamma" class="product-card" data-testid="product-gamma">
+                          <h2>Gamma Waiter</h2>
+                          <p class="role">Dynamic waits</p>
+                          <a class="details" href="/products/gamma">Details</a>
+                          <button class="buy" type="button">Choose Gamma</button>
+                        </article>
+                      </section>
+                      <table id="people">
+                        <thead><tr><th>Name</th><th>Role</th></tr></thead>
+                        <tbody>
+                          <tr><td>Ada</td><td>Engineer</td></tr>
+                          <tr><td>Grace</td><td>Researcher</td></tr>
+                          <tr><td>Katherine</td><td>Mathematician</td></tr>
+                        </tbody>
+                      </table>
+                      <form id="filter-form" action="/catalog" method="get">
+                        <label for="query">Filter</label>
+                        <input id="query" name="q" placeholder="search products" />
+                        <button id="filter-button" type="submit">Apply</button>
+                      </form>
+                    </main>
+                  </body>
+                </html>
+                """
+            )
+            return
+
         if path == "/redirect":
             self.send_response(302)
             self.send_header("Location", "/")

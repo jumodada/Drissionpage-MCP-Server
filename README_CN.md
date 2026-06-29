@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-与基于截图的方法不同，它通过 19 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+与基于截图的方法不同，它通过 21 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -114,15 +114,16 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 19 个强大工具 + MCP Resources/Prompts
+## 🛠️ 21 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL
 - `page_go_back` / `page_go_forward` - 浏览器历史记录
 - `page_refresh` - 重新加载当前页面
 
-### 🎯 元素交互与提取（7 个）
-- `element_find` - 通过 CSS 选择器或 XPath 查找元素；`h1` 等裸选择器按 CSS 处理
+### 🎯 元素交互与提取（8 个）
+- `element_find` - 通过 CSS 选择器或 XPath 查找单个元素；`h1` 等裸选择器按 CSS 处理
+- `element_find_all` - 提取重复列表、卡片和表格元素，返回有界文本、属性和推荐 selector
 - `element_click` - 点击任意元素
 - `element_type` - 向元素输入文本
 - `element_get_text` - 获取元素或整页文本
@@ -130,8 +131,9 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `element_get_property` - 获取实时 DOM property，例如输入框当前 value
 - `element_get_html` - 获取元素或整页 HTML
 
-### 📸 页面操作（5 个）
+### 📸 页面操作（6 个）
 - `page_screenshot` - 捕获完整页面或视口
+- `page_snapshot` - 返回有界页面 outline，包括标题、链接、按钮、输入框、表单和 selector 推荐
 - `page_resize` - 调整浏览器窗口
 - `page_click_xy` - 通过坐标点击
 - `page_close` - 关闭浏览器
@@ -173,7 +175,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 19 个自动化工具
+│   └── tools/              # 21 个自动化与页面理解工具
 ├── tests/                  # 单元测试
 └── playground/             # 测试工具
 ```
@@ -322,7 +324,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.4.5`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.4.9`。
 
 ### 浏览器问题？
 ```bash
@@ -351,14 +353,14 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.4.5 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.4.9 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.4.5)
-- [x] 19 个核心自动化工具，已移除 alias 工具面
+### 当前版本 (v0.4.9)
+- [x] 21 个核心自动化与页面理解工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -507,14 +509,12 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.4.5
+## 🆕 最新版本：v0.4.9
 
-发布日期：2026-06-29。本版本重点提升真实 MCP 客户端配置、参数契约安全和首次运行诊断体验：
+发布日期：2026-06-29。本预览版本新增 LLM 页面理解能力，同时保持严格的无 alias 工具契约：
 
-- 工具输入 schema 现在会拒绝 `fullPage`、`timeout_ms` 等未知字段，而不是静默忽略客户端或 LLM 的参数拼写错误。
-- 未知参数会在启动浏览器前返回结构化 `MCP_ARGUMENT_INVALID` 错误。
-- 工具 `outputSchema` 现在可以被执行 SDK 结构化内容校验的 MCP 客户端正确校验真实响应。
-- README 和排障文档新增绝对 Python 路径的 MCP 配置兜底，适配 GUI 客户端无法读取 shell `PATH` 或虚拟环境的场景。
-- 排障文档补充 `doctor --launch-browser`、无头运行、`CHROME_PATH`、`DP_HEADLESS`、`DP_NO_SANDBOX`，方便远程/容器环境定位浏览器问题。
-- Playground 指引改为引用维护中的 README / tool-contract 配置片段，不再指向已删除的示例路径。
-- 文档和 release metadata 检查已刷新到当前 95% 覆盖率底线和 0.4.5 包元数据。
+- 新增 `page_snapshot`，返回有界页面 outline：文本摘要、标题、链接、按钮、输入框、表单和 selector 推荐。
+- 新增 `element_find_all`，用于重复列表、卡片、表格和搜索结果，返回有界文本与属性摘要。
+- 新增确定性的 catalog fixture、浏览器集成测试和只读页面理解 eval。
+- typed `outputSchema` 覆盖新的页面理解响应 payload。
+- 工具输入 schema 继续拒绝未知字段，并对参数拼写错误返回 `MCP_ARGUMENT_INVALID`。

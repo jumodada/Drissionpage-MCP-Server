@@ -164,6 +164,46 @@ def test_tool_result_output_schema_validates_real_payloads() -> None:
         )
 
 
+def test_page_understanding_output_schemas_validate_success_payloads() -> None:
+    snapshot_payload = ToolResult.success(
+        "Captured page snapshot",
+        url="https://example.test/catalog",
+        title="Catalog",
+        text_excerpt="Alpha Beta",
+        headings=[],
+        links=[],
+        buttons=[],
+        inputs=[],
+        forms=[],
+        counts={"headings": 0},
+        truncated={"text": False, "elements": False, "returned_elements": 0},
+        limits={"max_elements": 50, "max_text_chars": 4000},
+    ).to_dict()
+    find_all_payload = ToolResult.success(
+        "Found 1 of 1 elements: .card",
+        selector=".card",
+        locator="css:.card",
+        selector_strategy="css",
+        selector_normalized=True,
+        count=1,
+        returned=1,
+        limit=20,
+        truncated=False,
+        elements=[
+            {
+                "index": 0,
+                "tag": "article",
+                "text": "Alpha",
+                "selector": "#alpha",
+                "attributes": {"id": "alpha"},
+            }
+        ],
+    ).to_dict()
+
+    validate(snapshot_payload, tool_result_output_schema("page_snapshot"))
+    validate(find_all_payload, tool_result_output_schema("element_find_all"))
+
+
 def test_add_image_accepts_bytes_and_rejects_invalid_input() -> None:
     response = ToolResponse()
     response.add_image(b"image-bytes", "image/png")

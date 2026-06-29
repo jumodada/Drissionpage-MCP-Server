@@ -120,6 +120,7 @@ The server marks tools with MCP annotations:
 | --- | --- | --- | --- |
 | `page_resize` | Destructive | `width`, `height` | Resize the browser window. |
 | `page_screenshot` | Read-only | none | Capture the viewport or full page. Optional: `full_page`, `path`. |
+| `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`. |
 | `page_click_xy` | Destructive | `x`, `y` | Click page coordinates. Optional: `element` description. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |
@@ -129,6 +130,7 @@ The server marks tools with MCP annotations:
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
 | `element_find` | Read-only | `selector` | Find an element by CSS selector or XPath. Bare selectors are treated as CSS. Optional: `timeout` (default 3s). |
+| `element_find_all` | Read-only | `selector` | Find multiple matching elements with bounded text, attributes, optional HTML, count/truncation metadata, and recommended selectors. Optional: `limit` (default 20), `include_html`. |
 | `element_click` | Destructive | `selector` | Click an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`. |
 | `element_type` | Destructive | `selector`, `text` | Type text into an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `clear`. |
 | `element_get_text` | Read-only | none | Get page text, or element text when `selector` is set. |
@@ -176,6 +178,7 @@ The server exposes user-controlled workflow prompts:
 
 - Selectors are normalized before calling DrissionPage: bare selectors are treated as CSS (`h1` -> `css:h1`, `input[name=q]` -> `css:input[name=q]`), XPath-looking strings are prefixed as XPath (`//h1` -> `xpath://h1`), and explicit DrissionPage forms such as `tag:h1`, `text:Submit`, `css:...`, `xpath:...`, and `@name=value` are preserved.
 - Tool responses include selector metadata: `selector`, `locator`, `selector_strategy`, and `selector_normalized`.
+- `page_snapshot` and `element_find_all` are preview page-understanding tools in 0.4.9. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
 - `element_input_text` and `wait_sleep` were removed in 0.4.0. Use
   `element_type` and `wait_time`.

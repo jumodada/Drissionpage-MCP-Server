@@ -29,6 +29,27 @@ class ScreenshotInput(ToolInput):
     )
 
 
+class PageSnapshotInput(ToolInput):
+    """Input schema for page snapshot tool."""
+
+    include_html: bool = Field(
+        default=False,
+        description="Include bounded outerHTML excerpts for summarized elements",
+    )
+    max_elements: int = Field(
+        default=50,
+        ge=1,
+        le=200,
+        description="Maximum total headings/links/buttons/inputs/forms to return",
+    )
+    max_text_chars: int = Field(
+        default=4000,
+        ge=0,
+        le=20000,
+        description="Maximum page text excerpt characters to return",
+    )
+
+
 class ClickCoordinatesInput(ToolInput):
     """Input schema for clicking at coordinates."""
 
@@ -114,6 +135,38 @@ async def screenshot(
 
 
 @define_tool(
+    name="page_snapshot",
+    title="Page Snapshot",
+    description=(
+        "Return a bounded page outline with text excerpt, headings, links, "
+        "buttons, inputs, forms, and recommended selectors."
+    ),
+    input_schema=PageSnapshotInput,
+    tool_type=ToolType.READ_ONLY,
+    idempotent=True,
+)
+async def page_snapshot(
+    context: "DrissionPageContext", args: PageSnapshotInput, response: "ToolResponse"
+) -> None:
+    """Get a bounded page outline for LLM page understanding."""
+    async with tool_errors(response, "Failed to build page snapshot"):
+        tab = context.current_tab_or_die()
+        snapshot = await tab.page_snapshot(
+            include_html=args.include_html,
+            max_elements=args.max_elements,
+            max_text_chars=args.max_text_chars,
+        )
+
+        response.add_code(
+            "page.run_js(<bounded page outline script>)"
+        )
+        response.add_result(
+            "Captured page snapshot",
+            **snapshot,
+        )
+
+
+@define_tool(
     name="page_click_xy",
     title="Click Coordinates",
     description="Click at specific coordinates on the page",
@@ -182,4 +235,4 @@ async def get_url(
 
 
 # Export all tools
-tools = [resize, screenshot, click_coordinates, close, get_url]
+tools = [resize, screenshot, page_snapshot, click_coordinates, close, get_url]
