@@ -85,12 +85,14 @@ class TestToolsIntegration:
         # Common tools
         assert "page_resize" in tool_names
         assert "page_screenshot" in tool_names
+        assert "page_snapshot" in tool_names
         assert "page_click_xy" in tool_names
         assert "page_close" in tool_names
         assert "page_get_url" in tool_names
 
         # Element tools
         assert "element_find" in tool_names
+        assert "element_find_all" in tool_names
         assert "element_click" in tool_names
         assert "element_type" in tool_names
         assert "element_input_text" not in tool_names
@@ -104,7 +106,7 @@ class TestToolsIntegration:
         assert "wait_for_url" in tool_names
         assert "wait_time" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 19
+        assert len(tool_names) == 21
 
 
 if __name__ == "__main__":

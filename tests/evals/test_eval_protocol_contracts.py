@@ -37,6 +37,8 @@ async def test_eval_agent_can_discover_tools_resources_and_prompts() -> None:
     prompt_names = {prompt.name for prompt in prompts_result.root.prompts}
 
     assert "page_navigate" in tool_names
+    assert "page_snapshot" in tool_names
+    assert "element_find_all" in tool_names
     assert "element_type" in tool_names
     assert "element_input_text" not in tool_names
     assert "drissionpage://tools/catalog" in resource_uris
@@ -70,6 +72,8 @@ async def test_eval_tools_catalog_and_prompt_help_structured_extraction() -> Non
     catalog = json.loads(catalog_result.root.contents[0].text)
     prompt_text = prompt_result.root.messages[0].content.text
 
+    assert any(tool["name"] == "page_snapshot" for tool in catalog["tools"])
+    assert any(tool["name"] == "element_find_all" for tool in catalog["tools"])
     assert any(tool["name"] == "element_get_html" for tool in catalog["tools"])
     assert "element_get_html" in prompt_text
     assert "rows: list of {name, role}" in prompt_text

@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 19 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 21 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -114,15 +114,16 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 19 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 21 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL
 - `page_go_back` / `page_go_forward` - Browser history
 - `page_refresh` - Reload current page
 
-### 🎯 Element Interaction & Extraction (7 tools)
-- `element_find` - Find elements by CSS selector or XPath; bare selectors like `h1` are treated as CSS
+### 🎯 Element Interaction & Extraction (8 tools)
+- `element_find` - Find one element by CSS selector or XPath; bare selectors like `h1` are treated as CSS
+- `element_find_all` - Extract bounded repeated elements with text, attributes, and recommended selectors
 - `element_click` - Click any element
 - `element_type` - Input text into elements
 - `element_get_text` - Get element or page text
@@ -130,8 +131,9 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `element_get_property` - Get a live DOM property such as an input value
 - `element_get_html` - Get element or page HTML
 
-### 📸 Page Operations (5 tools)
+### 📸 Page Operations (6 tools)
 - `page_screenshot` - Capture full page or viewport
+- `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
 - `page_resize` - Adjust browser window
 - `page_click_xy` - Click by coordinates
 - `page_close` - Close browser
@@ -173,7 +175,7 @@ DrissionMCP/
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 19 automation tools
+│   └── tools/              # 21 automation and page-understanding tools
 ├── tests/                  # Unit tests
 └── playground/             # Testing utilities
 ```
@@ -323,7 +325,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.4.5`.
+Should output the installed package version, for example `drissionpage-mcp 0.4.9`.
 
 ### Browser Issues?
 ```bash
@@ -352,14 +354,14 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.4.5 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.4.9 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.4.5)
-- [x] 19 core automation tools with removed alias surface
+### Current (v0.4.9)
+- [x] 21 core automation and page-understanding tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -508,22 +510,12 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.4.5
+## 🆕 Latest Version: v0.4.9
 
-Released on 2026-06-29. This release focuses on real MCP client setup,
-argument-contract safety, and first-run diagnostics:
+Released on 2026-06-29. This preview release adds LLM page-understanding primitives while keeping the strict no-alias tool contract:
 
-- Tool input schemas now reject unknown fields such as `fullPage` or
-  `timeout_ms` instead of silently ignoring them.
-- Unknown arguments return structured `MCP_ARGUMENT_INVALID` errors before any
-  browser startup.
-- Tool `outputSchema` now validates real structured responses correctly in MCP
-  clients that enforce SDK-side structuredContent validation.
-- README and troubleshooting docs now include absolute-Python MCP configuration
-  fallbacks for GUI clients that cannot see shell `PATH` or virtualenvs.
-- Troubleshooting now documents `doctor --launch-browser`, headless operation,
-  `CHROME_PATH`, `DP_HEADLESS`, and `DP_NO_SANDBOX` for remote/container use.
-- Playground setup guidance now points to maintained README/tool-contract
-  configuration snippets.
-- Documentation and release metadata checks were refreshed for the current 95%
-  coverage floor and 0.4.5 package metadata.
+- Added `page_snapshot` for bounded page outlines with text excerpt, headings, links, buttons, inputs, forms, and selector recommendations.
+- Added `element_find_all` for repeated lists, cards, tables, and search results with bounded text/attribute summaries.
+- Added deterministic catalog fixtures, browser integration coverage, and read-only evals for page understanding tasks.
+- Typed `outputSchema` coverage now includes the new page-understanding response payloads.
+- Tool input schemas still reject unknown fields and return `MCP_ARGUMENT_INVALID` for argument typos.

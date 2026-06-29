@@ -13,7 +13,7 @@ SNAPSHOT_PATH = Path(__file__).parent / "snapshots" / "tools_schema.json"
 
 
 def test_current_tool_schema_matches_snapshot() -> None:
-    """exposes the 19 public 0.4.0 tools with stable schemas and annotations."""
+    """exposes the 21 public 0.4.9 tools with stable schemas and annotations."""
 
     snapshot = _build_tool_schema_snapshot()
 
@@ -37,7 +37,7 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
         )
 
     names = [tool["name"] for tool in tools]
-    assert len(tools) == 19
+    assert len(tools) == 21
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
     return tools
