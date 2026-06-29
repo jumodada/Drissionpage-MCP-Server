@@ -1,190 +1,89 @@
-# Playground - DrissionPage MCP Testing
+# DrissionPage MCP Lab
 
-This playground provides testing utilities for DrissionPage MCP.
+`playground/` is now a deterministic MCP Lab instead of a collection of stale demo scripts. It provides a local business test site plus a stdio MCP runner so you can verify how real agents use DrissionPage MCP.
 
-## 🚀 Quick Start
+The lab is inspired by complex DrissionPage fixture-site ideas, but it is implemented specifically for this MCP server and does not depend on external sites or the `ssr-site` source tree.
 
-### 1. Test Server
+## What it covers
+
+- `registry` — real stdio MCP initialize/list/call smoke without opening a browser.
+- `site` — no-browser local HTTP fixture smoke.
+- `form-inspect` — real browser `form_inspect` flow with password value masking.
+- `commerce` — Taobao-like product search/cards/cart-oriented page understanding.
+- `social-notes` — Xiaohongshu-like mobile feed, note cards, search form, and detail links.
+- `timeline` — Twitter-like composer, timeline posts, dynamic load-more behavior.
+
+## Quick start
+
+No browser required:
+
 ```bash
-# Test tools loading
-python playground/quick_start.py
+python playground/run_mcp_lab.py --case site
+python playground/run_mcp_lab.py --case registry
 ```
 
-### 2. Start MCP Server
+Browser-backed checks:
+
 ```bash
-# From project root
-python -m drissionpage_mcp.cli
+DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
+DP_HEADLESS=1 python playground/run_mcp_lab.py --case commerce
+DP_HEADLESS=1 python playground/run_mcp_lab.py --case social-notes
+DP_HEADLESS=1 python playground/run_mcp_lab.py --case timeline
 ```
 
-### 3. Test Locally (No MCP Client Required)
+Run everything and get machine-readable output:
+
 ```bash
-# Interactive testing
-python playground/local_test.py
+DP_HEADLESS=1 python playground/run_mcp_lab.py --all --json
 ```
 
-## 🧪 Test Scenarios
+If Chrome/Chromium is unavailable but you still want no-browser cases to pass:
 
-### Navigation Testing
 ```bash
-python playground/test_scenarios/basic_navigation.py
+python playground/run_mcp_lab.py --all --skip-browser-if-unavailable
 ```
 
-### Form Interaction
-```bash  
-python playground/test_scenarios/form_interaction.py
-```
+## Local site routes
 
-### Data Extraction
+The lab starts a deterministic local HTTP server on `127.0.0.1` during each case.
+
+| Route | Purpose |
+| --- | --- |
+| `/` | MCP Lab index. |
+| `/cases/forms` | Form controls, select options, readonly textarea, checkbox, and password field. |
+| `/scenarios/commerce` | Commerce home with search form and product cards. |
+| `/scenarios/commerce/search?q=耳机` | Commerce search result page. |
+| `/scenarios/commerce/item/aurora-headphones` | Product detail with SKU form. |
+| `/scenarios/commerce/cart` | Cart summary. |
+| `/scenarios/commerce/checkout` | Checkout form. |
+| `/scenarios/social-notes` | Mobile social notes feed. |
+| `/scenarios/social-notes/note/note-002` | Note detail and comment form. |
+| `/scenarios/social-notes/security-check` | Synthetic safety landing. |
+| `/scenarios/timeline` | Timeline composer, posts, and dynamic load-more. |
+| `/api/manifest.json` | Machine-readable site manifest. |
+
+## Why this exists
+
+The old playground only loaded tools or pointed people to public demo sites. This lab tests the real contract that matters for MCP clients:
+
+1. Can the client discover the current 22-tool registry?
+2. Can it navigate a deterministic local business page?
+3. Can `page_snapshot` expose high-value controls on dense pages?
+4. Can `element_find_all` extract repeated cards/posts?
+5. Can `form_inspect` inspect realistic forms without leaking password values?
+6. Can dynamic UI changes be verified through MCP tools instead of screenshots alone?
+
+## CI usage
+
+Use lightweight no-browser cases in generic CI:
+
 ```bash
-python playground/test_scenarios/data_extraction.py
+python playground/run_mcp_lab.py --case registry --json
+python playground/run_mcp_lab.py --case site --json
 ```
 
-## 🤖 MCP Client Integration
+Use browser-backed cases in browser jobs or release checks:
 
-### Setup Steps
-
-1. **Start MCP Server**
-   ```bash
-   python -m drissionpage_mcp.cli
-   ```
-
-2. **Copy Configuration**
-   Use the configuration snippets in the project `README.md` or
-   `docs/tool-contract.md` for your MCP client. Add the server to your MCP
-   client configuration:
-   - **Codex CLI/IDE**: `~/.codex/config.toml` or trusted project `.codex/config.toml`
-   - **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-   - **VS Code / other MCP clients**: See project README for setup instructions
-
-3. **Restart MCP Client**
-
-4. **Test Commands**
-   ```
-   "Navigate to https://httpbin.org/html and take a screenshot"
-   "Click the first link on the page"
-   "Get all text from the page"
-   ```
-
-### Example Commands for Codex / Claude Code
-
-#### Basic Navigation
-```
-Navigate to https://www.example.com
-Take a screenshot of the current page
-Get the current page URL
-Go back to the previous page
-```
-
-#### Element Interaction  
-```
-Click the element with text 'Submit'
-Input 'test@example.com' into the email field
-Get the text content of the first paragraph
-Click at coordinates (100, 200)
-```
-
-#### Data Extraction
-```
-Get all text from the page
-Get the HTML content of the main content area
-Get the href attribute of all links
-Get text from elements with class 'article-title'
-```
-
-#### Wait Operations
-```
-Wait for an element with class 'loading' to appear
-Wait for the URL to contain 'success'  
-Sleep for 3 seconds
-```
-
-## 📁 File Structure
-
-```
-playground/
-├── README.md                    # This file
-├── quick_start.py              # Server testing utility
-├── local_test.py               # Local testing without MCP client
-└── test_scenarios/             # Test scenario scripts
-    ├── basic_navigation.py     # Navigation tests
-    ├── form_interaction.py     # Form filling tests
-    └── data_extraction.py      # Data scraping tests
-```
-
-## 🛠️ Available MCP Tools (19)
-
-### Navigation (4 tools)
-- `page_navigate`: Navigate to URL
-- `page_go_back`: Go back in history  
-- `page_go_forward`: Go forward in history
-- `page_refresh`: Refresh current page
-
-### Element Interaction & Extraction (7 tools)
-- `element_find`: Find element metadata by selector
-- `element_click`: Click element by selector
-- `element_type`: Input text into fields
-- `element_get_text`: Extract text content
-- `element_get_attribute`: Get HTML attributes
-- `element_get_property`: Get live DOM properties such as input value
-- `element_get_html`: Get HTML content
-
-### Common Actions (5 tools)
-- `page_screenshot`: Take screenshots
-- `page_resize`: Resize browser window
-- `page_click_xy`: Click at coordinates
-- `page_close`: Close browser
-- `page_get_url`: Get current URL
-
-### Wait Operations (3 tools)
-- `wait_for_element`: Wait for element to appear
-- `wait_for_url`: Wait for URL pattern
-- `wait_time`: Simple time delay
-
-## 🎯 Testing Tips
-
-### Good Test Websites
-- **https://httpbin.org/html** - Simple HTML testing
-- **https://httpbin.org/forms/post** - Form testing
-- **https://quotes.toscrape.com/** - Scraping practice
-- **https://the-internet.herokuapp.com/** - Various UI elements
-
-### Common Selectors to Test
-- `h1` - Tag selector
-- `.class-name` - Class selector
-- `#element-id` - ID selector  
-- `[attribute="value"]` - Attribute selector
-- `div > p` - Child combinator
-- `:first-child` - Pseudo selector
-
-### Debug Mode
-Start server with debug logging:
 ```bash
-python -m drissionpage_mcp.cli --log-level DEBUG
+DP_HEADLESS=1 DP_NO_SANDBOX=1 python playground/run_mcp_lab.py --case form-inspect --json
 ```
-
-## ❓ Troubleshooting
-
-### Server Won't Start
-1. Install the source checkout: `python -m pip install -e ".[dev]"`
-2. Verify Python version: `python --version` (need 3.10+)
-3. Check Chrome installation with `drissionpage-mcp doctor --launch-browser`
-
-### MCP Client Can't Connect
-1. Verify config file path and format (`codex mcp list` for Codex)
-2. Restart MCP client after config changes
-3. Check server is runnable: `python -m drissionpage_mcp.cli`
-
-### Tools Not Working
-1. Test locally first: `python playground/local_test.py`
-2. Check browser is installed and accessible
-3. Verify network permissions
-
-## 💡 Pro Tips
-
-- Start with simple navigation before complex interactions
-- Use screenshots to debug element selection issues  
-- Test selectors in browser dev tools first
-- Use wait operations for dynamic content
-- Check the local_test.py output for debugging
-
-Happy testing! 🎉

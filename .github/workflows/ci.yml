@@ -58,6 +58,7 @@ jobs:
             tests/test_doctor.py \
             tests/test_tool_schema_snapshot.py \
             tests/test_release_metadata.py \
+            tests/test_playground_mcp_lab.py \
             tests/test_ci_workflow.py
 
   protocol:
@@ -190,7 +191,7 @@ jobs:
       - name: Install dependencies
         run: python -m pip install -e ".[dev]"
       - name: Tool registry smoke
-        run: python playground/quick_start.py
+        run: python playground/run_mcp_lab.py --case registry --json
       - name: Run browser integration fixture tests
         env:
           DP_HEADLESS: "1"
