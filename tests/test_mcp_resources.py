@@ -140,15 +140,17 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     payload = await _read_json(server, "drissionpage://tools/catalog")
 
     names = [tool["name"] for tool in payload["tools"]]
-    assert len(names) == 21
+    assert len(names) == 22
     assert names == list(server.tools.keys())
     assert "page_snapshot" in names
     assert "element_find_all" in names
+    assert "form_inspect" in names
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
     schema_by_name = {tool["name"]: tool["output_schema"] for tool in payload["tools"]}
     assert schema_by_name["page_snapshot"] == "PageSnapshotData"
     assert schema_by_name["element_find_all"] == "ElementFindAllData"
+    assert schema_by_name["form_inspect"] == "FormInspectData"
     navigate_tool = payload["tools"][0]
     assert navigate_tool == {
         "name": "page_navigate",
