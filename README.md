@@ -323,7 +323,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.4.1`.
+Should output the installed package version, for example `drissionpage-mcp 0.4.5`.
 
 ### Browser Issues?
 ```bash
@@ -352,13 +352,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.4.1 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.4.5 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.4.1)
+### Current (v0.4.5)
 - [x] 19 core automation tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -508,14 +508,22 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.4.1
+## 🆕 Latest Version: v0.4.5
 
-Released on 2026-06-26. This release focuses on MCP client reliability and the issues found during real Codex/LLM browser testing:
+Released on 2026-06-29. This release focuses on real MCP client setup,
+argument-contract safety, and first-run diagnostics:
 
-- Fixed selector normalization: bare selectors such as `h1` and `input[name=q]` are now treated as CSS before calling DrissionPage.
-- Preserved explicit DrissionPage locators such as `tag:h1`, `text:Submit`, `xpath://h1`, and `@name=value`.
-- Added selector metadata to tool responses so clients can see the original selector, normalized locator, strategy, and whether normalization happened.
-- Fixed MCP `serverInfo.version` to report the `drissionpage-mcp` package version instead of the MCP SDK version.
-- Renamed the public `element_get_property` input field from `property_name` to `property` with no compatibility alias.
-- Reduced `element_find` default timeout to 3 seconds for faster failed-selector feedback.
-- Made browser-backed CI jobs fail when Chromium is installed but browser integration cannot run.
+- Tool input schemas now reject unknown fields such as `fullPage` or
+  `timeout_ms` instead of silently ignoring them.
+- Unknown arguments return structured `MCP_ARGUMENT_INVALID` errors before any
+  browser startup.
+- Tool `outputSchema` now validates real structured responses correctly in MCP
+  clients that enforce SDK-side structuredContent validation.
+- README and troubleshooting docs now include absolute-Python MCP configuration
+  fallbacks for GUI clients that cannot see shell `PATH` or virtualenvs.
+- Troubleshooting now documents `doctor --launch-browser`, headless operation,
+  `CHROME_PATH`, `DP_HEADLESS`, and `DP_NO_SANDBOX` for remote/container use.
+- Playground setup guidance now points to maintained README/tool-contract
+  configuration snippets.
+- Documentation and release metadata checks were refreshed for the current 95%
+  coverage floor and 0.4.5 package metadata.

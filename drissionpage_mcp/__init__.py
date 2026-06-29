@@ -1,6 +1,6 @@
 """DrissionPage MCP - DrissionPage Tools for Model Context Protocol."""
 
-__version__ = "0.4.1"
+__version__ = "0.4.5"
 __author__ = "DrissionPage MCP Team"
 __license__ = "Apache-2.0"
 

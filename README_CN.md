@@ -322,7 +322,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.4.1`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.4.5`。
 
 ### 浏览器问题？
 ```bash
@@ -351,13 +351,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.4.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.4.5 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.4.1)
+### 当前版本 (v0.4.5)
 - [x] 19 个核心自动化工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -507,14 +507,14 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.4.1
+## 🆕 最新版本：v0.4.5
 
-发布日期：2026-06-26。本版本重点修复真实 Codex/LLM 浏览器实测中暴露的 MCP 可用性问题：
+发布日期：2026-06-29。本版本重点提升真实 MCP 客户端配置、参数契约安全和首次运行诊断体验：
 
-- 修复选择器归一化：`h1`、`input[name=q]` 等裸选择器现在会先按 CSS 传给 DrissionPage。
-- 保留显式 DrissionPage 定位写法，例如 `tag:h1`、`text:Submit`、`xpath://h1`、`@name=value`。
-- 工具响应新增选择器元数据，客户端可看到原始 selector、实际 locator、匹配策略以及是否发生归一化。
-- 修复 MCP `serverInfo.version`，现在返回 `drissionpage-mcp` 包版本，而不是 MCP SDK 版本。
-- 将 `element_get_property` 公开入参从 `property_name` 改为 `property`，不保留兼容别名。
-- 将 `element_find` 默认 timeout 降到 3 秒，让失败选择器更快反馈。
-- 浏览器类 CI 任务现在会在 Chromium 已安装但集成测试无法运行时失败，而不是静默跳过。
+- 工具输入 schema 现在会拒绝 `fullPage`、`timeout_ms` 等未知字段，而不是静默忽略客户端或 LLM 的参数拼写错误。
+- 未知参数会在启动浏览器前返回结构化 `MCP_ARGUMENT_INVALID` 错误。
+- 工具 `outputSchema` 现在可以被执行 SDK 结构化内容校验的 MCP 客户端正确校验真实响应。
+- README 和排障文档新增绝对 Python 路径的 MCP 配置兜底，适配 GUI 客户端无法读取 shell `PATH` 或虚拟环境的场景。
+- 排障文档补充 `doctor --launch-browser`、无头运行、`CHROME_PATH`、`DP_HEADLESS`、`DP_NO_SANDBOX`，方便远程/容器环境定位浏览器问题。
+- Playground 指引改为引用维护中的 README / tool-contract 配置片段，不再指向已删除的示例路径。
+- 文档和 release metadata 检查已刷新到当前 95% 覆盖率底线和 0.4.5 包元数据。

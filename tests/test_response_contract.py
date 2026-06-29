@@ -7,12 +7,14 @@ import json
 import re
 
 import pytest
+from jsonschema import ValidationError, validate
 
 from drissionpage_mcp.response import (
     ErrorCode,
     ToolResponse,
     ToolResult,
     build_screenshot_metadata,
+    tool_result_output_schema,
     classify_error,
 )
 
@@ -132,6 +134,34 @@ def test_set_tool_result_controls_error_state_and_default_error_content() -> Non
     assert payload["error"]["code"] == "UNKNOWN_ERROR"
     assert content[0].text.startswith(JSON_RESULT_SENTINEL)
     assert content[1].text == "### Error\nUnknown error occurred."
+
+
+def test_tool_result_output_schema_validates_real_payloads() -> None:
+    schema = tool_result_output_schema("page_close")
+
+    validate(
+        ToolResult.success("Successfully closed browser", closed=True).to_dict(),
+        schema,
+    )
+    validate(
+        ToolResult.failure(
+            ErrorCode.MCP_ARGUMENT_INVALID,
+            "Input validation error",
+            tool_name="page_close",
+        ).to_dict(),
+        schema,
+    )
+
+    with pytest.raises(ValidationError):
+        validate(
+            {
+                "ok": True,
+                "message": "Successfully closed browser",
+                "data": {"closed": True},
+                "unexpected": True,
+            },
+            schema,
+        )
 
 
 def test_add_image_accepts_bytes_and_rejects_invalid_input() -> None:
