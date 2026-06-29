@@ -49,6 +49,8 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                     <form id="fixture-form" method="get" action="/form">
                       <label for="name">Name</label>
                       <input id="name" name="name" value="{submitted}" />
+                      <label for="secret">Secret</label>
+                      <input id="secret" name="secret" type="password" value="fixture-secret" />
                       <button id="submit" type="submit">Submit</button>
                     </form>
                     <output id="submitted">{submitted}</output>

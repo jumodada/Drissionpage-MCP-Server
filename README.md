@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 21 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 22 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -114,7 +114,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 21 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 22 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL
@@ -130,6 +130,9 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `element_get_attribute` - Get an HTML attribute
 - `element_get_property` - Get a live DOM property such as an input value
 - `element_get_html` - Get element or page HTML
+
+### 🧾 Form Operations (1 tool)
+- `form_inspect` - Inspect forms and controls with labels, selectors, requirements, options, and safe optional values
 
 ### 📸 Page Operations (6 tools)
 - `page_screenshot` - Capture full page or viewport
@@ -175,7 +178,7 @@ DrissionMCP/
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 21 automation and page-understanding tools
+│   └── tools/              # 22 automation and page-understanding tools
 ├── tests/                  # Unit tests
 └── playground/             # Testing utilities
 ```
@@ -325,7 +328,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.4.10`.
+Should output the installed package version, for example `drissionpage-mcp 0.5.0`.
 
 ### Browser Issues?
 ```bash
@@ -354,19 +357,20 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.4.10 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.5.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.4.10)
-- [x] 21 core automation and page-understanding tools with removed alias surface
+### Current (v0.5.0)
+- [x] 22 core automation, page-understanding, and form-inspection tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
 - [x] Structured recovery hints in `error.details.hints` for common failures
 - [x] Balanced `page_snapshot` output so link-heavy pages still expose controls and forms
+- [x] `form_inspect` read-only form inventory with labels, selectors, requirements, options, and safe optional values
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
 - [x] PyPI distribution
@@ -512,14 +516,15 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.4.10
+## 🆕 Latest Version: v0.5.0
 
-Released on 2026-06-29. This release improves real MCP recovery behavior without adding new browser actions:
+Released on 2026-06-29. This release starts the 0.5 form workflow with a safe read-only inspection tool while preserving the 0.4 recovery improvements:
 
-- Failure payloads now include machine-readable `error.details.hints` for common recovery paths.
+- `form_inspect` inspects forms and controls with labels, selectors, methods/actions, required/disabled/read-only state, select options, and opt-in non-password values.
+- Failure payloads include machine-readable `error.details.hints` for common recovery paths.
 - Missing element and selector failures suggest `page_snapshot`, `element_find_all`, `wait_for_element`, and iframe/dynamic-content checks.
 - `page_snapshot` now keeps inputs, buttons, and forms visible on link-heavy pages while respecting the total `max_elements` cap.
 - Timeout, browser startup, screenshot, navigation, policy, invalid-argument, and unknown-tool failures now include targeted next steps.
 - `MCP_ARGUMENT_INVALID` still protects strict schemas and now points clients toward exact snake_case field names.
 - Browser startup hints point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, `DP_HEADLESS`, and `DP_NO_SANDBOX`.
-- The top-level JSON_RESULT envelope, 21-tool registry, strict input schemas, and typed `outputSchema` contracts remain unchanged.
+- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry now has 22 tools.

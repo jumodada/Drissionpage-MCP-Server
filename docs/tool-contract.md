@@ -152,6 +152,12 @@ The server marks tools with MCP annotations:
 | `element_get_property` | Read-only | `selector`, `property` | Read a live DOM property such as `value`. |
 | `element_get_html` | Read-only | none | Get page HTML, or element HTML when `selector` is set. |
 
+### Form Operations
+
+| Tool | Type | Required input | Description |
+| --- | --- | --- | --- |
+| `form_inspect` | Read-only | none | Inspect forms and controls with labels, selectors, methods/actions, required/disabled/read-only state, select options, and safe optional values. Optional: `selector`, `include_values`, `max_forms`, `max_fields_per_form`. Password values are never returned. |
+
 ### Wait Operations
 
 | Tool | Type | Required input | Description |
@@ -193,6 +199,7 @@ The server exposes user-controlled workflow prompts:
 - Selectors are normalized before calling DrissionPage: bare selectors are treated as CSS (`h1` -> `css:h1`, `input[name=q]` -> `css:input[name=q]`), XPath-looking strings are prefixed as XPath (`//h1` -> `xpath://h1`), and explicit DrissionPage forms such as `tag:h1`, `text:Submit`, `css:...`, `xpath:...`, and `@name=value` are preserved.
 - Tool responses include selector metadata: `selector`, `locator`, `selector_strategy`, and `selector_normalized`.
 - `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
+- `form_inspect` is read-only. It returns field values only when `include_values=true`, and password values are always returned as `null`.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
 - `element_input_text` and `wait_sleep` were removed in 0.4.0. Use
   `element_type` and `wait_time`.

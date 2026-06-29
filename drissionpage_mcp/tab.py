@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from DrissionPage.errors import ElementNotFoundError, PageDisconnectedError
 
+from .forms import build_form_inspect_script
 from .outline import build_page_snapshot_script, summarize_elements
 from .selector import SelectorPlan, normalize_selector
 
@@ -254,6 +255,31 @@ class PageTab:
             return snapshot
         except Exception as e:
             logger.error(f"Failed to build page snapshot: {e}")
+            raise
+
+    async def inspect_forms(
+        self,
+        *,
+        selector: str = "",
+        include_values: bool = False,
+        max_forms: int = 10,
+        max_fields_per_form: int = 50,
+    ) -> Dict[str, Any]:
+        """Return bounded, LLM-friendly form and field metadata."""
+
+        try:
+            script = build_form_inspect_script(
+                selector=selector,
+                include_values=include_values,
+                max_forms=max_forms,
+                max_fields_per_form=max_fields_per_form,
+            )
+            result = self.page.run_js(script, as_expr=True)
+            if not isinstance(result, dict):
+                raise RuntimeError("form inspect script returned no structured data")
+            return result
+        except Exception as e:
+            logger.error(f"Failed to inspect forms: {e}")
             raise
 
     async def find_elements(

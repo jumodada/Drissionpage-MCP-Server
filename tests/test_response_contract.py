@@ -256,6 +256,49 @@ def test_page_understanding_output_schemas_validate_success_payloads() -> None:
     validate(find_all_payload, tool_result_output_schema("element_find_all"))
 
 
+def test_form_inspect_output_schema_validates_success_payload() -> None:
+    payload = ToolResult.success(
+        "Inspected 1 of 1 forms",
+        selector="",
+        include_values=False,
+        count=1,
+        returned=1,
+        limits={"max_forms": 10, "max_fields_per_form": 50},
+        truncated={"forms": False, "fields": False},
+        forms=[
+            {
+                "index": 0,
+                "selector": "#fixture-form",
+                "id": "fixture-form",
+                "name": "",
+                "method": "get",
+                "action": "https://example.test/form",
+                "text": "Name Submit",
+                "fields": [
+                    {
+                        "index": 0,
+                        "tag": "input",
+                        "type": "text",
+                        "name": "name",
+                        "label": "Name",
+                        "selector": "#name",
+                        "placeholder": "",
+                        "required": False,
+                        "disabled": False,
+                        "readonly": False,
+                        "checked": False,
+                        "value": None,
+                        "attributes": {"id": "name", "name": "name"},
+                        "options": [],
+                    }
+                ],
+            }
+        ],
+    ).to_dict()
+
+    validate(payload, tool_result_output_schema("form_inspect"))
+
+
 def test_add_image_accepts_bytes_and_rejects_invalid_input() -> None:
     response = ToolResponse()
     response.add_image(b"image-bytes", "image/png")

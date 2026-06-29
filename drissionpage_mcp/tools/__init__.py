@@ -1,19 +1,20 @@
 """Tools module for DrissionPage MCP."""
 
-from . import common, element, navigate, wait
+from . import common, element, forms, navigate, wait
 from .base import Tool, ToolSchema, ToolType, define_tool
 
 
 def get_all_tools() -> list[Tool]:
     """Get all available tools."""
     all_tools = []
-    
+
     # Import tools from each module
     all_tools.extend(navigate.tools)
     all_tools.extend(common.tools)
     all_tools.extend(element.tools)
+    all_tools.extend(forms.tools)
     all_tools.extend(wait.tools)
-    
+
     return all_tools
 
 __all__ = [

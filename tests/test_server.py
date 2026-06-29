@@ -101,12 +101,15 @@ class TestToolsIntegration:
         assert "element_get_property" in tool_names
         assert "element_get_html" in tool_names
 
+        # Form tools
+        assert "form_inspect" in tool_names
+
         # Wait tools
         assert "wait_for_element" in tool_names
         assert "wait_for_url" in tool_names
         assert "wait_time" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 21
+        assert len(tool_names) == 22
 
 
 if __name__ == "__main__":

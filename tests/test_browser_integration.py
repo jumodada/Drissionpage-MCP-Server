@@ -115,6 +115,53 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
 
 
 @pytest.mark.asyncio
+async def test_mcp_form_inspect_extracts_form_controls() -> None:
+    """inspects forms with labels and safe default value handling."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/form"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, payload = await _execute_tool(server, "form_inspect", {})
+            assert payload["ok"] is True
+            data = payload["data"]
+            assert data["count"] == 1
+            assert data["returned"] == 1
+            form = data["forms"][0]
+            assert form["selector"] == "#fixture-form"
+            assert form["method"] == "get"
+            assert form["action"].endswith("/form")
+            fields = {field["selector"]: field for field in form["fields"]}
+            assert fields["#name"]["label"] == "Name"
+            assert fields["#name"]["name"] == "name"
+            assert fields["#name"]["type"] == "text"
+            assert fields["#name"]["value"] is None
+            assert fields["#secret"]["label"] == "Secret"
+            assert fields["#secret"]["type"] == "password"
+            assert fields["#secret"]["value"] is None
+            assert fields["#submit"]["tag"] == "button"
+            assert fields["#submit"]["type"] == "submit"
+
+            _content, values_payload = await _execute_tool(
+                server, "form_inspect", {"selector": "#fixture-form", "include_values": True}
+            )
+            value_fields = {
+                field["selector"]: field
+                for field in values_payload["data"]["forms"][0]["fields"]
+            }
+            assert value_fields["#name"]["value"] == ""
+            assert value_fields["#secret"]["value"] is None
+            assert "value" not in value_fields["#secret"]["attributes"]
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
 async def test_mcp_browser_tools_normalize_llm_friendly_selectors() -> None:
     """treats bare selectors as CSS and preserves explicit DrissionPage locators."""
 

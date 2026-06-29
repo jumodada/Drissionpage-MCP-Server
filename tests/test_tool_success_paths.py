@@ -10,7 +10,7 @@ import pytest
 from DrissionPage.errors import ElementNotFoundError
 
 from drissionpage_mcp.response import ToolResponse
-from drissionpage_mcp.tools import common, element, navigate, wait
+from drissionpage_mcp.tools import common, element, forms, navigate, wait
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
@@ -77,6 +77,63 @@ class FakeTab:
                 "max_elements": max_elements,
                 "max_text_chars": max_text_chars,
             },
+        }
+
+
+    async def inspect_forms(
+        self,
+        *,
+        selector: str = "",
+        include_values: bool = False,
+        max_forms: int = 10,
+        max_fields_per_form: int = 50,
+    ) -> dict[str, Any]:
+        self._record(
+            "inspect_forms",
+            selector=selector,
+            include_values=include_values,
+            max_forms=max_forms,
+            max_fields_per_form=max_fields_per_form,
+        )
+        return {
+            "selector": selector,
+            "include_values": include_values,
+            "count": 1,
+            "returned": 1,
+            "limits": {
+                "max_forms": max_forms,
+                "max_fields_per_form": max_fields_per_form,
+            },
+            "truncated": {"forms": False, "fields": False},
+            "forms": [
+                {
+                    "index": 0,
+                    "selector": "#fixture-form",
+                    "id": "fixture-form",
+                    "name": "",
+                    "method": "get",
+                    "action": "/form",
+                    "text": "Name Submit",
+                    "fields": [
+                        {
+                            "index": 0,
+                            "tag": "input",
+                            "type": "text",
+                            "name": "name",
+                            "label": "Name",
+                            "selector": "#name",
+                            "placeholder": "",
+                            "required": False,
+                            "disabled": False,
+                            "readonly": False,
+                            "checked": False,
+                            "value": "Ada" if include_values else None,
+                            "attributes": {"id": "name", "name": "name"},
+                            "options": [],
+                        }
+                    ],
+                }
+            ],
         }
 
     async def click(self, x: int, y: int) -> None:
@@ -298,6 +355,38 @@ async def test_common_tools_success_paths(tmp_path) -> None:
         "url": "https://example.test/current"
     }
     assert "https://example.test/current" in _message(url_response)
+
+
+@pytest.mark.asyncio
+async def test_form_tools_success_paths() -> None:
+    ctx = FakeContext()
+
+    response = await _execute(
+        forms.form_inspect,
+        ctx,
+        forms.FormInspectInput(
+            selector="#fixture-form",
+            include_values=True,
+            max_forms=2,
+            max_fields_per_form=3,
+        ),
+    )
+
+    payload = response.get_structured_content()
+    assert payload["message"] == "Inspected 1 of 1 forms"
+    assert payload["data"]["forms"][0]["selector"] == "#fixture-form"
+    assert payload["data"]["forms"][0]["fields"][0]["selector"] == "#name"
+    assert payload["data"]["forms"][0]["fields"][0]["value"] == "Ada"
+    assert ctx.tab.calls[-1] == (
+        "inspect_forms",
+        (),
+        {
+            "selector": "#fixture-form",
+            "include_values": True,
+            "max_forms": 2,
+            "max_fields_per_form": 3,
+        },
+    )
 
 
 @pytest.mark.asyncio
