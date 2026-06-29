@@ -2508,6 +2508,318 @@
       "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": true,
+      "title": "Inspect Forms"
+    },
+    "description": "Inspect forms and controls with labels, selectors, methods, actions, requirements, options, and safe optional values.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for inspecting forms and their controls.",
+      "properties": {
+        "include_values": {
+          "default": false,
+          "description": "Include current non-password field values. Password values are never returned.",
+          "title": "Include Values",
+          "type": "boolean"
+        },
+        "max_fields_per_form": {
+          "default": 50,
+          "description": "Maximum number of controls to return per form",
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Max Fields Per Form",
+          "type": "integer"
+        },
+        "max_forms": {
+          "default": 10,
+          "description": "Maximum number of forms to return",
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Max Forms",
+          "type": "integer"
+        },
+        "selector": {
+          "default": "",
+          "description": "Optional CSS selector or XPath for a form or container. Empty means all forms on the current page.",
+          "title": "Selector",
+          "type": "string"
+        }
+      },
+      "title": "FormInspectInput",
+      "type": "object"
+    },
+    "name": "form_inspect",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer"
+                },
+                "forms": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "fields": {
+                        "items": {
+                          "additionalProperties": false,
+                          "properties": {
+                            "attributes": {
+                              "additionalProperties": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "type": "object"
+                            },
+                            "checked": {
+                              "type": "boolean"
+                            },
+                            "disabled": {
+                              "type": "boolean"
+                            },
+                            "index": {
+                              "type": "integer"
+                            },
+                            "label": {
+                              "type": "string"
+                            },
+                            "name": {
+                              "type": "string"
+                            },
+                            "options": {
+                              "items": {
+                                "additionalProperties": false,
+                                "properties": {
+                                  "selected": {
+                                    "type": "boolean"
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  },
+                                  "value": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "text",
+                                  "value",
+                                  "selected"
+                                ],
+                                "title": "FormFieldOption",
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "placeholder": {
+                              "type": "string"
+                            },
+                            "readonly": {
+                              "type": "boolean"
+                            },
+                            "required": {
+                              "type": "boolean"
+                            },
+                            "selector": {
+                              "type": "string"
+                            },
+                            "tag": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string"
+                            },
+                            "value": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "index",
+                            "tag",
+                            "type",
+                            "name",
+                            "label",
+                            "selector",
+                            "placeholder",
+                            "required",
+                            "disabled",
+                            "readonly",
+                            "checked",
+                            "value",
+                            "attributes",
+                            "options"
+                          ],
+                          "title": "FormField",
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "selector",
+                      "id",
+                      "name",
+                      "method",
+                      "action",
+                      "text",
+                      "fields"
+                    ],
+                    "title": "FormSummary",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "include_values": {
+                  "type": "boolean"
+                },
+                "limits": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "max_fields_per_form": {
+                      "type": "integer"
+                    },
+                    "max_forms": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "max_forms",
+                    "max_fields_per_form"
+                  ],
+                  "title": "FormInspectLimits",
+                  "type": "object"
+                },
+                "returned": {
+                  "type": "integer"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "truncated": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "fields": {
+                      "type": "boolean"
+                    },
+                    "forms": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "forms",
+                    "fields"
+                  ],
+                  "title": "FormInspectTruncation",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "selector",
+                "include_values",
+                "count",
+                "returned",
+                "limits",
+                "truncated",
+                "forms"
+              ],
+              "title": "FormInspectData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Inspect Forms"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
       "title": "Wait for Element"
     },
     "description": "Wait for an element to appear on the page. Bare selectors are treated as CSS; use text:... for text matching.",

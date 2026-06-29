@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-与基于截图的方法不同，它通过 21 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+与基于截图的方法不同，它通过 22 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -114,7 +114,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 21 个强大工具 + MCP Resources/Prompts
+## 🛠️ 22 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL
@@ -130,6 +130,9 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `element_get_attribute` - 获取 HTML attribute
 - `element_get_property` - 获取实时 DOM property，例如输入框当前 value
 - `element_get_html` - 获取元素或整页 HTML
+
+### 🧾 表单工具（1 个）
+- `form_inspect` - 检查表单和控件，返回 label、selector、必填/禁用状态、选项和安全的可选 value
 
 ### 📸 页面操作（6 个）
 - `page_screenshot` - 捕获完整页面或视口
@@ -175,7 +178,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 21 个自动化与页面理解工具
+│   └── tools/              # 22 个自动化、页面理解与表单检查工具
 ├── tests/                  # 单元测试
 └── playground/             # 测试工具
 ```
@@ -324,7 +327,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.4.10`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.5.0`。
 
 ### 浏览器问题？
 ```bash
@@ -353,25 +356,26 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.4.10 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.5.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.4.10)
-- [x] 21 个核心自动化与页面理解工具，已移除 alias 工具面
+### 当前版本 (v0.5.0)
+- [x] 22 个核心自动化、页面理解与表单检查工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
 - [x] 常见失败会在 `error.details.hints` 中返回结构化恢复建议
 - [x] `page_snapshot` 会平衡输出预算，链接密集页面仍能暴露按钮、输入框和表单
+- [x] `form_inspect` 只读表单 inventory，返回 label、selector、必填状态、选项和安全的可选 value
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] Resources、Prompts、eval harness、兼容性和故障排除文档
 - [x] PyPI 发布
 
 ### 未来版本 (v0.5+)
-- [ ] 表单处理工具
+- [ ] 表单填写工具
 - [ ] 文件上传支持
 - [ ] Shadow DOM 选择器
 - [ ] 会话持久化
@@ -511,14 +515,15 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.4.10
+## 🆕 最新版本：v0.5.0
 
-发布日期：2026-06-29。本版本增强真实 MCP 使用中的失败恢复体验，不新增浏览器操作：
+发布日期：2026-06-29。本版本开启 0.5 表单工作流，新增安全的只读表单检查工具，同时保留 0.4 的失败恢复改进：
 
-- 失败 payload 现在会在 `error.details.hints` 中返回机器可读的恢复建议。
+- `form_inspect` 可以检查表单和控件，返回 label、selector、method/action、必填/禁用/只读状态、select options，以及 opt-in 的非 password value。
+- 失败 payload 会在 `error.details.hints` 中返回机器可读的恢复建议。
 - 元素缺失和 selector 失败会建议 `page_snapshot`、`element_find_all`、`wait_for_element` 以及 iframe / 动态内容检查。
 - `page_snapshot` 现在会在遵守总 `max_elements` 上限的同时，让链接密集页面仍返回输入框、按钮和表单。
 - timeout、浏览器启动、截图、导航、policy、参数错误和未知工具失败现在都有针对性的下一步建议。
 - `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并会提示客户端使用准确的 snake_case 字段名。
 - 浏览器启动失败会提示 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH`、`DP_HEADLESS` 和 `DP_NO_SANDBOX`。
-- 顶层 JSON_RESULT envelope、21 个工具、严格输入 schema 和 typed `outputSchema` 合同保持不变。
+- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数变为 22 个。

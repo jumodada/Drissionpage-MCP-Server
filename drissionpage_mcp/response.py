@@ -478,6 +478,85 @@ OUTLINE_COUNTS_SCHEMA = {
     "additionalProperties": INTEGER,
 }
 
+FORM_FIELD_OPTION_SCHEMA = _data_schema(
+    "FormFieldOption",
+    {
+        "text": STRING,
+        "value": STRING,
+        "selected": BOOLEAN,
+    },
+    ["text", "value", "selected"],
+)
+
+FORM_FIELD_SCHEMA = _data_schema(
+    "FormField",
+    {
+        "index": INTEGER,
+        "tag": STRING,
+        "type": STRING,
+        "name": STRING,
+        "label": STRING,
+        "selector": STRING,
+        "placeholder": STRING,
+        "required": BOOLEAN,
+        "disabled": BOOLEAN,
+        "readonly": BOOLEAN,
+        "checked": BOOLEAN,
+        "value": {"type": ["string", "null"]},
+        "attributes": ELEMENT_ATTRIBUTES_SCHEMA,
+        "options": {"type": "array", "items": FORM_FIELD_OPTION_SCHEMA},
+    },
+    [
+        "index",
+        "tag",
+        "type",
+        "name",
+        "label",
+        "selector",
+        "placeholder",
+        "required",
+        "disabled",
+        "readonly",
+        "checked",
+        "value",
+        "attributes",
+        "options",
+    ],
+)
+
+FORM_SUMMARY_SCHEMA = _data_schema(
+    "FormSummary",
+    {
+        "index": INTEGER,
+        "selector": STRING,
+        "id": STRING,
+        "name": STRING,
+        "method": STRING,
+        "action": STRING,
+        "text": STRING,
+        "fields": {"type": "array", "items": FORM_FIELD_SCHEMA},
+    },
+    ["index", "selector", "id", "name", "method", "action", "text", "fields"],
+)
+
+FORM_INSPECT_LIMITS_SCHEMA = _data_schema(
+    "FormInspectLimits",
+    {
+        "max_forms": INTEGER,
+        "max_fields_per_form": INTEGER,
+    },
+    ["max_forms", "max_fields_per_form"],
+)
+
+FORM_INSPECT_TRUNCATION_SCHEMA = _data_schema(
+    "FormInspectTruncation",
+    {
+        "forms": BOOLEAN,
+        "fields": BOOLEAN,
+    },
+    ["forms", "fields"],
+)
+
 PAGE_SNAPSHOT_TRUNCATION_SCHEMA = _data_schema(
     "PageSnapshotTruncation",
     {
@@ -584,6 +663,27 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "limit",
             "truncated",
             "elements",
+        ],
+    ),
+    "form_inspect": _data_schema(
+        "FormInspectData",
+        {
+            "selector": STRING,
+            "include_values": BOOLEAN,
+            "count": INTEGER,
+            "returned": INTEGER,
+            "limits": FORM_INSPECT_LIMITS_SCHEMA,
+            "truncated": FORM_INSPECT_TRUNCATION_SCHEMA,
+            "forms": {"type": "array", "items": FORM_SUMMARY_SCHEMA},
+        },
+        [
+            "selector",
+            "include_values",
+            "count",
+            "returned",
+            "limits",
+            "truncated",
+            "forms",
         ],
     ),
     "element_click": _data_schema(

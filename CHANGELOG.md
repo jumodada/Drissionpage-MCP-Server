@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-29
+
+### Added
+- Added `form_inspect`, a read-only form inventory tool that returns forms, controls, labels, selectors, methods/actions, required/disabled/read-only state, select options, and opt-in non-password values.
+- Added deterministic browser coverage for form inspection on the local form fixture.
+
+### Changed
+- Tool registry now exposes 22 public tools while preserving the no-alias contract from 0.4.x.
+
 ## [0.4.10] - 2026-06-29
 
 ### Added
@@ -197,7 +206,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.10...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.10...v0.5.0
 [0.4.10]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.9...v0.4.10
 [0.4.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.5...v0.4.9
 [0.4.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.1...v0.4.5

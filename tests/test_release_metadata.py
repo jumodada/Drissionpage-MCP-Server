@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.4.10."""
+"""Release metadata and documentation checks for 0.5.0."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_4_10() -> None:
+def test_package_version_metadata_is_0_5_0() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.4.10"
-    assert drissionpage_mcp.__version__ == "0.4.10"
+    assert pyproject["project"]["version"] == "0.5.0"
+    assert drissionpage_mcp.__version__ == "0.5.0"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -38,22 +38,24 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "browser_navigate_and_summarize" in contract
 
 
-def test_readmes_end_with_latest_0_4_10_fix_summary() -> None:
+def test_readmes_end_with_latest_0_5_0_feature_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
 
-    assert "## 🆕 Latest Version: v0.4.10" in readme
+    assert "## 🆕 Latest Version: v0.5.0" in readme
+    assert "form_inspect" in readme
     assert "error.details.hints" in readme
     assert "page_snapshot" in readme
     assert "element_find_all" in readme
-    assert "21 tools" in readme
+    assert "22 tools" in readme
     assert "drissionpage-mcp doctor --launch-browser" in readme
     assert "MCP_ARGUMENT_INVALID" in readme
-    assert "## 🆕 最新版本：v0.4.10" in readme_cn
+    assert "## 🆕 最新版本：v0.5.0" in readme_cn
+    assert "form_inspect" in readme_cn
     assert "error.details.hints" in readme_cn
     assert "page_snapshot" in readme_cn
     assert "element_find_all" in readme_cn
-    assert "21 个" in readme_cn
+    assert "22 个" in readme_cn
     assert "drissionpage-mcp doctor --launch-browser" in readme_cn
     assert "MCP_ARGUMENT_INVALID" in readme_cn
 
