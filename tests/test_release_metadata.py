@@ -91,6 +91,47 @@ def test_public_guides_include_codex_mcp_configuration() -> None:
     assert 'args = ["-m", "drissionpage_mcp.cli"]' in contract
 
 
+def test_public_guides_do_not_point_to_removed_or_stale_setup_paths() -> None:
+    """keeps first-run docs aligned after removing examples/ and mcp-config files."""
+
+    public_docs = {
+        "README.md": Path("README.md").read_text(encoding="utf-8"),
+        "README_CN.md": Path("README_CN.md").read_text(encoding="utf-8"),
+        "docs/troubleshooting.md": Path("docs/troubleshooting.md").read_text(
+            encoding="utf-8"
+        ),
+        "playground/README.md": Path("playground/README.md").read_text(
+            encoding="utf-8"
+        ),
+        "playground/quick_start.py": Path("playground/quick_start.py").read_text(
+            encoding="utf-8"
+        ),
+    }
+
+    for path, text in public_docs.items():
+        assert "mcp-config.json" not in text, path
+        assert "examples/" not in text, path
+        assert "current 75% floor" not in text, path
+        assert "当前 75% 覆盖率底线" not in text, path
+
+    assert "current 95% floor" in public_docs["README.md"]
+    assert "当前 95% 覆盖率底线" in public_docs["README_CN.md"]
+    assert 'args = ["-m", "drissionpage_mcp.cli"]' in public_docs["README.md"]
+    assert 'args = ["-m", "drissionpage_mcp.cli"]' in public_docs["README_CN.md"]
+    assert "DP_HEADLESS" in public_docs["docs/troubleshooting.md"]
+    assert "doctor --launch-browser" in public_docs["docs/troubleshooting.md"]
+
+
+def test_maintenance_docs_do_not_retain_deleted_examples_or_old_versions() -> None:
+    security = Path("SECURITY.md").read_text(encoding="utf-8")
+    codecov = Path("codecov.yml").read_text(encoding="utf-8")
+    release_checklist = Path("docs/release-checklist.md").read_text(encoding="utf-8")
+
+    assert "0.3.2" not in security
+    assert "examples/**" not in codecov
+    assert 'importlib.metadata.version("drissionpage-mcp")' in release_checklist
+
+
 def _tool_inventory(contract: str) -> str:
     match = re.search(r"## Tool Inventory(.*?)## Compatibility Notes", contract, re.S)
     assert match, "tool inventory section should exist"

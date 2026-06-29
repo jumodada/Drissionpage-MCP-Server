@@ -65,6 +65,24 @@ async def test_call_tool_handler_returns_validation_error_for_missing_required_a
 
 
 @pytest.mark.asyncio
+async def test_call_tool_handler_rejects_unknown_arguments_before_browser_startup() -> (
+    None
+):
+    """returns schema errors for typos instead of silently ignoring extra fields."""
+
+    server = DrissionPageMCPServer()
+    handler = server.server.request_handlers[CallToolRequest]
+
+    result = await handler(_call_tool_request("page_screenshot", {"fullPage": True}))
+
+    assert server.context is not None
+    assert server.context.is_active() is False
+    assert result.root.isError is True
+    assert result.root.structuredContent["error"]["code"] == "MCP_ARGUMENT_INVALID"
+    assert "fullPage" in result.root.structuredContent["message"]
+
+
+@pytest.mark.asyncio
 async def test_call_tool_handler_reports_unknown_tool_without_browser_startup() -> None:
     """returns a deterministic not-found response for unknown tool names."""
 

@@ -3,17 +3,17 @@
 import json
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from ..selector import normalize_selector
-from .base import ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
     from ..response import ToolResponse
 
 
-class FindElementInput(BaseModel):
+class FindElementInput(ToolInput):
     """Input schema for finding elements."""
 
     selector: str = Field(
@@ -28,7 +28,7 @@ class FindElementInput(BaseModel):
     )
 
 
-class ClickElementInput(BaseModel):
+class ClickElementInput(ToolInput):
     """Input schema for clicking elements."""
 
     selector: str = Field(
@@ -43,7 +43,7 @@ class ClickElementInput(BaseModel):
     )
 
 
-class TypeTextInput(BaseModel):
+class TypeTextInput(ToolInput):
     """Input schema for typing text."""
 
     selector: str = Field(
@@ -62,7 +62,7 @@ class TypeTextInput(BaseModel):
     )
 
 
-class GetTextInput(BaseModel):
+class GetTextInput(ToolInput):
     """Input schema for getting text."""
 
     selector: str = Field(
@@ -74,7 +74,7 @@ class GetTextInput(BaseModel):
     )
 
 
-class GetAttributeInput(BaseModel):
+class GetAttributeInput(ToolInput):
     """Input schema for getting an element attribute."""
 
     selector: str = Field(
@@ -87,7 +87,7 @@ class GetAttributeInput(BaseModel):
     attribute: str = Field(..., description="Attribute name to retrieve")
 
 
-class GetPropertyInput(BaseModel):
+class GetPropertyInput(ToolInput):
     """Input schema for getting a live DOM property."""
 
     selector: str = Field(
@@ -100,7 +100,7 @@ class GetPropertyInput(BaseModel):
     property: str = Field(..., description="DOM property to retrieve, e.g. value")
 
 
-class GetHtmlInput(BaseModel):
+class GetHtmlInput(ToolInput):
     """Input schema for getting HTML."""
 
     selector: str = Field(

@@ -25,4 +25,3 @@ github_checks:
 ignore:
   - "tests/**"
   - "playground/**"
-  - "examples/**"

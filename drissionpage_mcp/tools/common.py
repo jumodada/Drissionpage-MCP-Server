@@ -2,25 +2,25 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from ..policy import PolicyDeniedError, validate_screenshot_path
 from ..response import ErrorCode, build_screenshot_metadata
-from .base import ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
     from ..response import ToolResponse
 
 
-class ResizeInput(BaseModel):
+class ResizeInput(ToolInput):
     """Input schema for resize tool."""
 
     width: int = Field(..., description="Width of the browser window")
     height: int = Field(..., description="Height of the browser window")
 
 
-class ScreenshotInput(BaseModel):
+class ScreenshotInput(ToolInput):
     """Input schema for screenshot tool."""
 
     full_page: bool = Field(default=False, description="Take a full page screenshot")
@@ -29,7 +29,7 @@ class ScreenshotInput(BaseModel):
     )
 
 
-class ClickCoordinatesInput(BaseModel):
+class ClickCoordinatesInput(ToolInput):
     """Input schema for clicking at coordinates."""
 
     x: int = Field(..., description="X coordinate to click")
@@ -39,7 +39,7 @@ class ClickCoordinatesInput(BaseModel):
     )
 
 
-class EmptyInput(BaseModel):
+class EmptyInput(ToolInput):
     """Empty input schema."""
 
     pass

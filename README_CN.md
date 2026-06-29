@@ -209,12 +209,41 @@ tool_timeout_sec = 60
 codex mcp add drissionpage -- drissionpage-mcp
 ```
 
+如果 Codex/Cursor/Claude Desktop 从 GUI 启动后找不到 shell `PATH` 或
+虚拟环境中的 `drissionpage-mcp`，请改用绝对 Python 路径：
+
+```toml
+[mcp_servers.drissionpage]
+command = "/absolute/path/to/python"
+args = ["-m", "drissionpage_mcp.cli"]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
 ### JSON MCP 客户端
 ```json
 {
   "mcpServers": {
     "drissionpage": {
       "command": "drissionpage-mcp"
+    }
+  }
+}
+```
+
+GUI 客户端的绝对 Python fallback：
+
+```json
+{
+  "mcpServers": {
+    "drissionpage": {
+      "command": "/absolute/path/to/python",
+      "args": ["-m", "drissionpage_mcp.cli"],
+      "env": {
+        "CHROME_PATH": "/custom/path/to/chrome",
+        "DP_HEADLESS": "1",
+        "DP_NO_SANDBOX": "1"
+      }
     }
   }
 }
@@ -257,7 +286,7 @@ drissionpage-mcp doctor --launch-browser
 python -m pip install -e ".[dev]"
 python -m pytest tests/
 
-# 覆盖率报告（CI 会执行当前 75% 覆盖率底线并上传 coverage.xml）
+# 覆盖率报告（CI 会执行当前 95% 覆盖率底线并上传 coverage.xml）
 python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 ```
 

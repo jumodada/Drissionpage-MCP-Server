@@ -2,24 +2,24 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from ..policy import PolicyDeniedError, validate_navigation
 from ..response import ErrorCode
-from .base import ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
     from ..response import ToolResponse
 
 
-class NavigateInput(BaseModel):
+class NavigateInput(ToolInput):
     """Input schema for navigate tool."""
 
     url: str = Field(..., description="The URL to navigate to")
 
 
-class EmptyInput(BaseModel):
+class EmptyInput(ToolInput):
     """Empty input schema for tools that don't require parameters."""
 
     pass

@@ -38,6 +38,9 @@ async def test_list_resources_is_deterministic_and_json_typed() -> None:
     assert [str(resource.uri) for resource in resources] == RESOURCE_URIS
     assert [resource.mimeType for resource in resources] == ["application/json"] * 4
     assert all(resource.name and resource.description for resource in resources)
+    current_page = resources[1]
+    assert current_page.name == "page_current"
+    assert "redaction" not in current_page.description.lower()
 
 
 @pytest.mark.asyncio
