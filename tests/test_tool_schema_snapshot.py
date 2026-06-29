@@ -13,7 +13,7 @@ SNAPSHOT_PATH = Path(__file__).parent / "snapshots" / "tools_schema.json"
 
 
 def test_current_tool_schema_matches_snapshot() -> None:
-    """exposes the 21 public 0.4.9 tools with stable schemas and annotations."""
+    """exposes the 21 public 0.4.10 tools with stable schemas and annotations."""
 
     snapshot = _build_tool_schema_snapshot()
 

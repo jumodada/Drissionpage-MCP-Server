@@ -92,7 +92,7 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current 0.4.9 tool registry should load 21 tools.
+The current 0.4.10 tool registry should load 21 tools.
 
 ## Browser Does Not Start
 
@@ -143,11 +143,17 @@ Common causes:
 
 Useful recovery steps:
 
-1. Navigate to a simple public page such as `https://example.com`.
-2. Use `element_get_text` with an empty selector to inspect page text.
-3. Use `wait_for_element` before `element_click` or `element_type`.
-4. Increase the per-tool timeout where supported. `element_find` defaults to 3 seconds for fast feedback; explicit wait tools keep longer waits.
-5. Re-check selectors in the browser devtools. Bare selectors are treated as CSS; use `text:Submit` for text matching and explicit `tag:`, `css:`, `xpath:`, or `@name=value` forms when needed.
+1. Check `error.details.hints` in the `### JSON_RESULT` block. The server now
+   returns structured next steps for common failures.
+2. Use `page_snapshot` to inspect the current page outline and recommended
+   selectors without pulling full-page HTML.
+3. Use `element_find_all` with a broader selector to discover repeated cards,
+   table rows, links, or similar candidate elements.
+4. Use `wait_for_element` before `element_click` or `element_type`.
+5. Increase the per-tool timeout where supported. `element_find` defaults to 3 seconds for fast feedback; explicit wait tools keep longer waits.
+6. Re-check selectors in the browser devtools. Bare selectors are treated as CSS; use `text:Submit` for text matching and explicit `tag:`, `css:`, `xpath:`, or `@name=value` forms when needed.
+7. If the element may be inside an iframe or delayed UI state, inspect that
+   context before retrying the action.
 
 ## Screenshots Fail
 

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.10] - 2026-06-29
+
+### Added
+- Added machine-readable recovery hints under `error.details.hints` for common MCP failures, including missing elements, timeouts, browser startup failures, policy denials, screenshot failures, navigation failures, invalid arguments, and unknown tools.
+
+### Changed
+- Failure payloads now guide MCP clients toward safe next actions such as `page_snapshot`, `element_find_all`, `wait_for_element`, `page_get_url`, `drissionpage-mcp doctor --launch-browser`, or the relevant environment variable without changing the top-level JSON_RESULT envelope.
+- `page_snapshot` now balances its total element budget across headings, links, buttons, inputs, and forms before filling remaining capacity, so link-heavy pages still expose high-value controls for recovery flows.
+- Troubleshooting guidance now points users to structured recovery hints before manual selector debugging.
+
 ## [0.4.9] - 2026-06-29
 
 ### Added
@@ -187,7 +197,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.9...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.10...HEAD
+[0.4.10]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.9...v0.4.10
 [0.4.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.5...v0.4.9
 [0.4.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.1...v0.4.5
 [0.4.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.0...v0.4.1

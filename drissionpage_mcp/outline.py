@@ -104,33 +104,83 @@ def build_page_snapshot_script(
     return item;
   }}
 
-  function collect(name, selector, mapper) {{
+  function defineCategory(name, selector, mapper) {{
     const nodes = Array.from(document.querySelectorAll(selector));
     counts[name] = nodes.length;
-    const remaining = Math.max(0, maxElements - returnedElements);
-    const selected = nodes.slice(0, remaining);
-    if (selected.length < nodes.length) elementsTruncated = true;
+    return {{name, nodes, mapper}};
+  }}
+
+  function allocateBudgets(categories) {{
+    const budgets = Object.fromEntries(categories.map((category) => [category.name, 0]));
+    const nonEmpty = categories.filter((category) => category.nodes.length > 0);
+    if (maxElements <= 0 || nonEmpty.length === 0) return budgets;
+
+    // Reserve a fair share for every non-empty category first.  Without this
+    // pass, link-heavy pages can consume the whole budget before controls and
+    // forms are summarized, which breaks LLM recovery flows.
+    const fairShare = Math.max(1, Math.floor(maxElements / nonEmpty.length));
+    let remaining = maxElements;
+    for (const category of nonEmpty) {{
+      const reserved = Math.min(category.nodes.length, fairShare, remaining);
+      budgets[category.name] = reserved;
+      remaining -= reserved;
+      if (remaining <= 0) return budgets;
+    }}
+
+    // Preserve the existing category order for any remaining capacity while
+    // still keeping the total returned element count within maxElements.
+    for (const category of categories) {{
+      if (remaining <= 0) break;
+      const extra = Math.min(
+        category.nodes.length - budgets[category.name],
+        remaining
+      );
+      if (extra > 0) {{
+        budgets[category.name] += extra;
+        remaining -= extra;
+      }}
+    }}
+    return budgets;
+  }}
+
+  function materialize(category, budget) {{
+    const selected = category.nodes.slice(0, budget);
+    if (selected.length < category.nodes.length) elementsTruncated = true;
     returnedElements += selected.length;
-    return selected.map((el, index) => mapper(el, index));
+    return selected.map((el, index) => category.mapper(el, index));
   }}
 
   const bodyText = textOf(document.body || document.documentElement || document);
   const textTruncated = bodyText.length > maxTextChars;
 
-  const headings = collect('headings', 'h1,h2,h3,h4,h5,h6', base);
-  const links = collect('links', 'a[href]', (el, index) => {{
+  const headingCategory = defineCategory('headings', 'h1,h2,h3,h4,h5,h6', base);
+  const linkCategory = defineCategory('links', 'a[href]', (el, index) => {{
     const item = base(el, index);
     item.href = el.href || el.getAttribute('href') || '';
     return item;
   }});
-  const buttons = collect('buttons', 'button,input[type="button"],input[type="submit"],[role="button"]', base);
-  const inputs = collect('inputs', 'input,textarea,select', base);
-  const forms = collect('forms', 'form', (el, index) => {{
+  const buttonCategory = defineCategory('buttons', 'button,input[type="button"],input[type="submit"],[role="button"]', base);
+  const inputCategory = defineCategory('inputs', 'input,textarea,select', base);
+  const formCategory = defineCategory('forms', 'form', (el, index) => {{
     const item = base(el, index);
     item.method = (el.getAttribute('method') || 'get').toLowerCase();
     item.action = el.action || el.getAttribute('action') || '';
     return item;
   }});
+  const categories = [
+    headingCategory,
+    linkCategory,
+    buttonCategory,
+    inputCategory,
+    formCategory,
+  ];
+  const budgets = allocateBudgets(categories);
+
+  const headings = materialize(headingCategory, budgets.headings);
+  const links = materialize(linkCategory, budgets.links);
+  const buttons = materialize(buttonCategory, budgets.buttons);
+  const inputs = materialize(inputCategory, budgets.inputs);
+  const forms = materialize(formCategory, budgets.forms);
 
   return {{
     url: window.location.href,

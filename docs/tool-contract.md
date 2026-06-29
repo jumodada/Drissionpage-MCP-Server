@@ -61,6 +61,8 @@ Tools return MCP content blocks plus a stable machine-readable result payload:
 - When supported by the active MCP Python SDK, each listed tool exposes a typed
   `outputSchema` envelope with a tool-specific success `data` schema.
 - Successful results use `ok: true`; tool-execution failures use `ok: false` with `error.code` and `error.message`.
+- Failure details may include `hints`: a list of machine-readable next steps with
+  stable `action` identifiers and optional `tool`, `command`, or `env` fields.
 - Human-readable MCP text content still follows as `### Result`, `### Error`, and optional `### Code` blocks.
 - Screenshots include `ImageContent` with PNG data plus the JSON result block.
 - Tool input schemas reject unknown fields. Typos such as `fullPage` instead of
@@ -75,7 +77,15 @@ Example failure payload:
   "error": {
     "code": "TOOL_NOT_FOUND",
     "message": "Tool 'missing' not found",
-    "details": {"tool_name": "missing"}
+    "details": {
+      "tool_name": "missing",
+      "hints": [
+        {
+          "action": "list_available_tools",
+          "message": "Call tools/list and use one of the public tool names."
+        }
+      ]
+    }
   }
 }
 ```
@@ -91,6 +101,10 @@ All tools share this base output envelope, while success `data` is typed per too
 ```
 
 For failures, `error` contains `code`, `message`, and optional `details`.
+Common runtime failures include structured recovery hints under
+`error.details.hints`; for example, `ELEMENT_NOT_FOUND` can suggest
+`page_snapshot`, `element_find_all`, `wait_for_element`, and iframe/dynamic
+content checks.
 
 Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `SCREENSHOT_FAILED`, `POLICY_DENIED`, and `UNKNOWN_ERROR`. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
 
@@ -178,7 +192,7 @@ The server exposes user-controlled workflow prompts:
 
 - Selectors are normalized before calling DrissionPage: bare selectors are treated as CSS (`h1` -> `css:h1`, `input[name=q]` -> `css:input[name=q]`), XPath-looking strings are prefixed as XPath (`//h1` -> `xpath://h1`), and explicit DrissionPage forms such as `tag:h1`, `text:Submit`, `css:...`, `xpath:...`, and `@name=value` are preserved.
 - Tool responses include selector metadata: `selector`, `locator`, `selector_strategy`, and `selector_normalized`.
-- `page_snapshot` and `element_find_all` are preview page-understanding tools in 0.4.9. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default.
+- `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
 - `element_input_text` and `wait_sleep` were removed in 0.4.0. Use
   `element_type` and `wait_time`.
