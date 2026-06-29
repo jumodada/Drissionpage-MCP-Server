@@ -146,6 +146,11 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert "element_input_text" not in {tool.name for tool in tools.tools}
             assert "wait_sleep" not in {tool.name for tool in tools.tools}
 
+            wait_result = await session.call_tool("wait_time", {"seconds": 0})
+            assert wait_result.isError is not True
+            assert wait_result.structuredContent["ok"] is True
+            assert wait_result.structuredContent["data"]["waited_seconds"] == 0
+
             result = await session.call_tool("not_a_tool", {})
             assert result.isError is True
             assert result.structuredContent["error"]["code"] == "TOOL_NOT_FOUND"

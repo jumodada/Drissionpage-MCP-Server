@@ -26,7 +26,6 @@
     },
     "name": "page_navigate",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -126,7 +125,6 @@
     },
     "name": "page_go_back",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -222,7 +220,6 @@
     },
     "name": "page_go_forward",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -318,7 +315,6 @@
     },
     "name": "page_refresh",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -429,7 +425,6 @@
     },
     "name": "page_resize",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -542,7 +537,6 @@
     },
     "name": "page_screenshot",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -690,7 +684,6 @@
     },
     "name": "page_click_xy",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -798,7 +791,6 @@
     },
     "name": "page_close",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -894,7 +886,6 @@
     },
     "name": "page_get_url",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -1005,7 +996,6 @@
     },
     "name": "element_find",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -1155,7 +1145,6 @@
     },
     "name": "element_click",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -1294,7 +1283,6 @@
     },
     "name": "element_type",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -1417,7 +1405,6 @@
     },
     "name": "element_get_text",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -1544,7 +1531,6 @@
     },
     "name": "element_get_attribute",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -1678,7 +1664,6 @@
     },
     "name": "element_get_property",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -1799,7 +1784,6 @@
     },
     "name": "element_get_html",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -1926,7 +1910,6 @@
     },
     "name": "wait_for_element",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -2057,7 +2040,6 @@
     },
     "name": "wait_for_url",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,
@@ -2174,7 +2156,6 @@
     },
     "name": "wait_time",
     "outputSchema": {
-      "additionalProperties": false,
       "oneOf": [
         {
           "additionalProperties": false,

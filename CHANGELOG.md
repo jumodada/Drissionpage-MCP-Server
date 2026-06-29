@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-06-29
+
 ### Changed
 - Tool input schemas now reject unknown fields instead of silently ignoring MCP client or LLM argument typos.
 - README and troubleshooting docs now include absolute-Python MCP configuration fallbacks for GUI clients and headless browser guidance for remote/container environments.
 - Playground setup guidance now points to maintained README/tool-contract configuration snippets.
 
 ### Fixed
+- Unknown MCP tool arguments now return structured `MCP_ARGUMENT_INVALID` errors before browser startup.
+- Fixed `outputSchema` generation so MCP clients that validate `structuredContent` accept real successful tool responses.
 - Removed stale coverage, security, and Codecov documentation references left from earlier releases.
 
 ## [0.4.1] - 2026-06-26
@@ -172,7 +176,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.5...HEAD
+[0.4.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.1...v0.4.5
 [0.4.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.2...v0.4.0
 [0.3.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.1...v0.3.2

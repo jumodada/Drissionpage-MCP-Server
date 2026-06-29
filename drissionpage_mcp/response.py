@@ -147,7 +147,6 @@ def tool_result_output_schema(tool_name: str = "") -> Dict[str, Any]:
     data_schema = TOOL_DATA_SCHEMAS.get(tool_name, _GENERIC_DATA_SCHEMA)
     return {
         "type": "object",
-        "additionalProperties": False,
         "oneOf": [
             {
                 "type": "object",
