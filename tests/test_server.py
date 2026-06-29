@@ -163,6 +163,10 @@ async def test_internal_call_tool_impl_converts_unexpected_exceptions() -> None:
     assert result.isError is True
     assert result.structuredContent["error"]["code"] == "BROWSER_START_FAILED"
     assert result.structuredContent["error"]["details"]["tool_name"] == "boom"
+    assert any(
+        hint.get("command") == "drissionpage-mcp doctor --launch-browser"
+        for hint in result.structuredContent["error"]["details"]["hints"]
+    )
 
 
 @pytest.mark.asyncio

@@ -324,7 +324,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.4.9`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.4.10`。
 
 ### 浏览器问题？
 ```bash
@@ -353,17 +353,19 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.4.9 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.4.10 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.4.9)
+### 当前版本 (v0.4.10)
 - [x] 21 个核心自动化与页面理解工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
+- [x] 常见失败会在 `error.details.hints` 中返回结构化恢复建议
+- [x] `page_snapshot` 会平衡输出预算，链接密集页面仍能暴露按钮、输入框和表单
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] Resources、Prompts、eval harness、兼容性和故障排除文档
 - [x] PyPI 发布
@@ -509,12 +511,14 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.4.9
+## 🆕 最新版本：v0.4.10
 
-发布日期：2026-06-29。本预览版本新增 LLM 页面理解能力，同时保持严格的无 alias 工具契约：
+发布日期：2026-06-29。本版本增强真实 MCP 使用中的失败恢复体验，不新增浏览器操作：
 
-- 新增 `page_snapshot`，返回有界页面 outline：文本摘要、标题、链接、按钮、输入框、表单和 selector 推荐。
-- 新增 `element_find_all`，用于重复列表、卡片、表格和搜索结果，返回有界文本与属性摘要。
-- 新增确定性的 catalog fixture、浏览器集成测试和只读页面理解 eval。
-- typed `outputSchema` 覆盖新的页面理解响应 payload。
-- 工具输入 schema 继续拒绝未知字段，并对参数拼写错误返回 `MCP_ARGUMENT_INVALID`。
+- 失败 payload 现在会在 `error.details.hints` 中返回机器可读的恢复建议。
+- 元素缺失和 selector 失败会建议 `page_snapshot`、`element_find_all`、`wait_for_element` 以及 iframe / 动态内容检查。
+- `page_snapshot` 现在会在遵守总 `max_elements` 上限的同时，让链接密集页面仍返回输入框、按钮和表单。
+- timeout、浏览器启动、截图、导航、policy、参数错误和未知工具失败现在都有针对性的下一步建议。
+- `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并会提示客户端使用准确的 snake_case 字段名。
+- 浏览器启动失败会提示 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH`、`DP_HEADLESS` 和 `DP_NO_SANDBOX`。
+- 顶层 JSON_RESULT envelope、21 个工具、严格输入 schema 和 typed `outputSchema` 合同保持不变。

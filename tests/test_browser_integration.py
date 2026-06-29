@@ -33,6 +33,7 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "fixture-form" in _read(base_url + "/form")[1]
         assert "dynamic-root" in _read(base_url + "/dynamic")[1]
         assert "Automation Catalog" in _read(base_url + "/catalog")[1]
+        assert "Link Heavy Page" in _read(base_url + "/link-heavy")[1]
         assert _read(base_url + "/redirect")[0] == 200
         assert _read(base_url + "/status/404")[0] == 404
         assert _read(base_url + "/status/500")[0] == 500
@@ -324,6 +325,45 @@ async def test_mcp_page_understanding_tools_extract_catalog_outline() -> None:
 
 
 @pytest.mark.asyncio
+async def test_mcp_page_snapshot_balances_link_heavy_pages() -> None:
+    """keeps high-value controls visible when a page has many links."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/link-heavy"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, snapshot_payload = await _execute_tool(
+                server,
+                "page_snapshot",
+                {"max_elements": 20, "max_text_chars": 1000},
+            )
+            assert snapshot_payload["ok"] is True
+            snapshot = snapshot_payload["data"]
+            returned = sum(
+                len(snapshot[name])
+                for name in ("headings", "links", "buttons", "inputs", "forms")
+            )
+
+            assert snapshot["counts"]["links"] == 75
+            assert snapshot["counts"]["inputs"] == 1
+            assert snapshot["counts"]["forms"] == 1
+            assert snapshot["limits"]["max_elements"] == 20
+            assert snapshot["truncated"]["elements"] is True
+            assert snapshot["truncated"]["returned_elements"] == returned <= 20
+            assert len(snapshot["links"]) < 20
+            assert any(button["selector"] == "#search-button" for button in snapshot["buttons"])
+            assert any(input_["selector"] == "#search-input" for input_ in snapshot["inputs"])
+            assert any(form["selector"] == "#search-form" for form in snapshot["forms"])
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
 async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions() -> None:
     """returns machine-readable errors for common LLM recovery paths."""
 
@@ -344,6 +384,12 @@ async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions()
             assert missing_payload["ok"] is False
             assert missing_payload["error"]["code"] == "ELEMENT_NOT_FOUND"
             assert missing_payload["message"].startswith("Failed to find element")
+            missing_hints = missing_payload["error"]["details"]["hints"]
+            assert {hint.get("tool") for hint in missing_hints} >= {
+                "page_snapshot",
+                "element_find_all",
+                "wait_for_element",
+            }
             assert missing_content[0].text.startswith("### JSON_RESULT")
 
             _content, wait_payload = await _execute_tool(
@@ -353,6 +399,8 @@ async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions()
             )
             assert wait_payload["ok"] is False
             assert wait_payload["error"]["code"] == "TIMEOUT"
+            wait_hints = wait_payload["error"]["details"]["hints"]
+            assert any(hint["action"] == "increase_timeout" for hint in wait_hints)
     finally:
         await server.cleanup()
 

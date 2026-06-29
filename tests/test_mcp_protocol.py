@@ -82,6 +82,10 @@ async def test_call_tool_handler_rejects_unknown_arguments_before_browser_startu
     assert result.root.isError is True
     assert result.root.structuredContent["error"]["code"] == "MCP_ARGUMENT_INVALID"
     assert "fullPage" in result.root.structuredContent["message"]
+    assert (
+        result.root.structuredContent["error"]["details"]["hints"][0]["action"]
+        == "check_input_schema"
+    )
 
 
 @pytest.mark.asyncio
@@ -101,6 +105,9 @@ async def test_call_tool_handler_reports_unknown_tool_without_browser_startup() 
     assert payload["ok"] is False
     assert payload["error"]["code"] == "TOOL_NOT_FOUND"
     assert payload["message"] == "Tool 'not_a_tool' not found"
+    assert (
+        payload["error"]["details"]["hints"][0]["action"] == "list_available_tools"
+    )
 
 
 @pytest.mark.asyncio

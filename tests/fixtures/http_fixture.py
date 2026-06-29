@@ -156,6 +156,35 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+
+        if path == "/link-heavy":
+            links = "\n".join(
+                f'<a class="story" href="/story/{index}">Story {index}</a>'
+                for index in range(75)
+            )
+            self._send_html(
+                f"""
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Link Heavy</title></head>
+                  <body>
+                    <main id="link-heavy">
+                      <h1 id="link-heavy-title">Link Heavy Page</h1>
+                      <nav aria-label="Stories">
+                        {links}
+                      </nav>
+                      <form id="search-form" action="/link-heavy" method="get">
+                        <label for="search-input">Search stories</label>
+                        <input id="search-input" name="q" placeholder="search stories" />
+                        <button id="search-button" type="submit">Search</button>
+                      </form>
+                    </main>
+                  </body>
+                </html>
+                """
+            )
+            return
+
         if path == "/redirect":
             self.send_response(302)
             self.send_header("Location", "/")
