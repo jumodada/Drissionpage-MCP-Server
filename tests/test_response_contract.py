@@ -16,6 +16,7 @@ from drissionpage_mcp.response import (
     build_screenshot_metadata,
     tool_result_output_schema,
     classify_error,
+    recovery_hints,
 )
 
 JSON_RESULT_SENTINEL = "### JSON_RESULT"
@@ -55,6 +56,57 @@ def test_error_without_explicit_code_is_classified_from_message() -> None:
     payload = response.get_structured_content()
     assert payload["ok"] is False
     assert payload["error"]["code"] == "ELEMENT_NOT_FOUND"
+
+
+def test_add_error_includes_actionable_recovery_hints() -> None:
+    """adds machine-readable next steps without changing the error envelope."""
+
+    response = ToolResponse()
+    response.add_error(
+        "Failed to find element '#missing': Element not found",
+        ErrorCode.ELEMENT_NOT_FOUND,
+        selector="#missing",
+    )
+
+    details = response.get_structured_content()["error"]["details"]
+    hints = details["hints"]
+
+    assert details["selector"] == "#missing"
+    assert {hint["action"] for hint in hints} >= {
+        "inspect_page_snapshot",
+        "find_similar_elements",
+        "wait_for_element",
+        "check_iframe_or_dynamic_content",
+    }
+    assert {hint.get("tool") for hint in hints} >= {
+        "page_snapshot",
+        "element_find_all",
+        "wait_for_element",
+    }
+
+
+def test_recovery_hints_cover_common_runtime_failures() -> None:
+    """keeps recovery hints deterministic for high-frequency failure categories."""
+
+    timeout_hints = recovery_hints(ErrorCode.TIMEOUT, tool_name="wait_for_url")
+    browser_hints = recovery_hints(ErrorCode.BROWSER_START_FAILED)
+    screenshot_policy_hints = recovery_hints(
+        ErrorCode.POLICY_DENIED,
+        message="Screenshot path denied by policy",
+    )
+
+    assert {hint["action"] for hint in timeout_hints} >= {
+        "increase_timeout",
+        "inspect_current_page",
+    }
+    assert any(
+        hint.get("command") == "drissionpage-mcp doctor --launch-browser"
+        for hint in browser_hints
+    )
+    assert any(
+        hint.get("env") == "DP_MCP_SCREENSHOT_ROOT"
+        for hint in screenshot_policy_hints
+    )
 
 
 def test_screenshot_result_includes_image_content_and_json_metadata() -> None:

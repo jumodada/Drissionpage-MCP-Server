@@ -325,7 +325,7 @@ python playground/quick_start.py
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.4.9`.
+Should output the installed package version, for example `drissionpage-mcp 0.4.10`.
 
 ### Browser Issues?
 ```bash
@@ -354,17 +354,19 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.4.9 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.4.10 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.4.9)
+### Current (v0.4.10)
 - [x] 21 core automation and page-understanding tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
+- [x] Structured recovery hints in `error.details.hints` for common failures
+- [x] Balanced `page_snapshot` output so link-heavy pages still expose controls and forms
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
 - [x] PyPI distribution
@@ -510,12 +512,14 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.4.9
+## 🆕 Latest Version: v0.4.10
 
-Released on 2026-06-29. This preview release adds LLM page-understanding primitives while keeping the strict no-alias tool contract:
+Released on 2026-06-29. This release improves real MCP recovery behavior without adding new browser actions:
 
-- Added `page_snapshot` for bounded page outlines with text excerpt, headings, links, buttons, inputs, forms, and selector recommendations.
-- Added `element_find_all` for repeated lists, cards, tables, and search results with bounded text/attribute summaries.
-- Added deterministic catalog fixtures, browser integration coverage, and read-only evals for page understanding tasks.
-- Typed `outputSchema` coverage now includes the new page-understanding response payloads.
-- Tool input schemas still reject unknown fields and return `MCP_ARGUMENT_INVALID` for argument typos.
+- Failure payloads now include machine-readable `error.details.hints` for common recovery paths.
+- Missing element and selector failures suggest `page_snapshot`, `element_find_all`, `wait_for_element`, and iframe/dynamic-content checks.
+- `page_snapshot` now keeps inputs, buttons, and forms visible on link-heavy pages while respecting the total `max_elements` cap.
+- Timeout, browser startup, screenshot, navigation, policy, invalid-argument, and unknown-tool failures now include targeted next steps.
+- `MCP_ARGUMENT_INVALID` still protects strict schemas and now points clients toward exact snake_case field names.
+- Browser startup hints point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, `DP_HEADLESS`, and `DP_NO_SANDBOX`.
+- The top-level JSON_RESULT envelope, 21-tool registry, strict input schemas, and typed `outputSchema` contracts remain unchanged.

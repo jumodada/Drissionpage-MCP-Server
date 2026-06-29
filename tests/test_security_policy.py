@@ -120,6 +120,8 @@ async def test_screenshot_save_root_policy_blocks_path_before_file_write(
 
     assert response.is_error() is True
     assert response.get_structured_content()["error"]["code"] == "POLICY_DENIED"
+    hints = response.get_structured_content()["error"]["details"]["hints"]
+    assert any(hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in hints)
     context.current_tab_or_die.assert_not_called()
 
 
