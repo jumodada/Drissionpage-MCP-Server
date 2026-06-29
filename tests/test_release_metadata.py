@@ -111,7 +111,7 @@ def test_public_guides_do_not_point_to_removed_or_stale_setup_paths() -> None:
         "playground/README.md": Path("playground/README.md").read_text(
             encoding="utf-8"
         ),
-        "playground/quick_start.py": Path("playground/quick_start.py").read_text(
+        "playground/run_mcp_lab.py": Path("playground/run_mcp_lab.py").read_text(
             encoding="utf-8"
         ),
     }
@@ -126,6 +126,10 @@ def test_public_guides_do_not_point_to_removed_or_stale_setup_paths() -> None:
     assert "当前 95% 覆盖率底线" in public_docs["README_CN.md"]
     assert 'args = ["-m", "drissionpage_mcp.cli"]' in public_docs["README.md"]
     assert 'args = ["-m", "drissionpage_mcp.cli"]' in public_docs["README_CN.md"]
+    assert "playground/quick_start.py" not in "\n".join(public_docs.values())
+    assert "playground/local_test.py" not in "\n".join(public_docs.values())
+    assert "playground/run_mcp_lab.py --case registry" in public_docs["README.md"]
+    assert "playground/run_mcp_lab.py --case registry" in public_docs["README_CN.md"]
     assert "DP_HEADLESS" in public_docs["docs/troubleshooting.md"]
     assert "doctor --launch-browser" in public_docs["docs/troubleshooting.md"]
 

@@ -180,7 +180,7 @@ DrissionMCP/
 │   ├── tab.py              # 页面操作
 │   └── tools/              # 22 个自动化、页面理解与表单检查工具
 ├── tests/                  # 单元测试
-└── playground/             # 测试工具
+└── playground/             # MCP Lab 业务场景测试场
 ```
 
 **核心原则**：
@@ -301,11 +301,14 @@ Codecov 通过 `codecov.yml` 和 CI workflow 上传覆盖率；请配置仓库 s
 
 ### 试用
 ```bash
-# 交互式测试
-python playground/local_test.py
+# 无浏览器 MCP 工具注册 smoke
+python playground/run_mcp_lab.py --case registry
 
-# 快速启动验证
-python playground/quick_start.py
+# 本地确定性测试站点 smoke
+python playground/run_mcp_lab.py --case site
+
+# 真实浏览器表单检查场景
+DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```
 
 ---

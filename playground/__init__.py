@@ -1,1 +1,1 @@
-"""Playground for testing DrissionPage MCP functionality."""
+"""MCP Lab playground for DrissionPage MCP."""

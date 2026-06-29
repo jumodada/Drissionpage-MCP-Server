@@ -11,7 +11,7 @@ python -m pip install -U drissionpage-mcp
 drissionpage-mcp --version
 drissionpage-mcp doctor
 drissionpage-mcp doctor --launch-browser
-python playground/quick_start.py
+python playground/run_mcp_lab.py --case registry
 ```
 
 Expected result:
@@ -19,13 +19,13 @@ Expected result:
 - The version command prints the installed `drissionpage-mcp` version.
 - `drissionpage-mcp doctor` reports Python, package, browser, and environment diagnostics.
 - `drissionpage-mcp doctor --launch-browser` proves Chrome/Chromium can actually start.
-- `playground/quick_start.py` reports that tools loaded successfully.
+- `playground/run_mcp_lab.py --case registry` proves the stdio MCP registry loads successfully.
 
 For a source checkout, install development dependencies first:
 
 ```bash
 python -m pip install -e ".[dev]"
-python playground/quick_start.py
+python playground/run_mcp_lab.py --case registry
 ```
 
 ## MCP Client Cannot Find the Server

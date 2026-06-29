@@ -180,7 +180,7 @@ DrissionMCP/
 │   ├── tab.py              # Page operations
 │   └── tools/              # 22 automation and page-understanding tools
 ├── tests/                  # Unit tests
-└── playground/             # Testing utilities
+└── playground/             # MCP Lab business-scenario playground
 ```
 
 **Key Principles**:
@@ -302,11 +302,14 @@ set the `CODECOV_TOKEN` repository secret so the upload step can publish
 
 ### Try It Out
 ```bash
-# Interactive testing
-python playground/local_test.py
+# No-browser MCP registry smoke
+python playground/run_mcp_lab.py --case registry
 
-# Quick start validation
-python playground/quick_start.py
+# Local deterministic site smoke
+python playground/run_mcp_lab.py --case site
+
+# Browser-backed form inspection scenario
+DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```
 
 ---
