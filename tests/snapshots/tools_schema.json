@@ -647,6 +647,434 @@
   },
   {
     "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Page Snapshot"
+    },
+    "description": "Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, and recommended selectors.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for page snapshot tool.",
+      "properties": {
+        "include_html": {
+          "default": false,
+          "description": "Include bounded outerHTML excerpts for summarized elements",
+          "title": "Include Html",
+          "type": "boolean"
+        },
+        "max_elements": {
+          "default": 50,
+          "description": "Maximum total headings/links/buttons/inputs/forms to return",
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Max Elements",
+          "type": "integer"
+        },
+        "max_text_chars": {
+          "default": 4000,
+          "description": "Maximum page text excerpt characters to return",
+          "maximum": 20000,
+          "minimum": 0,
+          "title": "Max Text Chars",
+          "type": "integer"
+        }
+      },
+      "title": "PageSnapshotInput",
+      "type": "object"
+    },
+    "name": "page_snapshot",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "buttons": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "counts": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object"
+                },
+                "forms": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "headings": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "inputs": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "limits": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "max_elements": {
+                      "type": "integer"
+                    },
+                    "max_text_chars": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "max_elements",
+                    "max_text_chars"
+                  ],
+                  "title": "PageSnapshotLimits",
+                  "type": "object"
+                },
+                "links": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "text_excerpt": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "truncated": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "elements": {
+                      "type": "boolean"
+                    },
+                    "returned_elements": {
+                      "type": "integer"
+                    },
+                    "text": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "elements",
+                    "returned_elements"
+                  ],
+                  "title": "PageSnapshotTruncation",
+                  "type": "object"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url",
+                "title",
+                "text_excerpt",
+                "headings",
+                "links",
+                "buttons",
+                "inputs",
+                "forms",
+                "counts",
+                "truncated",
+                "limits"
+              ],
+              "title": "PageSnapshotData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Page Snapshot"
+  },
+  {
+    "annotations": {
       "destructiveHint": true,
       "idempotentHint": false,
       "openWorldHint": true,
@@ -1111,6 +1539,203 @@
       "type": "object"
     },
     "title": "Find Element"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Find All Elements"
+    },
+    "description": "Find multiple matching elements with bounded text/attribute summaries and recommended selectors for repeated lists, cards, and tables.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for bounded multi-element extraction.",
+      "properties": {
+        "include_html": {
+          "default": false,
+          "description": "Include bounded outerHTML excerpts for each returned element",
+          "title": "Include Html",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Maximum number of matched elements to return",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "selector": {
+          "description": "CSS selector, XPath, or explicit DrissionPage locator for repeated elements. Bare selectors are CSS.",
+          "title": "Selector",
+          "type": "string"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "FindAllElementsInput",
+      "type": "object"
+    },
+    "name": "element_find_all",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer"
+                },
+                "elements": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "limit": {
+                  "type": "integer"
+                },
+                "locator": {
+                  "type": "string"
+                },
+                "returned": {
+                  "type": "integer"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                },
+                "truncated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "count",
+                "returned",
+                "limit",
+                "truncated",
+                "elements"
+              ],
+              "title": "ElementFindAllData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Find All Elements"
   },
   {
     "annotations": {

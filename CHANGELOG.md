@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.9] - 2026-06-29
+
+### Added
+- Added `page_snapshot` preview tool for bounded page outlines with text excerpts, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors.
+- Added `element_find_all` preview tool for bounded repeated-element extraction from lists, cards, tables, and search results.
+- Added deterministic catalog fixture coverage plus read-only evals for LLM page-understanding tasks.
+
+### Changed
+- Tool registry now exposes 21 public tools while preserving the no-alias contract from 0.4.x.
+- Typed `outputSchema` contracts now cover the new page-understanding payloads.
+
 ## [0.4.5] - 2026-06-29
 
 ### Changed
@@ -176,7 +187,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.5...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.9...HEAD
+[0.4.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.5...v0.4.9
 [0.4.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.1...v0.4.5
 [0.4.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.3.2...v0.4.0

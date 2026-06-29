@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from DrissionPage.errors import ElementNotFoundError, PageDisconnectedError
 
+from .outline import build_page_snapshot_script, summarize_elements
 from .selector import SelectorPlan, normalize_selector
 
 if TYPE_CHECKING:
@@ -229,6 +230,59 @@ class PageTab:
                 return str(self.page.html)
         except Exception as e:
             logger.error(f"Failed to get HTML from {selector or 'page'}: {e}")
+            raise
+
+    async def page_snapshot(
+        self,
+        *,
+        include_html: bool = False,
+        max_elements: int = 50,
+        max_text_chars: int = 4000,
+    ) -> Dict[str, Any]:
+        """Return a bounded, LLM-friendly current page outline."""
+
+        try:
+            script = build_page_snapshot_script(
+                include_html=include_html,
+                max_elements=max_elements,
+                max_text_chars=max_text_chars,
+            )
+            snapshot = self.page.run_js(script, as_expr=True)
+            if not isinstance(snapshot, dict):
+                raise RuntimeError("page snapshot script returned no structured data")
+            snapshot.setdefault("url", self.url)
+            return snapshot
+        except Exception as e:
+            logger.error(f"Failed to build page snapshot: {e}")
+            raise
+
+    async def find_elements(
+        self,
+        selector: str,
+        *,
+        limit: int = 20,
+        include_html: bool = False,
+    ) -> Dict[str, Any]:
+        """Find multiple elements and return bounded summaries."""
+
+        try:
+            plan = normalize_selector(selector)
+            elements = list(self.page.eles(plan.locator, timeout=0) or [])
+            summaries, truncated = summarize_elements(
+                elements,
+                limit=limit,
+                include_html=include_html,
+            )
+            return {
+                **plan.metadata(),
+                "count": len(elements),
+                "returned": len(summaries),
+                "limit": limit,
+                "truncated": truncated,
+                "elements": summaries,
+            }
+        except Exception as e:
+            logger.error(f"Failed to find elements {selector}: {e}")
             raise
 
     async def screenshot(

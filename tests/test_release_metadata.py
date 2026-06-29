@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.4.5."""
+"""Release metadata and documentation checks for 0.4.9."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_4_5() -> None:
+def test_package_version_metadata_is_0_4_9() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.4.5"
-    assert drissionpage_mcp.__version__ == "0.4.5"
+    assert pyproject["project"]["version"] == "0.4.9"
+    assert drissionpage_mcp.__version__ == "0.4.9"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -38,22 +38,22 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "browser_navigate_and_summarize" in contract
 
 
-def test_readmes_end_with_latest_0_4_5_fix_summary() -> None:
+def test_readmes_end_with_latest_0_4_9_fix_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
 
-    assert "## 🆕 Latest Version: v0.4.5" in readme
-    assert "unknown fields" in readme
+    assert "## 🆕 Latest Version: v0.4.9" in readme
+    assert "page_snapshot" in readme
+    assert "element_find_all" in readme
+    assert "page-understanding" in readme
+    assert "21 tools" in readme
     assert "MCP_ARGUMENT_INVALID" in readme
-    assert "absolute-Python MCP configuration" in readme
-    assert "doctor --launch-browser" in readme
-    assert "0.4.5 package metadata" in readme
-    assert "## 🆕 最新版本：v0.4.5" in readme_cn
-    assert "未知字段" in readme_cn
+    assert "## 🆕 最新版本：v0.4.9" in readme_cn
+    assert "page_snapshot" in readme_cn
+    assert "element_find_all" in readme_cn
+    assert "页面理解" in readme_cn
+    assert "21 个" in readme_cn
     assert "MCP_ARGUMENT_INVALID" in readme_cn
-    assert "绝对 Python 路径" in readme_cn
-    assert "doctor --launch-browser" in readme_cn
-    assert "0.4.5 包元数据" in readme_cn
 
 
 def test_public_guides_do_not_advertise_removed_alias_tools() -> None:
@@ -65,10 +65,10 @@ def test_public_guides_do_not_advertise_removed_alias_tools() -> None:
         text = path.read_text(encoding="utf-8")
         assert "element_input_text" not in text
         assert "wait_sleep" not in text
-        assert "21 tools" not in text
-        assert "21 powerful tools" not in text
-        assert "21 automation tools" not in text
-        assert "21 个" not in text
+        assert "19 tools" not in text
+        assert "19 powerful tools" not in text
+        assert "19 automation tools" not in text
+        assert "19 个" not in text
 
 
 def test_public_guides_include_codex_mcp_configuration() -> None:

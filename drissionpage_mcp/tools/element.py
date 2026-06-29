@@ -28,6 +28,28 @@ class FindElementInput(ToolInput):
     )
 
 
+class FindAllElementsInput(ToolInput):
+    """Input schema for bounded multi-element extraction."""
+
+    selector: str = Field(
+        ...,
+        description=(
+            "CSS selector, XPath, or explicit DrissionPage locator for repeated "
+            "elements. Bare selectors are CSS."
+        ),
+    )
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of matched elements to return",
+    )
+    include_html: bool = Field(
+        default=False,
+        description="Include bounded outerHTML excerpts for each returned element",
+    )
+
+
 class ClickElementInput(ToolInput):
     """Input schema for clicking elements."""
 
@@ -135,6 +157,42 @@ async def find_element(
 
         response.add_code(f"element = page.ele({element['locator']!r})")
         response.add_result(f"Found element: {args.selector}", element=element)
+
+
+@define_tool(
+    name="element_find_all",
+    title="Find All Elements",
+    description=(
+        "Find multiple matching elements with bounded text/attribute summaries "
+        "and recommended selectors for repeated lists, cards, and tables."
+    ),
+    input_schema=FindAllElementsInput,
+    tool_type=ToolType.READ_ONLY,
+    idempotent=True,
+)
+async def find_all_elements(
+    context: "DrissionPageContext",
+    args: FindAllElementsInput,
+    response: "ToolResponse",
+) -> None:
+    """Find multiple elements on the page."""
+    async with tool_errors(
+        response, lambda e: f"Failed to find elements '{args.selector}': {e}"
+    ):
+        tab = context.current_tab_or_die()
+        result = await tab.find_elements(
+            args.selector,
+            limit=args.limit,
+            include_html=args.include_html,
+        )
+
+        response.add_code(
+            f"elements = page.eles({result['locator']!r}, timeout=0)"
+        )
+        response.add_result(
+            f"Found {result['returned']} of {result['count']} elements: {args.selector}",
+            **result,
+        )
 
 
 @define_tool(
@@ -316,6 +374,7 @@ async def get_html(
 # Export all tools
 tools = [
     find_element,
+    find_all_elements,
     click_element,
     type_text,
     get_text,
