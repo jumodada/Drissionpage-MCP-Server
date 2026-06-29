@@ -8,7 +8,7 @@ Use this checklist before publishing a DrissionPage MCP release.
 - [ ] Update `pyproject.toml` version.
 - [ ] Update `CHANGELOG.md` with user-visible changes.
 - [ ] Confirm supported Python and DrissionPage ranges in [compatibility.md](compatibility.md).
-- [ ] Confirm `drissionpage-mcp --version`, `drissionpage_mcp.__version__`, `pyproject.toml`, and built wheel metadata agree.
+- [ ] Confirm `drissionpage-mcp --version`, `drissionpage_mcp.__version__`, `importlib.metadata.version("drissionpage-mcp")`, `pyproject.toml`, and built wheel metadata agree.
 
 ## 2. Local Validation
 

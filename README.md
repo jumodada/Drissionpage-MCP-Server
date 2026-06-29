@@ -209,6 +209,17 @@ You can also add it with the Codex CLI:
 codex mcp add drissionpage -- drissionpage-mcp
 ```
 
+If Codex/Cursor/Claude Desktop is launched from a GUI and cannot see your shell
+`PATH` or virtualenv, use the absolute Python executable instead:
+
+```toml
+[mcp_servers.drissionpage]
+command = "/absolute/path/to/python"
+args = ["-m", "drissionpage_mcp.cli"]
+startup_timeout_sec = 20
+tool_timeout_sec = 60
+```
+
 ### JSON MCP Clients
 ```json
 {
@@ -229,6 +240,24 @@ codex mcp add drissionpage -- drissionpage-mcp
       "args": ["--log-level", "DEBUG"],
       "env": {
         "CHROME_PATH": "/custom/path/to/chrome"
+      }
+    }
+  }
+}
+```
+
+Absolute-Python fallback for GUI clients:
+
+```json
+{
+  "mcpServers": {
+    "drissionpage": {
+      "command": "/absolute/path/to/python",
+      "args": ["-m", "drissionpage_mcp.cli"],
+      "env": {
+        "CHROME_PATH": "/custom/path/to/chrome",
+        "DP_HEADLESS": "1",
+        "DP_NO_SANDBOX": "1"
       }
     }
   }
@@ -257,7 +286,7 @@ drissionpage-mcp doctor --launch-browser
 python -m pip install -e ".[dev]"
 python -m pytest tests/
 
-# Coverage report (CI enforces the current 75% floor and uploads coverage.xml)
+# Coverage report (CI enforces the current 95% floor and uploads coverage.xml)
 python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 ```
 

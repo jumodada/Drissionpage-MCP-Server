@@ -2,17 +2,17 @@
 
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from ..selector import normalize_selector
-from .base import ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
     from ..response import ToolResponse
 
 
-class WaitElementInput(BaseModel):
+class WaitElementInput(ToolInput):
     """Input schema for waiting for elements."""
 
     selector: str = Field(
@@ -25,13 +25,13 @@ class WaitElementInput(BaseModel):
     timeout: int = Field(default=10, description="Timeout in seconds")
 
 
-class WaitTimeInput(BaseModel):
+class WaitTimeInput(ToolInput):
     """Input schema for waiting a specific time."""
 
     seconds: float = Field(..., description="Number of seconds to wait")
 
 
-class WaitUrlInput(BaseModel):
+class WaitUrlInput(ToolInput):
     """Input schema for waiting for URL changes."""
 
     url_pattern: str = Field(

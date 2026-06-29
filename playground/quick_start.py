@@ -44,7 +44,7 @@ async def main():
     
     logger.info("✅ All tests passed!")
     logger.info("🚀 To start the server: python -m drissionpage_mcp.cli")
-    logger.info("📖 See mcp-config.json for configuration example")
+    logger.info("📖 See README.md or docs/tool-contract.md for MCP configuration")
 
 
 if __name__ == "__main__":

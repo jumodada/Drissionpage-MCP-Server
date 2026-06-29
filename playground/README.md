@@ -49,8 +49,9 @@ python playground/test_scenarios/data_extraction.py
    ```
 
 2. **Copy Configuration**
-   Use the examples in `examples/` for your MCP client.
-   Add the server to your MCP client configuration:
+   Use the configuration snippets in the project `README.md` or
+   `docs/tool-contract.md` for your MCP client. Add the server to your MCP
+   client configuration:
    - **Codex CLI/IDE**: `~/.codex/config.toml` or trusted project `.codex/config.toml`
    - **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - **VS Code / other MCP clients**: See project README for setup instructions
@@ -164,9 +165,9 @@ python -m drissionpage_mcp.cli --log-level DEBUG
 ## ❓ Troubleshooting
 
 ### Server Won't Start
-1. Check dependencies: `pip install -r requirements.txt`
+1. Install the source checkout: `python -m pip install -e ".[dev]"`
 2. Verify Python version: `python --version` (need 3.10+)
-3. Check Chrome installation
+3. Check Chrome installation with `drissionpage-mcp doctor --launch-browser`
 
 ### MCP Client Can't Connect
 1. Verify config file path and format (`codex mcp list` for Codex)

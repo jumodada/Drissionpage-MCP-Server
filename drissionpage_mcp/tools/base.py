@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from enum import Enum
 from typing import TYPE_CHECKING, AsyncIterator, Awaitable, Callable
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from ..response import classify_error
 
@@ -18,6 +18,16 @@ class ToolType(Enum):
 
     READ_ONLY = "readOnly"
     DESTRUCTIVE = "destructive"
+
+
+class ToolInput(BaseModel):
+    """Base input model for public MCP tools.
+
+    Unknown fields are rejected so LLM/client typos do not silently change
+    behavior by falling back to defaults.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class ToolSchema:

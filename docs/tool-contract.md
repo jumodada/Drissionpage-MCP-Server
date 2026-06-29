@@ -63,6 +63,8 @@ Tools return MCP content blocks plus a stable machine-readable result payload:
 - Successful results use `ok: true`; tool-execution failures use `ok: false` with `error.code` and `error.message`.
 - Human-readable MCP text content still follows as `### Result`, `### Error`, and optional `### Code` blocks.
 - Screenshots include `ImageContent` with PNG data plus the JSON result block.
+- Tool input schemas reject unknown fields. Typos such as `fullPage` instead of
+  `full_page` return `MCP_ARGUMENT_INVALID` instead of being silently ignored.
 
 Example failure payload:
 

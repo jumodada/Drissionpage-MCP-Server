@@ -303,6 +303,31 @@ def test_get_property_input_uses_property_field_only() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("model", "payload"),
+    [
+        (common.ScreenshotInput, {"fullPage": True}),
+        (common.ResizeInput, {"width": 800, "height": 600, "extra": True}),
+        (navigate.NavigateInput, {"url": "https://example.test", "new_tab": True}),
+        (element.FindElementInput, {"selector": "h1", "timeout_ms": 1}),
+        (
+            element.TypeTextInput,
+            {"selector": "#name", "text": "Ada", "clear_first": False},
+        ),
+        (
+            element.GetPropertyInput,
+            {"selector": "#name", "property": "value", "property_name": "value"},
+        ),
+        (wait.WaitTimeInput, {"seconds": 1, "milliseconds": 500}),
+    ],
+)
+def test_tool_inputs_reject_unknown_fields(model, payload) -> None:
+    """LLM/client field typos should fail instead of being silently ignored."""
+
+    with pytest.raises(Exception, match="Extra inputs"):
+        model.model_validate(payload)
+
+
 @pytest.mark.asyncio
 async def test_element_tools_success_paths() -> None:
     ctx = FakeContext()
