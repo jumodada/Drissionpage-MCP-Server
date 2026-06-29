@@ -72,7 +72,8 @@ Policy denials return structured `POLICY_DENIED` errors. Navigation policy is
 checked before browser initialization, so a denied URL does not start a browser
 session.
 
-Runtime request throttling is not implemented in 0.3.2 because this package is
-a local stdio, single-user MCP server rather than a remote multi-tenant service.
+Runtime request throttling is not implemented for the current local stdio server
+because this package is a single-user MCP server rather than a remote
+multi-tenant service.
 Users should still respect target-site rate limits. Add server-side throttling
 before exposing this server through any remote transport.

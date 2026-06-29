@@ -10,6 +10,7 @@ Run these commands from a shell:
 python -m pip install -U drissionpage-mcp
 drissionpage-mcp --version
 drissionpage-mcp doctor
+drissionpage-mcp doctor --launch-browser
 python playground/quick_start.py
 ```
 
@@ -17,6 +18,7 @@ Expected result:
 
 - The version command prints the installed `drissionpage-mcp` version.
 - `drissionpage-mcp doctor` reports Python, package, browser, and environment diagnostics.
+- `drissionpage-mcp doctor --launch-browser` proves Chrome/Chromium can actually start.
 - `playground/quick_start.py` reports that tools loaded successfully.
 
 For a source checkout, install development dependencies first:
@@ -58,6 +60,20 @@ Then verify:
 - Confirm the TOML or JSON syntax is valid.
 - Confirm `drissionpage-mcp --version` works in the same shell environment used by the client.
 - For source installs, prefer `python -m drissionpage_mcp.cli` with an absolute `cwd`.
+- For GUI clients that do not inherit your shell `PATH` or virtualenv, use an
+  absolute Python executable:
+
+  ```json
+  {
+    "mcpServers": {
+      "drissionpage": {
+        "command": "/absolute/path/to/python",
+        "args": ["-m", "drissionpage_mcp.cli"]
+      }
+    }
+  }
+  ```
+
 - If `pip` cannot find a newly published version, your package mirror may be stale; retry with `python -m pip install -U --index-url https://pypi.org/simple drissionpage-mcp`.
 
 ## Tools Do Not Appear
@@ -80,7 +96,13 @@ The current 0.4.1 tool registry should load 19 tools.
 
 ## Browser Does Not Start
 
-DrissionPage requires a local Chrome or Chromium browser.
+DrissionPage requires a local Chrome or Chromium browser. Start with the launch
+check because it catches missing binaries, sandbox failures, and no-display
+remote environments:
+
+```bash
+drissionpage-mcp doctor --launch-browser
+```
 
 Check common browser commands:
 
@@ -91,6 +113,24 @@ which chromium-browser || true
 ```
 
 On Windows, confirm Chrome or Chromium is installed and available to DrissionPage. If you use a custom browser path, configure it through your local environment or DrissionPage settings.
+
+For SSH, Docker, Codespaces, CI, or other no-GUI environments, run headless and
+set the browser path explicitly in your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "drissionpage": {
+      "command": "drissionpage-mcp",
+      "env": {
+        "CHROME_PATH": "/usr/bin/chromium",
+        "DP_HEADLESS": "1",
+        "DP_NO_SANDBOX": "1"
+      }
+    }
+  }
+}
+```
 
 ## Navigation or Element Actions Fail
 

@@ -9,6 +9,7 @@
     },
     "description": "Navigate to a specific URL in the browser",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for navigate tool.",
       "properties": {
         "url": {
@@ -117,6 +118,7 @@
     },
     "description": "Go back to the previous page in browser history",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Empty input schema for tools that don't require parameters.",
       "properties": {},
       "title": "EmptyInput",
@@ -212,6 +214,7 @@
     },
     "description": "Go forward to the next page in browser history",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Empty input schema for tools that don't require parameters.",
       "properties": {},
       "title": "EmptyInput",
@@ -307,6 +310,7 @@
     },
     "description": "Refresh the current page",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Empty input schema for tools that don't require parameters.",
       "properties": {},
       "title": "EmptyInput",
@@ -402,6 +406,7 @@
     },
     "description": "Resize the browser window to specified dimensions",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for resize tool.",
       "properties": {
         "height": {
@@ -516,6 +521,7 @@
     },
     "description": "Take a screenshot of the current page",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for screenshot tool.",
       "properties": {
         "full_page": {
@@ -655,6 +661,7 @@
     },
     "description": "Click at specific coordinates on the page",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for clicking at coordinates.",
       "properties": {
         "element": {
@@ -783,6 +790,7 @@
     },
     "description": "Close the current page/browser",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Empty input schema.",
       "properties": {},
       "title": "EmptyInput",
@@ -878,6 +886,7 @@
     },
     "description": "Get the current URL of the page",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Empty input schema.",
       "properties": {},
       "title": "EmptyInput",
@@ -973,6 +982,7 @@
     },
     "description": "Find an element on the page using CSS selector or XPath. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for finding elements.",
       "properties": {
         "selector": {
@@ -1122,6 +1132,7 @@
     },
     "description": "Click an element found by CSS selector or XPath. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for clicking elements.",
       "properties": {
         "selector": {
@@ -1248,6 +1259,7 @@
     },
     "description": "Type text into an input element",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for typing text.",
       "properties": {
         "clear": {
@@ -1390,6 +1402,7 @@
     },
     "description": "Get text from an element or the whole page",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for getting text.",
       "properties": {
         "selector": {
@@ -1508,6 +1521,7 @@
     },
     "description": "Get an attribute value from an element",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for getting an element attribute.",
       "properties": {
         "attribute": {
@@ -1641,6 +1655,7 @@
     },
     "description": "Get a live DOM property value from an element, such as an input's current value",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for getting a live DOM property.",
       "properties": {
         "property": {
@@ -1769,6 +1784,7 @@
     },
     "description": "Get HTML from an element or the whole page",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for getting HTML.",
       "properties": {
         "selector": {
@@ -1887,6 +1903,7 @@
     },
     "description": "Wait for an element to appear on the page. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for waiting for elements.",
       "properties": {
         "selector": {
@@ -2017,6 +2034,7 @@
     },
     "description": "Wait for the current URL to contain a substring",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for waiting for URL changes.",
       "properties": {
         "timeout": {
@@ -2139,6 +2157,7 @@
     },
     "description": "Wait for a specific amount of time",
     "inputSchema": {
+      "additionalProperties": false,
       "description": "Input schema for waiting a specific time.",
       "properties": {
         "seconds": {

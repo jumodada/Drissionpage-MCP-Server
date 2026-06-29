@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Tool input schemas now reject unknown fields instead of silently ignoring MCP client or LLM argument typos.
+- README and troubleshooting docs now include absolute-Python MCP configuration fallbacks for GUI clients and headless browser guidance for remote/container environments.
+- Playground setup guidance now points to maintained README/tool-contract configuration snippets.
+
+### Fixed
+- Removed stale coverage, security, and Codecov documentation references left from earlier releases.
+
 ## [0.4.1] - 2026-06-26
 
 ### Added

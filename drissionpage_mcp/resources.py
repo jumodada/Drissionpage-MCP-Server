@@ -46,7 +46,7 @@ def list_resources() -> list[Resource]:
             uri=_uri(PAGE_CURRENT_URI),
             name="page_current",
             title="Current Page",
-            description="Bounded, redaction-aware current page summary.",
+            description="Bounded current page summary with text and HTML excerpts.",
             mimeType="application/json",
         ),
         Resource(
