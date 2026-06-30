@@ -47,6 +47,46 @@ def test_ci_browser_integration_is_not_manual_only() -> None:
     assert 'DP_HEADLESS: "1"' in browser_job
 
 
+def test_ci_browser_jobs_start_shared_drissionpage_test_site() -> None:
+    """keeps shared SSR test-site coverage wired into browser-capable jobs."""
+
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    for job_name, next_job in (
+        ("coverage", "package"),
+        ("browser-integration", None),
+    ):
+        job = workflow.split(f"  {job_name}:\n", maxsplit=1)[1]
+        if next_job is not None:
+            job = job.split(f"\n  {next_job}:\n", maxsplit=1)[0]
+        assert "repository: jumodada/DrissionPage-test-site" in job
+        assert "DP_TEST_SITE_URL: http://127.0.0.1:4321" in job
+        assert "npm run build" in job
+        assert "npm run dev -- --host 127.0.0.1 --port 4321" in job
+        assert "api/health.json" in job
+
+
+def test_ci_private_shared_test_site_uses_secret_only() -> None:
+    """keeps deployed shared SSR test-site URLs out of the public workflow."""
+
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "DP_PRIVATE_FIXTURE_URL" in workflow
+    assert "vars.DP_TEST_SITE_URL" not in workflow
+    assert "DP_TEST_SITE_URL: https://" not in workflow
+
+    for job_name, next_job in (
+        ("coverage", "package"),
+        ("browser-integration", None),
+    ):
+        job = workflow.split(f"  {job_name}:\n", maxsplit=1)[1]
+        if next_job is not None:
+            job = job.split(f"\n  {next_job}:\n", maxsplit=1)[0]
+        assert "RUN_PRIVATE_TEST_SITE" in job
+        assert "github.event_name != 'pull_request'" in job
+        assert "DP_TEST_SITE_URL: ${{ secrets.DP_PRIVATE_FIXTURE_URL }}" in job
+        assert "::add-mask::" in job
+
+
 def test_ci_uploads_xml_coverage_to_codecov() -> None:
     """publishes a deterministic XML coverage report through the Codecov action."""
 

@@ -293,9 +293,21 @@ python -m pytest tests/
 
 # 覆盖率报告（CI 会执行当前 95% 覆盖率底线并上传 coverage.xml）
 python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
+
+# 可选共享 Astro SSR test-site smoke
+# 先在同级 checkout 启动 ../DrissionPage-test-site：
+#   npm ci && npm run build && npm run dev -- --host 127.0.0.1 --port 4321
+DP_TEST_SITE_URL=http://127.0.0.1:4321 \
+  DP_HEADLESS=1 python -m pytest tests/test_browser_integration.py -k shared_drissionpage_test_site
 ```
 
-GitHub Actions 已配置 lint、单元、协议、打包、浏览器集成和覆盖率检查。
+GitHub Actions 已配置 lint、单元、协议、打包、浏览器集成和覆盖率检查；
+具备浏览器的 job 会额外 checkout 并启动 `jumodada/DrissionPage-test-site`
+以运行共享 SSR smoke。
+如果要在 CI 里复用已部署的私有/半私有测试站，请只配置仓库 secret
+`DP_PRIVATE_FIXTURE_URL`，不要把真实 URL 写进 workflow、README 或 issue。该
+secret 只在非 `pull_request` 事件中作为额外远端 smoke 使用；公开 PR 会继续使用
+本地 checkout 启动的 fixture。
 Codecov 通过 `codecov.yml` 和 CI workflow 上传覆盖率；请配置仓库 secret
 `CODECOV_TOKEN`，让 GitHub Actions 能稳定上传 `coverage.xml`。
 
