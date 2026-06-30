@@ -1,13 +1,11 @@
 # DrissionPage MCP Lab
 
-`playground/` is now a deterministic MCP Lab instead of a collection of stale demo scripts. It provides a local business test site plus a stdio MCP runner so you can verify how real agents use DrissionPage MCP.
-
-The default lab is implemented specifically for this MCP server and does not depend on external sites. Browser CI additionally runs a shared SSR smoke against a local checkout of the standalone `DrissionPage-test-site` repository. Deployed shared test-site URLs should stay in the `DP_PRIVATE_FIXTURE_URL` repository secret, not in docs or workflow literals.
+`playground/` is a deterministic MCP Lab instead of a collection of stale demo scripts. It provides a local business test site plus a stdio MCP runner so you can verify DrissionPage MCP behavior without depending on public demo websites.
 
 ## What it covers
 
-- `registry` — real stdio MCP initialize/list/call smoke without opening a browser.
-- `site` — no-browser local HTTP fixture smoke.
+- `registry` — stdio MCP initialize/list/call check without opening a browser.
+- `site` — no-browser local HTTP fixture check.
 - `form-inspect` — real browser `form_inspect` flow with password value masking.
 - `commerce` — Taobao-like product search/cards/cart-oriented page understanding.
 - `social-notes` — Xiaohongshu-like mobile feed, note cards, search form, and detail links.
@@ -75,19 +73,15 @@ The old playground only loaded tools or pointed people to public demo sites. Thi
 
 ## CI usage
 
-Use lightweight no-browser cases in generic CI:
+Use lightweight no-browser cases in generic CI or local checks:
 
 ```bash
 python playground/run_mcp_lab.py --case registry --json
 python playground/run_mcp_lab.py --case site --json
 ```
 
-Use browser-backed cases in browser jobs or release checks:
+Use browser-backed cases when Chrome/Chromium is available:
 
 ```bash
 DP_HEADLESS=1 DP_NO_SANDBOX=1 python playground/run_mcp_lab.py --case form-inspect --json
-
-# Optional shared SSR site smoke after starting DrissionPage-test-site locally.
-DP_TEST_SITE_URL=http://127.0.0.1:4321 DP_HEADLESS=1 \
-  python -m pytest tests/test_browser_integration.py -k shared_drissionpage_test_site -q
 ```

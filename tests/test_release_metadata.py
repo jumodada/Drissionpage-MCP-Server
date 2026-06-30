@@ -137,11 +137,13 @@ def test_public_guides_do_not_point_to_removed_or_stale_setup_paths() -> None:
 def test_maintenance_docs_do_not_retain_deleted_examples_or_old_versions() -> None:
     security = Path("SECURITY.md").read_text(encoding="utf-8")
     codecov = Path("codecov.yml").read_text(encoding="utf-8")
-    release_checklist = Path("docs/release-checklist.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
 
     assert "0.3.2" not in security
     assert "examples/**" not in codecov
-    assert 'importlib.metadata.version("drissionpage-mcp")' in release_checklist
+    assert "docs/release-checklist.md" not in readme
+    assert "docs/release-checklist.md" not in readme_cn
 
 
 def _tool_inventory(contract: str) -> str:

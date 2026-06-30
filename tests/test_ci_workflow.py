@@ -188,9 +188,9 @@ def test_ci_runs_0_4_0_resource_prompt_and_eval_gates() -> None:
     assert "python -m pytest tests/evals -q" in workflow
 
 
-def test_security_policy_and_release_checklist_document_0_4_0_controls() -> None:
+def test_security_policy_and_ci_document_0_4_0_controls() -> None:
     security = Path("SECURITY.md").read_text(encoding="utf-8")
-    checklist = Path("docs/release-checklist.md").read_text(encoding="utf-8")
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
     for name in (
         "DP_MCP_NAV_ALLOWLIST",
@@ -201,8 +201,7 @@ def test_security_policy_and_release_checklist_document_0_4_0_controls() -> None
         assert name in security
     assert "local stdio" in security.lower()
     assert "runtime request throttling" in security.lower()
-    assert "CODECOV_TOKEN" in checklist
-    assert "coverage.xml" in checklist
-    assert "Check wheel package contents" in checklist
-    assert "Resource and prompt inventories" in checklist
-    assert "tests/evals -q" in checklist
+    assert "CODECOV_TOKEN" in workflow
+    assert "coverage.xml" in workflow
+    assert "Check wheel package contents" in workflow
+    assert "tests/evals -q" in workflow
