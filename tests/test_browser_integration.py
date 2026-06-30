@@ -37,6 +37,7 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "DrissionMCP Fixture" in _read(base_url + "/")[1]
         assert "fixture-form" in _read(base_url + "/form")[1]
         assert "dynamic-root" in _read(base_url + "/dynamic")[1]
+        assert "New Tab Target" in _read(base_url + "/new-tab")[1]
         assert "Automation Catalog" in _read(base_url + "/catalog")[1]
         assert "Link Heavy Page" in _read(base_url + "/link-heavy")[1]
         assert _read(base_url + "/redirect")[0] == 200
@@ -213,6 +214,60 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
 
             closed = await _execute_tool_text(server, "page_close", {})
             assert "Successfully closed browser" in closed
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
+    """discovers, switches, and closes a tab opened by target=_blank."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, initial_tabs = await _execute_tool(server, "tab_list", {})
+            assert initial_tabs["ok"] is True
+            initial_count = initial_tabs["data"]["count"]
+            active_id = initial_tabs["data"]["active_tab_id"]
+
+            _content, click_payload = await _execute_tool(
+                server, "element_click", {"selector": "#new-tab-link", "timeout": 2}
+            )
+            assert click_payload["ok"] is True
+
+            _content, tabs_payload = await _execute_tool(server, "tab_list", {})
+            assert tabs_payload["ok"] is True
+            tabs_data = tabs_payload["data"]
+            assert tabs_data["count"] >= initial_count + 1
+            target_tabs = [
+                tab for tab in tabs_data["tabs"] if tab["url"].endswith("/new-tab")
+            ]
+            assert target_tabs
+            new_tab_id = target_tabs[0]["id"]
+
+            _content, switch_payload = await _execute_tool(
+                server, "tab_switch", {"tab_id": new_tab_id}
+            )
+            assert switch_payload["ok"] is True
+
+            _content, url_payload = await _execute_tool(server, "page_get_url", {})
+            assert url_payload["data"]["url"].endswith("/new-tab")
+
+            _content, close_payload = await _execute_tool(
+                server, "tab_close", {"tab_id": new_tab_id}
+            )
+            assert close_payload["ok"] is True
+
+            _content, switch_back = await _execute_tool(
+                server, "tab_switch", {"tab_id": active_id}
+            )
+            assert switch_back["ok"] is True
     finally:
         await server.cleanup()
 

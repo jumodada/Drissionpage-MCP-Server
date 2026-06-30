@@ -21,6 +21,7 @@ from drissionpage_mcp.server import DrissionPageMCPServer
 
 RESOURCE_URIS = [
     "drissionpage://session/summary",
+    "drissionpage://session/history",
     "drissionpage://page/current",
     "drissionpage://tools/catalog",
     "drissionpage://policy/summary",
@@ -36,9 +37,9 @@ async def test_list_resources_is_deterministic_and_json_typed() -> None:
 
     resources = result.root.resources
     assert [str(resource.uri) for resource in resources] == RESOURCE_URIS
-    assert [resource.mimeType for resource in resources] == ["application/json"] * 4
+    assert [resource.mimeType for resource in resources] == ["application/json"] * 5
     assert all(resource.name and resource.description for resource in resources)
-    current_page = resources[1]
+    current_page = resources[2]
     assert current_page.name == "page_current"
     assert "redaction" not in current_page.description.lower()
 
@@ -54,6 +55,7 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
 
     session_payload = await _read_json(server, "drissionpage://session/summary")
     policy_payload = await _read_json(server, "drissionpage://policy/summary")
+    history_payload = await _read_json(server, "drissionpage://session/history")
 
     assert server.context is None
     assert session_payload == {
@@ -78,6 +80,12 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
         "values": "<redacted>",
     }
     assert policy_payload["controls"]["block_private_network"] is True
+    assert history_payload == {
+        "available": True,
+        "limit": 100,
+        "count": 0,
+        "actions": [],
+    }
 
 
 @pytest.mark.asyncio
@@ -97,6 +105,11 @@ async def test_read_page_current_without_active_tab_is_unavailable() -> None:
         "limits": {
             "text_chars": PAGE_TEXT_EXCERPT_CHARS,
             "html_chars": PAGE_HTML_EXCERPT_CHARS,
+        },
+        "meta": {
+            "approx_tokens": 0,
+            "json_chars": 0,
+            "truncated": False,
         },
     }
     assert server.context is None
@@ -122,6 +135,9 @@ async def test_read_page_current_truncates_text_and_html() -> None:
     assert len(payload["text_excerpt"]) <= PAGE_TEXT_EXCERPT_CHARS
     assert len(payload["html_excerpt"]) <= PAGE_HTML_EXCERPT_CHARS
     assert payload["truncated"] is True
+    assert payload["meta"]["approx_tokens"] > 0
+    assert payload["meta"]["json_chars"] > 0
+    assert payload["meta"]["truncated"] is True
     assert payload["text_truncation"] == {
         "truncated": True,
         "original_length": PAGE_TEXT_EXCERPT_CHARS + 7,
@@ -140,11 +156,12 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     payload = await _read_json(server, "drissionpage://tools/catalog")
 
     names = [tool["name"] for tool in payload["tools"]]
-    assert len(names) == 22
+    assert len(names) == 25
     assert names == list(server.tools.keys())
     assert "page_snapshot" in names
     assert "element_find_all" in names
     assert "form_inspect" in names
+    assert {"tab_list", "tab_switch", "tab_close"} <= set(names)
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
     schema_by_name = {tool["name"]: tool["output_schema"] for tool in payload["tools"]}
@@ -179,6 +196,24 @@ async def test_read_unknown_resource_reports_value_error() -> None:
 def test_resource_helpers_handle_budget_and_attribute_edges() -> None:
     small = {"html_excerpt": "ok", "text_excerpt": "ok", "truncated": False}
     assert _fit_resource_budget(small) is small
+
+    large = {
+        "html_excerpt": "h" * PAGE_HTML_EXCERPT_CHARS,
+        "text_excerpt": "t" * PAGE_TEXT_EXCERPT_CHARS,
+        "truncated": False,
+    }
+    fitted = _fit_resource_budget(large)
+    assert fitted["truncated"] is True
+    assert fitted["resource_truncation"] == {
+        "truncated": True,
+        "original_length": len(
+            json.dumps(large, ensure_ascii=False, separators=(",", ":"))
+        ),
+        "limit": RESOURCE_JSON_MAX_CHARS,
+    }
+    assert len(json.dumps(fitted, ensure_ascii=False, separators=(",", ":"))) <= (
+        RESOURCE_JSON_MAX_CHARS
+    )
 
     value, metadata = _truncate("short", 20)
     assert value == "short"

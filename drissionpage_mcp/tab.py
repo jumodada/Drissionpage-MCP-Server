@@ -22,12 +22,29 @@ logger = logging.getLogger(__name__)
 class PageTab:
     """Wrapper around a DrissionPage Chromium tab/page object."""
 
-    def __init__(self, page: Any, context: "DrissionPageContext"):
+    def __init__(
+        self,
+        page: Any,
+        context: "DrissionPageContext",
+        *,
+        mcp_tab_id: str = "",
+    ):
         # Keep the historical ``page`` attribute name while allowing it to hold
         # DrissionPage 4.2 ChromiumTab objects.
         self.page = page
         self.context = context
+        self.mcp_tab_id = mcp_tab_id
         self._url = ""
+
+    @property
+    def native_tab_id(self) -> str:
+        """Return the underlying DrissionPage tab id when available."""
+
+        try:
+            value = getattr(self.page, "tab_id", "")
+        except Exception:
+            value = ""
+        return "" if value is None else str(value)
 
     @property
     def url(self) -> str:
@@ -36,6 +53,28 @@ class PageTab:
             return self.page.url or self._url
         except (PageDisconnectedError, Exception):
             return self._url
+
+    @property
+    def title(self) -> str:
+        """Get the current page title for tab summaries."""
+
+        try:
+            value = getattr(self.page, "title", "")
+        except Exception:
+            value = ""
+        return "" if value is None else str(value)
+
+    def summary(self, *, active: bool = False) -> Dict[str, Any]:
+        """Return a bounded public tab summary."""
+
+        return {
+            "id": self.mcp_tab_id,
+            "native_id": self.native_tab_id,
+            "url": self.url,
+            "title": self.title,
+            "active": active,
+            "connected": self.is_connected(),
+        }
 
     async def navigate(self, url: str) -> None:
         """Navigate to a URL."""

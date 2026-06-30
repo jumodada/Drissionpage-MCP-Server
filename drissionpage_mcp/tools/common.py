@@ -6,6 +6,7 @@ from pydantic import Field
 
 from ..policy import PolicyDeniedError, validate_screenshot_path
 from ..response import ErrorCode, build_screenshot_metadata
+from ..metadata import with_response_meta
 from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
@@ -162,7 +163,7 @@ async def page_snapshot(
         )
         response.add_result(
             "Captured page snapshot",
-            **snapshot,
+            **with_response_meta(snapshot),
         )
 
 

@@ -12,6 +12,7 @@ class FakePage:
         self.tab_id = tab_id
         self.closed = False
         self.url = "about:blank"
+        self.title = f"Title {tab_id}"
 
     def close(self) -> None:
         self.closed = True
@@ -20,9 +21,35 @@ class FakePage:
 class FakeBrowser:
     def __init__(self) -> None:
         self.closed_tabs: list[str] = []
+        self.pages: dict[str, FakePage] = {}
+        self.active_tab_id = ""
 
     def close_tabs(self, tab_id: str) -> None:
         self.closed_tabs.append(tab_id)
+        self.pages.pop(tab_id, None)
+        if self.active_tab_id == tab_id:
+            self.active_tab_id = next(iter(self.pages), "")
+
+    @property
+    def latest_tab(self) -> FakePage | None:
+        if self.active_tab_id:
+            return self.pages[self.active_tab_id]
+        return next(iter(self.pages.values()), None)
+
+    @property
+    def tab_ids(self) -> list[str]:
+        return list(self.pages)
+
+    def get_tab(self, tab_id: str | None = None) -> FakePage | None:
+        if tab_id is None:
+            return self.latest_tab
+        return self.pages[tab_id]
+
+    def get_tabs(self) -> list[FakePage]:
+        return list(self.pages.values())
+
+    def activate_tab(self, id_or_tab) -> None:
+        self.active_tab_id = getattr(id_or_tab, "tab_id", id_or_tab)
 
 
 class ManagedTab:
@@ -116,6 +143,94 @@ async def test_new_tab_tracks_new_page_and_makes_it_current(monkeypatch) -> None
     assert tab.page is new_page
     assert context.current_tab() is tab
     assert context.tabs() == [tab]
+
+
+@pytest.mark.asyncio
+async def test_sync_tabs_discovers_external_browser_tabs_and_switches() -> None:
+    browser = FakeBrowser()
+    browser.pages = {
+        "a": FakePage("a"),
+        "b": FakePage("b"),
+    }
+    browser.pages["a"].url = "https://example.test/a"
+    browser.pages["b"].url = "https://example.test/b"
+    browser.active_tab_id = "a"
+    context = DrissionPageContext()
+    context._browser = browser
+    context._is_initialized = True
+
+    tabs = await context.sync_tabs()
+
+    assert [tab.native_tab_id for tab in tabs] == ["a", "b"]
+    assert [tab.mcp_tab_id for tab in tabs] == ["t0", "t1"]
+    assert context.current_tab().native_tab_id == "a"
+
+    switched = await context.switch_tab("t1")
+
+    assert switched.native_tab_id == "b"
+    assert context.current_tab() is switched
+    assert browser.active_tab_id == "b"
+
+
+@pytest.mark.asyncio
+async def test_close_tab_by_id_removes_tab_and_promotes_remaining() -> None:
+    browser = FakeBrowser()
+    browser.pages = {
+        "a": FakePage("a"),
+        "b": FakePage("b"),
+    }
+    browser.active_tab_id = "b"
+    context = DrissionPageContext()
+    context._browser = browser
+    context._is_initialized = True
+    await context.sync_tabs()
+
+    await context.close_tab_by_id("t1")
+
+    assert browser.closed_tabs == ["b"]
+    assert [tab.native_tab_id for tab in context.tabs()] == ["a"]
+    assert context.current_tab().native_tab_id == "a"
+
+
+def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
+    context = DrissionPageContext(history_limit=2)
+
+    context.record_action(
+        "element_type",
+        {
+            "selector": "#password",
+            "text": "secret-value",
+            "nested": {"api_token": "abc123"},
+        },
+        {"ok": True, "message": "typed"},
+        url_before="https://example.test/login",
+        url_after="https://example.test/home",
+        tab_id="t0",
+    )
+    context.record_action("wait_time", {"seconds": 1}, {"ok": True})
+    context.record_action("page_get_url", {}, {"ok": True})
+
+    payload = context.action_history()
+
+    assert payload["limit"] == 2
+    assert payload["count"] == 2
+    assert [item["tool"] for item in payload["actions"]] == ["wait_time", "page_get_url"]
+
+    context = DrissionPageContext(history_limit=10)
+    context.record_action(
+        "element_type",
+        {
+            "selector": "#password",
+            "text": "secret-value",
+            "nested": {"api_token": "abc123"},
+        },
+        {"ok": True, "message": "typed"},
+        tab_id="t0",
+    )
+    action = context.action_history()["actions"][0]
+    assert action["args"]["text"] == "<redacted>"
+    assert action["args"]["nested"]["api_token"] == "<redacted>"
+    assert action["tab_id"] == "t0"
 
 
 @pytest.mark.asyncio

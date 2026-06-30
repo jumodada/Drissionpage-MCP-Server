@@ -10,6 +10,7 @@ from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.types import Resource
 from pydantic import AnyUrl
 
+from .metadata import response_meta
 from .policy import SafetyPolicy
 from .response import tool_data_schema_title
 from .tools.base import Tool, ToolType
@@ -19,12 +20,14 @@ PAGE_HTML_EXCERPT_CHARS = 8000
 RESOURCE_JSON_MAX_CHARS = 12000
 
 SESSION_SUMMARY_URI = "drissionpage://session/summary"
+SESSION_HISTORY_URI = "drissionpage://session/history"
 PAGE_CURRENT_URI = "drissionpage://page/current"
 TOOLS_CATALOG_URI = "drissionpage://tools/catalog"
 POLICY_SUMMARY_URI = "drissionpage://policy/summary"
 
 RESOURCE_URIS = [
     SESSION_SUMMARY_URI,
+    SESSION_HISTORY_URI,
     PAGE_CURRENT_URI,
     TOOLS_CATALOG_URI,
     POLICY_SUMMARY_URI,
@@ -40,6 +43,13 @@ def list_resources() -> list[Resource]:
             name="session_summary",
             title="Session Summary",
             description="Current DrissionPage MCP browser/session state.",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri=_uri(SESSION_HISTORY_URI),
+            name="session_history",
+            title="Session History",
+            description="Recent DrissionPage MCP tool actions with sensitive arguments redacted.",
             mimeType="application/json",
         ),
         Resource(
@@ -77,6 +87,8 @@ def read_resource(
     normalized_uri = uri.rstrip("/")
     if normalized_uri == SESSION_SUMMARY_URI:
         payload = session_summary(context)
+    elif normalized_uri == SESSION_HISTORY_URI:
+        payload = session_history(context)
     elif normalized_uri == PAGE_CURRENT_URI:
         payload = current_page(context)
     elif normalized_uri == TOOLS_CATALOG_URI:
@@ -108,6 +120,19 @@ def session_summary(context: Any) -> dict[str, Any]:
     }
 
 
+def session_history(context: Any) -> dict[str, Any]:
+    """Return redacted recent tool actions without initializing a browser."""
+
+    if context and hasattr(context, "action_history"):
+        return context.action_history()
+    return {
+        "available": True,
+        "limit": 100,
+        "count": 0,
+        "actions": [],
+    }
+
+
 def current_page(context: Any) -> dict[str, Any]:
     """Return a bounded current-page payload without initializing the browser."""
 
@@ -122,6 +147,11 @@ def current_page(context: Any) -> dict[str, Any]:
             "html_excerpt": "",
             "truncated": False,
             "limits": _limits(),
+            "meta": {
+                "approx_tokens": 0,
+                "json_chars": 0,
+                "truncated": False,
+            },
         }
 
     page = getattr(tab, "page", None)
@@ -146,7 +176,7 @@ def current_page(context: Any) -> dict[str, Any]:
         payload["text_truncation"] = text_truncation
     if html_truncation["truncated"]:
         payload["html_truncation"] = html_truncation
-    return _fit_resource_budget(payload)
+    return _finalize_page_resource(payload)
 
 
 def tools_catalog(tools: Mapping[str, Tool]) -> dict[str, Any]:
@@ -184,16 +214,26 @@ def _fit_resource_budget(payload: dict[str, Any]) -> dict[str, Any]:
 
     fitted = dict(payload)
     original_json_length = len(_json_resource(fitted))
-    for field, truncation_key in (
-        ("html_excerpt", "html_truncation"),
-        ("text_excerpt", "text_truncation"),
-    ):
-        while len(_json_resource(fitted)) > RESOURCE_JSON_MAX_CHARS and fitted.get(
-            field
+    fitted["truncated"] = True
+    fitted["resource_truncation"] = {
+        "truncated": True,
+        "original_length": original_json_length,
+        "limit": RESOURCE_JSON_MAX_CHARS,
+    }
+
+    while len(_json_resource(fitted)) > RESOURCE_JSON_MAX_CHARS:
+        shrunk = False
+        for field, truncation_key in (
+            ("html_excerpt", "html_truncation"),
+            ("text_excerpt", "text_truncation"),
         ):
+            if not fitted.get(field):
+                continue
             current = str(fitted[field])
             overflow = len(_json_resource(fitted)) - RESOURCE_JSON_MAX_CHARS
             new_limit = max(0, len(current) - overflow - 128)
+            if new_limit >= len(current):
+                continue
             fitted[field] = current[:new_limit]
             truncation = dict(fitted.get(truncation_key) or {})
             truncation.update(
@@ -207,15 +247,32 @@ def _fit_resource_budget(payload: dict[str, Any]) -> dict[str, Any]:
                 }
             )
             fitted[truncation_key] = truncation
-            fitted["truncated"] = True
+            shrunk = True
+            break
 
-    if len(_json_resource(fitted)) <= RESOURCE_JSON_MAX_CHARS:
-        fitted["resource_truncation"] = {
-            "truncated": True,
-            "original_length": original_json_length,
-            "limit": RESOURCE_JSON_MAX_CHARS,
-        }
+        if not shrunk:
+            break
     return fitted
+
+
+def _finalize_page_resource(payload: dict[str, Any]) -> dict[str, Any]:
+    """Attach fresh response metadata while preserving the resource budget."""
+
+    fitted = _fit_resource_budget(payload)
+    for _ in range(3):
+        fitted["meta"] = response_meta(_without_meta(fitted))
+        if len(_json_resource(fitted)) <= RESOURCE_JSON_MAX_CHARS:
+            return fitted
+        fitted = _fit_resource_budget(fitted)
+
+    fitted["meta"] = response_meta(_without_meta(fitted))
+    return _fit_resource_budget(fitted)
+
+
+def _without_meta(payload: dict[str, Any]) -> dict[str, Any]:
+    data = dict(payload)
+    data.pop("meta", None)
+    return data
 
 
 def _truncate(value: str, limit: int) -> tuple[str, dict[str, Any]]:

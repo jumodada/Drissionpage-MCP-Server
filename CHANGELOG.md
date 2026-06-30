@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-06-30
+
+### Added
+- Added tab management tools: `tab_list`, `tab_switch`, and `tab_close`.
+- Added `page_navigate(new_tab=true)` for opening a URL in a new tracked browser tab.
+- Added `drissionpage://session/history` with redacted recent tool actions.
+- Added response size metadata to bounded page, form, and repeated-element outputs.
+
+### Changed
+- Tool registry now exposes 25 public tools.
+- Browser tab state is synchronized with tabs opened outside MCP commands, such as `target="_blank"` links.
+
 ## [0.5.0] - 2026-06-29
 
 ### Added
@@ -206,7 +218,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.1...HEAD
+[0.5.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.10...v0.5.0
 [0.4.10]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.9...v0.4.10
 [0.4.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.5...v0.4.9

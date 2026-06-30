@@ -10,7 +10,7 @@ import pytest
 from DrissionPage.errors import ElementNotFoundError
 
 from drissionpage_mcp.response import ToolResponse
-from drissionpage_mcp.tools import common, element, forms, navigate, wait
+from drissionpage_mcp.tools import common, element, forms, navigate, tabs, wait
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
@@ -23,9 +23,22 @@ class FakeTab:
 
     def __init__(self) -> None:
         self.url = "https://example.test/current"
+        self.title = "Fake Tab"
+        self.mcp_tab_id = "t0"
+        self.native_tab_id = "native-0"
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
         self.wait_element_result = True
         self.wait_url_result = True
+
+    def summary(self, *, active: bool = False) -> dict[str, Any]:
+        return {
+            "id": self.mcp_tab_id,
+            "native_id": self.native_tab_id,
+            "url": self.url,
+            "title": self.title,
+            "active": active,
+            "connected": True,
+        }
 
     async def resize(self, width: int, height: int) -> None:
         self._record("resize", width, height)
@@ -253,14 +266,54 @@ class FakeTab:
 class FakeContext:
     def __init__(self) -> None:
         self.tab = FakeTab()
+        self.created_tab = FakeTab()
+        self.created_tab.mcp_tab_id = "t1"
+        self.created_tab.native_tab_id = "native-1"
+        self.created_tab.url = "https://example.test/new"
         self.closed = False
         self.waited: list[float] = []
+        self.tab_infos = [
+            {
+                "id": "t0",
+                "native_id": "native-0",
+                "url": "https://example.test/current",
+                "title": "Current",
+                "active": True,
+                "connected": True,
+            },
+            {
+                "id": "t1",
+                "native_id": "native-1",
+                "url": "https://example.test/new",
+                "title": "New",
+                "active": False,
+                "connected": True,
+            },
+        ]
 
     def current_tab_or_die(self) -> FakeTab:
         return self.tab
 
     async def ensure_tab(self) -> FakeTab:
         return self.tab
+
+    async def new_tab(self) -> FakeTab:
+        return self.created_tab
+
+    async def sync_tabs(self):
+        return [self.tab, self.created_tab]
+
+    def tab_summaries(self):
+        return self.tab_infos
+
+    async def switch_tab(self, tab_id: str):
+        self.tab_infos[0]["active"] = False
+        self.tab_infos[1]["active"] = True
+        self.tab = self.created_tab
+        return self.created_tab
+
+    async def close_tab_by_id(self, tab_id: str):
+        self.tab_infos = [info for info in self.tab_infos if info["id"] != tab_id]
 
     async def close_browser(self) -> None:
         self.closed = True
@@ -401,10 +454,22 @@ async def test_navigation_tools_success_paths() -> None:
     assert nav_response.get_structured_content()["data"] == {
         "url": "https://example.test/next",
         "final_url": "https://example.test/next",
+        "new_tab": False,
+        "tab_id": "t0",
     }
     assert "Successfully navigated" in _message(nav_response)
     assert nav_response.should_include_snapshot() is True
     assert ctx.tab.url == "https://example.test/next"
+
+    new_tab_response = await _execute(
+        navigate.navigate,
+        ctx,
+        navigate.NavigateInput(url="https://example.test/new", new_tab=True),
+    )
+    new_tab_payload = new_tab_response.get_structured_content()
+    assert new_tab_payload["data"]["url"] == "https://example.test/new"
+    assert new_tab_payload["data"]["final_url"] == "https://example.test/new"
+    assert new_tab_payload["data"]["new_tab"] is True
 
     for tool, expected_call, expected_message in [
         (navigate.go_back, "go_back", "went back"),
@@ -505,7 +570,7 @@ def test_get_property_input_uses_property_field_only() -> None:
         (common.PageSnapshotInput, {"maxElements": 10}),
         (common.ScreenshotInput, {"fullPage": True}),
         (common.ResizeInput, {"width": 800, "height": 600, "extra": True}),
-        (navigate.NavigateInput, {"url": "https://example.test", "new_tab": True}),
+        (navigate.NavigateInput, {"url": "https://example.test", "background": True}),
         (element.FindElementInput, {"selector": "h1", "timeout_ms": 1}),
         (element.FindAllElementsInput, {"selector": "li", "max_items": 10}),
         (
@@ -524,6 +589,29 @@ def test_tool_inputs_reject_unknown_fields(model, payload) -> None:
 
     with pytest.raises(Exception, match="Extra inputs"):
         model.model_validate(payload)
+
+
+@pytest.mark.asyncio
+async def test_tab_tools_success_paths() -> None:
+    ctx = FakeContext()
+
+    list_response = await _execute(tabs.tab_list, ctx, tabs.EmptyInput())
+    list_payload = list_response.get_structured_content()
+    assert list_payload["data"]["count"] == 2
+    assert list_payload["data"]["active_tab_id"] == "t0"
+    assert list_payload["data"]["tabs"][1]["url"] == "https://example.test/new"
+
+    switch_response = await _execute(
+        tabs.tab_switch, ctx, tabs.TabIdInput(tab_id="t1")
+    )
+    switch_payload = switch_response.get_structured_content()
+    assert switch_payload["data"]["tab"]["id"] == "t1"
+    assert switch_payload["data"]["tab"]["active"] is True
+
+    close_response = await _execute(tabs.tab_close, ctx, tabs.TabIdInput(tab_id="t1"))
+    close_payload = close_response.get_structured_content()
+    assert close_payload["data"]["closed"] is True
+    assert close_payload["data"]["tab_id"] == "t1"
 
 
 @pytest.mark.asyncio
@@ -563,7 +651,12 @@ async def test_element_tools_success_paths() -> None:
         ),
     )
     found_all_payload = found_all_response.get_structured_content()
-    assert found_all_payload["data"] == {
+    found_all_data = dict(found_all_payload["data"])
+    found_all_meta = found_all_data.pop("meta")
+    assert found_all_meta["approx_tokens"] > 0
+    assert found_all_meta["json_chars"] > 0
+    assert found_all_meta["truncated"] is True
+    assert found_all_data == {
         "selector": ".product-card",
         "locator": "css:.product-card",
         "selector_strategy": "css",
