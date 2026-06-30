@@ -25,12 +25,15 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 22
+    assert len(tools) == 25
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
         "page_navigate",
         "page_snapshot",
+        "tab_list",
+        "tab_switch",
+        "tab_close",
         "element_find_all",
         "form_inspect",
         "element_get_text",
@@ -148,11 +151,12 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 22
+            assert len(tools.tools) == 25
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
                 "page_snapshot",
+                "tab_list",
                 "element_find_all",
                 "form_inspect",
             }

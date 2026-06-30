@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 22 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 25 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -123,12 +123,17 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 22 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 25 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
-- `page_navigate` - Navigate to any URL
+- `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab`
 - `page_go_back` / `page_go_forward` - Browser history
 - `page_refresh` - Reload current page
+
+### 🗂️ Tab Operations (3 tools)
+- `tab_list` - List open browser tabs with stable MCP tab IDs
+- `tab_switch` - Switch to a tab returned by `tab_list`
+- `tab_close` - Close one tab without closing the whole browser
 
 ### 🎯 Element Interaction & Extraction (8 tools)
 - `element_find` - Find one element by CSS selector or XPath; bare selectors like `h1` are treated as CSS
@@ -157,7 +162,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `wait_time` - Delay execution
 
 ### 🧩 MCP Resources and Prompts
-- Resources: `drissionpage://session/summary`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
+- Resources: `drissionpage://session/summary`, `drissionpage://session/history`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
 - Prompts: `browser_navigate_and_summarize`, `browser_extract_structured_data`, `browser_fill_form_safely`, `browser_debug_page_issue`
 
 ---
@@ -186,7 +191,7 @@ DrissionMCP/
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 22 automation and page-understanding tools
+│   └── tools/              # 25 automation, tab-management, and page-understanding tools
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -340,7 +345,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.5.0`.
+Should output the installed package version, for example `drissionpage-mcp 0.5.1`.
 
 ### Browser Issues?
 ```bash
@@ -369,20 +374,22 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.5.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.5.1 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.5.0)
-- [x] 22 core automation, page-understanding, and form-inspection tools with removed alias surface
+### Current (v0.5.1)
+- [x] 25 core automation, tab-management, page-understanding, and form-inspection tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
 - [x] Structured recovery hints in `error.details.hints` for common failures
 - [x] Balanced `page_snapshot` output so link-heavy pages still expose controls and forms
 - [x] `form_inspect` read-only form inventory with labels, selectors, requirements, options, and safe optional values
+- [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
+- [x] Redacted session history resource and response size metadata for bounded outputs
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
 - [x] PyPI distribution
@@ -528,10 +535,14 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.5.0
+## 🆕 Latest Version: v0.5.1
 
-Released on 2026-06-29. This release starts the 0.5 form workflow with a safe read-only inspection tool while preserving the 0.4 recovery improvements:
+Released on 2026-06-30. This release makes multi-tab browsing and long-session recovery easier while preserving the 0.5 form workflow:
 
+- `tab_list`, `tab_switch`, and `tab_close` manage tabs opened by MCP tools or normal page interactions such as `target="_blank"` links.
+- `page_navigate` now accepts `new_tab=true` to open a URL in a new tracked tab.
+- `drissionpage://session/history` returns recent tool actions with sensitive arguments redacted.
+- `page_snapshot`, `element_find_all`, and `form_inspect` include `meta.approx_tokens` and size metadata for better response budgeting.
 - `form_inspect` inspects forms and controls with labels, selectors, methods/actions, required/disabled/read-only state, select options, and opt-in non-password values.
 - Failure payloads include machine-readable `error.details.hints` for common recovery paths.
 - Missing element and selector failures suggest `page_snapshot`, `element_find_all`, `wait_for_element`, and iframe/dynamic-content checks.
@@ -539,4 +550,4 @@ Released on 2026-06-29. This release starts the 0.5 form workflow with a safe re
 - Timeout, browser startup, screenshot, navigation, policy, invalid-argument, and unknown-tool failures now include targeted next steps.
 - `MCP_ARGUMENT_INVALID` still protects strict schemas and now points clients toward exact snake_case field names.
 - Browser startup hints point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, `DP_HEADLESS`, and `DP_NO_SANDBOX`.
-- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry now has 22 tools.
+- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry now has 25 tools.

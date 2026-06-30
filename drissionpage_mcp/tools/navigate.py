@@ -17,6 +17,10 @@ class NavigateInput(ToolInput):
     """Input schema for navigate tool."""
 
     url: str = Field(..., description="The URL to navigate to")
+    new_tab: bool = Field(
+        default=False,
+        description="Open the URL in a new browser tab instead of the current tab.",
+    )
 
 
 class EmptyInput(ToolInput):
@@ -50,7 +54,7 @@ async def navigate(
     async with tool_errors(
         response, lambda e: f"Failed to navigate to {args.url}: {e}"
     ):
-        tab = await context.ensure_tab()
+        tab = await context.new_tab() if args.new_tab else await context.ensure_tab()
         await tab.navigate(args.url)
 
         response.add_code(f"page.get({args.url!r})")
@@ -58,6 +62,8 @@ async def navigate(
             f"Successfully navigated to: {args.url}",
             url=args.url,
             final_url=tab.url,
+            new_tab=args.new_tab,
+            tab_id=_safe_tab_id(tab),
         )
         response.set_include_snapshot(True)
 
@@ -124,3 +130,8 @@ async def refresh(
 
 # Export all tools
 tools = [navigate, go_back, go_forward, refresh]
+
+
+def _safe_tab_id(tab) -> str:
+    value = getattr(tab, "mcp_tab_id", "")
+    return value if isinstance(value, str) else ""

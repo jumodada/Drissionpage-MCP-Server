@@ -123,10 +123,18 @@ The server marks tools with MCP annotations:
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
-| `page_navigate` | Destructive | `url` | Open a URL in the active browser tab. |
+| `page_navigate` | Destructive | `url` | Open a URL in the active browser tab. Optional: `new_tab`. |
 | `page_go_back` | Destructive | none | Go back in browser history. |
 | `page_go_forward` | Destructive | none | Go forward in browser history. |
 | `page_refresh` | Destructive | none | Reload the current page. |
+
+### Tab Operations
+
+| Tool | Type | Required input | Description |
+| --- | --- | --- | --- |
+| `tab_list` | Read-only | none | List open browser tabs with stable MCP tab IDs, native tab IDs, URLs, titles, and active state. |
+| `tab_switch` | Destructive | `tab_id` | Switch to a tab returned by `tab_list`. |
+| `tab_close` | Destructive | `tab_id` | Close one browser tab without closing the whole browser. |
 
 ### Page Operations
 
@@ -173,6 +181,7 @@ The server exposes deterministic JSON resources:
 | URI | Purpose |
 | --- | --- |
 | `drissionpage://session/summary` | Browser/session activity, tab count, current URL, and policy flags. |
+| `drissionpage://session/history` | Redacted recent tool actions for recovering long-session context. |
 | `drissionpage://page/current` | Bounded current page title, URL, text excerpt, and HTML excerpt. |
 | `drissionpage://tools/catalog` | Public tool catalog with annotations and output data schema names. |
 | `drissionpage://policy/summary` | Redacted local safety policy summary. |
@@ -198,8 +207,10 @@ The server exposes user-controlled workflow prompts:
 
 - Selectors are normalized before calling DrissionPage: bare selectors are treated as CSS (`h1` -> `css:h1`, `input[name=q]` -> `css:input[name=q]`), XPath-looking strings are prefixed as XPath (`//h1` -> `xpath://h1`), and explicit DrissionPage forms such as `tag:h1`, `text:Submit`, `css:...`, `xpath:...`, and `@name=value` are preserved.
 - Tool responses include selector metadata: `selector`, `locator`, `selector_strategy`, and `selector_normalized`.
+- `page_snapshot`, `element_find_all`, and `form_inspect` include `meta.approx_tokens`, `meta.json_chars`, and `meta.truncated` so clients can narrow later calls when a response is large.
 - `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
 - `form_inspect` is read-only. It returns field values only when `include_values=true`, and password values are always returned as `null`.
+- `tab_list` synchronizes with browser tabs opened by normal page behavior, including `target="_blank"` links.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
 - `element_input_text` and `wait_sleep` were removed in 0.4.0. Use
   `element_type` and `wait_time`.

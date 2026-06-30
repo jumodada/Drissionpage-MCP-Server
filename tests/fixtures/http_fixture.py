@@ -30,6 +30,7 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                       <h1>DrissionMCP Fixture</h1>
                       <a id="form-link" href="/form">Form</a>
                       <a id="dynamic-link" href="/dynamic">Dynamic</a>
+                      <a id="new-tab-link" href="/new-tab" target="_blank">Open New Tab</a>
                       <iframe id="fixture-frame" src="/iframe" title="Fixture Frame"></iframe>
                     </main>
                   </body>
@@ -78,6 +79,22 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                         document.getElementById('dynamic-root').appendChild(node);
                       }, 50);
                     </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/new-tab":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture New Tab</title></head>
+                  <body>
+                    <main id="new-tab-page">
+                      <h1>New Tab Target</h1>
+                    </main>
                   </body>
                 </html>
                 """

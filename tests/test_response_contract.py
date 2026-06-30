@@ -230,6 +230,7 @@ def test_page_understanding_output_schemas_validate_success_payloads() -> None:
         counts={"headings": 0},
         truncated={"text": False, "elements": False, "returned_elements": 0},
         limits={"max_elements": 50, "max_text_chars": 4000},
+        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
     ).to_dict()
     find_all_payload = ToolResult.success(
         "Found 1 of 1 elements: .card",
@@ -250,6 +251,7 @@ def test_page_understanding_output_schemas_validate_success_payloads() -> None:
                 "attributes": {"id": "alpha"},
             }
         ],
+        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
     ).to_dict()
 
     validate(snapshot_payload, tool_result_output_schema("page_snapshot"))
@@ -265,6 +267,7 @@ def test_form_inspect_output_schema_validates_success_payload() -> None:
         returned=1,
         limits={"max_forms": 10, "max_fields_per_form": 50},
         truncated={"forms": False, "fields": False},
+        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
         forms=[
             {
                 "index": 0,

@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
+from ..metadata import with_response_meta
 from ..selector import normalize_selector
 from .base import ToolInput, ToolType, define_tool, tool_errors
 
@@ -191,7 +192,7 @@ async def find_all_elements(
         )
         response.add_result(
             f"Found {result['returned']} of {result['count']} elements: {args.selector}",
-            **result,
+            **with_response_meta(result),
         )
 
 

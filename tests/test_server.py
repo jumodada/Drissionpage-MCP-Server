@@ -81,6 +81,9 @@ class TestToolsIntegration:
         assert "page_go_back" in tool_names
         assert "page_go_forward" in tool_names
         assert "page_refresh" in tool_names
+        assert "tab_list" in tool_names
+        assert "tab_switch" in tool_names
+        assert "tab_close" in tool_names
 
         # Common tools
         assert "page_resize" in tool_names
@@ -109,7 +112,7 @@ class TestToolsIntegration:
         assert "wait_for_url" in tool_names
         assert "wait_time" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 22
+        assert len(tool_names) == 25
 
 
 if __name__ == "__main__":
@@ -145,6 +148,25 @@ async def test_internal_call_tool_impl_success_path_uses_context() -> None:
         "data": {"waited_seconds": 0.0},
     }
     assert server.context is not None
+    history = server.context.action_history()
+    assert history["count"] == 1
+    assert history["actions"][0]["tool"] == "wait_time"
+    assert history["actions"][0]["result"]["ok"] is True
+
+
+@pytest.mark.asyncio
+async def test_internal_call_tool_impl_redacts_history_arguments() -> None:
+    server = DrissionPageMCPServer()
+    result = await server._call_tool_impl(
+        "element_type",
+        {"selector": "#password", "text": "secret", "timeout": 0},
+    )
+
+    assert result.isError is True
+    assert server.context is not None
+    action = server.context.action_history()["actions"][0]
+    assert action["tool"] == "element_type"
+    assert action["args"]["text"] == "<redacted>"
 
 
 @pytest.mark.asyncio

@@ -576,6 +576,29 @@ PAGE_SNAPSHOT_LIMITS_SCHEMA = _data_schema(
     ["max_elements", "max_text_chars"],
 )
 
+META_SCHEMA = _data_schema(
+    "ResponseMeta",
+    {
+        "approx_tokens": INTEGER,
+        "json_chars": INTEGER,
+        "truncated": BOOLEAN,
+    },
+    ["approx_tokens", "json_chars", "truncated"],
+)
+
+TAB_SUMMARY_SCHEMA = _data_schema(
+    "TabSummary",
+    {
+        "id": STRING,
+        "native_id": STRING,
+        "url": STRING,
+        "title": STRING,
+        "active": BOOLEAN,
+        "connected": BOOLEAN,
+    },
+    ["id", "native_id", "url", "title", "active", "connected"],
+)
+
 _GENERIC_DATA_SCHEMA = _data_schema(
     "GenericToolData",
     {},
@@ -585,8 +608,32 @@ _GENERIC_DATA_SCHEMA = _data_schema(
 TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
     "page_navigate": _data_schema(
         "PageNavigateData",
-        {"url": STRING, "final_url": STRING},
-        ["url", "final_url"],
+        {"url": STRING, "final_url": STRING, "new_tab": BOOLEAN, "tab_id": STRING},
+        ["url", "final_url", "new_tab", "tab_id"],
+    ),
+    "tab_list": _data_schema(
+        "TabListData",
+        {
+            "tabs": {"type": "array", "items": TAB_SUMMARY_SCHEMA},
+            "count": INTEGER,
+            "active_tab_id": STRING,
+        },
+        ["tabs", "count", "active_tab_id"],
+    ),
+    "tab_switch": _data_schema(
+        "TabSwitchData",
+        {"tab": TAB_SUMMARY_SCHEMA, "tab_id": STRING, "url": STRING},
+        ["tab", "tab_id", "url"],
+    ),
+    "tab_close": _data_schema(
+        "TabCloseData",
+        {
+            "closed": {"const": True},
+            "tab_id": STRING,
+            "remaining_count": INTEGER,
+            "active_tab_id": STRING,
+        },
+        ["closed", "tab_id", "remaining_count", "active_tab_id"],
     ),
     "page_go_back": _data_schema("PageGoBackData", {"url": STRING}, ["url"]),
     "page_go_forward": _data_schema("PageGoForwardData", {"url": STRING}, ["url"]),
@@ -615,6 +662,7 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "counts": OUTLINE_COUNTS_SCHEMA,
             "truncated": PAGE_SNAPSHOT_TRUNCATION_SCHEMA,
             "limits": PAGE_SNAPSHOT_LIMITS_SCHEMA,
+            "meta": META_SCHEMA,
         },
         [
             "url",
@@ -628,6 +676,7 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "counts",
             "truncated",
             "limits",
+            "meta",
         ],
     ),
     "page_click_xy": _data_schema(
@@ -655,6 +704,7 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "limit": INTEGER,
             "truncated": BOOLEAN,
             "elements": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "meta": META_SCHEMA,
         },
         [
             *SELECTOR_METADATA_REQUIRED,
@@ -663,6 +713,7 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "limit",
             "truncated",
             "elements",
+            "meta",
         ],
     ),
     "form_inspect": _data_schema(
@@ -675,6 +726,7 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "limits": FORM_INSPECT_LIMITS_SCHEMA,
             "truncated": FORM_INSPECT_TRUNCATION_SCHEMA,
             "forms": {"type": "array", "items": FORM_SUMMARY_SCHEMA},
+            "meta": META_SCHEMA,
         },
         [
             "selector",
@@ -684,6 +736,7 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "limits",
             "truncated",
             "forms",
+            "meta",
         ],
     ),
     "element_click": _data_schema(

@@ -117,9 +117,29 @@ class DrissionPageMCPServer:
             try:
                 # Validate input
                 validated_args = tool.input_schema.model_validate(arguments or {})
+                current_tab = self.context.current_tab() if self.context else None
+                url_before = getattr(current_tab, "url", "") if current_tab else ""
+                tab_id_before = (
+                    getattr(current_tab, "mcp_tab_id", "") if current_tab else ""
+                )
 
                 # Execute tool
                 await tool.execute(self.context, validated_args, response)
+                payload = response.get_structured_content()
+                current_tab = self.context.current_tab() if self.context else None
+                url_after = getattr(current_tab, "url", "") if current_tab else ""
+                tab_id_after = (
+                    getattr(current_tab, "mcp_tab_id", "") if current_tab else ""
+                )
+                if self.context and hasattr(self.context, "record_action"):
+                    self.context.record_action(
+                        name,
+                        validated_args.model_dump(),
+                        payload,
+                        url_before=url_before,
+                        url_after=url_after,
+                        tab_id=tab_id_after or tab_id_before,
+                    )
 
                 # Return response content
                 return self._call_result(response)
@@ -140,6 +160,12 @@ class DrissionPageMCPServer:
                     classify_error(e, name),
                     tool_name=name,
                 )
+                if self.context and hasattr(self.context, "record_action"):
+                    self.context.record_action(
+                        name,
+                        arguments or {},
+                        response.get_structured_content(),
+                    )
                 return self._call_result(response)
 
         async def call_tool_handler(req: CallToolRequest) -> ServerResult:

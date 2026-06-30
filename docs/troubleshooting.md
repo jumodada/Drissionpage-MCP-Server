@@ -92,7 +92,7 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current 0.5.0 tool registry should load 22 tools.
+The current 0.5.1 tool registry should load 25 tools.
 
 ## Browser Does Not Start
 

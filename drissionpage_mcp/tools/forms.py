@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
+from ..metadata import with_response_meta
 from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
@@ -72,7 +73,7 @@ async def form_inspect(
         response.add_code("page.run_js(<bounded form inspection script>)")
         response.add_result(
             f"Inspected {result['returned']} of {result['count']} forms",
-            **result,
+            **with_response_meta(result),
         )
 
 

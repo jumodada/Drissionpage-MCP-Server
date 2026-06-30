@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-与基于截图的方法不同，它通过 22 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+与基于截图的方法不同，它通过 25 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -123,12 +123,17 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 22 个强大工具 + MCP Resources/Prompts
+## 🛠️ 25 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
-- `page_navigate` - 导航到任意 URL
+- `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开
 - `page_go_back` / `page_go_forward` - 浏览器历史记录
 - `page_refresh` - 重新加载当前页面
+
+### 🗂️ 标签页工具（3 个）
+- `tab_list` - 列出当前打开的浏览器标签页和稳定 MCP tab ID
+- `tab_switch` - 切换到 `tab_list` 返回的标签页
+- `tab_close` - 关闭单个标签页，不关闭整个浏览器
 
 ### 🎯 元素交互与提取（8 个）
 - `element_find` - 通过 CSS 选择器或 XPath 查找单个元素；`h1` 等裸选择器按 CSS 处理
@@ -157,7 +162,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `wait_time` - 延迟执行
 
 ### 🧩 MCP Resources 和 Prompts
-- Resources：`drissionpage://session/summary`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
+- Resources：`drissionpage://session/summary`、`drissionpage://session/history`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
 - Prompts：`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_fill_form_safely`、`browser_debug_page_issue`
 
 ---
@@ -186,7 +191,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 22 个自动化、页面理解与表单检查工具
+│   └── tools/              # 25 个自动化、标签页管理、页面理解与表单检查工具
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -340,7 +345,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.5.0`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.5.1`。
 
 ### 浏览器问题？
 ```bash
@@ -369,20 +374,22 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.5.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.5.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.5.0)
-- [x] 22 个核心自动化、页面理解与表单检查工具，已移除 alias 工具面
+### 当前版本 (v0.5.1)
+- [x] 25 个核心自动化、标签页管理、页面理解与表单检查工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
 - [x] 常见失败会在 `error.details.hints` 中返回结构化恢复建议
 - [x] `page_snapshot` 会平衡输出预算，链接密集页面仍能暴露按钮、输入框和表单
 - [x] `form_inspect` 只读表单 inventory，返回 label、selector、必填状态、选项和安全的可选 value
+- [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
+- [x] 脱敏 session history resource，以及有界输出的响应大小 metadata
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] Resources、Prompts、eval harness、兼容性和故障排除文档
 - [x] PyPI 发布
@@ -528,10 +535,14 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.5.0
+## 🆕 最新版本：v0.5.1
 
-发布日期：2026-06-29。本版本开启 0.5 表单工作流，新增安全的只读表单检查工具，同时保留 0.4 的失败恢复改进：
+发布日期：2026-06-30。本版本让多标签页浏览和长会话恢复更稳定，同时保留 0.5 表单工作流：
 
+- `tab_list`、`tab_switch` 和 `tab_close` 可以管理 MCP 工具或页面交互打开的标签页，例如 `target="_blank"` 链接。
+- `page_navigate` 现在支持 `new_tab=true`，可在新的受跟踪标签页中打开 URL。
+- `drissionpage://session/history` 会返回最近工具操作，并对敏感参数脱敏。
+- `page_snapshot`、`element_find_all` 和 `form_inspect` 增加 `meta.approx_tokens` 与大小信息，便于控制响应预算。
 - `form_inspect` 可以检查表单和控件，返回 label、selector、method/action、必填/禁用/只读状态、select options，以及 opt-in 的非 password value。
 - 失败 payload 会在 `error.details.hints` 中返回机器可读的恢复建议。
 - 元素缺失和 selector 失败会建议 `page_snapshot`、`element_find_all`、`wait_for_element` 以及 iframe / 动态内容检查。
@@ -539,4 +550,4 @@ codex mcp list
 - timeout、浏览器启动、截图、导航、policy、参数错误和未知工具失败现在都有针对性的下一步建议。
 - `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并会提示客户端使用准确的 snake_case 字段名。
 - 浏览器启动失败会提示 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH`、`DP_HEADLESS` 和 `DP_NO_SANDBOX`。
-- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数变为 22 个。
+- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数变为 25 个。
