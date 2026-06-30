@@ -41,6 +41,15 @@
 - **开源友好**：包含兼容性说明、故障排除和 CI 检查，便于维护和贡献
 - **易于集成**：简单的 `pip install` + Codex TOML 或 MCP JSON 配置即可使用
 
+### ✅ 质量保障与真实场景验证
+
+DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
+
+- **严格自动化测试**：CI 会运行单元、协议、schema snapshot、响应合同、资源/提示词、发布元数据、安全策略、浏览器集成和覆盖率检查。
+- **95% 覆盖率底线**：CI 强制执行当前 95% 覆盖率门槛，并上传覆盖率报告。
+- **真实浏览器验证**：Chrome/Chromium 集成测试会直接调用暴露给客户端的 MCP 工具。
+- **场景化验证**：playground MCP Lab 覆盖表单、电商页面、社交 feed、时间线、动态等待、iframe 和失败恢复等场景，不依赖公共演示网站。
+
 ---
 
 ## ⚡ 首次成功路径
@@ -161,7 +170,6 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 | [docs/compatibility.md](docs/compatibility.md) | Python、DrissionPage、MCP 和浏览器兼容性 |
 | [docs/tool-contract.md](docs/tool-contract.md) | MCP 工具名称、输入、注解和响应格式 |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | doctor 命令、浏览器启动和客户端配置排查 |
-| [docs/release-checklist.md](docs/release-checklist.md) | 发布验证和发布清单 |
 | [CHANGELOG.md](CHANGELOG.md) | 版本变更 |
 
 ---
@@ -294,29 +302,19 @@ python -m pytest tests/
 # 覆盖率报告（CI 会执行当前 95% 覆盖率底线并上传 coverage.xml）
 python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 
-# 可选共享 Astro SSR test-site smoke
-# 先在同级 checkout 启动 ../DrissionPage-test-site：
-#   npm ci && npm run build && npm run dev -- --host 127.0.0.1 --port 4321
-DP_TEST_SITE_URL=http://127.0.0.1:4321 \
-  DP_HEADLESS=1 python -m pytest tests/test_browser_integration.py -k shared_drissionpage_test_site
+# 真实浏览器 MCP Lab 场景检查
+DP_HEADLESS=1 python playground/run_mcp_lab.py --all --json
 ```
 
 GitHub Actions 已配置 lint、单元、协议、打包、浏览器集成和覆盖率检查；
-具备浏览器的 job 会额外 checkout 并启动 `jumodada/DrissionPage-test-site`
-以运行共享 SSR smoke。
-如果要在 CI 里复用已部署的私有/半私有测试站，请只配置仓库 secret
-`DP_PRIVATE_FIXTURE_URL`，不要把真实 URL 写进 workflow、README 或 issue。该
-secret 只在非 `pull_request` 事件中作为额外远端 smoke 使用；公开 PR 会继续使用
-本地 checkout 启动的 fixture。
-Codecov 通过 `codecov.yml` 和 CI workflow 上传覆盖率；请配置仓库 secret
-`CODECOV_TOKEN`，让 GitHub Actions 能稳定上传 `coverage.xml`。
+Codecov 通过 `codecov.yml` 和 CI workflow 上传覆盖率。
 
 ### 试用
 ```bash
-# 无浏览器 MCP 工具注册 smoke
+# 无浏览器 MCP 工具注册检查
 python playground/run_mcp_lab.py --case registry
 
-# 本地确定性测试站点 smoke
+# 本地确定性测试站点检查
 python playground/run_mcp_lab.py --case site
 
 # 真实浏览器表单检查场景
@@ -366,7 +364,7 @@ which chromium         # macOS
 | 组件 | 状态 |
 |-----------|--------|
 | **核心功能** | ✅ 完成 |
-| **测试** | ✅ 单元/协议检查，可选浏览器烟测 |
+| **测试** | ✅ 严格单元/协议/schema 检查 + 真实浏览器场景验证 |
 | **文档** | ✅ 安装、兼容性、故障排除、发布清单 |
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |

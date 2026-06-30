@@ -41,6 +41,15 @@ Unlike screenshot-based approaches, it provides **structured, deterministic web 
 - **Open-source Friendly**: Includes compatibility notes, troubleshooting, and CI checks for maintainable contributions
 - **Easy Integration**: Simple `pip install` + Codex TOML or MCP JSON configuration
 
+### ✅ Quality and Real-World Validation
+
+DrissionPage MCP is backed by a strict regression suite and browser-backed scenario checks:
+
+- **Strict automated tests**: unit, protocol, schema snapshot, response-contract, resource/prompt, release-metadata, security-policy, browser-integration, and coverage checks run in CI.
+- **95% coverage floor**: CI enforces the current 95% coverage threshold and uploads coverage reports.
+- **Real browser verification**: Chrome/Chromium-backed integration tests exercise the same MCP tools exposed to clients.
+- **Scenario validation**: the playground MCP Lab covers realistic forms, commerce pages, social feeds, timelines, dynamic waits, iframe cases, and recovery paths without depending on public demo websites.
+
 ---
 
 ## ⚡ First Success Path
@@ -161,7 +170,6 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 | [docs/compatibility.md](docs/compatibility.md) | Supported Python, DrissionPage, MCP, and browser versions |
 | [docs/tool-contract.md](docs/tool-contract.md) | Public MCP tool names, inputs, annotations, and response shape |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Doctor command, browser startup, and client setup fixes |
-| [docs/release-checklist.md](docs/release-checklist.md) | Release validation and publishing checklist |
 | [CHANGELOG.md](CHANGELOG.md) | Release notes |
 
 ---
@@ -294,29 +302,19 @@ python -m pytest tests/
 # Coverage report (CI enforces the current 95% floor and uploads coverage.xml)
 python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
 
-# Optional shared Astro SSR test-site smoke
-# In a sibling checkout, start ../DrissionPage-test-site first:
-#   npm ci && npm run build && npm run dev -- --host 127.0.0.1 --port 4321
-DP_TEST_SITE_URL=http://127.0.0.1:4321 \
-  DP_HEADLESS=1 python -m pytest tests/test_browser_integration.py -k shared_drissionpage_test_site
+# Browser-backed MCP Lab scenario checks
+DP_HEADLESS=1 python playground/run_mcp_lab.py --all --json
 ```
 
 GitHub Actions runs lint, unit, protocol, package, browser integration, and
-coverage jobs. Browser-capable jobs also checkout and start
-`jumodada/DrissionPage-test-site` for the shared SSR smoke. To reuse a deployed
-private/semi-private test site in CI, configure only the `DP_PRIVATE_FIXTURE_URL`
-repository secret; do not commit the real URL to workflows, docs, or issues. The
-secret-backed remote smoke runs only outside `pull_request` events, while public
-PRs keep using the local checkout fixture. Codecov is configured through `codecov.yml` and the CI workflow;
-set the `CODECOV_TOKEN` repository secret so the upload step can publish
-`coverage.xml` reliably from GitHub Actions.
+coverage jobs. Codecov is configured through `codecov.yml` and the CI workflow.
 
 ### Try It Out
 ```bash
-# No-browser MCP registry smoke
+# No-browser MCP registry check
 python playground/run_mcp_lab.py --case registry
 
-# Local deterministic site smoke
+# Local deterministic site check
 python playground/run_mcp_lab.py --case site
 
 # Browser-backed form inspection scenario
@@ -366,7 +364,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | Component | Status |
 |-----------|--------|
 | **Core Features** | ✅ Complete |
-| **Testing** | ✅ Unit/protocol checks, optional browser smoke |
+| **Testing** | ✅ Strict unit/protocol/schema checks plus browser-backed scenarios |
 | **Documentation** | ✅ Setup, compatibility, troubleshooting, release checklist |
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
