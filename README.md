@@ -293,10 +293,21 @@ python -m pytest tests/
 
 # Coverage report (CI enforces the current 95% floor and uploads coverage.xml)
 python -m pytest tests/ --cov=drissionpage_mcp --cov-report=term-missing --cov-report=xml
+
+# Optional shared Astro SSR test-site smoke
+# In a sibling checkout, start ../DrissionPage-test-site first:
+#   npm ci && npm run build && npm run dev -- --host 127.0.0.1 --port 4321
+DP_TEST_SITE_URL=http://127.0.0.1:4321 \
+  DP_HEADLESS=1 python -m pytest tests/test_browser_integration.py -k shared_drissionpage_test_site
 ```
 
 GitHub Actions runs lint, unit, protocol, package, browser integration, and
-coverage jobs. Codecov is configured through `codecov.yml` and the CI workflow;
+coverage jobs. Browser-capable jobs also checkout and start
+`jumodada/DrissionPage-test-site` for the shared SSR smoke. To reuse a deployed
+private/semi-private test site in CI, configure only the `DP_PRIVATE_FIXTURE_URL`
+repository secret; do not commit the real URL to workflows, docs, or issues. The
+secret-backed remote smoke runs only outside `pull_request` events, while public
+PRs keep using the local checkout fixture. Codecov is configured through `codecov.yml` and the CI workflow;
 set the `CODECOV_TOKEN` repository secret so the upload step can publish
 `coverage.xml` reliably from GitHub Actions.
 

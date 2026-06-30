@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import base64
+import json
 import os
 from typing import Any, Dict, List, Tuple
+from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 from urllib.request import urlopen
 
 import pytest
@@ -12,6 +14,9 @@ import pytest
 from drissionpage_mcp.response import ToolResponse
 from drissionpage_mcp.server import DrissionPageMCPServer
 from tests.fixtures.http_fixture import local_http_fixture
+
+SHARED_TEST_SITE_URL_ENV = "DP_TEST_SITE_URL"
+
 
 _BROWSER_UNAVAILABLE_MARKERS = (
     "browser",
@@ -38,6 +43,104 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert _read(base_url + "/status/404")[0] == 404
         assert _read(base_url + "/status/500")[0] == 500
         assert "Iframe Content" in _read(base_url + "/iframe")[1]
+
+
+def test_shared_drissionpage_test_site_contract_when_configured() -> None:
+    """verifies the external shared SSR test-site contract before MCP smoke."""
+
+    base_url = _shared_test_site_url_or_skip()
+
+    health = _json(_site_url(base_url, "/api/health.json"))
+    assert health["ok"] is True
+    assert health["service"] == "drissionpage-ssr-test-site"
+
+    manifest = _json(_site_url(base_url, "/api/manifest.json"))
+    assert manifest["ok"] is True
+    case_ids = {item["id"] for item in manifest["cases"]}
+    assert {
+        "forms",
+        "locators",
+        "marketplace-flow",
+        "social-notes-mobile",
+    } <= case_ids
+
+
+def test_shared_drissionpage_test_site_url_preserves_private_query() -> None:
+    """keeps secret query tokens when building shared fixture case URLs."""
+
+    base_url = "https://fixture.example.test/base?x-vercel-protection-bypass=secret"
+
+    assert _site_url(base_url, "/cases/forms") == (
+        "https://fixture.example.test/base/cases/forms"
+        "?x-vercel-protection-bypass=secret"
+    )
+
+
+@pytest.mark.asyncio
+async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
+    """runs MCP browser tools against the shared Astro SSR test-site."""
+
+    base_url = _shared_test_site_url_or_skip()
+    server = DrissionPageMCPServer()
+    try:
+        navigate = await _execute_tool_text(
+            server, "page_navigate", {"url": _site_url(base_url, "/cases/forms")}
+        )
+        _skip_if_browser_unavailable(navigate)
+        assert "Successfully navigated" in navigate
+
+        _content, forms_payload = await _execute_tool(
+            server,
+            "form_inspect",
+            {"selector": "#profile-form", "include_values": True},
+        )
+        assert forms_payload["ok"] is True
+        assert forms_payload["data"]["count"] == 1
+        form = forms_payload["data"]["forms"][0]
+        assert form["selector"] == "#profile-form"
+        assert form["method"] == "post"
+        assert form["action"].endswith("/api/echo.json")
+        fields = {field["selector"]: field for field in form["fields"]}
+        assert fields["#name"]["value"] == "initial"
+        assert fields["#mode"]["tag"] == "select"
+        assert fields["#agree"]["type"] == "checkbox"
+
+        navigate = await _execute_tool_text(
+            server, "page_navigate", {"url": _site_url(base_url, "/cases/locators")}
+        )
+        _skip_if_browser_unavailable(navigate)
+        _content, target_payload = await _execute_tool(
+            server, "element_find", {"selector": "#target", "timeout": 3}
+        )
+        assert target_payload["ok"] is True
+        target = target_payload["data"]["element"]
+        assert target["text"] == "target div"
+        assert 'data-testid="xpath-target"' in target["html"]
+
+        navigate = await _execute_tool_text(
+            server,
+            "page_navigate",
+            {"url": _site_url(base_url, "/scenarios/marketplace")},
+        )
+        _skip_if_browser_unavailable(navigate)
+        _content, snapshot_payload = await _execute_tool(
+            server, "page_snapshot", {"max_elements": 40, "max_text_chars": 1500}
+        )
+        assert snapshot_payload["ok"] is True
+        snapshot = snapshot_payload["data"]
+        assert snapshot["title"] == "Marketplace full flow"
+        assert "橙市集" in snapshot["text_excerpt"]
+
+        _content, cards_payload = await _execute_tool(
+            server,
+            "element_find_all",
+            {"selector": '[data-testid="marketplace-home-card"]', "limit": 3},
+        )
+        assert cards_payload["ok"] is True
+        assert cards_payload["data"]["count"] >= 12
+        assert cards_payload["data"]["returned"] == 3
+    finally:
+        await server.cleanup()
 
 
 @pytest.mark.asyncio
@@ -478,6 +581,46 @@ async def _execute_tool(
     validated = tool.input_schema.model_validate(arguments)
     await tool.execute(server.context, validated, response)
     return list(response.get_content()), response.get_structured_content()
+
+
+def _shared_test_site_url_or_skip() -> str:
+    base_url = (os.environ.get(SHARED_TEST_SITE_URL_ENV) or "").strip()
+    if base_url:
+        return base_url
+    pytest.skip(f"shared DrissionPage test-site requires {SHARED_TEST_SITE_URL_ENV}")
+
+
+def _site_url(base_url: str, path: str = "") -> str:
+    if not path:
+        return base_url
+    parsed = urlsplit(base_url)
+    base_path = parsed.path.rstrip("/") + "/"
+    base_without_query = urlunsplit(
+        (parsed.scheme, parsed.netloc, base_path, "", "")
+    )
+    target = urljoin(base_without_query, path.lstrip("/"))
+    return _merge_base_query(target, parsed.query)
+
+
+def _merge_base_query(url: str, base_query: str) -> str:
+    if not base_query:
+        return url
+    parsed = urlsplit(url)
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+    query.extend(parse_qsl(base_query, keep_blank_values=True))
+    return urlunsplit(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            urlencode(query),
+            parsed.fragment,
+        )
+    )
+
+
+def _json(url: str) -> Dict[str, Any]:
+    return json.loads(_read(url)[1])
 
 
 def _read(url: str) -> Tuple[int, str]:

@@ -2,7 +2,7 @@
 
 `playground/` is now a deterministic MCP Lab instead of a collection of stale demo scripts. It provides a local business test site plus a stdio MCP runner so you can verify how real agents use DrissionPage MCP.
 
-The lab is inspired by complex DrissionPage fixture-site ideas, but it is implemented specifically for this MCP server and does not depend on external sites or the `ssr-site` source tree.
+The default lab is implemented specifically for this MCP server and does not depend on external sites. Browser CI additionally runs a shared SSR smoke against a local checkout of the standalone `DrissionPage-test-site` repository. Deployed shared test-site URLs should stay in the `DP_PRIVATE_FIXTURE_URL` repository secret, not in docs or workflow literals.
 
 ## What it covers
 
@@ -86,4 +86,8 @@ Use browser-backed cases in browser jobs or release checks:
 
 ```bash
 DP_HEADLESS=1 DP_NO_SANDBOX=1 python playground/run_mcp_lab.py --case form-inspect --json
+
+# Optional shared SSR site smoke after starting DrissionPage-test-site locally.
+DP_TEST_SITE_URL=http://127.0.0.1:4321 DP_HEADLESS=1 \
+  python -m pytest tests/test_browser_integration.py -k shared_drissionpage_test_site -q
 ```

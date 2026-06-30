@@ -59,7 +59,7 @@ The repository CI checks are intended to cover:
 - Unit tests that do not require a live browser.
 - MCP protocol tests that exercise stdio/list/call behavior without external network access.
 - Package build validation.
-- Browser integration tests on Chromium/Chrome against a deterministic local fixture; the tests skip with explicit diagnostics if the browser cannot launch.
+- Browser integration tests on Chromium/Chrome against deterministic local fixtures and the shared `DrissionPage-test-site` SSR fixture when `DP_TEST_SITE_URL` is configured; the tests skip with explicit diagnostics if the browser cannot launch.
 
 ## Deprecation Policy
 
