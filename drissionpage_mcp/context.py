@@ -368,4 +368,12 @@ def _summarize_result(result: Mapping[str, Any]) -> dict[str, Any]:
         for key in ("url", "final_url", "tab_id", "active_tab_id"):
             if key in data:
                 payload[key] = data[key]
+        changes = data.get("changes")
+        if isinstance(changes, Mapping):
+            payload["changes"] = {
+                "url_changed": bool(changes.get("url_changed")),
+                "title_changed": bool(changes.get("title_changed")),
+                "appeared_texts": list(changes.get("appeared_texts") or [])[:3],
+                "removed_texts": list(changes.get("removed_texts") or [])[:3],
+            }
     return payload

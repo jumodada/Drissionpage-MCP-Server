@@ -222,15 +222,39 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
         {
             "selector": "#password",
             "text": "secret-value",
-            "nested": {"api_token": "abc123"},
+            "nested": {
+                "api_token": "abc123",
+                "items": [{"cookie": "session"}, ("plain", "tuple")],
+            },
         },
-        {"ok": True, "message": "typed"},
+        {
+            "ok": True,
+            "message": "typed",
+            "data": {
+                "url": "https://example.test/home",
+                "changes": {
+                    "url_changed": True,
+                    "title_changed": False,
+                    "appeared_texts": ["Done", "Ignored", "Also ignored", "Extra"],
+                    "removed_texts": ["Loading"],
+                },
+            },
+        },
         tab_id="t0",
     )
     action = context.action_history()["actions"][0]
     assert action["args"]["text"] == "<redacted>"
     assert action["args"]["nested"]["api_token"] == "<redacted>"
+    assert action["args"]["nested"]["items"][0]["cookie"] == "<redacted>"
+    assert action["args"]["nested"]["items"][1] == ["plain", "tuple"]
     assert action["tab_id"] == "t0"
+    assert action["result"]["url"] == "https://example.test/home"
+    assert action["result"]["changes"] == {
+        "url_changed": True,
+        "title_changed": False,
+        "appeared_texts": ["Done", "Ignored", "Also ignored"],
+        "removed_texts": ["Loading"],
+    }
 
 
 @pytest.mark.asyncio

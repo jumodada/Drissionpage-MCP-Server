@@ -2,14 +2,18 @@
 
 import asyncio
 import base64
+import json
 import logging
 import os
+import re
 import tempfile
+import time
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from DrissionPage.errors import ElementNotFoundError, PageDisconnectedError
 
 from .forms import build_form_inspect_script
+from .observation import bounded_json_value, build_observe_script, result_type
 from .outline import build_page_snapshot_script, summarize_elements
 from .selector import SelectorPlan, normalize_selector
 
@@ -350,6 +354,112 @@ class PageTab:
             logger.error(f"Failed to find elements {selector}: {e}")
             raise
 
+    async def observe(
+        self,
+        *,
+        max_texts: int = 20,
+        max_text_chars: int = 160,
+    ) -> Dict[str, Any]:
+        """Return a compact current-page fingerprint."""
+
+        try:
+            script = build_observe_script(
+                max_texts=max_texts,
+                max_text_chars=max_text_chars,
+            )
+            result = self.page.run_js(script, as_expr=True)
+            if not isinstance(result, dict):
+                raise RuntimeError("page observe script returned no structured data")
+            result.setdefault("url", self.url)
+            result.setdefault("title", self.title)
+            result.setdefault("ready_state", "")
+            result.setdefault("counts", {})
+            result.setdefault("text_samples", [])
+            result.setdefault("active_element", None)
+            result.setdefault(
+                "limits",
+                {"max_texts": max_texts, "max_text_chars": max_text_chars},
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Failed to observe page: {e}")
+            raise
+
+    async def evaluate_script(
+        self,
+        script: str,
+        *,
+        args: list[Any] | None = None,
+        max_chars: int = 4000,
+    ) -> Dict[str, Any]:
+        """Evaluate a caller-provided JavaScript function body with bounded output."""
+
+        try:
+            args = args or []
+            args_json = json.dumps(args, ensure_ascii=False, default=str)
+            wrapped = (
+                "(() => {\n"
+                f"  const __mcpArgs = {args_json};\n"
+                "  const __mcpFn = function(...args) {\n"
+                f"{script}\n"
+                "  };\n"
+                "  return __mcpFn(...__mcpArgs);\n"
+                "})()"
+            )
+            value = self.page.run_js(wrapped, as_expr=True)
+            bounded, truncated, original_chars = bounded_json_value(
+                value,
+                max_chars=max_chars,
+            )
+            return {
+                "result": bounded,
+                "result_type": result_type(value),
+                "truncated": truncated,
+                "original_json_chars": original_chars,
+                "max_chars": max_chars,
+            }
+        except Exception as e:
+            logger.error(f"Failed to evaluate script: {e}")
+            raise
+
+    async def wait_until(
+        self,
+        *,
+        condition: str,
+        selector: str = "",
+        value: str = "",
+        timeout: float = 10,
+        interval: float = 0.1,
+        stable_ms: int = 300,
+    ) -> Dict[str, Any]:
+        """Wait until a page, URL, text, or element condition is satisfied."""
+
+        start = time.monotonic()
+        deadline = start + max(0.0, float(timeout))
+        last_state: dict[str, Any] = {}
+        while True:
+            matched, last_state = await self._wait_condition_matches(
+                condition=condition,
+                selector=selector,
+                value=value,
+                stable_ms=stable_ms,
+            )
+            if matched:
+                return {
+                    "condition": condition,
+                    "selector": selector,
+                    "value": value,
+                    "matched": True,
+                    "timeout": timeout,
+                    "elapsed_ms": int((time.monotonic() - start) * 1000),
+                    "state": last_state,
+                }
+            if time.monotonic() >= deadline:
+                raise TimeoutError(
+                    f"Condition {condition!r} was not met within {timeout} seconds"
+                )
+            await asyncio.sleep(interval)
+
     async def screenshot(
         self, path: Optional[str] = None, full_page: bool = False
     ) -> str:
@@ -496,3 +606,172 @@ class PageTab:
             return True
         except (PageDisconnectedError, Exception):
             return False
+
+    async def _wait_condition_matches(
+        self,
+        *,
+        condition: str,
+        selector: str,
+        value: str,
+        stable_ms: int,
+    ) -> tuple[bool, dict[str, Any]]:
+        if condition in {"url_contains", "url_matches"}:
+            current_url = self.url
+            matched = (
+                value in current_url
+                if condition == "url_contains"
+                else re.search(value, current_url) is not None
+            )
+            return matched, {"url": current_url}
+
+        if condition in {"text_contains", "text_matches"}:
+            text = self._condition_text(selector)
+            matched = (
+                value in text
+                if condition == "text_contains"
+                else re.search(value, text) is not None
+            )
+            return matched, {"text": text[:500]}
+
+        if not selector:
+            raise ValueError(f"selector is required for {condition!r}")
+
+        state = self._selector_state(selector)
+        if condition == "present":
+            return bool(state.get("exists")), state
+        if condition == "visible":
+            return bool(state.get("visible")), state
+        if condition == "hidden":
+            return not bool(state.get("visible")), state
+        if condition == "detached":
+            return not bool(state.get("exists")), state
+        if condition == "clickable":
+            return (
+                bool(state.get("visible")) and not bool(state.get("disabled"))
+            ), state
+        if condition == "stable":
+            first = state.get("signature")
+            if not state.get("exists") or not first:
+                return False, state
+            await asyncio.sleep(max(0, stable_ms) / 1000)
+            second_state = self._selector_state(selector)
+            return first == second_state.get("signature"), second_state
+        raise ValueError(f"Unsupported wait condition: {condition}")
+
+    def _condition_text(self, selector: str) -> str:
+        if not selector:
+            try:
+                return str(self.page.text)
+            except Exception:
+                return self.get_html_sync()
+        plan = normalize_selector(selector)
+        try:
+            element = self.page.ele(plan.locator, timeout=0)
+        except Exception:
+            return ""
+        if not element:
+            return ""
+        return str(getattr(element, "text", "") or "")
+
+    def get_html_sync(self) -> str:
+        try:
+            return str(self.page.html)
+        except Exception:
+            return ""
+
+    def _selector_state(self, selector: str) -> dict[str, Any]:
+        plan = normalize_selector(selector)
+        if plan.locator.startswith(("css:", "xpath:")):
+            try:
+                result = self.page.run_js(
+                    _selector_state_script(plan.locator),
+                    as_expr=True,
+                )
+                if isinstance(result, dict):
+                    return result
+            except Exception:
+                logger.debug("selector state JavaScript failed", exc_info=True)
+        return self._selector_state_fallback(plan)
+
+    def _selector_state_fallback(self, plan: SelectorPlan) -> dict[str, Any]:
+        try:
+            element = self.page.ele(plan.locator, timeout=0)
+        except Exception:
+            element = None
+        exists = bool(element)
+        text = str(getattr(element, "text", "") or "") if element else ""
+        tag = str(getattr(element, "tag", "") or "") if element else ""
+        disabled = False
+        if element is not None:
+            try:
+                disabled_attr = element.attr("disabled")
+                aria_disabled = element.attr("aria-disabled")
+                disabled = disabled_attr is not None or str(aria_disabled).lower() == "true"
+            except Exception:
+                disabled = False
+        return {
+            "exists": exists,
+            "visible": exists,
+            "disabled": disabled,
+            "tag": tag,
+            "text": text[:500],
+            "signature": f"{tag}|{text[:100]}|{disabled}",
+        }
+
+
+def _selector_state_script(locator: str) -> str:
+    strategy, raw = locator.split(":", 1)
+    return f"""
+(() => {{
+  const strategy = {json.dumps(strategy)};
+  const raw = {json.dumps(raw)};
+  function find() {{
+    if (strategy === 'css') return document.querySelector(raw);
+    const result = document.evaluate(
+      raw,
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    );
+    return result.singleNodeValue;
+  }}
+  const el = find();
+  if (!el) {{
+    return {{
+      exists: false,
+      visible: false,
+      disabled: false,
+      tag: '',
+      text: '',
+      signature: '',
+    }};
+  }}
+  const style = window.getComputedStyle(el);
+  const rect = el.getBoundingClientRect();
+  const visible = (
+    style.visibility !== 'hidden' &&
+    style.display !== 'none' &&
+    (rect.width > 0 || rect.height > 0 || el.getClientRects().length > 0)
+  );
+  const disabled = Boolean(el.disabled || el.getAttribute('aria-disabled') === 'true');
+  const text = String(el.innerText || el.textContent || el.value || '')
+    .replace(/\\s+/g, ' ')
+    .trim();
+  return {{
+    exists: true,
+    visible,
+    disabled,
+    tag: (el.tagName || '').toLowerCase(),
+    text: text.slice(0, 500),
+    signature: [
+      Math.round(rect.x),
+      Math.round(rect.y),
+      Math.round(rect.width),
+      Math.round(rect.height),
+      disabled,
+      text.slice(0, 100),
+    ].join('|'),
+  }};
+}})()
+"""

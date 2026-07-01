@@ -207,6 +207,14 @@ def recovery_hints(
                     tool="wait_for_element",
                 )
             )
+        if lowered_tool != "wait_until":
+            hints.append(
+                _hint(
+                    "wait_until",
+                    "Use a condition-specific wait for dynamic UI state such as clickable, hidden, text, or URL changes.",
+                    tool="wait_until",
+                )
+            )
         return hints
 
     if code_value == ErrorCode.BROWSER_START_FAILED.value:
@@ -599,6 +607,88 @@ TAB_SUMMARY_SCHEMA = _data_schema(
     ["id", "native_id", "url", "title", "active", "connected"],
 )
 
+OBSERVATION_COUNTS_SCHEMA = {
+    "type": "object",
+    "additionalProperties": INTEGER,
+}
+
+OBSERVATION_ACTIVE_ELEMENT_SCHEMA = {
+    "anyOf": [
+        {
+            "type": "object",
+            "additionalProperties": True,
+            "properties": {
+                "tag": STRING,
+                "selector": STRING,
+                "text": STRING,
+            },
+        },
+        {"type": "null"},
+    ]
+}
+
+OBSERVATION_LIMITS_SCHEMA = _data_schema(
+    "ObservationLimits",
+    {"max_texts": INTEGER, "max_text_chars": INTEGER},
+    ["max_texts", "max_text_chars"],
+)
+
+OBSERVATION_SCHEMA = _data_schema(
+    "PageObservation",
+    {
+        "url": STRING,
+        "title": STRING,
+        "ready_state": STRING,
+        "counts": OBSERVATION_COUNTS_SCHEMA,
+        "text_samples": {"type": "array", "items": STRING},
+        "active_element": OBSERVATION_ACTIVE_ELEMENT_SCHEMA,
+        "limits": OBSERVATION_LIMITS_SCHEMA,
+    },
+    [
+        "url",
+        "title",
+        "ready_state",
+        "counts",
+        "text_samples",
+        "active_element",
+        "limits",
+    ],
+)
+
+OBSERVATION_CHANGES_SCHEMA = _data_schema(
+    "PageObservationChanges",
+    {
+        "url_before": STRING,
+        "url_after": STRING,
+        "url_changed": BOOLEAN,
+        "title_before": STRING,
+        "title_after": STRING,
+        "title_changed": BOOLEAN,
+        "ready_state": STRING,
+        "counts_before": OBSERVATION_COUNTS_SCHEMA,
+        "counts_after": OBSERVATION_COUNTS_SCHEMA,
+        "counts_delta": OBSERVATION_COUNTS_SCHEMA,
+        "appeared_texts": {"type": "array", "items": STRING},
+        "removed_texts": {"type": "array", "items": STRING},
+        "active_element": OBSERVATION_ACTIVE_ELEMENT_SCHEMA,
+    },
+    [
+        "url_before",
+        "url_after",
+        "url_changed",
+        "title_before",
+        "title_after",
+        "title_changed",
+        "ready_state",
+        "counts_before",
+        "counts_after",
+        "counts_delta",
+        "appeared_texts",
+        "removed_texts",
+        "active_element",
+    ],
+)
+
 _GENERIC_DATA_SCHEMA = _data_schema(
     "GenericToolData",
     {},
@@ -608,7 +698,13 @@ _GENERIC_DATA_SCHEMA = _data_schema(
 TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
     "page_navigate": _data_schema(
         "PageNavigateData",
-        {"url": STRING, "final_url": STRING, "new_tab": BOOLEAN, "tab_id": STRING},
+        {
+            "url": STRING,
+            "final_url": STRING,
+            "new_tab": BOOLEAN,
+            "tab_id": STRING,
+            "changes": OBSERVATION_CHANGES_SCHEMA,
+        },
         ["url", "final_url", "new_tab", "tab_id"],
     ),
     "tab_list": _data_schema(
@@ -679,6 +775,18 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             "meta",
         ],
     ),
+    "page_observe": OBSERVATION_SCHEMA,
+    "page_evaluate": _data_schema(
+        "PageEvaluateData",
+        {
+            "result": ANY_JSON,
+            "result_type": STRING,
+            "truncated": BOOLEAN,
+            "original_json_chars": INTEGER,
+            "max_chars": INTEGER,
+        },
+        ["result", "result_type", "truncated", "original_json_chars", "max_chars"],
+    ),
     "page_click_xy": _data_schema(
         "PageClickXYData",
         {"x": INTEGER, "y": INTEGER, "element": STRING, "url": STRING},
@@ -741,7 +849,11 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
     ),
     "element_click": _data_schema(
         "ElementClickData",
-        {**SELECTOR_METADATA_SCHEMA, "url": STRING},
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "url": STRING,
+            "changes": OBSERVATION_CHANGES_SCHEMA,
+        },
         [*SELECTOR_METADATA_REQUIRED, "url"],
     ),
     "element_type": _data_schema(
@@ -750,6 +862,7 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
             **SELECTOR_METADATA_SCHEMA,
             "typed": {"const": True},
             "cleared": BOOLEAN,
+            "changes": OBSERVATION_CHANGES_SCHEMA,
         },
         [*SELECTOR_METADATA_REQUIRED, "typed", "cleared"],
     ),
@@ -797,6 +910,27 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
         {"waited_seconds": NUMBER},
         ["waited_seconds"],
     ),
+    "wait_until": _data_schema(
+        "WaitUntilData",
+        {
+            "condition": STRING,
+            "selector": STRING,
+            "value": STRING,
+            "matched": {"const": True},
+            "timeout": NUMBER,
+            "elapsed_ms": INTEGER,
+            "state": {"type": "object", "additionalProperties": True},
+        },
+        [
+            "condition",
+            "selector",
+            "value",
+            "matched",
+            "timeout",
+            "elapsed_ms",
+            "state",
+        ],
+    ),
 }
 
 
@@ -836,10 +970,10 @@ class ToolResponse:
         error_text = f"### Error\n{error}"
         self._content.append(TextContent(type="text", text=error_text))
 
-    def add_result(self, result: str, **data: Any) -> None:
+    def add_result(self, message: str, **data: Any) -> None:
         """Add result content to the response."""
-        self._tool_result = ToolResult.success(result, **data)
-        result_text = f"### Result\n{result}"
+        self._tool_result = ToolResult.success(message, **data)
+        result_text = f"### Result\n{message}"
         self._content.append(TextContent(type="text", text=result_text))
 
     def set_tool_result(self, result: ToolResult) -> None:

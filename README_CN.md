@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-与基于截图的方法不同，它通过 25 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+与基于截图的方法不同，它通过 28 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -123,10 +123,10 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 25 个强大工具 + MCP Resources/Prompts
+## 🛠️ 28 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
-- `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开
+- `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
 - `page_go_back` / `page_go_forward` - 浏览器历史记录
 - `page_refresh` - 重新加载当前页面
 
@@ -148,17 +148,20 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 ### 🧾 表单工具（1 个）
 - `form_inspect` - 检查表单和控件，返回 label、selector、必填/禁用状态、选项和安全的可选 value
 
-### 📸 页面操作（6 个）
+### 📸 页面操作（8 个）
 - `page_screenshot` - 捕获完整页面或视口
 - `page_snapshot` - 返回有界页面 outline，包括标题、链接、按钮、输入框、表单和 selector 推荐
+- `page_observe` - 返回紧凑页面指纹，包括 URL、标题、元素数量、可见文本样本和当前焦点元素
+- `page_evaluate` - 在当前页面运行有界 JavaScript，并返回 JSON-safe 结果
 - `page_resize` - 调整浏览器窗口
 - `page_click_xy` - 通过坐标点击
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
 
-### ⏱️ 等待操作（3 个）
+### ⏱️ 等待操作（4 个）
 - `wait_for_element` - 等待元素出现（带超时）
 - `wait_for_url` - 等待当前 URL 包含指定文本
+- `wait_until` - 等待可观察条件，例如 clickable、hidden、stable、文本或 URL 匹配
 - `wait_time` - 延迟执行
 
 ### 🧩 MCP Resources 和 Prompts
@@ -191,7 +194,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 25 个自动化、标签页管理、页面理解与表单检查工具
+│   └── tools/              # 28 个自动化、标签页管理、页面理解、表单检查与可观察动作工具
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -345,7 +348,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.5.1`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.5.2`。
 
 ### 浏览器问题？
 ```bash
@@ -370,18 +373,18 @@ which chromium         # macOS
 |-----------|--------|
 | **核心功能** | ✅ 完成 |
 | **测试** | ✅ 严格单元/协议/schema 检查 + 真实浏览器场景验证 |
-| **文档** | ✅ 安装、兼容性、故障排除、发布清单 |
+| **文档** | ✅ 安装、兼容性、故障排除和公共工具合同 |
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.5.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.5.2 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.5.1)
-- [x] 25 个核心自动化、标签页管理、页面理解与表单检查工具，已移除 alias 工具面
+### 当前版本 (v0.5.2)
+- [x] 28 个核心自动化、标签页管理、页面理解与表单检查工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -389,6 +392,7 @@ which chromium         # macOS
 - [x] `page_snapshot` 会平衡输出预算，链接密集页面仍能暴露按钮、输入框和表单
 - [x] `form_inspect` 只读表单 inventory，返回 label、selector、必填状态、选项和安全的可选 value
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
+- [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
 - [x] 脱敏 session history resource，以及有界输出的响应大小 metadata
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] Resources、Prompts、eval harness、兼容性和故障排除文档
@@ -535,19 +539,18 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.5.1
+## 🆕 最新版本：v0.5.2
 
-发布日期：2026-06-30。本版本让多标签页浏览和长会话恢复更稳定，同时保留 0.5 表单工作流：
+发布日期：2026-07-01。本版本增加可观察动作能力，让动态页面的等待、执行和结果确认更直接，同时保留 0.5 的标签页、表单和页面理解工作流：
 
+- `page_observe` 返回紧凑页面指纹，包括 URL、标题、ready state、元素数量、可见文本样本和当前焦点元素。
+- `page_evaluate` 可在当前页面运行有界 JavaScript，并返回 JSON-safe 结果。
+- `wait_until` 支持实际 UI 条件：present、visible、hidden、detached、clickable、stable、文本包含/匹配、URL 包含/匹配。
+- `page_navigate`、`element_click` 和 `element_type` 现在支持 `observe=true`，只在显式请求时返回 before/after `changes` 摘要。
 - `tab_list`、`tab_switch` 和 `tab_close` 可以管理 MCP 工具或页面交互打开的标签页，例如 `target="_blank"` 链接。
-- `page_navigate` 现在支持 `new_tab=true`，可在新的受跟踪标签页中打开 URL。
-- `drissionpage://session/history` 会返回最近工具操作，并对敏感参数脱敏。
-- `page_snapshot`、`element_find_all` 和 `form_inspect` 增加 `meta.approx_tokens` 与大小信息，便于控制响应预算。
-- `form_inspect` 可以检查表单和控件，返回 label、selector、method/action、必填/禁用/只读状态、select options，以及 opt-in 的非 password value。
-- 失败 payload 会在 `error.details.hints` 中返回机器可读的恢复建议。
-- 元素缺失和 selector 失败会建议 `page_snapshot`、`element_find_all`、`wait_for_element` 以及 iframe / 动态内容检查。
-- `page_snapshot` 现在会在遵守总 `max_elements` 上限的同时，让链接密集页面仍返回输入框、按钮和表单。
-- timeout、浏览器启动、截图、导航、policy、参数错误和未知工具失败现在都有针对性的下一步建议。
+- `drissionpage://session/history` 会记录最近工具操作，对敏感参数脱敏，并在存在时保留紧凑变化摘要。
+- `page_snapshot`、`element_find_all` 和 `form_inspect` 包含 `meta.approx_tokens` 与大小信息，便于控制响应预算。
+- 失败 payload 会在 `error.details.hints` 中返回机器可读恢复建议；timeout 提示现在也会指向 `wait_until`。
 - `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并会提示客户端使用准确的 snake_case 字段名。
 - 浏览器启动失败会提示 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH`、`DP_HEADLESS` 和 `DP_NO_SANDBOX`。
-- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数变为 25 个。
+- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数变为 28 个。

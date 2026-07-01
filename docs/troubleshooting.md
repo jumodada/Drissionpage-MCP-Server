@@ -92,7 +92,7 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current 0.5.1 tool registry should load 25 tools.
+The current 0.5.2 tool registry should load 28 tools.
 
 ## Browser Does Not Start
 
@@ -149,10 +149,14 @@ Useful recovery steps:
    selectors without pulling full-page HTML.
 3. Use `element_find_all` with a broader selector to discover repeated cards,
    table rows, links, or similar candidate elements.
-4. Use `wait_for_element` before `element_click` or `element_type`.
-5. Increase the per-tool timeout where supported. `element_find` defaults to 3 seconds for fast feedback; explicit wait tools keep longer waits.
-6. Re-check selectors in the browser devtools. Bare selectors are treated as CSS; use `text:Submit` for text matching and explicit `tag:`, `css:`, `xpath:`, or `@name=value` forms when needed.
-7. If the element may be inside an iframe or delayed UI state, inspect that
+4. Use `wait_until` for dynamic conditions such as `clickable`, `hidden`,
+   `stable`, text updates, or URL transitions.
+5. Use `observe=true` on `page_navigate`, `element_click`, or `element_type`
+   when you need a compact before/after change summary.
+6. Use `wait_for_element` before simple `element_click` or `element_type` calls.
+7. Increase the per-tool timeout where supported. `element_find` defaults to 3 seconds for fast feedback; explicit wait tools keep longer waits.
+8. Re-check selectors in the browser devtools. Bare selectors are treated as CSS; use `text:Submit` for text matching and explicit `tag:`, `css:`, `xpath:`, or `@name=value` forms when needed.
+9. If the element may be inside an iframe or delayed UI state, inspect that
    context before retrying the action.
 
 ## Screenshots Fail

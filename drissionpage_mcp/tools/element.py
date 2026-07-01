@@ -7,6 +7,7 @@ from pydantic import Field
 
 from ..metadata import with_response_meta
 from ..selector import normalize_selector
+from ._observe import maybe_observe, observed_changes
 from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
@@ -64,6 +65,10 @@ class ClickElementInput(ToolInput):
     timeout: int = Field(
         default=10, description="Timeout in seconds to wait for element"
     )
+    observe: bool = Field(
+        default=False,
+        description="Return a compact before/after page change summary.",
+    )
 
 
 class TypeTextInput(ToolInput):
@@ -82,6 +87,10 @@ class TypeTextInput(ToolInput):
     )
     clear: bool = Field(
         default=True, description="Clear existing input content before typing"
+    )
+    observe: bool = Field(
+        default=False,
+        description="Return a compact before/after page change summary.",
     )
 
 
@@ -215,14 +224,15 @@ async def click_element(
     ):
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
+        before = await maybe_observe(tab, args.observe)
         await tab.click_element(args.selector, timeout=args.timeout)
+        changes = await observed_changes(tab, before)
 
         response.add_code(f"page.ele({plan.locator!r}).click()")
-        response.add_result(
-            f"Successfully clicked element: {args.selector}",
-            **plan.metadata(),
-            url=tab.url,
-        )
+        data = {**plan.metadata(), "url": tab.url}
+        if changes is not None:
+            data["changes"] = changes
+        response.add_result(f"Successfully clicked element: {args.selector}", **data)
         response.set_include_snapshot(True)
 
 
@@ -242,18 +252,20 @@ async def type_text(
     ):
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
+        before = await maybe_observe(tab, args.observe)
         await tab.type_text(
             args.selector, args.text, timeout=args.timeout, clear=args.clear
         )
+        changes = await observed_changes(tab, before)
 
         response.add_code(
             f"page.ele({plan.locator!r}).input({args.text!r}, clear={args.clear!r})"
         )
+        data = {**plan.metadata(), "typed": True, "cleared": args.clear}
+        if changes is not None:
+            data["changes"] = changes
         response.add_result(
-            f"Successfully typed text into element: {args.selector}",
-            **plan.metadata(),
-            typed=True,
-            cleared=args.clear,
+            f"Successfully typed text into element: {args.selector}", **data
         )
         response.set_include_snapshot(True)
 

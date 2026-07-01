@@ -37,7 +37,7 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
         )
 
     names = [tool["name"] for tool in tools]
-    assert len(tools) == 25
+    assert len(tools) == 28
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
     return tools

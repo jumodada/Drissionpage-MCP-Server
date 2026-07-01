@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-07-01
+
+### Added
+- Added `page_observe` for compact page fingerprints with URL, title, ready state, element counts, visible text samples, active element, and limits.
+- Added `page_evaluate` for bounded JavaScript execution with JSON-safe result metadata.
+- Added `wait_until` for observable dynamic UI conditions including present, visible, hidden, detached, clickable, stable, text, and URL waits.
+- Added optional `observe=true` changes on `page_navigate`, `element_click`, and `element_type`.
+- Added local browser fixture coverage for observable delayed UI flows.
+
+### Changed
+- Tool registry now exposes 28 public tools.
+- Timeout recovery hints now include `wait_until` for condition-specific waits.
+- Session history summaries include compact observable-change information when a tool response contains `changes`.
+
 ## [0.5.1] - 2026-06-30
 
 ### Added

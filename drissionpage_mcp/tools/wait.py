@@ -1,6 +1,6 @@
 """Wait operation tools for DrissionPage MCP."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
@@ -38,6 +38,44 @@ class WaitUrlInput(ToolInput):
         ..., description="Substring or pattern expected in the current URL"
     )
     timeout: int = Field(default=10, description="Timeout in seconds")
+
+
+class WaitUntilInput(ToolInput):
+    """Input schema for generalized observable waits."""
+
+    condition: Literal[
+        "present",
+        "visible",
+        "hidden",
+        "detached",
+        "clickable",
+        "stable",
+        "text_contains",
+        "text_matches",
+        "url_contains",
+        "url_matches",
+    ] = Field(..., description="Condition to wait for")
+    selector: str = Field(
+        default="",
+        description="CSS/XPath/DrissionPage locator for element or text conditions",
+    )
+    value: str = Field(
+        default="",
+        description="Expected substring or regular expression for text/URL conditions",
+    )
+    timeout: float = Field(default=10, ge=0, le=120, description="Timeout in seconds")
+    interval: float = Field(
+        default=0.1,
+        ge=0.01,
+        le=5,
+        description="Polling interval in seconds",
+    )
+    stable_ms: int = Field(
+        default=300,
+        ge=0,
+        le=5000,
+        description="Element stability window for the stable condition",
+    )
 
 
 @define_tool(
@@ -135,5 +173,44 @@ async def wait_time(
         )
 
 
+@define_tool(
+    name="wait_until",
+    title="Wait Until",
+    description=(
+        "Wait for observable page state: element present/visible/hidden/"
+        "detached/clickable/stable, text contains/matches, or URL contains/matches."
+    ),
+    input_schema=WaitUntilInput,
+    tool_type=ToolType.READ_ONLY,
+    idempotent=True,
+)
+async def wait_until(
+    context: "DrissionPageContext", args: WaitUntilInput, response: "ToolResponse"
+) -> None:
+    """Wait until an observable condition is satisfied."""
+    async with tool_errors(
+        response,
+        lambda e: (
+            f"Condition '{args.condition}' was not met within "
+            f"{args.timeout} seconds: {e}"
+        ),
+    ):
+        tab = context.current_tab_or_die()
+        result = await tab.wait_until(
+            condition=args.condition,
+            selector=args.selector,
+            value=args.value,
+            timeout=args.timeout,
+            interval=args.interval,
+            stable_ms=args.stable_ms,
+        )
+
+        response.add_code(f"# wait until {args.condition!r}")
+        response.add_result(
+            f"Condition '{args.condition}' matched within {args.timeout} seconds",
+            **result,
+        )
+
+
 # Export all tools
-tools = [wait_for_element, wait_for_url, wait_time]
+tools = [wait_for_element, wait_for_url, wait_time, wait_until]

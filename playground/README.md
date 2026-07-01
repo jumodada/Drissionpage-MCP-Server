@@ -64,7 +64,7 @@ The lab starts a deterministic local HTTP server on `127.0.0.1` during each case
 
 The old playground only loaded tools or pointed people to public demo sites. This lab tests the real contract that matters for MCP clients:
 
-1. Can the client discover the current 22-tool registry?
+1. Can the client discover the current 28-tool registry?
 2. Can it navigate a deterministic local business page?
 3. Can `page_snapshot` expose high-value controls on dense pages?
 4. Can `element_find_all` extract repeated cards/posts?
