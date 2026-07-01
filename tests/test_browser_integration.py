@@ -37,6 +37,7 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "DrissionMCP Fixture" in _read(base_url + "/")[1]
         assert "fixture-form" in _read(base_url + "/form")[1]
         assert "dynamic-root" in _read(base_url + "/dynamic")[1]
+        assert "Observable Workflow" in _read(base_url + "/observable")[1]
         assert "New Tab Target" in _read(base_url + "/new-tab")[1]
         assert "Automation Catalog" in _read(base_url + "/catalog")[1]
         assert "Link Heavy Page" in _read(base_url + "/link-heavy")[1]
@@ -460,6 +461,62 @@ async def test_mcp_browser_tools_wait_for_dynamic_dom_content() -> None:
             )
             assert text_payload["ok"] is True
             assert text_payload["data"]["text"] == "dynamic content ready"
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_observable_actions_cover_dynamic_business_flow() -> None:
+    """uses observable tools to wait for and verify a delayed UI action."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/observable"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, clickable_payload = await _execute_tool(
+                server,
+                "wait_until",
+                {"condition": "clickable", "selector": "#delayed", "timeout": 3},
+            )
+            assert clickable_payload["ok"] is True
+            assert clickable_payload["data"]["state"]["disabled"] is False
+
+            _content, hidden_payload = await _execute_tool(
+                server,
+                "wait_until",
+                {"condition": "hidden", "selector": "#spinner", "timeout": 3},
+            )
+            assert hidden_payload["ok"] is True
+
+            _content, observe_payload = await _execute_tool(
+                server, "page_observe", {"max_texts": 5}
+            )
+            assert observe_payload["ok"] is True
+            assert "ready" in observe_payload["data"]["text_samples"]
+
+            _content, evaluate_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {"script": "return document.querySelector('#status').textContent;"},
+            )
+            assert evaluate_payload["ok"] is True
+            assert evaluate_payload["data"]["result"] == "ready"
+
+            _content, click_payload = await _execute_tool(
+                server,
+                "element_click",
+                {"selector": "#delayed", "timeout": 2, "observe": True},
+            )
+            assert click_payload["ok"] is True
+            changes = click_payload["data"]["changes"]
+            assert changes["url_changed"] is True
+            assert "saved=1" in changes["url_after"]
+            assert "Saved successfully" in changes["appeared_texts"]
     finally:
         await server.cleanup()
 

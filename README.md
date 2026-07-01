@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 25 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 28 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -123,10 +123,10 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 25 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 28 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
-- `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab`
+- `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
 - `page_go_back` / `page_go_forward` - Browser history
 - `page_refresh` - Reload current page
 
@@ -148,17 +148,20 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 ### 🧾 Form Operations (1 tool)
 - `form_inspect` - Inspect forms and controls with labels, selectors, requirements, options, and safe optional values
 
-### 📸 Page Operations (6 tools)
+### 📸 Page Operations (8 tools)
 - `page_screenshot` - Capture full page or viewport
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
+- `page_observe` - Return a compact page fingerprint with URL, title, counts, visible text samples, and active element
+- `page_evaluate` - Run bounded JavaScript in the current page and return a JSON-safe result
 - `page_resize` - Adjust browser window
 - `page_click_xy` - Click by coordinates
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
 
-### ⏱️ Wait Operations (3 tools)
+### ⏱️ Wait Operations (4 tools)
 - `wait_for_element` - Wait for element to appear (with timeout)
 - `wait_for_url` - Wait until the current URL contains text
+- `wait_until` - Wait for observable conditions such as clickable, hidden, stable, text, or URL matches
 - `wait_time` - Delay execution
 
 ### 🧩 MCP Resources and Prompts
@@ -191,7 +194,7 @@ DrissionMCP/
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 25 automation, tab-management, and page-understanding tools
+│   └── tools/              # 28 automation, tab-management, page-understanding, form, and observable-action tools
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -345,7 +348,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.5.1`.
+Should output the installed package version, for example `drissionpage-mcp 0.5.2`.
 
 ### Browser Issues?
 ```bash
@@ -370,18 +373,18 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 |-----------|--------|
 | **Core Features** | ✅ Complete |
 | **Testing** | ✅ Strict unit/protocol/schema checks plus browser-backed scenarios |
-| **Documentation** | ✅ Setup, compatibility, troubleshooting, release checklist |
+| **Documentation** | ✅ Setup, compatibility, troubleshooting, and public tool contracts |
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.5.1 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.5.2 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.5.1)
-- [x] 25 core automation, tab-management, page-understanding, and form-inspection tools with removed alias surface
+### Current (v0.5.2)
+- [x] 28 core automation, tab-management, page-understanding, and form-inspection tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -389,6 +392,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Balanced `page_snapshot` output so link-heavy pages still expose controls and forms
 - [x] `form_inspect` read-only form inventory with labels, selectors, requirements, options, and safe optional values
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
+- [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
 - [x] Redacted session history resource and response size metadata for bounded outputs
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
@@ -535,19 +539,18 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.5.1
+## 🆕 Latest Version: v0.5.2
 
-Released on 2026-06-30. This release makes multi-tab browsing and long-session recovery easier while preserving the 0.5 form workflow:
+Released on 2026-07-01. This release adds observable action support for dynamic pages while keeping the 0.5 tab, form, and page-understanding workflow:
 
+- `page_observe` returns a compact page fingerprint with URL, title, ready state, element counts, visible text samples, and active element.
+- `page_evaluate` runs bounded JavaScript in the current page and returns a JSON-safe result.
+- `wait_until` waits for practical UI conditions: present, visible, hidden, detached, clickable, stable, text contains/matches, and URL contains/matches.
+- `page_navigate`, `element_click`, and `element_type` now accept `observe=true` to return a before/after `changes` summary only when requested.
 - `tab_list`, `tab_switch`, and `tab_close` manage tabs opened by MCP tools or normal page interactions such as `target="_blank"` links.
-- `page_navigate` now accepts `new_tab=true` to open a URL in a new tracked tab.
-- `drissionpage://session/history` returns recent tool actions with sensitive arguments redacted.
+- `drissionpage://session/history` records recent actions with sensitive arguments redacted and compact observable-change summaries when present.
 - `page_snapshot`, `element_find_all`, and `form_inspect` include `meta.approx_tokens` and size metadata for better response budgeting.
-- `form_inspect` inspects forms and controls with labels, selectors, methods/actions, required/disabled/read-only state, select options, and opt-in non-password values.
-- Failure payloads include machine-readable `error.details.hints` for common recovery paths.
-- Missing element and selector failures suggest `page_snapshot`, `element_find_all`, `wait_for_element`, and iframe/dynamic-content checks.
-- `page_snapshot` now keeps inputs, buttons, and forms visible on link-heavy pages while respecting the total `max_elements` cap.
-- Timeout, browser startup, screenshot, navigation, policy, invalid-argument, and unknown-tool failures now include targeted next steps.
-- `MCP_ARGUMENT_INVALID` still protects strict schemas and now points clients toward exact snake_case field names.
+- Failure payloads include machine-readable `error.details.hints`; timeout hints now also point to `wait_until` for condition-specific waits.
+- `MCP_ARGUMENT_INVALID` protects strict schemas and points clients toward exact snake_case field names.
 - Browser startup hints point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, `DP_HEADLESS`, and `DP_NO_SANDBOX`.
-- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry now has 25 tools.
+- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry now has 28 tools.

@@ -1,12 +1,12 @@
 """Common tools for DrissionPage MCP."""
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import Field
 
+from ..metadata import with_response_meta
 from ..policy import PolicyDeniedError, validate_screenshot_path
 from ..response import ErrorCode, build_screenshot_metadata
-from ..metadata import with_response_meta
 from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
@@ -48,6 +48,45 @@ class PageSnapshotInput(ToolInput):
         ge=0,
         le=20000,
         description="Maximum page text excerpt characters to return",
+    )
+
+
+class PageObserveInput(ToolInput):
+    """Input schema for compact page observation."""
+
+    max_texts: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+        description="Maximum number of visible text samples to return",
+    )
+    max_text_chars: int = Field(
+        default=160,
+        ge=20,
+        le=1000,
+        description="Maximum characters per visible text sample",
+    )
+
+
+class PageEvaluateInput(ToolInput):
+    """Input schema for bounded JavaScript evaluation."""
+
+    script: str = Field(
+        ...,
+        description=(
+            "JavaScript function body to run in the current page. Use return "
+            "to provide a JSON-serializable result."
+        ),
+    )
+    args: list[Any] = Field(
+        default_factory=list,
+        description="JSON arguments passed to the JavaScript function body",
+    )
+    max_chars: int = Field(
+        default=4000,
+        ge=100,
+        le=20000,
+        description="Maximum serialized JSON characters returned in result",
     )
 
 
@@ -168,6 +207,58 @@ async def page_snapshot(
 
 
 @define_tool(
+    name="page_observe",
+    title="Observe Page",
+    description=(
+        "Return a compact current-page fingerprint with URL, title, ready state, "
+        "element counts, visible text samples, and active element."
+    ),
+    input_schema=PageObserveInput,
+    tool_type=ToolType.READ_ONLY,
+    idempotent=True,
+)
+async def page_observe(
+    context: "DrissionPageContext", args: PageObserveInput, response: "ToolResponse"
+) -> None:
+    """Observe the current page state."""
+    async with tool_errors(response, "Failed to observe page"):
+        tab = context.current_tab_or_die()
+        observation = await tab.observe(
+            max_texts=args.max_texts,
+            max_text_chars=args.max_text_chars,
+        )
+
+        response.add_code("page.run_js(<compact page observation script>)")
+        response.add_result("Observed page state", **observation)
+
+
+@define_tool(
+    name="page_evaluate",
+    title="Evaluate JavaScript",
+    description=(
+        "Run a bounded JavaScript function body in the current page and return "
+        "a JSON-safe result. This can mutate the page."
+    ),
+    input_schema=PageEvaluateInput,
+    tool_type=ToolType.DESTRUCTIVE,
+)
+async def page_evaluate(
+    context: "DrissionPageContext", args: PageEvaluateInput, response: "ToolResponse"
+) -> None:
+    """Evaluate JavaScript in the current page with bounded output."""
+    async with tool_errors(response, "Failed to evaluate JavaScript"):
+        tab = context.current_tab_or_die()
+        result = await tab.evaluate_script(
+            args.script,
+            args=args.args,
+            max_chars=args.max_chars,
+        )
+
+        response.add_code("page.run_js(<bounded user JavaScript>)")
+        response.add_result("Evaluated JavaScript", **result)
+
+
+@define_tool(
     name="page_click_xy",
     title="Click Coordinates",
     description="Click at specific coordinates on the page",
@@ -236,4 +327,13 @@ async def get_url(
 
 
 # Export all tools
-tools = [resize, screenshot, page_snapshot, click_coordinates, close, get_url]
+tools = [
+    resize,
+    screenshot,
+    page_snapshot,
+    page_observe,
+    page_evaluate,
+    click_coordinates,
+    close,
+    get_url,
+]

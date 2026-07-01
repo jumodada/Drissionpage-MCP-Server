@@ -29,6 +29,7 @@ class FakeTab:
         self.calls: list[tuple[str, tuple[Any, ...], dict[str, Any]]] = []
         self.wait_element_result = True
         self.wait_url_result = True
+        self.observe_count = 0
 
     def summary(self, *, active: bool = False) -> dict[str, Any]:
         return {
@@ -92,6 +93,47 @@ class FakeTab:
             },
         }
 
+    async def observe(
+        self,
+        *,
+        max_texts: int = 20,
+        max_text_chars: int = 160,
+    ) -> dict[str, Any]:
+        self._record(
+            "observe",
+            max_texts=max_texts,
+            max_text_chars=max_text_chars,
+        )
+        phase = self.observe_count
+        self.observe_count += 1
+        return {
+            "url": self.url,
+            "title": self.title,
+            "ready_state": "complete",
+            "counts": {"buttons": 1 + phase, "inputs": 1},
+            "text_samples": ["before"] if phase % 2 == 0 else ["after"],
+            "active_element": None,
+            "limits": {
+                "max_texts": max_texts,
+                "max_text_chars": max_text_chars,
+            },
+        }
+
+    async def evaluate_script(
+        self,
+        script: str,
+        *,
+        args: list[Any] | None = None,
+        max_chars: int = 4000,
+    ) -> dict[str, Any]:
+        self._record("evaluate_script", script, args=args or [], max_chars=max_chars)
+        return {
+            "result": {"script": script, "args": args or []},
+            "result_type": "object",
+            "truncated": False,
+            "original_json_chars": 42,
+            "max_chars": max_chars,
+        }
 
     async def inspect_forms(
         self,
@@ -172,6 +214,35 @@ class FakeTab:
     async def wait_for_url(self, pattern: str, timeout: int = 10) -> bool:
         self._record("wait_for_url", pattern, timeout=timeout)
         return self.wait_url_result
+
+    async def wait_until(
+        self,
+        *,
+        condition: str,
+        selector: str = "",
+        value: str = "",
+        timeout: float = 10,
+        interval: float = 0.1,
+        stable_ms: int = 300,
+    ) -> dict[str, Any]:
+        self._record(
+            "wait_until",
+            condition=condition,
+            selector=selector,
+            value=value,
+            timeout=timeout,
+            interval=interval,
+            stable_ms=stable_ms,
+        )
+        return {
+            "condition": condition,
+            "selector": selector,
+            "value": value,
+            "matched": True,
+            "timeout": timeout,
+            "elapsed_ms": 15,
+            "state": {"selector": selector, "visible": True},
+        }
 
     async def find_element(self, selector: str, timeout: int = 10) -> dict[str, Any]:
         self._record("find_element", selector, timeout=timeout)
@@ -384,6 +455,36 @@ async def test_common_tools_success_paths(tmp_path) -> None:
         {"include_html": True, "max_elements": 5, "max_text_chars": 100},
     )
 
+    observe_response = await _execute(
+        common.page_observe,
+        ctx,
+        common.PageObserveInput(max_texts=3, max_text_chars=80),
+    )
+    observe_payload = observe_response.get_structured_content()
+    assert observe_payload["data"]["url"] == "https://example.test/current"
+    assert observe_payload["data"]["limits"] == {
+        "max_texts": 3,
+        "max_text_chars": 80,
+    }
+
+    evaluate_response = await _execute(
+        common.page_evaluate,
+        ctx,
+        common.PageEvaluateInput(
+            script="return {total: args[0] + args[1]};",
+            args=[2, 3],
+            max_chars=1000,
+        ),
+    )
+    evaluate_payload = evaluate_response.get_structured_content()
+    assert evaluate_payload["data"]["result_type"] == "object"
+    assert evaluate_payload["data"]["max_chars"] == 1000
+    assert ctx.tab.calls[-1] == (
+        "evaluate_script",
+        ("return {total: args[0] + args[1]};",),
+        {"args": [2, 3], "max_chars": 1000},
+    )
+
     click_response = await _execute(
         common.click_coordinates,
         ctx,
@@ -461,6 +562,17 @@ async def test_navigation_tools_success_paths() -> None:
     assert nav_response.should_include_snapshot() is True
     assert ctx.tab.url == "https://example.test/next"
 
+    observed_ctx = FakeContext()
+    observed_nav_response = await _execute(
+        navigate.navigate,
+        observed_ctx,
+        navigate.NavigateInput(url="https://example.test/observed", observe=True),
+    )
+    observed_nav_data = observed_nav_response.get_structured_content()["data"]
+    assert observed_nav_data["final_url"] == "https://example.test/observed"
+    assert observed_nav_data["changes"]["url_changed"] is True
+    assert observed_nav_data["changes"]["appeared_texts"] == ["after"]
+
     new_tab_response = await _execute(
         navigate.navigate,
         ctx,
@@ -524,6 +636,28 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
     assert ctx.waited == [0.25]
     assert "Waited for 0.25 seconds" in _message(time_response)
 
+    until_response = await _execute(
+        wait.wait_until,
+        ctx,
+        wait.WaitUntilInput(
+            condition="clickable",
+            selector="#ready",
+            timeout=2,
+            interval=0.2,
+            stable_ms=50,
+        ),
+    )
+    until_payload = until_response.get_structured_content()
+    assert until_payload["data"] == {
+        "condition": "clickable",
+        "selector": "#ready",
+        "value": "",
+        "matched": True,
+        "timeout": 2.0,
+        "elapsed_ms": 15,
+        "state": {"selector": "#ready", "visible": True},
+    }
+
     ctx.tab.wait_element_result = False
     timeout_response = await _execute(
         wait.wait_for_element,
@@ -568,6 +702,8 @@ def test_get_property_input_uses_property_field_only() -> None:
     ("model", "payload"),
     [
         (common.PageSnapshotInput, {"maxElements": 10}),
+        (common.PageObserveInput, {"maxTexts": 10}),
+        (common.PageEvaluateInput, {"script": "return 1", "maxChars": 100}),
         (common.ScreenshotInput, {"fullPage": True}),
         (common.ResizeInput, {"width": 800, "height": 600, "extra": True}),
         (navigate.NavigateInput, {"url": "https://example.test", "background": True}),
@@ -582,6 +718,7 @@ def test_get_property_input_uses_property_field_only() -> None:
             {"selector": "#name", "property": "value", "property_name": "value"},
         ),
         (wait.WaitTimeInput, {"seconds": 1, "milliseconds": 500}),
+        (wait.WaitUntilInput, {"condition": "visible", "timeout_ms": 1}),
     ],
 )
 def test_tool_inputs_reject_unknown_fields(model, payload) -> None:
@@ -689,6 +826,14 @@ async def test_element_tools_success_paths() -> None:
     assert "Successfully clicked element" in _message(click_response)
     assert click_response.should_include_snapshot() is True
 
+    observed_click = await _execute(
+        element.click_element,
+        ctx,
+        element.ClickElementInput(selector="#name", timeout=1, observe=True),
+    )
+    observed_click_data = observed_click.get_structured_content()["data"]
+    assert observed_click_data["changes"]["appeared_texts"] == ["after"]
+
     type_response = await _execute(
         element.type_text,
         ctx,
@@ -702,6 +847,19 @@ async def test_element_tools_success_paths() -> None:
     assert "Ada" not in str(type_response.get_structured_content()["data"])
     assert "Successfully typed" in _message(type_response)
     assert type_response.should_include_snapshot() is True
+
+    observed_type = await _execute(
+        element.type_text,
+        ctx,
+        element.TypeTextInput(
+            selector="#name",
+            text="Ada",
+            clear=False,
+            observe=True,
+        ),
+    )
+    observed_type_data = observed_type.get_structured_content()["data"]
+    assert observed_type_data["changes"]["counts_delta"]["buttons"] == 1
 
     text_response = await _execute(
         element.get_text, ctx, element.GetTextInput(selector="#name")

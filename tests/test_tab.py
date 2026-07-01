@@ -209,6 +209,24 @@ class RaisingUrlPage:
         raise RuntimeError("disconnected")
 
 
+class RaisingIdentityPage(FakePage):
+    @property
+    def tab_id(self):
+        raise RuntimeError("tab detached")
+
+    @tab_id.setter
+    def tab_id(self, _value):
+        pass
+
+    @property
+    def title(self):
+        raise RuntimeError("title detached")
+
+    @title.setter
+    def title(self, _value):
+        pass
+
+
 @pytest.mark.asyncio
 async def test_navigation_coordinates_and_resize_paths() -> None:
     page = FakePage()
@@ -333,6 +351,206 @@ async def test_page_snapshot_and_find_elements_return_bounded_summaries() -> Non
             }
         ],
     }
+
+
+@pytest.mark.asyncio
+async def test_observe_evaluate_and_wait_until_return_observable_state() -> None:
+    class ObservablePage(FakePage):
+        def run_js(self, script: str, **kwargs):
+            self.calls.append(("run_js", script[:40], kwargs))
+            if "__mcpFn" in script:
+                return "abcdef"
+            if "text_samples" in script:
+                return {
+                    "url": self.url,
+                    "title": "Observable",
+                    "ready_state": "complete",
+                    "counts": {"buttons": 1, "inputs": 1},
+                    "text_samples": ["Ready", "Save"],
+                    "active_element": None,
+                }
+            if "const strategy" in script:
+                return {
+                    "exists": True,
+                    "visible": True,
+                    "disabled": False,
+                    "tag": "button",
+                    "text": "Save",
+                    "signature": "button|save|enabled",
+                }
+            return super().run_js(script, **kwargs)
+
+    page = ObservablePage()
+    page.url = "https://example.test/ready"
+    page.text = "Page is Ready"
+    tab = PageTab(page, FakeContext())
+
+    observation = await tab.observe(max_texts=2, max_text_chars=50)
+    evaluated = await tab.evaluate_script(
+        "return args[0];",
+        args=["abcdef"],
+        max_chars=4,
+    )
+    url_wait = await tab.wait_until(
+        condition="url_contains",
+        value="ready",
+        timeout=0,
+    )
+    text_wait = await tab.wait_until(
+        condition="text_contains",
+        value="Ready",
+        timeout=0,
+    )
+    clickable_wait = await tab.wait_until(
+        condition="clickable",
+        selector="#save",
+        timeout=0,
+    )
+    stable_wait = await tab.wait_until(
+        condition="stable",
+        selector="#save",
+        timeout=0,
+        stable_ms=10,
+    )
+
+    assert observation["text_samples"] == ["Ready", "Save"]
+    assert observation["active_element"] is None
+    assert observation["limits"] == {"max_texts": 2, "max_text_chars": 50}
+    assert evaluated == {
+        "result": "abcd",
+        "result_type": "string",
+        "truncated": True,
+        "original_json_chars": 8,
+        "max_chars": 4,
+    }
+    assert url_wait["matched"] is True
+    assert text_wait["state"]["text"] == "Page is Ready"
+    assert clickable_wait["state"]["tag"] == "button"
+    assert stable_wait["matched"] is True
+
+
+@pytest.mark.asyncio
+async def test_observable_helpers_raise_on_invalid_page_results() -> None:
+    class InvalidScriptPage(FakePage):
+        def __init__(self, mode: str) -> None:
+            super().__init__()
+            self.mode = mode
+
+        def run_js(self, script: str, **kwargs):
+            self.calls.append(("run_js", script[:40], kwargs))
+            if self.mode == "raise":
+                raise RuntimeError("script failed")
+            return "not structured"
+
+    with pytest.raises(RuntimeError, match="page snapshot script returned"):
+        await PageTab(InvalidScriptPage("invalid"), FakeContext()).page_snapshot()
+
+    with pytest.raises(RuntimeError, match="form inspect script returned"):
+        await PageTab(InvalidScriptPage("invalid"), FakeContext()).inspect_forms()
+
+    with pytest.raises(RuntimeError, match="page observe script returned"):
+        await PageTab(InvalidScriptPage("invalid"), FakeContext()).observe()
+
+    with pytest.raises(RuntimeError, match="script failed"):
+        await PageTab(InvalidScriptPage("raise"), FakeContext()).evaluate_script(
+            "return 1;"
+        )
+
+
+@pytest.mark.asyncio
+async def test_wait_until_conditions_cover_fallback_and_timeout_edges() -> None:
+    page = FakePage(FakeElement(tag="button", text="Save"))
+    tab = PageTab(page, FakeContext())
+
+    present = await tab.wait_until(condition="present", selector="tag:button", timeout=0)
+    visible = await tab.wait_until(condition="visible", selector="tag:button", timeout=0)
+    hidden = await PageTab(FakePage(element=None), FakeContext()).wait_until(
+        condition="hidden",
+        selector="tag:missing",
+        timeout=0,
+    )
+    detached = await PageTab(FakePage(element=None), FakeContext()).wait_until(
+        condition="detached",
+        selector="tag:missing",
+        timeout=0,
+    )
+
+    assert present["state"]["exists"] is True
+    assert visible["state"]["visible"] is True
+    assert hidden["matched"] is True
+    assert detached["matched"] is True
+
+    class SelectorJsFailPage(FakePage):
+        def run_js(self, script: str, **kwargs):
+            self.calls.append(("run_js", script[:40], kwargs))
+            raise RuntimeError("selector js failed")
+
+    fallback_visible = await PageTab(
+        SelectorJsFailPage(FakeElement(tag="button", text="Save")),
+        FakeContext(),
+    ).wait_until(condition="visible", selector="#save", timeout=0)
+    assert fallback_visible["state"]["visible"] is True
+
+    with pytest.raises(TimeoutError):
+        await PageTab(
+            FakePage(FakeElement(tag="button", attrs={"disabled": ""})),
+            FakeContext(),
+        ).wait_until(condition="clickable", selector="tag:button", timeout=0)
+
+    class EleRaisingPage(FakePage):
+        def ele(self, selector: str, **_kwargs):
+            self.calls.append(("ele", selector))
+            raise RuntimeError("element lookup failed")
+
+    with pytest.raises(TimeoutError):
+        await PageTab(EleRaisingPage(), FakeContext()).wait_until(
+            condition="text_contains",
+            selector="#missing",
+            value="never",
+            timeout=0,
+        )
+
+    with pytest.raises(ValueError, match="selector is required"):
+        await tab.wait_until(condition="visible", timeout=0)
+
+    with pytest.raises(TimeoutError, match="was not met"):
+        await PageTab(FakePage(element=None), FakeContext()).wait_until(
+            condition="visible",
+            selector="tag:missing",
+            timeout=0,
+        )
+
+    class TextAndHtmlRaisingPage(FakePage):
+        @property
+        def text(self):
+            raise RuntimeError("text detached")
+
+        @text.setter
+        def text(self, _value):
+            pass
+
+        @property
+        def html(self):
+            raise RuntimeError("html detached")
+
+        @html.setter
+        def html(self, _value):
+            pass
+
+    with pytest.raises(TimeoutError):
+        await PageTab(TextAndHtmlRaisingPage(), FakeContext()).wait_until(
+            condition="text_contains",
+            value="never",
+            timeout=0,
+        )
+
+
+def test_tab_identity_summary_handles_detached_properties() -> None:
+    tab = PageTab(RaisingIdentityPage(), FakeContext(), mcp_tab_id="t0")
+
+    assert tab.native_tab_id == ""
+    assert tab.title == ""
+    assert tab.summary(active=True)["native_id"] == ""
 
 
 @pytest.mark.asyncio

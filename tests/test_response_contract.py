@@ -302,6 +302,86 @@ def test_form_inspect_output_schema_validates_success_payload() -> None:
     validate(payload, tool_result_output_schema("form_inspect"))
 
 
+def test_observable_action_output_schemas_validate_success_payloads() -> None:
+    changes = {
+        "url_before": "https://example.test/start",
+        "url_after": "https://example.test/done",
+        "url_changed": True,
+        "title_before": "Start",
+        "title_after": "Done",
+        "title_changed": True,
+        "ready_state": "complete",
+        "counts_before": {"buttons": 1},
+        "counts_after": {"buttons": 2},
+        "counts_delta": {"buttons": 1},
+        "appeared_texts": ["Saved"],
+        "removed_texts": ["Loading"],
+        "active_element": None,
+    }
+    observe_payload = ToolResult.success(
+        "Observed page state",
+        url="https://example.test",
+        title="Observable",
+        ready_state="complete",
+        counts={"buttons": 1, "inputs": 1},
+        text_samples=["Ready"],
+        active_element=None,
+        limits={"max_texts": 20, "max_text_chars": 160},
+    ).to_dict()
+    evaluate_payload = ToolResult.success(
+        "Evaluated JavaScript",
+        result={"status": "ready"},
+        result_type="object",
+        truncated=False,
+        original_json_chars=18,
+        max_chars=4000,
+    ).to_dict()
+    navigate_payload = ToolResult.success(
+        "Successfully navigated",
+        url="https://example.test/start",
+        final_url="https://example.test/done",
+        new_tab=False,
+        tab_id="t0",
+        changes=changes,
+    ).to_dict()
+    click_payload = ToolResult.success(
+        "Successfully clicked element",
+        selector="#save",
+        locator="css:#save",
+        selector_strategy="css",
+        selector_normalized=True,
+        url="https://example.test/done",
+        changes=changes,
+    ).to_dict()
+    type_payload = ToolResult.success(
+        "Successfully typed text",
+        selector="#name",
+        locator="css:#name",
+        selector_strategy="css",
+        selector_normalized=True,
+        typed=True,
+        cleared=True,
+        changes=changes,
+    ).to_dict()
+    wait_payload = ToolResult.success(
+        "Condition matched",
+        condition="clickable",
+        selector="#save",
+        value="",
+        matched=True,
+        timeout=2.0,
+        elapsed_ms=100,
+        state={"visible": True, "disabled": False},
+    ).to_dict()
+
+    validate(observe_payload, tool_result_output_schema("page_observe"))
+    validate(evaluate_payload, tool_result_output_schema("page_evaluate"))
+    validate(navigate_payload, tool_result_output_schema("page_navigate"))
+    validate(click_payload, tool_result_output_schema("element_click"))
+    validate(type_payload, tool_result_output_schema("element_type"))
+    validate(wait_payload, tool_result_output_schema("wait_until"))
+
+
 def test_add_image_accepts_bytes_and_rejects_invalid_input() -> None:
     response = ToolResponse()
     response.add_image(b"image-bytes", "image/png")

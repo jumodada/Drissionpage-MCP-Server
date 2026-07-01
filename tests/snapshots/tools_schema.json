@@ -18,6 +18,12 @@
           "title": "New Tab",
           "type": "boolean"
         },
+        "observe": {
+          "default": false,
+          "description": "Return a compact before/after page change summary.",
+          "title": "Observe",
+          "type": "boolean"
+        },
         "url": {
           "description": "The URL to navigate to",
           "title": "Url",
@@ -39,6 +45,101 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "changes": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "active_element": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "selector": {
+                              "type": "string"
+                            },
+                            "tag": {
+                              "type": "string"
+                            },
+                            "text": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "appeared_texts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "counts_after": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "counts_before": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "counts_delta": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "ready_state": {
+                      "type": "string"
+                    },
+                    "removed_texts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "title_after": {
+                      "type": "string"
+                    },
+                    "title_before": {
+                      "type": "string"
+                    },
+                    "title_changed": {
+                      "type": "boolean"
+                    },
+                    "url_after": {
+                      "type": "string"
+                    },
+                    "url_before": {
+                      "type": "string"
+                    },
+                    "url_changed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "url_before",
+                    "url_after",
+                    "url_changed",
+                    "title_before",
+                    "title_after",
+                    "title_changed",
+                    "ready_state",
+                    "counts_before",
+                    "counts_after",
+                    "counts_delta",
+                    "appeared_texts",
+                    "removed_texts",
+                    "active_element"
+                  ],
+                  "title": "PageObservationChanges",
+                  "type": "object"
+                },
                 "final_url": {
                   "type": "string"
                 },
@@ -1505,6 +1606,313 @@
   },
   {
     "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Observe Page"
+    },
+    "description": "Return a compact current-page fingerprint with URL, title, ready state, element counts, visible text samples, and active element.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for compact page observation.",
+      "properties": {
+        "max_text_chars": {
+          "default": 160,
+          "description": "Maximum characters per visible text sample",
+          "maximum": 1000,
+          "minimum": 20,
+          "title": "Max Text Chars",
+          "type": "integer"
+        },
+        "max_texts": {
+          "default": 20,
+          "description": "Maximum number of visible text samples to return",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Max Texts",
+          "type": "integer"
+        }
+      },
+      "title": "PageObserveInput",
+      "type": "object"
+    },
+    "name": "page_observe",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "active_element": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "properties": {
+                        "selector": {
+                          "type": "string"
+                        },
+                        "tag": {
+                          "type": "string"
+                        },
+                        "text": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "counts": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object"
+                },
+                "limits": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "max_text_chars": {
+                      "type": "integer"
+                    },
+                    "max_texts": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "max_texts",
+                    "max_text_chars"
+                  ],
+                  "title": "ObservationLimits",
+                  "type": "object"
+                },
+                "ready_state": {
+                  "type": "string"
+                },
+                "text_samples": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "url",
+                "title",
+                "ready_state",
+                "counts",
+                "text_samples",
+                "active_element",
+                "limits"
+              ],
+              "title": "PageObservation",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Observe Page"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Evaluate JavaScript"
+    },
+    "description": "Run a bounded JavaScript function body in the current page and return a JSON-safe result. This can mutate the page.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for bounded JavaScript evaluation.",
+      "properties": {
+        "args": {
+          "description": "JSON arguments passed to the JavaScript function body",
+          "items": {},
+          "title": "Args",
+          "type": "array"
+        },
+        "max_chars": {
+          "default": 4000,
+          "description": "Maximum serialized JSON characters returned in result",
+          "maximum": 20000,
+          "minimum": 100,
+          "title": "Max Chars",
+          "type": "integer"
+        },
+        "script": {
+          "description": "JavaScript function body to run in the current page. Use return to provide a JSON-serializable result.",
+          "title": "Script",
+          "type": "string"
+        }
+      },
+      "required": [
+        "script"
+      ],
+      "title": "PageEvaluateInput",
+      "type": "object"
+    },
+    "name": "page_evaluate",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "max_chars": {
+                  "type": "integer"
+                },
+                "original_json_chars": {
+                  "type": "integer"
+                },
+                "result": {},
+                "result_type": {
+                  "type": "string"
+                },
+                "truncated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "result",
+                "result_type",
+                "truncated",
+                "original_json_chars",
+                "max_chars"
+              ],
+              "title": "PageEvaluateData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Evaluate JavaScript"
+  },
+  {
+    "annotations": {
       "destructiveHint": true,
       "idempotentHint": false,
       "openWorldHint": true,
@@ -2202,6 +2610,12 @@
       "additionalProperties": false,
       "description": "Input schema for clicking elements.",
       "properties": {
+        "observe": {
+          "default": false,
+          "description": "Return a compact before/after page change summary.",
+          "title": "Observe",
+          "type": "boolean"
+        },
         "selector": {
           "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
           "title": "Selector",
@@ -2229,6 +2643,101 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "changes": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "active_element": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "selector": {
+                              "type": "string"
+                            },
+                            "tag": {
+                              "type": "string"
+                            },
+                            "text": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "appeared_texts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "counts_after": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "counts_before": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "counts_delta": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "ready_state": {
+                      "type": "string"
+                    },
+                    "removed_texts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "title_after": {
+                      "type": "string"
+                    },
+                    "title_before": {
+                      "type": "string"
+                    },
+                    "title_changed": {
+                      "type": "boolean"
+                    },
+                    "url_after": {
+                      "type": "string"
+                    },
+                    "url_before": {
+                      "type": "string"
+                    },
+                    "url_changed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "url_before",
+                    "url_after",
+                    "url_changed",
+                    "title_before",
+                    "title_after",
+                    "title_changed",
+                    "ready_state",
+                    "counts_before",
+                    "counts_after",
+                    "counts_delta",
+                    "appeared_texts",
+                    "removed_texts",
+                    "active_element"
+                  ],
+                  "title": "PageObservationChanges",
+                  "type": "object"
+                },
                 "locator": {
                   "type": "string"
                 },
@@ -2334,6 +2843,12 @@
           "title": "Clear",
           "type": "boolean"
         },
+        "observe": {
+          "default": false,
+          "description": "Return a compact before/after page change summary.",
+          "title": "Observe",
+          "type": "boolean"
+        },
         "selector": {
           "description": "CSS selector or XPath to find the input element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
           "title": "Selector",
@@ -2367,6 +2882,101 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "changes": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "active_element": {
+                      "anyOf": [
+                        {
+                          "additionalProperties": true,
+                          "properties": {
+                            "selector": {
+                              "type": "string"
+                            },
+                            "tag": {
+                              "type": "string"
+                            },
+                            "text": {
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "appeared_texts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "counts_after": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "counts_before": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "counts_delta": {
+                      "additionalProperties": {
+                        "type": "integer"
+                      },
+                      "type": "object"
+                    },
+                    "ready_state": {
+                      "type": "string"
+                    },
+                    "removed_texts": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "title_after": {
+                      "type": "string"
+                    },
+                    "title_before": {
+                      "type": "string"
+                    },
+                    "title_changed": {
+                      "type": "boolean"
+                    },
+                    "url_after": {
+                      "type": "string"
+                    },
+                    "url_before": {
+                      "type": "string"
+                    },
+                    "url_changed": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "url_before",
+                    "url_after",
+                    "url_changed",
+                    "title_before",
+                    "title_after",
+                    "title_changed",
+                    "ready_state",
+                    "counts_before",
+                    "counts_after",
+                    "counts_delta",
+                    "appeared_texts",
+                    "removed_texts",
+                    "active_element"
+                  ],
+                  "title": "PageObservationChanges",
+                  "type": "object"
+                },
                 "cleared": {
                   "type": "boolean"
                 },
@@ -3643,5 +4253,182 @@
       "type": "object"
     },
     "title": "Wait Time"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Wait Until"
+    },
+    "description": "Wait for observable page state: element present/visible/hidden/detached/clickable/stable, text contains/matches, or URL contains/matches.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for generalized observable waits.",
+      "properties": {
+        "condition": {
+          "description": "Condition to wait for",
+          "enum": [
+            "present",
+            "visible",
+            "hidden",
+            "detached",
+            "clickable",
+            "stable",
+            "text_contains",
+            "text_matches",
+            "url_contains",
+            "url_matches"
+          ],
+          "title": "Condition",
+          "type": "string"
+        },
+        "interval": {
+          "default": 0.1,
+          "description": "Polling interval in seconds",
+          "maximum": 5,
+          "minimum": 0.01,
+          "title": "Interval",
+          "type": "number"
+        },
+        "selector": {
+          "default": "",
+          "description": "CSS/XPath/DrissionPage locator for element or text conditions",
+          "title": "Selector",
+          "type": "string"
+        },
+        "stable_ms": {
+          "default": 300,
+          "description": "Element stability window for the stable condition",
+          "maximum": 5000,
+          "minimum": 0,
+          "title": "Stable Ms",
+          "type": "integer"
+        },
+        "timeout": {
+          "default": 10,
+          "description": "Timeout in seconds",
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "value": {
+          "default": "",
+          "description": "Expected substring or regular expression for text/URL conditions",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "condition"
+      ],
+      "title": "WaitUntilInput",
+      "type": "object"
+    },
+    "name": "wait_until",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "condition": {
+                  "type": "string"
+                },
+                "elapsed_ms": {
+                  "type": "integer"
+                },
+                "matched": {
+                  "const": true
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "state": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "timeout": {
+                  "type": "number"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "condition",
+                "selector",
+                "value",
+                "matched",
+                "timeout",
+                "elapsed_ms",
+                "state"
+              ],
+              "title": "WaitUntilData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Wait Until"
   }
 ]

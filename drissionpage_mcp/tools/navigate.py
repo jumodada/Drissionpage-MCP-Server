@@ -6,6 +6,7 @@ from pydantic import Field
 
 from ..policy import PolicyDeniedError, validate_navigation
 from ..response import ErrorCode
+from ._observe import maybe_observe, observed_changes
 from .base import ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
@@ -20,6 +21,10 @@ class NavigateInput(ToolInput):
     new_tab: bool = Field(
         default=False,
         description="Open the URL in a new browser tab instead of the current tab.",
+    )
+    observe: bool = Field(
+        default=False,
+        description="Return a compact before/after page change summary.",
     )
 
 
@@ -55,16 +60,20 @@ async def navigate(
         response, lambda e: f"Failed to navigate to {args.url}: {e}"
     ):
         tab = await context.new_tab() if args.new_tab else await context.ensure_tab()
+        before = await maybe_observe(tab, args.observe)
         await tab.navigate(args.url)
+        changes = await observed_changes(tab, before)
 
         response.add_code(f"page.get({args.url!r})")
-        response.add_result(
-            f"Successfully navigated to: {args.url}",
-            url=args.url,
-            final_url=tab.url,
-            new_tab=args.new_tab,
-            tab_id=_safe_tab_id(tab),
-        )
+        data = {
+            "url": args.url,
+            "final_url": tab.url,
+            "new_tab": args.new_tab,
+            "tab_id": _safe_tab_id(tab),
+        }
+        if changes is not None:
+            data["changes"] = changes
+        response.add_result(f"Successfully navigated to: {args.url}", **data)
         response.set_include_snapshot(True)
 
 

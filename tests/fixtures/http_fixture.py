@@ -85,6 +85,41 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/observable":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Observable</title></head>
+                  <body>
+                    <main id="observable-root">
+                      <h1>Observable Workflow</h1>
+                      <div id="spinner">Loading...</div>
+                      <output id="status" role="status">waiting</output>
+                      <button id="delayed" type="button" disabled>Save</button>
+                    </main>
+                    <script>
+                      window.setTimeout(function () {
+                        document.getElementById('delayed').disabled = false;
+                        document.getElementById('spinner').remove();
+                        document.getElementById('status').textContent = 'ready';
+                      }, 80);
+                      document.getElementById('delayed').addEventListener('click', function () {
+                        document.title = 'Fixture Observable Saved';
+                        document.getElementById('status').textContent = 'saved successfully';
+                        var message = document.createElement('p');
+                        message.id = 'saved-message';
+                        message.textContent = 'Saved successfully';
+                        document.getElementById('observable-root').appendChild(message);
+                        history.pushState({}, '', '/observable?saved=1');
+                      });
+                    </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
         if path == "/new-tab":
             self._send_html(
                 """
