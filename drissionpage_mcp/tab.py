@@ -11,7 +11,7 @@ import time
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
-from DrissionPage.errors import ElementNotFoundError, PageDisconnectedError
+from DrissionPage.errors import ElementNotFoundError
 
 from .forms import build_form_inspect_script
 from .observation import bounded_json_value, build_observe_script, result_type
@@ -57,7 +57,7 @@ class PageTab:
         """Get the current URL of the tab."""
         try:
             return self.page.url or self._url
-        except (PageDisconnectedError, Exception):
+        except Exception:
             return self._url
 
     @property
@@ -731,7 +731,7 @@ class PageTab:
             # Try to access a basic property
             _ = self.page.url
             return True
-        except (PageDisconnectedError, Exception):
+        except Exception:
             return False
 
     async def _wait_condition_matches(
