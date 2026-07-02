@@ -30,6 +30,12 @@ class ToolInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class EmptyInput(ToolInput):
+    """Empty input schema for tools that don't require arguments."""
+
+    pass
+
+
 class ToolSchema:
     """Schema definition for a tool."""
 

@@ -7,7 +7,7 @@ from pydantic import Field
 from ..metadata import with_response_meta
 from ..policy import PolicyDeniedError, validate_screenshot_path
 from ..response import ErrorCode, build_screenshot_metadata
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import EmptyInput, ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -98,12 +98,6 @@ class ClickCoordinatesInput(ToolInput):
     element: str = Field(
         "", description="Human-readable element description for permission"
     )
-
-
-class EmptyInput(ToolInput):
-    """Empty input schema."""
-
-    pass
 
 
 @define_tool(

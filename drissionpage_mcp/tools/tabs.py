@@ -6,17 +6,11 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import EmptyInput, ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
     from ..response import ToolResponse
-
-
-class EmptyInput(ToolInput):
-    """Empty input schema."""
-
-    pass
 
 
 class TabIdInput(ToolInput):

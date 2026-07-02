@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, Dict, Optional
 from DrissionPage.errors import ElementNotFoundError
 
 from .forms import build_form_inspect_script
-from .observation import bounded_json_value, build_observe_script, result_type
+from .observation import bounded_json_value, build_observe_script, result_type, safe_int
 from .outline import build_page_snapshot_script, summarize_elements
 from .selector import SelectorPlan, normalize_selector
 
@@ -293,9 +293,10 @@ class PageTab:
                 max_elements=max_elements,
                 max_text_chars=max_text_chars,
             )
-            snapshot = self.page.run_js(script, as_expr=True)
-            if not isinstance(snapshot, dict):
-                raise RuntimeError("page snapshot script returned no structured data")
+            snapshot = self._run_structured_script(
+                script,
+                "page snapshot script returned no structured data",
+            )
             snapshot.setdefault("url", self.url)
             return snapshot
         except Exception as e:
@@ -319,10 +320,10 @@ class PageTab:
                 max_forms=max_forms,
                 max_fields_per_form=max_fields_per_form,
             )
-            result = self.page.run_js(script, as_expr=True)
-            if not isinstance(result, dict):
-                raise RuntimeError("form inspect script returned no structured data")
-            return result
+            return self._run_structured_script(
+                script,
+                "form inspect script returned no structured data",
+            )
         except Exception as e:
             logger.error(f"Failed to inspect forms: {e}")
             raise
@@ -369,9 +370,10 @@ class PageTab:
                 max_texts=max_texts,
                 max_text_chars=max_text_chars,
             )
-            result = self.page.run_js(script, as_expr=True)
-            if not isinstance(result, dict):
-                raise RuntimeError("page observe script returned no structured data")
+            result = self._run_structured_script(
+                script,
+                "page observe script returned no structured data",
+            )
             result.setdefault("url", self.url)
             result.setdefault("title", self.title)
             result.setdefault("ready_state", "")
@@ -582,8 +584,6 @@ class PageTab:
         """Wait for URL to match pattern."""
         try:
             # Simple implementation - can be improved with proper pattern matching
-            import time
-
             start_time = time.time()
             while time.time() - start_time < timeout:
                 if url_pattern in self.url:
@@ -610,6 +610,12 @@ class PageTab:
         except Exception:
             logger.debug("Could not access DrissionPage console surface", exc_info=True)
             return None
+
+    def _run_structured_script(self, script: str, error_message: str) -> dict[str, Any]:
+        result = self.page.run_js(script, as_expr=True)
+        if not isinstance(result, dict):
+            raise RuntimeError(error_message)
+        return result
 
     def _normalized_console_messages(self) -> list[dict[str, Any]]:
         console = self._console_surface()
@@ -918,7 +924,7 @@ def _empty_console_logs(*, available: bool) -> dict[str, Any]:
 def _next_console_cursor(messages: list[dict[str, Any]]) -> int:
     if not messages:
         return -1
-    return max(_safe_int(item.get("index"), -1) for item in messages)
+    return max(safe_int(item.get("index"), -1) for item in messages)
 
 
 def _console_prefix_matches(
@@ -938,8 +944,8 @@ def _console_signature(message: dict[str, Any]) -> tuple[str, str, str, int, int
         str(message.get("level") or ""),
         str(message.get("text") or ""),
         str(message.get("url") or ""),
-        _safe_int(message.get("line"), 0),
-        _safe_int(message.get("column"), 0),
+        safe_int(message.get("line"), 0),
+        safe_int(message.get("column"), 0),
         str(message.get("source") or ""),
     )
 
@@ -950,8 +956,8 @@ def _normalize_console_message(message: Any, index: int) -> dict[str, Any]:
         "level": _normalize_console_level(_message_field(message, "level", "log")),
         "text": _message_text(message),
         "url": str(_message_field(message, "url", "") or ""),
-        "line": _safe_int(_message_field(message, "line", 0), 0),
-        "column": _safe_int(_message_field(message, "column", 0), 0),
+        "line": safe_int(_message_field(message, "line", 0), 0),
+        "column": safe_int(_message_field(message, "column", 0), 0),
         "source": str(_message_field(message, "source", "") or ""),
     }
 
@@ -981,10 +987,3 @@ def _normalize_console_level(level: Any) -> str:
     if value in {"all", "error", "warning", "info", "log"}:
         return value
     return "log"
-
-
-def _safe_int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
