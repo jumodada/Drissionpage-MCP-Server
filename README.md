@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 28 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 29 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -123,7 +123,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 28 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 29 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -151,12 +151,15 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 ### 📸 Page Operations (8 tools)
 - `page_screenshot` - Capture full page or viewport
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
-- `page_observe` - Return a compact page fingerprint with URL, title, counts, visible text samples, and active element
+- `page_observe` - Return a compact page fingerprint with URL, title, counts, visible text samples, active element, and recent console summary
 - `page_evaluate` - Run bounded JavaScript in the current page and return a JSON-safe result
 - `page_resize` - Adjust browser window
 - `page_click_xy` - Click by coordinates
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
+
+### 🧪 Debug / Observability (1 tool)
+- `page_console_logs` - Read bounded browser console messages with level filtering, cursor pagination, and limits
 
 ### ⏱️ Wait Operations (4 tools)
 - `wait_for_element` - Wait for element to appear (with timeout)
@@ -194,7 +197,7 @@ DrissionMCP/
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 28 automation, tab-management, page-understanding, form, and observable-action tools
+│   └── tools/              # 29 automation, tab-management, page-understanding, form, debug, and observable-action tools
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -348,7 +351,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.5.2`.
+Should output the installed package version, for example `drissionpage-mcp 0.5.3`.
 
 ### Browser Issues?
 ```bash
@@ -377,14 +380,14 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.5.2 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.5.3 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.5.2)
-- [x] 28 core automation, tab-management, page-understanding, and form-inspection tools with removed alias surface
+### Current (v0.5.3)
+- [x] 29 core automation, tab-management, page-understanding, form-inspection, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -393,6 +396,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] `form_inspect` read-only form inventory with labels, selectors, requirements, options, and safe optional values
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
 - [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
+- [x] Console observability with `page_console_logs`, console summary in `page_observe`, and console change fields in `observe=true`
 - [x] Redacted session history resource and response size metadata for bounded outputs
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
@@ -539,18 +543,18 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.5.2
+## 🆕 Latest Version: v0.5.3
 
-Released on 2026-07-01. This release adds observable action support for dynamic pages while keeping the 0.5 tab, form, and page-understanding workflow:
+Released on 2026-07-02. This release adds browser console observability on top of the 0.5 tab, form, page-understanding, and observable-action workflow:
 
-- `page_observe` returns a compact page fingerprint with URL, title, ready state, element counts, visible text samples, and active element.
-- `page_evaluate` runs bounded JavaScript in the current page and returns a JSON-safe result.
-- `wait_until` waits for practical UI conditions: present, visible, hidden, detached, clickable, stable, text contains/matches, and URL contains/matches.
-- `page_navigate`, `element_click`, and `element_type` now accept `observe=true` to return a before/after `changes` summary only when requested.
+- `page_console_logs` reads bounded current-tab console messages with `level`, `since`, and `limit` parameters.
+- `page_observe` now includes a compact console summary with recent messages, warning/error counts, and a cursor.
+- `page_navigate`, `element_click`, and `element_type` with `observe=true` now include console change fields: `console_errors_added`, `console_warnings_added`, and `new_console_messages`.
+- `page_observe`, `page_evaluate`, and `wait_until` remain the main tools for checking dynamic page state after actions.
 - `tab_list`, `tab_switch`, and `tab_close` manage tabs opened by MCP tools or normal page interactions such as `target="_blank"` links.
 - `drissionpage://session/history` records recent actions with sensitive arguments redacted and compact observable-change summaries when present.
 - `page_snapshot`, `element_find_all`, and `form_inspect` include `meta.approx_tokens` and size metadata for better response budgeting.
-- Failure payloads include machine-readable `error.details.hints`; timeout hints now also point to `wait_until` for condition-specific waits.
+- Failure payloads include machine-readable `error.details.hints`; timeout hints point to `wait_until` for condition-specific waits.
 - `MCP_ARGUMENT_INVALID` protects strict schemas and points clients toward exact snake_case field names.
 - Browser startup hints point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, `DP_HEADLESS`, and `DP_NO_SANDBOX`.
-- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry now has 28 tools.
+- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry now has 29 tools.

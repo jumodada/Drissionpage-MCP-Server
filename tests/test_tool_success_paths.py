@@ -10,7 +10,7 @@ import pytest
 from DrissionPage.errors import ElementNotFoundError
 
 from drissionpage_mcp.response import ToolResponse
-from drissionpage_mcp.tools import common, element, forms, navigate, tabs, wait
+from drissionpage_mcp.tools import common, debug, element, forms, navigate, tabs, wait
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
@@ -113,10 +113,70 @@ class FakeTab:
             "counts": {"buttons": 1 + phase, "inputs": 1},
             "text_samples": ["before"] if phase % 2 == 0 else ["after"],
             "active_element": None,
+            "console": {
+                "available": True,
+                "listening": True,
+                "count": phase + 1,
+                "total": phase + 1,
+                "next_cursor": phase,
+                "error_count": 1 if phase else 0,
+                "warning_count": 0,
+                "recent": [
+                    {
+                        "index": phase,
+                        "level": "error" if phase else "log",
+                        "text": "after error" if phase else "before log",
+                        "url": self.url,
+                        "line": 1,
+                        "column": 1,
+                        "source": "console-api",
+                    }
+                ],
+            },
             "limits": {
                 "max_texts": max_texts,
                 "max_text_chars": max_text_chars,
             },
+        }
+
+    async def console_logs(
+        self,
+        *,
+        level: str = "all",
+        since: int = -1,
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        self._record("console_logs", level=level, since=since, limit=limit)
+        logs = [
+            {
+                "index": 0,
+                "level": "log",
+                "text": "before log",
+                "url": self.url,
+                "line": 1,
+                "column": 1,
+                "source": "console-api",
+            },
+            {
+                "index": 1,
+                "level": "error",
+                "text": "after error",
+                "url": self.url,
+                "line": 2,
+                "column": 1,
+                "source": "console-api",
+            },
+        ]
+        filtered = [item for item in logs if item["index"] > since]
+        if level != "all":
+            filtered = [item for item in filtered if item["level"] == level]
+        return {
+            "available": True,
+            "listening": True,
+            "count": len(filtered[:limit]),
+            "total": len(logs),
+            "next_cursor": logs[-1]["index"],
+            "logs": filtered[:limit],
         }
 
     async def evaluate_script(
@@ -485,6 +545,20 @@ async def test_common_tools_success_paths(tmp_path) -> None:
         {"args": [2, 3], "max_chars": 1000},
     )
 
+    console_response = await _execute(
+        debug.page_console_logs,
+        ctx,
+        debug.ConsoleLogsInput(level="error", since=0, limit=10),
+    )
+    console_payload = console_response.get_structured_content()
+    assert console_payload["data"]["count"] == 1
+    assert console_payload["data"]["logs"][0]["text"] == "after error"
+    assert ctx.tab.calls[-1] == (
+        "console_logs",
+        (),
+        {"level": "error", "since": 0, "limit": 10},
+    )
+
     click_response = await _execute(
         common.click_coordinates,
         ctx,
@@ -572,6 +646,8 @@ async def test_navigation_tools_success_paths() -> None:
     assert observed_nav_data["final_url"] == "https://example.test/observed"
     assert observed_nav_data["changes"]["url_changed"] is True
     assert observed_nav_data["changes"]["appeared_texts"] == ["after"]
+    assert observed_nav_data["changes"]["console_errors_added"] == 1
+    assert observed_nav_data["changes"]["new_console_messages"][0]["text"] == "after error"
 
     new_tab_response = await _execute(
         navigate.navigate,

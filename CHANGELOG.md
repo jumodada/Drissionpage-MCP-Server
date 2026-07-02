@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-07-02
+
+### Added
+- Added `page_console_logs` for bounded current-tab console messages with level filtering, cursor pagination, and result limits.
+- Added console summaries to `page_observe`.
+- Added console change fields to observable action results: `console_errors_added`, `console_warnings_added`, and `new_console_messages`.
+- Added browser fixture coverage for console logs emitted during page load and user actions.
+
+### Changed
+- Tool registry now exposes 29 public tools.
+- Session history summaries include compact console-change information when a tool response contains observable `changes`.
+
 ## [0.5.2] - 2026-07-01
 
 ### Added
@@ -232,7 +244,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.1...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.3...HEAD
+[0.5.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.2...v0.5.3
+[0.5.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.1...v0.5.2
 [0.5.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.10...v0.5.0
 [0.4.10]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.4.9...v0.4.10

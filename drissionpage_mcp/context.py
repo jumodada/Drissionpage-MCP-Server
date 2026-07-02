@@ -267,6 +267,7 @@ class DrissionPageContext:
     def _wrap_page(self, page: Any) -> PageTab:
         tab = PageTab(page, self, mcp_tab_id=f"t{self._next_tab_index}")
         self._next_tab_index += 1
+        tab.ensure_console_capture()
         return tab
 
     def _browser_tabs(self) -> list[Any]:
@@ -375,5 +376,30 @@ def _summarize_result(result: Mapping[str, Any]) -> dict[str, Any]:
                 "title_changed": bool(changes.get("title_changed")),
                 "appeared_texts": list(changes.get("appeared_texts") or [])[:3],
                 "removed_texts": list(changes.get("removed_texts") or [])[:3],
+                "console_errors_added": _safe_history_int(
+                    changes.get("console_errors_added")
+                ),
+                "console_warnings_added": _safe_history_int(
+                    changes.get("console_warnings_added")
+                ),
+                "new_console_messages": [
+                    _summarize_console_message(item)
+                    for item in list(changes.get("new_console_messages") or [])[:3]
+                    if isinstance(item, Mapping)
+                ],
             }
     return payload
+
+
+def _safe_history_int(value: Any) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _summarize_console_message(message: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        "level": str(message.get("level") or ""),
+        "text": str(message.get("text") or "")[:200],
+    }

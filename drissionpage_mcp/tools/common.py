@@ -211,7 +211,7 @@ async def page_snapshot(
     title="Observe Page",
     description=(
         "Return a compact current-page fingerprint with URL, title, ready state, "
-        "element counts, visible text samples, and active element."
+        "element counts, visible text samples, active element, and recent console summary."
     ),
     input_schema=PageObserveInput,
     tool_type=ToolType.READ_ONLY,

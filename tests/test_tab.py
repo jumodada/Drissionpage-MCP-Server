@@ -42,6 +42,20 @@ class FakeSet:
         self.window = FakeWindow()
 
 
+class FakeConsole:
+    def __init__(self, *, messages=None, listening: bool = False, start_raises=False) -> None:
+        self.messages = list(messages or [])
+        self.listening = listening
+        self.start_raises = start_raises
+        self.started = False
+
+    def start(self) -> None:
+        if self.start_raises:
+            raise RuntimeError("console unavailable")
+        self.started = True
+        self.listening = True
+
+
 class FakeWait:
     def __init__(self, loaded: bool = True, fail: bool = False) -> None:
         self.loaded = loaded
@@ -128,6 +142,7 @@ class FakePage:
         self.actions = FakeActions()
         self.wait = FakeWait()
         self.set = FakeSet()
+        self.console = FakeConsole()
         self.element = FakeElement() if element is _DEFAULT_ELEMENT else element
         self.elements = [self.element] if self.element is not None else []
         self.calls = []
@@ -188,6 +203,25 @@ class FakePage:
 
     def close(self) -> None:
         self.closed = True
+
+
+class AttrConsoleMessage:
+    def __init__(
+        self,
+        *,
+        level: str = "log",
+        text: str = "attr log",
+        url: str = "https://example.test",
+        line: int = 5,
+        column: int = 2,
+        source: str = "console-api",
+    ) -> None:
+        self.level = level
+        self.text = text
+        self.url = url
+        self.line = line
+        self.column = column
+        self.source = source
 
 
 class FakeContext:
@@ -427,6 +461,108 @@ async def test_observe_evaluate_and_wait_until_return_observable_state() -> None
     assert text_wait["state"]["text"] == "Page is Ready"
     assert clickable_wait["state"]["tag"] == "button"
     assert stable_wait["matched"] is True
+
+
+@pytest.mark.asyncio
+async def test_console_logs_are_normalized_filterable_and_cursor_based() -> None:
+    page = FakePage()
+    page.console = FakeConsole(
+        messages=[
+            AttrConsoleMessage(level="log", text="load log"),
+            {
+                "level": "warning",
+                "text": "slow request",
+                "url": "https://example.test/console",
+                "line": "9",
+                "column": "4",
+                "source": "console-api",
+            },
+            AttrConsoleMessage(level="error", text="action failed", line=12),
+        ]
+    )
+    tab = PageTab(page, FakeContext())
+
+    all_logs = await tab.console_logs(level="all", since=-1, limit=2)
+    error_logs = await tab.console_logs(level="error", since=-1, limit=20)
+    cursor_logs = await tab.console_logs(level="all", since=1, limit=20)
+
+    assert page.console.started is True
+    assert all_logs["available"] is True
+    assert all_logs["listening"] is True
+    assert all_logs["count"] == 2
+    assert all_logs["total"] == 3
+    assert all_logs["next_cursor"] == 2
+    assert [item["index"] for item in all_logs["logs"]] == [1, 2]
+    assert all_logs["logs"][0] == {
+        "index": 1,
+        "level": "warning",
+        "text": "slow request",
+        "url": "https://example.test/console",
+        "line": 9,
+        "column": 4,
+        "source": "console-api",
+    }
+    assert [item["text"] for item in error_logs["logs"]] == ["action failed"]
+    assert [item["index"] for item in cursor_logs["logs"]] == [2]
+
+
+@pytest.mark.asyncio
+async def test_console_logs_report_capability_when_unavailable() -> None:
+    page = FakePage()
+    page.console = None
+    unavailable = await PageTab(page, FakeContext()).console_logs()
+
+    page.console = FakeConsole(start_raises=True)
+    start_failed = await PageTab(page, FakeContext()).console_logs()
+
+    assert unavailable == {
+        "available": False,
+        "listening": False,
+        "count": 0,
+        "total": 0,
+        "next_cursor": -1,
+        "logs": [],
+    }
+    assert start_failed["available"] is True
+    assert start_failed["listening"] is False
+    assert start_failed["logs"] == []
+
+
+@pytest.mark.asyncio
+async def test_observe_includes_bounded_console_summary() -> None:
+    class ObservablePage(FakePage):
+        def run_js(self, script: str, **kwargs):
+            self.calls.append(("run_js", script[:40], kwargs))
+            return {
+                "url": self.url,
+                "title": "Observable",
+                "ready_state": "complete",
+                "counts": {"buttons": 1},
+                "text_samples": ["Ready"],
+                "active_element": None,
+            }
+
+    page = ObservablePage()
+    page.console = FakeConsole(
+        messages=[
+            AttrConsoleMessage(level="warning", text="first warning"),
+            AttrConsoleMessage(level="error", text="first error"),
+            AttrConsoleMessage(level="log", text="plain log"),
+        ]
+    )
+    tab = PageTab(page, FakeContext())
+
+    observation = await tab.observe()
+
+    assert observation["console"]["available"] is True
+    assert observation["console"]["error_count"] == 1
+    assert observation["console"]["warning_count"] == 1
+    assert observation["console"]["next_cursor"] == 2
+    assert [item["text"] for item in observation["console"]["recent"]] == [
+        "first warning",
+        "first error",
+        "plain log",
+    ]
 
 
 @pytest.mark.asyncio

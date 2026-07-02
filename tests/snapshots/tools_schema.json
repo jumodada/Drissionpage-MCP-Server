@@ -76,6 +76,12 @@
                       },
                       "type": "array"
                     },
+                    "console_errors_added": {
+                      "type": "integer"
+                    },
+                    "console_warnings_added": {
+                      "type": "integer"
+                    },
                     "counts_after": {
                       "additionalProperties": {
                         "type": "integer"
@@ -93,6 +99,46 @@
                         "type": "integer"
                       },
                       "type": "object"
+                    },
+                    "new_console_messages": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "column": {
+                            "type": "integer"
+                          },
+                          "index": {
+                            "type": "integer"
+                          },
+                          "level": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "level",
+                          "text",
+                          "url",
+                          "line",
+                          "column",
+                          "source"
+                        ],
+                        "title": "ConsoleLog",
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "ready_state": {
                       "type": "string"
@@ -135,7 +181,10 @@
                     "counts_delta",
                     "appeared_texts",
                     "removed_texts",
-                    "active_element"
+                    "active_element",
+                    "console_errors_added",
+                    "console_warnings_added",
+                    "new_console_messages"
                   ],
                   "title": "PageObservationChanges",
                   "type": "object"
@@ -1612,7 +1661,7 @@
       "readOnlyHint": true,
       "title": "Observe Page"
     },
-    "description": "Return a compact current-page fingerprint with URL, title, ready state, element counts, visible text samples, and active element.",
+    "description": "Return a compact current-page fingerprint with URL, title, ready state, element counts, visible text samples, active element, and recent console summary.",
     "inputSchema": {
       "additionalProperties": false,
       "description": "Input schema for compact page observation.",
@@ -1668,6 +1717,84 @@
                     }
                   ]
                 },
+                "console": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "error_count": {
+                      "type": "integer"
+                    },
+                    "listening": {
+                      "type": "boolean"
+                    },
+                    "next_cursor": {
+                      "type": "integer"
+                    },
+                    "recent": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "column": {
+                            "type": "integer"
+                          },
+                          "index": {
+                            "type": "integer"
+                          },
+                          "level": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "level",
+                          "text",
+                          "url",
+                          "line",
+                          "column",
+                          "source"
+                        ],
+                        "title": "ConsoleLog",
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "warning_count": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "available",
+                    "listening",
+                    "count",
+                    "total",
+                    "next_cursor",
+                    "error_count",
+                    "warning_count",
+                    "recent"
+                  ],
+                  "title": "ConsoleSummary",
+                  "type": "object"
+                },
                 "counts": {
                   "additionalProperties": {
                     "type": "integer"
@@ -1714,6 +1841,7 @@
                 "counts",
                 "text_samples",
                 "active_element",
+                "console",
                 "limits"
               ],
               "title": "PageObservation",
@@ -2235,6 +2363,188 @@
       "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": true,
+      "title": "Console Logs"
+    },
+    "description": "Read bounded browser console messages from the current tab. Supports level filtering, cursor pagination, and a maximum result limit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for reading current-tab console logs.",
+      "properties": {
+        "level": {
+          "default": "all",
+          "description": "Console level filter: all, error, warning, warn, info, or log.",
+          "enum": [
+            "all",
+            "error",
+            "warning",
+            "warn",
+            "info",
+            "log"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "Maximum number of console entries to return.",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "since": {
+          "default": -1,
+          "description": "Return only log entries with index greater than this cursor.",
+          "minimum": -1,
+          "title": "Since",
+          "type": "integer"
+        }
+      },
+      "title": "ConsoleLogsInput",
+      "type": "object"
+    },
+    "name": "page_console_logs",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "available": {
+                  "type": "boolean"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "listening": {
+                  "type": "boolean"
+                },
+                "logs": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "column": {
+                        "type": "integer"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "level": {
+                        "type": "string"
+                      },
+                      "line": {
+                        "type": "integer"
+                      },
+                      "source": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "level",
+                      "text",
+                      "url",
+                      "line",
+                      "column",
+                      "source"
+                    ],
+                    "title": "ConsoleLog",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "next_cursor": {
+                  "type": "integer"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "available",
+                "listening",
+                "count",
+                "total",
+                "next_cursor",
+                "logs"
+              ],
+              "title": "ConsoleLogsData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Console Logs"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
       "title": "Find Element"
     },
     "description": "Find an element on the page using CSS selector or XPath. Bare selectors are treated as CSS; use text:... for text matching.",
@@ -2674,6 +2984,12 @@
                       },
                       "type": "array"
                     },
+                    "console_errors_added": {
+                      "type": "integer"
+                    },
+                    "console_warnings_added": {
+                      "type": "integer"
+                    },
                     "counts_after": {
                       "additionalProperties": {
                         "type": "integer"
@@ -2691,6 +3007,46 @@
                         "type": "integer"
                       },
                       "type": "object"
+                    },
+                    "new_console_messages": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "column": {
+                            "type": "integer"
+                          },
+                          "index": {
+                            "type": "integer"
+                          },
+                          "level": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "level",
+                          "text",
+                          "url",
+                          "line",
+                          "column",
+                          "source"
+                        ],
+                        "title": "ConsoleLog",
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "ready_state": {
                       "type": "string"
@@ -2733,7 +3089,10 @@
                     "counts_delta",
                     "appeared_texts",
                     "removed_texts",
-                    "active_element"
+                    "active_element",
+                    "console_errors_added",
+                    "console_warnings_added",
+                    "new_console_messages"
                   ],
                   "title": "PageObservationChanges",
                   "type": "object"
@@ -2913,6 +3272,12 @@
                       },
                       "type": "array"
                     },
+                    "console_errors_added": {
+                      "type": "integer"
+                    },
+                    "console_warnings_added": {
+                      "type": "integer"
+                    },
                     "counts_after": {
                       "additionalProperties": {
                         "type": "integer"
@@ -2930,6 +3295,46 @@
                         "type": "integer"
                       },
                       "type": "object"
+                    },
+                    "new_console_messages": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "column": {
+                            "type": "integer"
+                          },
+                          "index": {
+                            "type": "integer"
+                          },
+                          "level": {
+                            "type": "string"
+                          },
+                          "line": {
+                            "type": "integer"
+                          },
+                          "source": {
+                            "type": "string"
+                          },
+                          "text": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "index",
+                          "level",
+                          "text",
+                          "url",
+                          "line",
+                          "column",
+                          "source"
+                        ],
+                        "title": "ConsoleLog",
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "ready_state": {
                       "type": "string"
@@ -2972,7 +3377,10 @@
                     "counts_delta",
                     "appeared_texts",
                     "removed_texts",
-                    "active_element"
+                    "active_element",
+                    "console_errors_added",
+                    "console_warnings_added",
+                    "new_console_messages"
                   ],
                   "title": "PageObservationChanges",
                   "type": "object"
