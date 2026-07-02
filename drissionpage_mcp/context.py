@@ -6,8 +6,6 @@ from collections import deque
 from datetime import datetime, timezone
 from typing import Any, Deque, List, Mapping, Optional
 
-from DrissionPage.errors import PageDisconnectedError
-
 from .compat import create_browser, get_latest_tab, new_tab, quit_browser
 from .tab import PageTab
 
@@ -203,7 +201,7 @@ class DrissionPageContext:
         if self._browser:
             try:
                 quit_browser(self._browser)
-            except (PageDisconnectedError, Exception) as e:
+            except Exception as e:
                 logger.warning(f"Error closing browser: {e}")
             finally:
                 self._browser = None
