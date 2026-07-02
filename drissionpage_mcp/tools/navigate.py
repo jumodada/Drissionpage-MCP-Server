@@ -7,7 +7,7 @@ from pydantic import Field
 from ..policy import PolicyDeniedError, validate_navigation
 from ..response import ErrorCode
 from ._observe import maybe_observe, observed_changes
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import EmptyInput, ToolInput, ToolType, define_tool, tool_errors
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -26,12 +26,6 @@ class NavigateInput(ToolInput):
         default=False,
         description="Return a compact before/after page change summary.",
     )
-
-
-class EmptyInput(ToolInput):
-    """Empty input schema for tools that don't require parameters."""
-
-    pass
 
 
 @define_tool(

@@ -191,10 +191,10 @@ def _bounded_new_items(before: list[str], after: list[str], *, limit: int = 10) 
 def _console_diff(before: Any, after: Any) -> dict[str, Any]:
     before_console = before if isinstance(before, dict) else {}
     after_console = after if isinstance(after, dict) else {}
-    before_cursor = _safe_int(before_console.get("next_cursor"), -1)
+    before_cursor = safe_int(before_console.get("next_cursor"), -1)
     after_messages = _console_messages(after_console)
     new_messages = [
-        item for item in after_messages if _safe_int(item.get("index"), -1) > before_cursor
+        item for item in after_messages if safe_int(item.get("index"), -1) > before_cursor
     ][:5]
     return {
         "console_errors_added": sum(
@@ -217,19 +217,21 @@ def _console_messages(console: dict[str, Any]) -> list[dict[str, Any]]:
             continue
         normalized.append(
             {
-                "index": _safe_int(item.get("index"), -1),
+                "index": safe_int(item.get("index"), -1),
                 "level": str(item.get("level") or "log"),
                 "text": str(item.get("text") or ""),
                 "url": str(item.get("url") or ""),
-                "line": _safe_int(item.get("line"), 0),
-                "column": _safe_int(item.get("column"), 0),
+                "line": safe_int(item.get("line"), 0),
+                "column": safe_int(item.get("column"), 0),
                 "source": str(item.get("source") or ""),
             }
         )
     return normalized
 
 
-def _safe_int(value: Any, default: int) -> int:
+def safe_int(value: Any, default: int) -> int:
+    """Convert *value* to int, returning *default* on common conversion failures."""
+
     try:
         return int(value)
     except (TypeError, ValueError):

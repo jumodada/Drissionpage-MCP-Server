@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Deque, List, Mapping, Optional
 
 from .compat import create_browser, get_latest_tab, new_tab, quit_browser
+from .observation import safe_int
 from .tab import PageTab
 
 logger = logging.getLogger(__name__)
@@ -374,11 +375,11 @@ def _summarize_result(result: Mapping[str, Any]) -> dict[str, Any]:
                 "title_changed": bool(changes.get("title_changed")),
                 "appeared_texts": list(changes.get("appeared_texts") or [])[:3],
                 "removed_texts": list(changes.get("removed_texts") or [])[:3],
-                "console_errors_added": _safe_history_int(
-                    changes.get("console_errors_added")
+                "console_errors_added": safe_int(
+                    changes.get("console_errors_added"), 0
                 ),
-                "console_warnings_added": _safe_history_int(
-                    changes.get("console_warnings_added")
+                "console_warnings_added": safe_int(
+                    changes.get("console_warnings_added"), 0
                 ),
                 "new_console_messages": [
                     _summarize_console_message(item)
@@ -387,15 +388,6 @@ def _summarize_result(result: Mapping[str, Any]) -> dict[str, Any]:
                 ],
             }
     return payload
-
-
-def _safe_history_int(value: Any) -> int:
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return 0
-
-
 def _summarize_console_message(message: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "level": str(message.get("level") or ""),
