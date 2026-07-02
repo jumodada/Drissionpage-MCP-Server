@@ -143,11 +143,17 @@ The server marks tools with MCP annotations:
 | `page_resize` | Destructive | `width`, `height` | Resize the browser window. |
 | `page_screenshot` | Read-only | none | Capture the viewport or full page. Optional: `full_page`, `path`. |
 | `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`. |
-| `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, and limits. Optional: `max_texts`, `max_text_chars`. |
+| `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, recent console summary, and limits. Optional: `max_texts`, `max_text_chars`. |
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
 | `page_click_xy` | Destructive | `x`, `y` | Click page coordinates. Optional: `element` description. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |
+
+### Debug / Observability
+
+| Tool | Type | Required input | Description |
+| --- | --- | --- | --- |
+| `page_console_logs` | Read-only | none | Read bounded browser console messages from the current tab. Optional: `level`, `since`, `limit`. |
 
 ### Element Operations
 
@@ -214,9 +220,10 @@ The server exposes user-controlled workflow prompts:
 - `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
 - `form_inspect` is read-only. It returns field values only when `include_values=true`, and password values are always returned as `null`.
 - `tab_list` synchronizes with browser tabs opened by normal page behavior, including `target="_blank"` links.
-- `page_observe` is designed for compact state checks. Use `page_snapshot` when you need selectors and structured page outline details.
+- `page_observe` is designed for compact state checks. Use `page_snapshot` when you need selectors and structured page outline details. Its `console` field summarizes recent current-tab console messages when DrissionPage console capture is available.
+- `page_console_logs` returns normalized console messages with `index`, `level`, `text`, `url`, `line`, `column`, and `source`. Use `since` with the previous `next_cursor` to fetch only newer messages.
 - `page_evaluate` accepts a JavaScript function body; use `return` for values you want in `structuredContent.data.result`. The result is bounded by `max_chars`.
-- `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, and active element. It is omitted by default.
+- `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
 - `element_input_text` and `wait_sleep` were removed in 0.4.0. Use

@@ -120,6 +120,33 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/console":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Console</title></head>
+                  <body>
+                    <main id="console-root">
+                      <h1>Console Workflow</h1>
+                      <output id="console-status" role="status">ready</output>
+                      <button id="console-action" type="button">Emit console error</button>
+                    </main>
+                    <script>
+                      console.log('fixture console log');
+                      console.warn('fixture console warning');
+                      console.error('fixture console error');
+                      document.getElementById('console-action').addEventListener('click', function () {
+                        console.error('fixture action failed');
+                        document.getElementById('console-status').textContent = 'action failed';
+                      });
+                    </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
         if path == "/new-tab":
             self._send_html(
                 """

@@ -100,6 +100,7 @@ def diff_observations(
     after_counts = _dict(after.get("counts"))
     before_texts = [str(item) for item in before.get("text_samples") or []]
     after_texts = [str(item) for item in after.get("text_samples") or []]
+    console = _console_diff(before.get("console"), after.get("console"))
 
     all_count_keys = sorted(set(before_counts) | set(after_counts))
     counts_delta = {
@@ -121,6 +122,7 @@ def diff_observations(
         "appeared_texts": _bounded_new_items(before_texts, after_texts),
         "removed_texts": _bounded_new_items(after_texts, before_texts),
         "active_element": after.get("active_element"),
+        **console,
     }
 
 
@@ -184,3 +186,51 @@ def _dict(value: Any) -> dict[str, int]:
 def _bounded_new_items(before: list[str], after: list[str], *, limit: int = 10) -> list[str]:
     before_set = set(before)
     return [item for item in after if item not in before_set][:limit]
+
+
+def _console_diff(before: Any, after: Any) -> dict[str, Any]:
+    before_console = before if isinstance(before, dict) else {}
+    after_console = after if isinstance(after, dict) else {}
+    before_cursor = _safe_int(before_console.get("next_cursor"), -1)
+    after_messages = _console_messages(after_console)
+    new_messages = [
+        item for item in after_messages if _safe_int(item.get("index"), -1) > before_cursor
+    ][:5]
+    return {
+        "console_errors_added": sum(
+            1 for item in new_messages if item.get("level") == "error"
+        ),
+        "console_warnings_added": sum(
+            1 for item in new_messages if item.get("level") == "warning"
+        ),
+        "new_console_messages": new_messages,
+    }
+
+
+def _console_messages(console: dict[str, Any]) -> list[dict[str, Any]]:
+    messages = console.get("recent") or console.get("logs") or []
+    if not isinstance(messages, list):
+        return []
+    normalized = []
+    for item in messages:
+        if not isinstance(item, dict):
+            continue
+        normalized.append(
+            {
+                "index": _safe_int(item.get("index"), -1),
+                "level": str(item.get("level") or "log"),
+                "text": str(item.get("text") or ""),
+                "url": str(item.get("url") or ""),
+                "line": _safe_int(item.get("line"), 0),
+                "column": _safe_int(item.get("column"), 0),
+                "source": str(item.get("source") or ""),
+            }
+        )
+    return normalized
+
+
+def _safe_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default

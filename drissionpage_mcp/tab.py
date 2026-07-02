@@ -8,6 +8,7 @@ import os
 import re
 import tempfile
 import time
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
 from DrissionPage.errors import ElementNotFoundError, PageDisconnectedError
@@ -39,6 +40,7 @@ class PageTab:
         self.context = context
         self.mcp_tab_id = mcp_tab_id
         self._url = ""
+        self._console_log_cache: list[dict[str, Any]] = []
 
     @property
     def native_tab_id(self) -> str:
@@ -376,6 +378,7 @@ class PageTab:
             result.setdefault("counts", {})
             result.setdefault("text_samples", [])
             result.setdefault("active_element", None)
+            result.setdefault("console", self._console_summary(limit=5))
             result.setdefault(
                 "limits",
                 {"max_texts": max_texts, "max_text_chars": max_text_chars},
@@ -384,6 +387,55 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to observe page: {e}")
             raise
+
+    def ensure_console_capture(self) -> bool:
+        """Start DrissionPage's console capture surface when it is available."""
+
+        console = self._console_surface()
+        if console is None:
+            return False
+        try:
+            if bool(getattr(console, "listening", False)):
+                return True
+            start = getattr(console, "start", None)
+            if callable(start):
+                start()
+            return bool(getattr(console, "listening", False))
+        except Exception:
+            logger.debug("Could not start DrissionPage console capture", exc_info=True)
+            return False
+
+    async def console_logs(
+        self,
+        *,
+        level: str = "all",
+        since: int = -1,
+        limit: int = 20,
+    ) -> Dict[str, Any]:
+        """Return bounded console messages from the current tab."""
+
+        console = self._console_surface()
+        if console is None:
+            return _empty_console_logs(available=False)
+
+        self.ensure_console_capture()
+        messages = self._normalized_console_messages()
+        level_filter = _normalize_console_level(level)
+        filtered = [item for item in messages if int(item["index"]) > int(since)]
+        if level_filter != "all":
+            filtered = [item for item in filtered if item["level"] == level_filter]
+
+        max_items = max(1, min(int(limit), 100))
+        logs = filtered[-max_items:] if int(since) < 0 else filtered[:max_items]
+
+        return {
+            "available": True,
+            "listening": bool(getattr(console, "listening", False)),
+            "count": len(logs),
+            "total": len(messages),
+            "next_cursor": _next_console_cursor(messages),
+            "logs": logs,
+        }
 
     async def evaluate_script(
         self,
@@ -551,6 +603,81 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to resize window to {width}x{height}: {e}")
             raise
+
+    def _console_surface(self) -> Any | None:
+        try:
+            return getattr(self.page, "console", None)
+        except Exception:
+            logger.debug("Could not access DrissionPage console surface", exc_info=True)
+            return None
+
+    def _normalized_console_messages(self) -> list[dict[str, Any]]:
+        console = self._console_surface()
+        if console is None:
+            return []
+        try:
+            raw_messages = getattr(console, "messages", []) or []
+        except Exception:
+            logger.debug("Could not read DrissionPage console messages", exc_info=True)
+            return []
+        try:
+            iterable = list(raw_messages)
+        except TypeError:
+            return list(self._console_log_cache)
+        return self._merge_console_messages(iterable)
+
+    def _merge_console_messages(self, raw_messages: list[Any]) -> list[dict[str, Any]]:
+        if not raw_messages:
+            return list(self._console_log_cache)
+
+        raw_from_zero = [
+            _normalize_console_message(message, index)
+            for index, message in enumerate(raw_messages)
+        ]
+        if _console_prefix_matches(self._console_log_cache, raw_from_zero):
+            self._console_log_cache = raw_from_zero
+            return list(self._console_log_cache)
+
+        seen = {_console_signature(item) for item in self._console_log_cache}
+        for message in raw_messages:
+            normalized = _normalize_console_message(
+                message,
+                len(self._console_log_cache),
+            )
+            signature = _console_signature(normalized)
+            if signature in seen:
+                continue
+            self._console_log_cache.append(normalized)
+            seen.add(signature)
+        return list(self._console_log_cache)
+
+    def _console_summary(self, *, limit: int = 5) -> dict[str, Any]:
+        console = self._console_surface()
+        if console is None:
+            return {
+                "available": False,
+                "listening": False,
+                "count": 0,
+                "total": 0,
+                "next_cursor": -1,
+                "error_count": 0,
+                "warning_count": 0,
+                "recent": [],
+            }
+
+        self.ensure_console_capture()
+        messages = self._normalized_console_messages()
+        recent = messages[-max(1, int(limit)):]
+        return {
+            "available": True,
+            "listening": bool(getattr(console, "listening", False)),
+            "count": len(recent),
+            "total": len(messages),
+            "next_cursor": _next_console_cursor(messages),
+            "error_count": sum(1 for item in messages if item["level"] == "error"),
+            "warning_count": sum(1 for item in messages if item["level"] == "warning"),
+            "recent": recent,
+        }
 
     async def _stabilize(
         self,
@@ -775,3 +902,89 @@ def _selector_state_script(locator: str) -> str:
   }};
 }})()
 """
+
+
+def _empty_console_logs(*, available: bool) -> dict[str, Any]:
+    return {
+        "available": available,
+        "listening": False,
+        "count": 0,
+        "total": 0,
+        "next_cursor": -1,
+        "logs": [],
+    }
+
+
+def _next_console_cursor(messages: list[dict[str, Any]]) -> int:
+    if not messages:
+        return -1
+    return max(_safe_int(item.get("index"), -1) for item in messages)
+
+
+def _console_prefix_matches(
+    cached: list[dict[str, Any]],
+    current: list[dict[str, Any]],
+) -> bool:
+    if len(current) < len(cached):
+        return False
+    return all(
+        _console_signature(cached[index]) == _console_signature(current[index])
+        for index in range(len(cached))
+    )
+
+
+def _console_signature(message: dict[str, Any]) -> tuple[str, str, str, int, int, str]:
+    return (
+        str(message.get("level") or ""),
+        str(message.get("text") or ""),
+        str(message.get("url") or ""),
+        _safe_int(message.get("line"), 0),
+        _safe_int(message.get("column"), 0),
+        str(message.get("source") or ""),
+    )
+
+
+def _normalize_console_message(message: Any, index: int) -> dict[str, Any]:
+    return {
+        "index": index,
+        "level": _normalize_console_level(_message_field(message, "level", "log")),
+        "text": _message_text(message),
+        "url": str(_message_field(message, "url", "") or ""),
+        "line": _safe_int(_message_field(message, "line", 0), 0),
+        "column": _safe_int(_message_field(message, "column", 0), 0),
+        "source": str(_message_field(message, "source", "") or ""),
+    }
+
+
+def _message_text(message: Any) -> str:
+    if isinstance(message, str):
+        return message
+    value = _message_field(message, "text", "")
+    if value in ("", None):
+        value = _message_field(message, "message", "")
+    return str(value or "")
+
+
+def _message_field(message: Any, field: str, default: Any) -> Any:
+    if isinstance(message, Mapping):
+        return message.get(field, default)
+    try:
+        return getattr(message, field)
+    except Exception:
+        return default
+
+
+def _normalize_console_level(level: Any) -> str:
+    value = str(level or "log").lower()
+    if value == "warn":
+        return "warning"
+    if value in {"all", "error", "warning", "info", "log"}:
+        return value
+    return "log"
+
+
+def _safe_int(value: Any, default: int) -> int:
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default

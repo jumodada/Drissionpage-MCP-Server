@@ -317,6 +317,19 @@ def test_observable_action_output_schemas_validate_success_payloads() -> None:
         "appeared_texts": ["Saved"],
         "removed_texts": ["Loading"],
         "active_element": None,
+        "console_errors_added": 1,
+        "console_warnings_added": 0,
+        "new_console_messages": [
+            {
+                "index": 2,
+                "level": "error",
+                "text": "save failed",
+                "url": "https://example.test/done",
+                "line": 12,
+                "column": 4,
+                "source": "console-api",
+            }
+        ],
     }
     observe_payload = ToolResult.success(
         "Observed page state",
@@ -326,7 +339,46 @@ def test_observable_action_output_schemas_validate_success_payloads() -> None:
         counts={"buttons": 1, "inputs": 1},
         text_samples=["Ready"],
         active_element=None,
+        console={
+            "available": True,
+            "listening": True,
+            "count": 1,
+            "total": 1,
+            "next_cursor": 0,
+            "error_count": 0,
+            "warning_count": 0,
+            "recent": [
+                {
+                    "index": 0,
+                    "level": "log",
+                    "text": "ready",
+                    "url": "https://example.test",
+                    "line": 1,
+                    "column": 1,
+                    "source": "console-api",
+                }
+            ],
+        },
         limits={"max_texts": 20, "max_text_chars": 160},
+    ).to_dict()
+    console_payload = ToolResult.success(
+        "Read 1 console log",
+        available=True,
+        listening=True,
+        count=1,
+        total=1,
+        next_cursor=0,
+        logs=[
+            {
+                "index": 0,
+                "level": "log",
+                "text": "ready",
+                "url": "https://example.test",
+                "line": 1,
+                "column": 1,
+                "source": "console-api",
+            }
+        ],
     ).to_dict()
     evaluate_payload = ToolResult.success(
         "Evaluated JavaScript",
@@ -375,6 +427,7 @@ def test_observable_action_output_schemas_validate_success_payloads() -> None:
     ).to_dict()
 
     validate(observe_payload, tool_result_output_schema("page_observe"))
+    validate(console_payload, tool_result_output_schema("page_console_logs"))
     validate(evaluate_payload, tool_result_output_schema("page_evaluate"))
     validate(navigate_payload, tool_result_output_schema("page_navigate"))
     validate(click_payload, tool_result_output_schema("element_click"))

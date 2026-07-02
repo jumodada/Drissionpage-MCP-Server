@@ -37,6 +37,69 @@ def test_diff_observations_reports_url_title_counts_and_text_changes() -> None:
     assert diff["active_element"] == {"tag": "button"}
 
 
+def test_diff_observations_reports_console_changes() -> None:
+    before = {
+        "console": {
+            "available": True,
+            "listening": True,
+            "count": 2,
+            "next_cursor": 1,
+            "error_count": 0,
+            "warning_count": 1,
+            "recent": [
+                {
+                    "index": 1,
+                    "level": "warning",
+                    "text": "before warning",
+                    "url": "",
+                    "line": 0,
+                    "column": 0,
+                    "source": "",
+                }
+            ],
+        }
+    }
+    after = {
+        "console": {
+            "available": True,
+            "listening": True,
+            "count": 4,
+            "next_cursor": 3,
+            "error_count": 1,
+            "warning_count": 2,
+            "recent": [
+                {
+                    "index": 2,
+                    "level": "warning",
+                    "text": "after warning",
+                    "url": "https://example.test",
+                    "line": 7,
+                    "column": 3,
+                    "source": "console-api",
+                },
+                {
+                    "index": 3,
+                    "level": "error",
+                    "text": "after error",
+                    "url": "https://example.test",
+                    "line": 8,
+                    "column": 4,
+                    "source": "console-api",
+                },
+            ],
+        }
+    }
+
+    diff = diff_observations(before, after)
+
+    assert diff["console_errors_added"] == 1
+    assert diff["console_warnings_added"] == 1
+    assert [item["text"] for item in diff["new_console_messages"]] == [
+        "after warning",
+        "after error",
+    ]
+
+
 def test_bounded_json_value_and_result_type_cover_json_edges() -> None:
     short, truncated, original = bounded_json_value({"ok": True}, max_chars=20)
     long_object, object_truncated, object_original = bounded_json_value(

@@ -565,6 +565,57 @@ FORM_INSPECT_TRUNCATION_SCHEMA = _data_schema(
     ["forms", "fields"],
 )
 
+CONSOLE_LOG_SCHEMA = _data_schema(
+    "ConsoleLog",
+    {
+        "index": INTEGER,
+        "level": STRING,
+        "text": STRING,
+        "url": STRING,
+        "line": INTEGER,
+        "column": INTEGER,
+        "source": STRING,
+    },
+    ["index", "level", "text", "url", "line", "column", "source"],
+)
+
+CONSOLE_LOGS_SCHEMA = _data_schema(
+    "ConsoleLogsData",
+    {
+        "available": BOOLEAN,
+        "listening": BOOLEAN,
+        "count": INTEGER,
+        "total": INTEGER,
+        "next_cursor": INTEGER,
+        "logs": {"type": "array", "items": CONSOLE_LOG_SCHEMA},
+    },
+    ["available", "listening", "count", "total", "next_cursor", "logs"],
+)
+
+CONSOLE_SUMMARY_SCHEMA = _data_schema(
+    "ConsoleSummary",
+    {
+        "available": BOOLEAN,
+        "listening": BOOLEAN,
+        "count": INTEGER,
+        "total": INTEGER,
+        "next_cursor": INTEGER,
+        "error_count": INTEGER,
+        "warning_count": INTEGER,
+        "recent": {"type": "array", "items": CONSOLE_LOG_SCHEMA},
+    },
+    [
+        "available",
+        "listening",
+        "count",
+        "total",
+        "next_cursor",
+        "error_count",
+        "warning_count",
+        "recent",
+    ],
+)
+
 PAGE_SNAPSHOT_TRUNCATION_SCHEMA = _data_schema(
     "PageSnapshotTruncation",
     {
@@ -642,6 +693,7 @@ OBSERVATION_SCHEMA = _data_schema(
         "counts": OBSERVATION_COUNTS_SCHEMA,
         "text_samples": {"type": "array", "items": STRING},
         "active_element": OBSERVATION_ACTIVE_ELEMENT_SCHEMA,
+        "console": CONSOLE_SUMMARY_SCHEMA,
         "limits": OBSERVATION_LIMITS_SCHEMA,
     },
     [
@@ -651,6 +703,7 @@ OBSERVATION_SCHEMA = _data_schema(
         "counts",
         "text_samples",
         "active_element",
+        "console",
         "limits",
     ],
 )
@@ -671,6 +724,9 @@ OBSERVATION_CHANGES_SCHEMA = _data_schema(
         "appeared_texts": {"type": "array", "items": STRING},
         "removed_texts": {"type": "array", "items": STRING},
         "active_element": OBSERVATION_ACTIVE_ELEMENT_SCHEMA,
+        "console_errors_added": INTEGER,
+        "console_warnings_added": INTEGER,
+        "new_console_messages": {"type": "array", "items": CONSOLE_LOG_SCHEMA},
     },
     [
         "url_before",
@@ -686,6 +742,9 @@ OBSERVATION_CHANGES_SCHEMA = _data_schema(
         "appeared_texts",
         "removed_texts",
         "active_element",
+        "console_errors_added",
+        "console_warnings_added",
+        "new_console_messages",
     ],
 )
 
@@ -776,6 +835,7 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
         ],
     ),
     "page_observe": OBSERVATION_SCHEMA,
+    "page_console_logs": CONSOLE_LOGS_SCHEMA,
     "page_evaluate": _data_schema(
         "PageEvaluateData",
         {

@@ -41,6 +41,7 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "New Tab Target" in _read(base_url + "/new-tab")[1]
         assert "Automation Catalog" in _read(base_url + "/catalog")[1]
         assert "Link Heavy Page" in _read(base_url + "/link-heavy")[1]
+        assert "Console Workflow" in _read(base_url + "/console")[1]
         assert _read(base_url + "/redirect")[0] == 200
         assert _read(base_url + "/status/404")[0] == 404
         assert _read(base_url + "/status/500")[0] == 500
@@ -517,6 +518,65 @@ async def test_mcp_observable_actions_cover_dynamic_business_flow() -> None:
             assert changes["url_changed"] is True
             assert "saved=1" in changes["url_after"]
             assert "Saved successfully" in changes["appeared_texts"]
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_console_logs_and_observe_changes_cover_action_errors() -> None:
+    """reads console output and reports new action-time console errors."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/console"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+
+            _content, logs_payload = await _execute_tool(
+                server,
+                "page_console_logs",
+                {"level": "all", "limit": 20},
+            )
+            assert logs_payload["ok"] is True
+            logs = logs_payload["data"]["logs"]
+            assert {"log", "warning", "error"} <= {item["level"] for item in logs}
+            assert any(item["text"] == "fixture console error" for item in logs)
+
+            _content, error_payload = await _execute_tool(
+                server,
+                "page_console_logs",
+                {"level": "error", "limit": 20},
+            )
+            assert error_payload["ok"] is True
+            assert error_payload["data"]["logs"]
+            assert {item["level"] for item in error_payload["data"]["logs"]} == {"error"}
+
+            cursor = logs_payload["data"]["next_cursor"]
+            _content, click_payload = await _execute_tool(
+                server,
+                "element_click",
+                {"selector": "#console-action", "timeout": 2, "observe": True},
+            )
+            assert click_payload["ok"] is True
+            changes = click_payload["data"]["changes"]
+            assert changes["console_errors_added"] >= 1
+            assert any(
+                item["text"] == "fixture action failed"
+                for item in changes["new_console_messages"]
+            )
+
+            _content, since_payload = await _execute_tool(
+                server,
+                "page_console_logs",
+                {"level": "all", "since": cursor, "limit": 10},
+            )
+            assert since_payload["ok"] is True
+            assert [item["text"] for item in since_payload["data"]["logs"]] == [
+                "fixture action failed"
+            ]
     finally:
         await server.cleanup()
 

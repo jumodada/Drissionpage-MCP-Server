@@ -254,6 +254,9 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
         "title_changed": False,
         "appeared_texts": ["Done", "Ignored", "Also ignored"],
         "removed_texts": ["Loading"],
+        "console_errors_added": 0,
+        "console_warnings_added": 0,
+        "new_console_messages": [],
     }
 
 
