@@ -56,6 +56,17 @@ def _find_browser() -> Optional[str]:
     return None
 
 
+def _env_truthy(name: str) -> bool:
+    value = os.getenv(name)
+    return value is not None and value.strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "y",
+        "on",
+    }
+
+
 def _config() -> Dict[str, Any]:
     names = [
         "CHROME_PATH",
@@ -108,6 +119,11 @@ def run_diagnostics(launch_browser: bool = False) -> Dict[str, Any]:
         True,
         json.dumps(config, sort_keys=True) if config else "default environment",
     )
+    if _env_truthy("DP_NO_SANDBOX"):
+        hints.append(
+            "Chrome sandbox is disabled by DP_NO_SANDBOX. "
+            "Use it only in restricted container/root environments."
+        )
 
     launch_detail = "skipped (pass --launch-browser to test browser startup)"
     launch_ok = True

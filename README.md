@@ -224,7 +224,6 @@ tool_timeout_sec = 60
 # [mcp_servers.drissionpage.env]
 # CHROME_PATH = "/custom/path/to/chrome"
 # DP_HEADLESS = "1"
-# DP_NO_SANDBOX = "1"
 ```
 
 You can also add it with the Codex CLI:
@@ -280,8 +279,7 @@ Absolute-Python fallback for GUI clients:
       "args": ["-m", "drissionpage_mcp.cli"],
       "env": {
         "CHROME_PATH": "/custom/path/to/chrome",
-        "DP_HEADLESS": "1",
-        "DP_NO_SANDBOX": "1"
+        "DP_HEADLESS": "1"
       }
     }
   }
@@ -351,7 +349,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.5.3`.
+Should output the installed package version, for example `drissionpage-mcp 0.5.4`.
 
 ### Browser Issues?
 ```bash
@@ -380,13 +378,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.5.3 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.5.4 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.5.3)
+### Current (v0.5.4)
 - [x] 29 core automation, tab-management, page-understanding, form-inspection, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -397,6 +395,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
 - [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
 - [x] Console observability with `page_console_logs`, console summary in `page_observe`, and console change fields in `observe=true`
+- [x] Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` is reserved for restricted container/root environments
 - [x] Redacted session history resource and response size metadata for bounded outputs
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
@@ -543,18 +542,20 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.5.3
+## 🆕 Latest Version: v0.5.4
 
-Released on 2026-07-02. This release adds browser console observability on top of the 0.5 tab, form, page-understanding, and observable-action workflow:
+Released on 2026-07-03. This release hardens the browser startup defaults on top of the 0.5.3 console-observability workflow:
 
+- Chrome sandbox remains enabled by default for normal desktop/client installs.
+- `DP_NO_SANDBOX=1` remains available only for restricted container/root environments that cannot launch Chromium with sandboxing.
+- `drissionpage-mcp doctor` warns when Chrome sandboxing is disabled by `DP_NO_SANDBOX`.
+- Public Codex, Claude, Cursor, and JSON setup examples no longer suggest disabling the sandbox for normal installs.
 - `page_console_logs` reads bounded current-tab console messages with `level`, `since`, and `limit` parameters.
-- `page_observe` now includes a compact console summary with recent messages, warning/error counts, and a cursor.
-- `page_navigate`, `element_click`, and `element_type` with `observe=true` now include console change fields: `console_errors_added`, `console_warnings_added`, and `new_console_messages`.
+- Observable actions keep console change fields such as `console_errors_added`, `console_warnings_added`, and `new_console_messages`.
 - `page_observe`, `page_evaluate`, and `wait_until` remain the main tools for checking dynamic page state after actions.
 - `tab_list`, `tab_switch`, and `tab_close` manage tabs opened by MCP tools or normal page interactions such as `target="_blank"` links.
 - `drissionpage://session/history` records recent actions with sensitive arguments redacted and compact observable-change summaries when present.
-- `page_snapshot`, `element_find_all`, and `form_inspect` include `meta.approx_tokens` and size metadata for better response budgeting.
-- Failure payloads include machine-readable `error.details.hints`; timeout hints point to `wait_until` for condition-specific waits.
-- `MCP_ARGUMENT_INVALID` protects strict schemas and points clients toward exact snake_case field names.
-- Browser startup hints point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, `DP_HEADLESS`, and `DP_NO_SANDBOX`.
-- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry now has 29 tools.
+- `page_snapshot`, `element_find_all`, and `form_inspect` keep `meta.approx_tokens` and size metadata for bounded outputs.
+- Failure payloads include machine-readable `error.details.hints`; browser startup hints still point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, and `DP_HEADLESS`.
+- `MCP_ARGUMENT_INVALID` continues to protect strict schemas and point clients toward exact snake_case field names.
+- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry has 29 tools.

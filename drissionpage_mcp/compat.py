@@ -79,7 +79,9 @@ def build_chromium_options() -> ChromiumOptions:
         )
 
     if hasattr(options, "set_argument"):
-        if _env_bool("DP_NO_SANDBOX", True):
+        # Keep Chrome sandbox enabled by default. Container/root environments
+        # that cannot launch Chromium with sandboxing may opt in explicitly.
+        if _env_bool("DP_NO_SANDBOX", False):
             options.set_argument("--no-sandbox")
         options.set_argument("--disable-dev-shm-usage")
         # Do not disable web security by default. Users can opt in for local

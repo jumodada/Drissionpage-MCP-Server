@@ -124,7 +124,7 @@ def session_history(context: Any) -> dict[str, Any]:
     """Return redacted recent tool actions without initializing a browser."""
 
     if context and hasattr(context, "action_history"):
-        return context.action_history()
+        return cast(dict[str, Any], context.action_history())
     return {
         "available": True,
         "limit": 100,

@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.5.3."""
+"""Release metadata and documentation checks for 0.5.4."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_5_3() -> None:
+def test_package_version_metadata_is_0_5_4() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.3"
-    assert drissionpage_mcp.__version__ == "0.5.3"
+    assert pyproject["project"]["version"] == "0.5.4"
+    assert drissionpage_mcp.__version__ == "0.5.4"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -38,11 +38,11 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "browser_navigate_and_summarize" in contract
 
 
-def test_readmes_end_with_latest_0_5_3_feature_summary() -> None:
+def test_readmes_end_with_latest_0_5_4_feature_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
 
-    assert "## 🆕 Latest Version: v0.5.3" in readme
+    assert "## 🆕 Latest Version: v0.5.4" in readme
     assert "tab_list" in readme
     assert "drissionpage://session/history" in readme
     assert "meta.approx_tokens" in readme
@@ -58,7 +58,9 @@ def test_readmes_end_with_latest_0_5_3_feature_summary() -> None:
     assert "wait_until" in readme
     assert "drissionpage-mcp doctor --launch-browser" in readme
     assert "MCP_ARGUMENT_INVALID" in readme
-    assert "## 🆕 最新版本：v0.5.3" in readme_cn
+    assert "Chrome sandbox remains enabled by default" in readme
+    assert "restricted container/root environments" in readme
+    assert "## 🆕 最新版本：v0.5.4" in readme_cn
     assert "tab_list" in readme_cn
     assert "drissionpage://session/history" in readme_cn
     assert "meta.approx_tokens" in readme_cn
@@ -74,6 +76,21 @@ def test_readmes_end_with_latest_0_5_3_feature_summary() -> None:
     assert "wait_until" in readme_cn
     assert "drissionpage-mcp doctor --launch-browser" in readme_cn
     assert "MCP_ARGUMENT_INVALID" in readme_cn
+    assert "默认保持 Chrome sandbox 开启" in readme_cn
+    assert "受限容器/root 环境" in readme_cn
+
+
+def test_public_guides_keep_no_sandbox_out_of_general_setup_examples() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
+    troubleshooting = Path("docs/troubleshooting.md").read_text(encoding="utf-8")
+
+    assert '# DP_NO_SANDBOX = "1"' not in readme
+    assert '# DP_NO_SANDBOX = "1"' not in readme_cn
+    assert '"DP_NO_SANDBOX": "1"' not in readme
+    assert '"DP_NO_SANDBOX": "1"' not in readme_cn
+    assert "DP_NO_SANDBOX=1" in troubleshooting
+    assert "restricted container" in troubleshooting
 
 
 def test_public_guides_do_not_advertise_removed_alias_tools() -> None:
@@ -157,6 +174,8 @@ def test_maintenance_docs_do_not_retain_deleted_examples_or_old_versions() -> No
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
 
     assert "0.3.2" not in security
+    assert "Chrome sandboxing enabled" in security
+    assert "DP_NO_SANDBOX=1" in security
     assert "examples/**" not in codecov
     assert "docs/release-checklist.md" not in readme
     assert "docs/release-checklist.md" not in readme_cn
