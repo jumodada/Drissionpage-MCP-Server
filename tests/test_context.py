@@ -52,12 +52,22 @@ class FakeBrowser:
         self.active_tab_id = getattr(id_or_tab, "tab_id", id_or_tab)
 
 
+class BrokenCloseBrowser(FakeBrowser):
+    def close_tabs(self, tab_id: str) -> None:
+        raise RuntimeError(f"cannot close {tab_id}")
+
+
 class ManagedTab:
     def __init__(self) -> None:
         self.closed = False
 
     async def close(self) -> None:
         self.closed = True
+
+
+class FailedManagedTab:
+    async def close(self) -> bool:
+        return False
 
 
 @pytest.mark.asyncio
@@ -192,6 +202,26 @@ async def test_close_tab_by_id_removes_tab_and_promotes_remaining() -> None:
     assert context.current_tab().native_tab_id == "a"
 
 
+@pytest.mark.asyncio
+async def test_close_tab_by_id_keeps_state_when_browser_close_fails() -> None:
+    browser = BrokenCloseBrowser()
+    browser.pages = {
+        "a": FakePage("a"),
+        "b": FakePage("b"),
+    }
+    browser.active_tab_id = "b"
+    context = DrissionPageContext()
+    context._browser = browser
+    context._is_initialized = True
+    await context.sync_tabs()
+
+    with pytest.raises(RuntimeError, match="Failed to close tab"):
+        await context.close_tab_by_id("t1")
+
+    assert [tab.native_tab_id for tab in context.tabs()] == ["a", "b"]
+    assert context.current_tab().native_tab_id == "b"
+
+
 def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
     context = DrissionPageContext(history_limit=2)
 
@@ -203,8 +233,8 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
             "nested": {"api_token": "abc123"},
         },
         {"ok": True, "message": "typed"},
-        url_before="https://example.test/login",
-        url_after="https://example.test/home",
+        url_before="https://user:pass@example.test/login?token=abc#section",
+        url_after="https://example.test/home?auth=secret",
         tab_id="t0",
     )
     context.record_action("wait_time", {"seconds": 1}, {"ok": True})
@@ -231,7 +261,7 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
             "ok": True,
             "message": "typed",
             "data": {
-                "url": "https://example.test/home",
+                    "url": "https://example.test/home?token=secret#frag",
                 "changes": {
                     "url_changed": True,
                     "title_changed": False,

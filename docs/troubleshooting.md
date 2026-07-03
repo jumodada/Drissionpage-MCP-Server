@@ -171,8 +171,12 @@ If `page_screenshot` fails:
 
 - Confirm a page is open with `page_get_url`.
 - Try a viewport screenshot before a full-page screenshot.
-- If saving to disk, use a writable absolute path.
 - Check whether the browser is still connected.
+
+If `page_screenshot_save` fails:
+
+- Set `DP_MCP_SCREENSHOT_ROOT` to the directory where screenshots may be written.
+- Save only to a path inside that directory.
 
 ## Reporting Issues
 

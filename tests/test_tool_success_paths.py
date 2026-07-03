@@ -464,7 +464,7 @@ def _message(response: ToolResponse) -> str:
 
 
 @pytest.mark.asyncio
-async def test_common_tools_success_paths(tmp_path) -> None:
+async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
     ctx = FakeContext()
 
     resize_response = await _execute(
@@ -485,10 +485,11 @@ async def test_common_tools_success_paths(tmp_path) -> None:
     assert inline_payload["data"]["screenshot"]["full_page"] is True
 
     screenshot_path = tmp_path / "screen.png"
+    monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(tmp_path))
     path_response = await _execute(
-        common.screenshot,
+        common.screenshot_save,
         ctx,
-        common.ScreenshotInput(path=str(screenshot_path), full_page=False),
+        common.ScreenshotSaveInput(path=str(screenshot_path), full_page=False),
     )
     path_payload = path_response.get_structured_content()
     assert path_payload["data"]["screenshot"]["path"] == str(screenshot_path)
@@ -781,6 +782,7 @@ def test_get_property_input_uses_property_field_only() -> None:
         (common.PageObserveInput, {"maxTexts": 10}),
         (common.PageEvaluateInput, {"script": "return 1", "maxChars": 100}),
         (common.ScreenshotInput, {"fullPage": True}),
+        (common.ScreenshotInput, {"path": "/tmp/screen.png"}),
         (common.ResizeInput, {"width": 800, "height": 600, "extra": True}),
         (navigate.NavigateInput, {"url": "https://example.test", "background": True}),
         (element.FindElementInput, {"selector": "h1", "timeout_ms": 1}),
@@ -801,6 +803,27 @@ def test_tool_inputs_reject_unknown_fields(model, payload) -> None:
     """LLM/client field typos should fail instead of being silently ignored."""
 
     with pytest.raises(Exception, match="Extra inputs"):
+        model.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("model", "payload"),
+    [
+        (element.FindElementInput, {"selector": "h1", "timeout": 121}),
+        (element.ClickElementInput, {"selector": "button", "timeout": 121}),
+        (
+            element.TypeTextInput,
+            {"selector": "#name", "text": "Ada", "timeout": 121},
+        ),
+        (wait.WaitElementInput, {"selector": "#ready", "timeout": 121}),
+        (wait.WaitUrlInput, {"url_pattern": "ready", "timeout": 121}),
+        (wait.WaitTimeInput, {"seconds": 121}),
+    ],
+)
+def test_wait_inputs_reject_excessive_timeouts(model, payload) -> None:
+    """Client-controlled waits should stay bounded."""
+
+    with pytest.raises(Exception):
         model.model_validate(payload)
 
 

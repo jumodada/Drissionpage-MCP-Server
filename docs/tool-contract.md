@@ -141,7 +141,8 @@ The server marks tools with MCP annotations:
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
 | `page_resize` | Destructive | `width`, `height` | Resize the browser window. |
-| `page_screenshot` | Read-only | none | Capture the viewport or full page. Optional: `full_page`, `path`. |
+| `page_screenshot` | Read-only | none | Capture an inline viewport or full-page screenshot. Optional: `full_page`. |
+| `page_screenshot_save` | Destructive | `path` | Save a viewport or full-page screenshot under `DP_MCP_SCREENSHOT_ROOT`. Optional: `full_page`. |
 | `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`. |
 | `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, recent console summary, and limits. Optional: `max_texts`, `max_text_chars`. |
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
@@ -238,6 +239,6 @@ By default, DrissionPage MCP remains a local stdio browser automation server wit
 | `DP_MCP_NAV_ALLOWLIST` | Comma-separated host names or URL prefixes. When set, navigation is allowlist-first. |
 | `DP_MCP_NAV_BLOCKLIST` | Comma-separated host names or URL prefixes rejected after allowlist checks. |
 | `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost/private/link-local navigation. |
-| `DP_MCP_SCREENSHOT_ROOT` | Restrict `page_screenshot.path` saves to this directory tree. |
+| `DP_MCP_SCREENSHOT_ROOT` | Required root directory for `page_screenshot_save` file writes. |
 
 Denied navigation is checked before `context.ensure_tab()`, so policy rejection does not start or initialize a browser.

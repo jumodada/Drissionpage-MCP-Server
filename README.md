@@ -148,8 +148,9 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 ### 🧾 Form Operations (1 tool)
 - `form_inspect` - Inspect forms and controls with labels, selectors, requirements, options, and safe optional values
 
-### 📸 Page Operations (8 tools)
-- `page_screenshot` - Capture full page or viewport
+### 📸 Page Operations (9 tools)
+- `page_screenshot` - Capture an inline full-page or viewport screenshot
+- `page_screenshot_save` - Save a screenshot under `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
 - `page_observe` - Return a compact page fingerprint with URL, title, counts, visible text samples, active element, and recent console summary
 - `page_evaluate` - Run bounded JavaScript in the current page and return a JSON-safe result

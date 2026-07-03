@@ -88,6 +88,7 @@ class TestToolsIntegration:
         # Common tools
         assert "page_resize" in tool_names
         assert "page_screenshot" in tool_names
+        assert "page_screenshot_save" in tool_names
         assert "page_snapshot" in tool_names
         assert "page_observe" in tool_names
         assert "page_console_logs" in tool_names
@@ -116,7 +117,7 @@ class TestToolsIntegration:
         assert "wait_time" in tool_names
         assert "wait_until" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 29
+        assert len(tool_names) == 30
 
 
 if __name__ == "__main__":

@@ -100,8 +100,15 @@ class SafetyPolicy:
     def validate_screenshot_path(self, path: str) -> None:
         """Validate an optional screenshot save path before writing files."""
 
-        if not path or self.screenshot_root is None:
+        if not path:
             return
+
+        if self.screenshot_root is None:
+            raise PolicyDeniedError(
+                "Screenshot file saves require DP_MCP_SCREENSHOT_ROOT.",
+                rule=ENV_SCREENSHOT_ROOT,
+                value=path,
+            )
 
         requested = Path(path).expanduser().resolve()
         try:

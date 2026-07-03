@@ -1016,11 +1016,11 @@ async def test_post_action_stabilization_falls_back_to_bounded_sleep(
 
 
 @pytest.mark.asyncio
-async def test_close_swallows_browser_close_errors() -> None:
+async def test_close_reports_browser_close_errors_without_raising() -> None:
     class BrokenBrowser(FakeBrowser):
         def close_tabs(self, tab_id: str) -> None:
             raise RuntimeError(f"cannot close {tab_id}")
 
     tab = PageTab(FakePage(), FakeContext(BrokenBrowser()))
 
-    await tab.close()
+    assert await tab.close() is False

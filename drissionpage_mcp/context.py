@@ -5,8 +5,10 @@ import logging
 from collections import deque
 from datetime import datetime, timezone
 from typing import Any, Deque, List, Mapping, Optional
+from urllib.parse import urlsplit, urlunsplit
 
 from .compat import create_browser, get_latest_tab, new_tab, quit_browser
+from .limits import MAX_WAIT_SECONDS
 from .observation import safe_int
 from .tab import PageTab
 
@@ -31,7 +33,7 @@ SENSITIVE_HISTORY_KEYS = {
 
 class DrissionPageContext:
     """Manages DrissionPage browser context and tabs."""
-    
+
     def __init__(self, *, history_limit: int = 100):
         self._browser: Optional[Any] = None
         self._current_tab: Optional[PageTab] = None
@@ -40,12 +42,12 @@ class DrissionPageContext:
         self._is_initialized = False
         self._history_limit = history_limit
         self._action_history: Deque[dict[str, Any]] = deque(maxlen=history_limit)
-    
+
     async def initialize(self) -> None:
         """Initialize the browser context."""
         if self._is_initialized:
             return
-            
+
         try:
             # DrissionPage 4.2 deprecates ChromiumPage for new features. Use
             # Chromium + latest_tab and keep the wrapper compatible with 4.0/4.1.
@@ -54,29 +56,29 @@ class DrissionPageContext:
             tab = self._wrap_page(get_latest_tab(self._browser))
             self._tabs.append(tab)
             self._current_tab = tab
-            
+
             self._is_initialized = True
             logger.info("DrissionPage context initialized")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize DrissionPage context: {e}")
             raise
-    
+
     async def ensure_initialized(self) -> None:
         """Ensure the context is initialized."""
         if not self._is_initialized:
             await self.initialize()
-    
+
     def current_tab(self) -> Optional[PageTab]:
         """Get the current active tab."""
         return self._current_tab
-    
+
     def current_tab_or_die(self) -> PageTab:
         """Get the current tab or raise an error."""
         if not self._current_tab:
             raise RuntimeError("No active tab. Use navigate tool to open a page first.")
         return self._current_tab
-    
+
     def tabs(self) -> List[PageTab]:
         """Get all tabs."""
         return self._tabs.copy()
@@ -153,11 +155,11 @@ class DrissionPageContext:
                 await self.sync_tabs()
             except Exception:
                 logger.debug("Post-close tab sync failed", exc_info=True)
-    
+
     async def ensure_tab(self) -> PageTab:
         """Ensure there's an active tab, creating one if necessary."""
         await self.ensure_initialized()
-        
+
         if not self._current_tab:
             # Create a new tab if none exists
             if self._browser:
@@ -168,11 +170,11 @@ class DrissionPageContext:
         if self._current_tab is None:
             raise RuntimeError("Browser context not initialized")
         return self._current_tab
-    
+
     async def new_tab(self) -> PageTab:
         """Create a new tab."""
         await self.ensure_initialized()
-        
+
         if not self._browser:
             raise RuntimeError("Browser context not initialized")
 
@@ -180,44 +182,53 @@ class DrissionPageContext:
         self._tabs.append(tab)
         self._current_tab = tab
         return tab
-    
+
     async def close_tab(self, tab: Optional[PageTab] = None) -> None:
         """Close a tab."""
         target_tab = tab or self._current_tab
         if not target_tab:
             return
-        
-        # Remove from tabs list
+
+        close_result = await target_tab.close()
+        if close_result is False:
+            raise RuntimeError(f"Failed to close tab: {target_tab.mcp_tab_id}")
+
+        # Remove from tabs list after the underlying browser close succeeds.
         if target_tab in self._tabs:
             self._tabs.remove(target_tab)
-        
+
         # Update current tab
         if self._current_tab == target_tab:
             self._current_tab = self._tabs[0] if self._tabs else None
-        
-        await target_tab.close()
-    
-    async def close_browser(self) -> None:
+
+    async def close_browser(self) -> bool:
         """Close the browser context."""
+        closed = True
         if self._browser:
             try:
                 quit_browser(self._browser)
             except Exception as e:
                 logger.warning(f"Error closing browser: {e}")
+                closed = False
             finally:
                 self._browser = None
-        
+
         self._tabs.clear()
         self._current_tab = None
         self._is_initialized = False
         logger.info("Browser context closed")
-    
+        return closed
+
     async def cleanup(self) -> None:
         """Clean up all resources."""
         await self.close_browser()
 
     async def wait(self, seconds: float) -> None:
         """Wait for a specified number of seconds."""
+        if seconds < 0 or seconds > MAX_WAIT_SECONDS:
+            raise ValueError(
+                f"Wait seconds must be between 0 and {MAX_WAIT_SECONDS}; got {seconds}"
+            )
         await asyncio.sleep(seconds)
 
     def is_active(self) -> bool:
@@ -247,8 +258,8 @@ class DrissionPageContext:
                 "tool": tool,
                 "args": _redact_history_value(dict(args)),
                 "result": _summarize_result(result),
-                "url_before": url_before,
-                "url_after": url_after,
+                "url_before": _redact_history_url(url_before),
+                "url_after": _redact_history_url(url_after),
                 "tab_id": tab_id,
             }
         )
@@ -367,7 +378,11 @@ def _summarize_result(result: Mapping[str, Any]) -> dict[str, Any]:
     if isinstance(data, Mapping):
         for key in ("url", "final_url", "tab_id", "active_tab_id"):
             if key in data:
-                payload[key] = data[key]
+                payload[key] = (
+                    _redact_history_url(data[key])
+                    if key in {"url", "final_url"}
+                    else data[key]
+                )
         changes = data.get("changes")
         if isinstance(changes, Mapping):
             payload["changes"] = {
@@ -393,3 +408,18 @@ def _summarize_console_message(message: Mapping[str, Any]) -> dict[str, Any]:
         "level": str(message.get("level") or ""),
         "text": str(message.get("text") or "")[:200],
     }
+
+
+def _redact_history_url(value: Any) -> str:
+    """Remove credentials, query strings, and fragments from history URLs."""
+
+    text = str(value or "")
+    if not text:
+        return ""
+    try:
+        parts = urlsplit(text)
+    except ValueError:
+        return "<redacted-url>"
+
+    netloc = parts.netloc.rsplit("@", 1)[-1]
+    return urlunsplit((parts.scheme, netloc, parts.path, "", ""))

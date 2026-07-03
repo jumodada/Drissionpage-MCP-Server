@@ -718,7 +718,7 @@ class PageTab:
 
         await asyncio.sleep(fallback_sleep)
 
-    async def close(self) -> None:
+    async def close(self) -> bool:
         """Close the tab."""
         try:
             browser = self.context.browser
@@ -728,8 +728,10 @@ class PageTab:
             elif hasattr(self.page, "close"):
                 self.page.close()
             logger.info("Tab closed")
+            return True
         except Exception as e:
             logger.error(f"Failed to close tab: {e}")
+            return False
 
     def is_connected(self) -> bool:
         """Check if the tab is still connected."""

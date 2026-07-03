@@ -25,8 +25,13 @@ class ScreenshotInput(ToolInput):
     """Input schema for screenshot tool."""
 
     full_page: bool = Field(default=False, description="Take a full page screenshot")
+
+
+class ScreenshotSaveInput(ScreenshotInput):
+    """Input schema for saving screenshots to an approved local path."""
+
     path: str = Field(
-        default="", description="Optional local file path to save screenshot"
+        ..., description="Local file path under DP_MCP_SCREENSHOT_ROOT to save screenshot"
     )
 
 
@@ -126,7 +131,7 @@ async def resize(
 @define_tool(
     name="page_screenshot",
     title="Take Screenshot",
-    description="Take a screenshot of the current page",
+    description="Take an inline screenshot of the current page",
     input_schema=ScreenshotInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
@@ -134,7 +139,28 @@ async def resize(
 async def screenshot(
     context: "DrissionPageContext", args: ScreenshotInput, response: "ToolResponse"
 ) -> None:
-    """Take a screenshot."""
+    """Take an inline screenshot."""
+    async with tool_errors(response, "Failed to take screenshot"):
+        tab = context.current_tab_or_die()
+        screenshot_data = await tab.screenshot(path=None, full_page=args.full_page)
+
+        response.add_code(
+            f"page.get_screenshot(as_base64=True, full_page={args.full_page!r})"
+        )
+        response.add_screenshot(screenshot_data, {"full_page": args.full_page})
+
+
+@define_tool(
+    name="page_screenshot_save",
+    title="Save Screenshot",
+    description="Save a screenshot to a local path under DP_MCP_SCREENSHOT_ROOT",
+    input_schema=ScreenshotSaveInput,
+    tool_type=ToolType.DESTRUCTIVE,
+)
+async def screenshot_save(
+    context: "DrissionPageContext", args: ScreenshotSaveInput, response: "ToolResponse"
+) -> None:
+    """Save a screenshot to an approved local path."""
     try:
         validate_screenshot_path(args.path)
     except PolicyDeniedError as exc:
@@ -155,17 +181,14 @@ async def screenshot(
         response.add_code(
             f"page.get_screenshot(path={args.path!r}, full_page={args.full_page!r})"
         )
-        if args.path:
-            response.add_result(
-                f"Screenshot saved to: {screenshot_data}",
-                screenshot=build_screenshot_metadata(
-                    path=screenshot_data,
-                    full_page=args.full_page,
-                    inline=False,
-                ),
-            )
-        else:
-            response.add_screenshot(screenshot_data, {"full_page": args.full_page})
+        response.add_result(
+            f"Screenshot saved to: {screenshot_data}",
+            screenshot=build_screenshot_metadata(
+                path=screenshot_data,
+                full_page=args.full_page,
+                inline=False,
+            ),
+        )
 
 
 @define_tool(
@@ -294,7 +317,9 @@ async def close(
 ) -> None:
     """Close the browser."""
     async with tool_errors(response, "Failed to close browser"):
-        await context.close_browser()
+        closed = await context.close_browser()
+        if closed is False:
+            raise RuntimeError("Browser close failed; local MCP state was cleared.")
 
         response.add_code("page.quit()")
         response.add_result("Successfully closed browser", closed=True)
@@ -324,6 +349,7 @@ async def get_url(
 tools = [
     resize,
     screenshot,
+    screenshot_save,
     page_snapshot,
     page_observe,
     page_evaluate,

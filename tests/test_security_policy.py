@@ -9,7 +9,7 @@ import pytest
 from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.policy import SafetyPolicy
 from drissionpage_mcp.response import ErrorCode, ToolResponse
-from drissionpage_mcp.tools.common import ScreenshotInput, screenshot
+from drissionpage_mcp.tools.common import ScreenshotSaveInput, screenshot_save
 from drissionpage_mcp.tools.navigate import NavigateInput, navigate
 
 
@@ -112,9 +112,9 @@ async def test_screenshot_save_root_policy_blocks_path_before_file_write(
     context.current_tab_or_die = Mock()
     response = ToolResponse()
 
-    await screenshot.handler(
+    await screenshot_save.handler(
         context,
-        ScreenshotInput(path=str(tmp_path / "outside.png")),
+        ScreenshotSaveInput(path=str(tmp_path / "outside.png")),
         response,
     )
 
@@ -122,6 +122,28 @@ async def test_screenshot_save_root_policy_blocks_path_before_file_write(
     assert response.get_structured_content()["error"]["code"] == "POLICY_DENIED"
     hints = response.get_structured_content()["error"]["details"]["hints"]
     assert any(hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in hints)
+    context.current_tab_or_die.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_screenshot_save_requires_configured_root_before_file_write(
+    monkeypatch, tmp_path
+) -> None:
+    _clear_policy_env(monkeypatch)
+    context = Mock(spec=DrissionPageContext)
+    context.current_tab_or_die = Mock()
+    response = ToolResponse()
+
+    await screenshot_save.handler(
+        context,
+        ScreenshotSaveInput(path=str(tmp_path / "screen.png")),
+        response,
+    )
+
+    assert response.is_error() is True
+    payload = response.get_structured_content()
+    assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
+    assert "DP_MCP_SCREENSHOT_ROOT" in payload["message"]
     context.current_tab_or_die.assert_not_called()
 
 

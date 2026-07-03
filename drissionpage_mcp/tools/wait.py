@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
+from ..limits import MAX_WAIT_SECONDS
 from ..selector import normalize_selector
 from .base import ToolInput, ToolType, define_tool, tool_errors
 
@@ -22,13 +23,23 @@ class WaitElementInput(ToolInput):
             "use text:... for text matching or explicit tag:/css:/xpath:/@attr locators."
         ),
     )
-    timeout: int = Field(default=10, description="Timeout in seconds")
+    timeout: int = Field(
+        default=10,
+        ge=0,
+        le=MAX_WAIT_SECONDS,
+        description="Timeout in seconds",
+    )
 
 
 class WaitTimeInput(ToolInput):
     """Input schema for waiting a specific time."""
 
-    seconds: float = Field(..., description="Number of seconds to wait")
+    seconds: float = Field(
+        ...,
+        ge=0,
+        le=MAX_WAIT_SECONDS,
+        description="Number of seconds to wait",
+    )
 
 
 class WaitUrlInput(ToolInput):
@@ -37,7 +48,12 @@ class WaitUrlInput(ToolInput):
     url_pattern: str = Field(
         ..., description="Substring or pattern expected in the current URL"
     )
-    timeout: int = Field(default=10, description="Timeout in seconds")
+    timeout: int = Field(
+        default=10,
+        ge=0,
+        le=MAX_WAIT_SECONDS,
+        description="Timeout in seconds",
+    )
 
 
 class WaitUntilInput(ToolInput):
@@ -63,7 +79,12 @@ class WaitUntilInput(ToolInput):
         default="",
         description="Expected substring or regular expression for text/URL conditions",
     )
-    timeout: float = Field(default=10, ge=0, le=120, description="Timeout in seconds")
+    timeout: float = Field(
+        default=10,
+        ge=0,
+        le=MAX_WAIT_SECONDS,
+        description="Timeout in seconds",
+    )
     interval: float = Field(
         default=0.1,
         ge=0.01,

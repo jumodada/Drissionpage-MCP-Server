@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
+from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
 from ..selector import normalize_selector
 from ._observe import maybe_observe, observed_changes
@@ -26,7 +27,10 @@ class FindElementInput(ToolInput):
         ),
     )
     timeout: int = Field(
-        default=3, description="Timeout in seconds to wait for element"
+        default=3,
+        ge=0,
+        le=MAX_WAIT_SECONDS,
+        description="Timeout in seconds to wait for element",
     )
 
 
@@ -63,7 +67,10 @@ class ClickElementInput(ToolInput):
         ),
     )
     timeout: int = Field(
-        default=10, description="Timeout in seconds to wait for element"
+        default=10,
+        ge=0,
+        le=MAX_WAIT_SECONDS,
+        description="Timeout in seconds to wait for element",
     )
     observe: bool = Field(
         default=False,
@@ -83,7 +90,10 @@ class TypeTextInput(ToolInput):
     )
     text: str = Field(..., description="Text to type into the element")
     timeout: int = Field(
-        default=10, description="Timeout in seconds to wait for element"
+        default=10,
+        ge=0,
+        le=MAX_WAIT_SECONDS,
+        description="Timeout in seconds to wait for element",
     )
     clear: bool = Field(
         default=True, description="Clear existing input content before typing"

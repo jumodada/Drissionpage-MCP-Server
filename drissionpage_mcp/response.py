@@ -803,6 +803,11 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
         {"screenshot": SCREENSHOT_METADATA_SCHEMA},
         ["screenshot"],
     ),
+    "page_screenshot_save": _data_schema(
+        "PageScreenshotSaveData",
+        {"screenshot": SCREENSHOT_METADATA_SCHEMA},
+        ["screenshot"],
+    ),
     "page_snapshot": _data_schema(
         "PageSnapshotData",
         {
