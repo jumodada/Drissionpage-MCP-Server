@@ -36,6 +36,10 @@ class FakeOptions:
         self.calls.append(("set_argument", (argument,), {}))
 
 
+def _arguments(options: FakeOptions) -> list[str]:
+    return [args[0] for name, args, _kwargs in options.calls if name == "set_argument"]
+
+
 def test_env_bool_parses_truthy_and_default(monkeypatch) -> None:
     monkeypatch.delenv("DP_TEST_BOOL", raising=False)
     assert compat._env_bool("DP_TEST_BOOL", default=True) is True
@@ -102,6 +106,35 @@ def test_build_chromium_options_applies_environment_contract(monkeypatch) -> Non
     assert ("set_argument", ("--no-sandbox",), {}) in options.calls
     assert ("set_argument", ("--disable-dev-shm-usage",), {}) in options.calls
     assert ("set_argument", ("--disable-web-security",), {}) in options.calls
+
+
+def test_build_chromium_options_keeps_chrome_sandbox_enabled_by_default(
+    monkeypatch,
+) -> None:
+    monkeypatch.delenv("DP_NO_SANDBOX", raising=False)
+    monkeypatch.delenv("DP_DISABLE_WEB_SECURITY", raising=False)
+    options = FakeOptions()
+    monkeypatch.setattr(compat, "_new_chromium_options", lambda: options)
+
+    compat.build_chromium_options()
+
+    arguments = _arguments(options)
+    assert "--no-sandbox" not in arguments
+    assert "--disable-web-security" not in arguments
+    assert "--disable-dev-shm-usage" in arguments
+
+
+@pytest.mark.parametrize("value", ["0", "false", "no", "off"])
+def test_build_chromium_options_respects_explicit_sandbox_opt_out_false(
+    monkeypatch, value: str
+) -> None:
+    monkeypatch.setenv("DP_NO_SANDBOX", value)
+    options = FakeOptions()
+    monkeypatch.setattr(compat, "_new_chromium_options", lambda: options)
+
+    compat.build_chromium_options()
+
+    assert "--no-sandbox" not in _arguments(options)
 
 
 def test_create_browser_prefers_chromium_and_falls_back_to_chromium_page(

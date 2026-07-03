@@ -136,6 +136,7 @@ def bounded_json_value(
     text = _json(value)
     if len(text) <= max_chars:
         return value, False, len(text)
+    bounded: Any
     if isinstance(value, str):
         bounded = value[:max_chars]
     else:

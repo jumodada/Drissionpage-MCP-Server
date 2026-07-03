@@ -92,7 +92,7 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current 0.5.3 tool registry should load 29 tools.
+The current 0.5.4 tool registry should load 29 tools.
 
 ## Browser Does Not Start
 
@@ -124,13 +124,16 @@ set the browser path explicitly in your MCP client configuration:
       "command": "drissionpage-mcp",
       "env": {
         "CHROME_PATH": "/usr/bin/chromium",
-        "DP_HEADLESS": "1",
-        "DP_NO_SANDBOX": "1"
+        "DP_HEADLESS": "1"
       }
     }
   }
 }
 ```
+
+Chrome sandboxing stays enabled by default. If Chromium is running as root or
+inside a restricted container and `doctor --launch-browser` reports a sandbox
+startup error, add `DP_NO_SANDBOX=1` only for that environment.
 
 ## Navigation or Element Actions Fail
 

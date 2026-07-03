@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from ..observation import diff_observations
 
@@ -12,7 +12,7 @@ async def maybe_observe(tab: Any, enabled: bool) -> dict[str, Any] | None:
 
     if not enabled:
         return None
-    return await tab.observe()
+    return cast(dict[str, Any], await tab.observe())
 
 
 async def observed_changes(

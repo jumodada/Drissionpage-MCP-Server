@@ -94,6 +94,16 @@ def test_run_diagnostics_reports_actionable_hints_for_old_python_and_no_browser(
     assert any("Install Chrome/Chromium" in hint for hint in report["hints"])
 
 
+def test_run_diagnostics_warns_when_chrome_sandbox_is_disabled(monkeypatch) -> None:
+    monkeypatch.setenv("DP_NO_SANDBOX", "1")
+    monkeypatch.setattr(doctor, "_find_browser", lambda: "/tmp/chrome")
+
+    report = doctor.run_diagnostics()
+
+    assert report["ok"] is True
+    assert any("Chrome sandbox is disabled" in hint for hint in report["hints"])
+
+
 def test_run_diagnostics_launch_browser_success_and_failure(monkeypatch) -> None:
     class FakeCompat:
         def __init__(self, fail: bool = False) -> None:

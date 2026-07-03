@@ -224,7 +224,6 @@ tool_timeout_sec = 60
 # [mcp_servers.drissionpage.env]
 # CHROME_PATH = "/custom/path/to/chrome"
 # DP_HEADLESS = "1"
-# DP_NO_SANDBOX = "1"
 ```
 
 也可以用 Codex CLI 添加：
@@ -265,8 +264,7 @@ GUI 客户端的绝对 Python fallback：
       "args": ["-m", "drissionpage_mcp.cli"],
       "env": {
         "CHROME_PATH": "/custom/path/to/chrome",
-        "DP_HEADLESS": "1",
-        "DP_NO_SANDBOX": "1"
+        "DP_HEADLESS": "1"
       }
     }
   }
@@ -351,7 +349,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.5.3`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.5.4`。
 
 ### 浏览器问题？
 ```bash
@@ -380,13 +378,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.5.3 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.5.4 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.5.3)
+### 当前版本 (v0.5.4)
 - [x] 29 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -397,6 +395,7 @@ which chromium         # macOS
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
 - [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
+- [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
 - [x] 脱敏 session history resource，以及有界输出的响应大小 metadata
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] Resources、Prompts、eval harness、兼容性和故障排除文档
@@ -543,18 +542,20 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.5.3
+## 🆕 最新版本：v0.5.4
 
-发布日期：2026-07-02。本版本在 0.5 的标签页、表单、页面理解和可观察动作工作流上补充浏览器 console 可观察性：
+发布日期：2026-07-03。本版本在 0.5.3 console 可观察性基础上收紧浏览器启动默认值：
 
+- 普通桌面/客户端安装默认保持 Chrome sandbox 开启。
+- `DP_NO_SANDBOX=1` 仍可用于无法在 sandbox 下启动 Chromium 的受限容器/root 环境。
+- `drissionpage-mcp doctor` 会在 `DP_NO_SANDBOX` 关闭 Chrome sandbox 时给出提醒。
+- 公开的 Codex、Claude、Cursor 和 JSON 配置示例不再建议普通安装关闭 sandbox。
 - `page_console_logs` 可读取当前标签页的有界 console 消息，支持 `level`、`since` 和 `limit` 参数。
-- `page_observe` 现在包含紧凑 console 摘要，包括最近消息、warning/error 数量和 cursor。
-- `page_navigate`、`element_click` 和 `element_type` 使用 `observe=true` 时，会返回 console 变化字段：`console_errors_added`、`console_warnings_added` 和 `new_console_messages`。
+- 可观察动作保留 `console_errors_added`、`console_warnings_added` 和 `new_console_messages` 等 console 变化字段。
 - `page_observe`、`page_evaluate` 和 `wait_until` 仍是动作后检查动态页面状态的主要工具。
 - `tab_list`、`tab_switch` 和 `tab_close` 可以管理 MCP 工具或页面交互打开的标签页，例如 `target="_blank"` 链接。
 - `drissionpage://session/history` 会记录最近工具操作，对敏感参数脱敏，并在存在时保留紧凑变化摘要。
-- `page_snapshot`、`element_find_all` 和 `form_inspect` 包含 `meta.approx_tokens` 与大小信息，便于控制响应预算。
-- 失败 payload 会在 `error.details.hints` 中返回机器可读恢复建议；timeout 提示会指向 `wait_until`。
-- `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并会提示客户端使用准确的 snake_case 字段名。
-- 浏览器启动失败会提示 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH`、`DP_HEADLESS` 和 `DP_NO_SANDBOX`。
-- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数变为 29 个。
+- `page_snapshot`、`element_find_all` 和 `form_inspect` 保留 `meta.approx_tokens` 与大小 metadata，便于控制有界输出。
+- 失败 payload 会在 `error.details.hints` 中返回机器可读恢复建议；浏览器启动提示仍会指向 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH` 和 `DP_HEADLESS`。
+- `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并提示客户端使用准确的 snake_case 字段名。
+- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数为 29 个。

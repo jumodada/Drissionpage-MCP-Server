@@ -32,6 +32,7 @@ Include:
 - Use a dedicated browser profile for automation when handling sensitive accounts.
 - Review MCP client prompts before allowing actions on authenticated or production systems.
 - Avoid saving screenshots or page content to shared paths unless needed.
+- Keep Chrome sandboxing enabled for normal desktop use; use `DP_NO_SANDBOX=1` only when Chromium cannot start inside a restricted container or root environment.
 - Respect website terms of service, robots.txt, and rate limits.
 
 ## Optional Runtime Guardrails
