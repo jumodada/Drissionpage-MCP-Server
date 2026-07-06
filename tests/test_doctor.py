@@ -19,6 +19,7 @@ def test_doctor_reports_versions_and_skips_browser_launch_by_default() -> None:
         "python",
         "mcp_package",
         "drissionpage_package",
+        "drissionpage_supported",
         "browser_launch",
     } <= check_names
     browser_launch = next(
@@ -102,6 +103,28 @@ def test_run_diagnostics_warns_when_chrome_sandbox_is_disabled(monkeypatch) -> N
 
     assert report["ok"] is True
     assert any("Chrome sandbox is disabled" in hint for hint in report["hints"])
+
+
+def test_run_diagnostics_rejects_drissionpage_5_and_reports_upload_root(
+    monkeypatch,
+) -> None:
+    def fake_package_version(name: str) -> str:
+        return "5.0.0b0" if name == "DrissionPage" else "1.0.0"
+
+    monkeypatch.setattr(doctor, "_package_version", fake_package_version)
+    monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", "/tmp/uploads")
+    monkeypatch.setattr(doctor, "_find_browser", lambda: "/tmp/chrome")
+
+    report = doctor.run_diagnostics()
+
+    assert report["ok"] is False
+    supported = next(
+        item for item in report["checks"] if item["name"] == "drissionpage_supported"
+    )
+    assert supported["ok"] is False
+    assert any("DrissionPage 5.x is not supported" in hint for hint in report["hints"])
+    config = next(item for item in report["checks"] if item["name"] == "config")
+    assert "DP_MCP_UPLOAD_ROOT" in config["detail"]
 
 
 def test_run_diagnostics_launch_browser_success_and_failure(monkeypatch) -> None:

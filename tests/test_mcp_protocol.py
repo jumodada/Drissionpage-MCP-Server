@@ -25,7 +25,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 30
+    assert len(tools) == 46
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -43,6 +43,15 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "element_get_text",
         "wait_until",
         "wait_time",
+        "element_upload_file",
+        "page_scroll",
+        "element_hover",
+        "element_select",
+        "frame_list",
+        "frame_snapshot",
+        "shadow_find",
+        "browser_cookies_get",
+        "storage_get",
     }
     for tool in tools:
         assert tool.description
@@ -156,7 +165,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 30
+            assert len(tools.tools) == 46
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -169,6 +178,10 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "element_find_all",
                 "form_inspect",
                 "wait_until",
+                "element_upload_file",
+                "frame_list",
+                "shadow_find",
+                "storage_get",
             }
             assert "element_input_text" not in {tool.name for tool in tools.tools}
             assert "wait_sleep" not in {tool.name for tool in tools.tools}
@@ -241,3 +254,12 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     assert "forms" in schemas["form_inspect"]["oneOf"][0]["properties"]["data"][
         "required"
     ]
+    assert schemas["element_upload_file"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "ElementUploadFileData"
+    )
+    assert schemas["frame_snapshot"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "FrameSnapshotData"
+    )
+    assert schemas["storage_get"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "StorageGetData"
+    )

@@ -258,6 +258,54 @@ def test_page_understanding_output_schemas_validate_success_payloads() -> None:
     validate(find_all_payload, tool_result_output_schema("element_find_all"))
 
 
+def test_0_5_5_output_schemas_validate_new_capability_payloads() -> None:
+    upload_payload = ToolResult.success(
+        "Uploaded 1 file",
+        selector="#upload",
+        locator="css:#upload",
+        selector_strategy="css",
+        selector_normalized=True,
+        uploaded=True,
+        file_count=1,
+        filenames=["fixture.txt"],
+    ).to_dict()
+    frame_payload = ToolResult.success(
+        "Captured frame snapshot",
+        frame={
+            "index": 0,
+            "selector": "#fixture-frame",
+            "id": "fixture-frame",
+            "name": "fixture-frame",
+            "title": "Frame",
+            "url": "https://example.test/frame",
+        },
+        url="https://example.test/frame",
+        title="Frame",
+        text_excerpt="Frame text",
+        headings=[],
+        links=[],
+        buttons=[],
+        inputs=[],
+        forms=[],
+        counts={},
+        truncated={"text": False, "elements": False, "returned_elements": 0},
+        limits={"max_elements": 20, "max_text_chars": 1000},
+        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
+    ).to_dict()
+    storage_payload = ToolResult.success(
+        "Read local storage",
+        area="local",
+        key="",
+        include_values=True,
+        count=1,
+        items={"mode": "dark"},
+    ).to_dict()
+
+    validate(upload_payload, tool_result_output_schema("element_upload_file"))
+    validate(frame_payload, tool_result_output_schema("frame_snapshot"))
+    validate(storage_payload, tool_result_output_schema("storage_get"))
+
+
 def test_form_inspect_output_schema_validates_success_payload() -> None:
     payload = ToolResult.success(
         "Inspected 1 of 1 forms",

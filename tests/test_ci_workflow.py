@@ -172,7 +172,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.5.4"
+    assert version == "0.5.5"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")
@@ -197,6 +197,7 @@ def test_security_policy_and_ci_document_0_4_0_controls() -> None:
         "DP_MCP_NAV_BLOCKLIST",
         "DP_MCP_BLOCK_PRIVATE_NETWORK",
         "DP_MCP_SCREENSHOT_ROOT",
+        "DP_MCP_UPLOAD_ROOT",
     ):
         assert name in security
     assert "local stdio" in security.lower()

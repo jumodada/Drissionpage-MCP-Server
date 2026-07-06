@@ -146,6 +146,8 @@ The server marks tools with MCP annotations:
 | `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`. |
 | `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, recent console summary, and limits. Optional: `max_texts`, `max_text_chars`. |
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
+| `page_scroll` | Destructive | none | Scroll the page by direction or to a position. Optional: `direction`, `pixels`, `x`, `y`. |
+| `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Optional: `interval`. |
 | `page_click_xy` | Destructive | `x`, `y` | Click page coordinates. Optional: `element` description. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |
@@ -164,10 +166,34 @@ The server marks tools with MCP annotations:
 | `element_find_all` | Read-only | `selector` | Find multiple matching elements with bounded text, attributes, optional HTML, count/truncation metadata, and recommended selectors. Optional: `limit` (default 20), `include_html`. |
 | `element_click` | Destructive | `selector` | Click an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `observe`. |
 | `element_type` | Destructive | `selector`, `text` | Type text into an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `clear`, `observe`. |
+| `element_upload_file` | Destructive | `selector`, `paths` | Upload one or more files from `DP_MCP_UPLOAD_ROOT` into an `input[type=file]`. Optional: `timeout`. |
+| `element_scroll_into_view` | Destructive | `selector` | Scroll an element into the viewport. Optional: `center`, `timeout`. |
+| `element_hover` | Destructive | `selector` | Hover an element. Optional: `timeout`, `offset_x`, `offset_y`. |
+| `element_select` | Destructive | `selector`, `value` | Select an option from a `<select>` by value, text, or index. Optional: `by`, `timeout`. |
+| `element_check` | Destructive | `selector` | Check or uncheck checkbox/radio controls. Optional: `checked`, `by_js`, `timeout`. |
 | `element_get_text` | Read-only | none | Get page text, or element text when `selector` is set. |
 | `element_get_attribute` | Read-only | `selector`, `attribute` | Read an HTML attribute. |
 | `element_get_property` | Read-only | `selector`, `property` | Read a live DOM property such as `value`. |
 | `element_get_html` | Read-only | none | Get page HTML, or element HTML when `selector` is set. |
+
+### Frame / Shadow DOM
+
+| Tool | Type | Required input | Description |
+| --- | --- | --- | --- |
+| `frame_list` | Read-only | none | List iframe/frame contexts without changing any global current-frame state. Optional: `limit`. |
+| `frame_snapshot` | Read-only | none | Return a bounded outline from one iframe selected by `frame_selector` or `frame_index`. |
+| `frame_find` | Read-only | `selector` | Find one element inside an iframe selected by `frame_selector` or `frame_index`. |
+| `shadow_find` | Read-only | `host_selector`, `selector` | Find one element inside an open shadow root. |
+| `shadow_find_all` | Read-only | `host_selector`, `selector` | Find repeated elements inside an open shadow root. Optional: `limit`, `include_html`. |
+
+### Cookies and Storage
+
+| Tool | Type | Required input | Description |
+| --- | --- | --- | --- |
+| `browser_cookies_get` | Read-only | none | Read normalized cookies. Values are redacted unless `include_values=true`. |
+| `storage_get` | Read-only | none | Read localStorage/sessionStorage by optional `key`. Optional: `area`, `include_values`. |
+| `storage_set` | Destructive | `key`, `value` | Set one localStorage/sessionStorage value. The value is not echoed in the response. Optional: `area`. |
+| `storage_clear` | Destructive | none | Clear one storage key or the whole selected storage area. Optional: `area`, `key`. |
 
 ### Form Operations
 
@@ -192,6 +218,7 @@ The server exposes deterministic JSON resources:
 | --- | --- |
 | `drissionpage://session/summary` | Browser/session activity, tab count, current URL, and policy flags. |
 | `drissionpage://session/history` | Redacted recent tool actions for recovering long-session context. |
+| `drissionpage://session/state` | Redacted current-tab cookie names and local/session storage keys. |
 | `drissionpage://page/current` | Bounded current page title, URL, text excerpt, and HTML excerpt. |
 | `drissionpage://tools/catalog` | Public tool catalog with annotations and output data schema names. |
 | `drissionpage://policy/summary` | Redacted local safety policy summary. |
@@ -224,6 +251,11 @@ The server exposes user-controlled workflow prompts:
 - `page_observe` is designed for compact state checks. Use `page_snapshot` when you need selectors and structured page outline details. Its `console` field summarizes recent current-tab console messages when DrissionPage console capture is available.
 - `page_console_logs` returns normalized console messages with `index`, `level`, `text`, `url`, `line`, `column`, and `source`. Use `since` with the previous `next_cursor` to fetch only newer messages.
 - `page_evaluate` accepts a JavaScript function body; use `return` for values you want in `structuredContent.data.result`. The result is bounded by `max_chars`.
+- `element_upload_file` requires `DP_MCP_UPLOAD_ROOT`; absolute input paths are accepted only when they resolve inside that root, and successful responses return file names rather than absolute paths.
+- `frame_*` tools are stateless: each call selects by `frame_selector` or zero-based `frame_index`; no global current-frame mode is stored.
+- `shadow_*` tools require open shadow roots exposed by the page. Closed shadow roots are a page limitation, not an MCP state bug.
+- `browser_cookies_get` redacts cookie values by default. Use `include_values=true` only when the MCP client/session is allowed to handle cookie secrets.
+- `storage_set` does not echo the stored value in its success payload.
 - `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.
 - A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
@@ -240,5 +272,6 @@ By default, DrissionPage MCP remains a local stdio browser automation server wit
 | `DP_MCP_NAV_BLOCKLIST` | Comma-separated host names or URL prefixes rejected after allowlist checks. |
 | `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost/private/link-local navigation. |
 | `DP_MCP_SCREENSHOT_ROOT` | Required root directory for `page_screenshot_save` file writes. |
+| `DP_MCP_UPLOAD_ROOT` | Required root directory for `element_upload_file` input files. |
 
 Denied navigation is checked before `context.ensure_tab()`, so policy rejection does not start or initialize a browser.

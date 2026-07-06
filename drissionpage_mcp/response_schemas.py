@@ -60,6 +60,7 @@ BOOLEAN = {"type": "boolean"}
 INTEGER = {"type": "integer"}
 NUMBER = {"type": "number"}
 ANY_JSON: Dict[str, Any] = {}
+NULLABLE_INTEGER = {"type": ["integer", "null"]}
 SELECTOR_METADATA_SCHEMA = {
     "selector": STRING,
     "locator": STRING,
@@ -72,6 +73,11 @@ SELECTOR_METADATA_REQUIRED = [
     "selector_strategy",
     "selector_normalized",
 ]
+SELECTOR_OBJECT_SCHEMA = _data_schema(
+    "SelectorMetadata",
+    SELECTOR_METADATA_SCHEMA,
+    SELECTOR_METADATA_REQUIRED,
+)
 
 ERROR_SCHEMA: Dict[str, Any] = {
     "type": "object",
@@ -309,6 +315,38 @@ TAB_SUMMARY_SCHEMA = _data_schema(
     },
     ["id", "native_id", "url", "title", "active", "connected"],
 )
+
+FRAME_SUMMARY_SCHEMA = _data_schema(
+    "FrameSummary",
+    {
+        "index": INTEGER,
+        "selector": STRING,
+        "id": STRING,
+        "name": STRING,
+        "title": STRING,
+        "url": STRING,
+    },
+    ["index", "selector", "id", "name", "title", "url"],
+)
+
+COOKIE_SCHEMA = _data_schema(
+    "CookieSummary",
+    {
+        "name": STRING,
+        "value": STRING,
+        "domain": STRING,
+        "path": STRING,
+        "expires": ANY_JSON,
+        "secure": BOOLEAN,
+        "http_only": BOOLEAN,
+    },
+    ["name", "value", "domain", "path", "expires", "secure", "http_only"],
+)
+
+STORAGE_ITEMS_SCHEMA = {
+    "type": "object",
+    "additionalProperties": STRING,
+}
 
 OBSERVATION_COUNTS_SCHEMA = {
     "type": "object",
@@ -583,6 +621,66 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
         },
         [*SELECTOR_METADATA_REQUIRED, "typed", "cleared"],
     ),
+    "element_upload_file": _data_schema(
+        "ElementUploadFileData",
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "uploaded": {"const": True},
+            "file_count": INTEGER,
+            "filenames": {"type": "array", "items": STRING},
+        },
+        [*SELECTOR_METADATA_REQUIRED, "uploaded", "file_count", "filenames"],
+    ),
+    "page_scroll": _data_schema(
+        "PageScrollData",
+        {
+            "direction": STRING,
+            "pixels": INTEGER,
+            "x": INTEGER,
+            "y": INTEGER,
+            "url": STRING,
+        },
+        ["direction", "pixels", "x", "y", "url"],
+    ),
+    "element_scroll_into_view": _data_schema(
+        "ElementScrollIntoViewData",
+        {**SELECTOR_METADATA_SCHEMA, "center": BOOLEAN, "url": STRING},
+        [*SELECTOR_METADATA_REQUIRED, "center", "url"],
+    ),
+    "element_hover": _data_schema(
+        "ElementHoverData",
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "url": STRING,
+            "offset_x": NULLABLE_INTEGER,
+            "offset_y": NULLABLE_INTEGER,
+        },
+        [*SELECTOR_METADATA_REQUIRED, "url", "offset_x", "offset_y"],
+    ),
+    "keyboard_press": _data_schema(
+        "KeyboardPressData",
+        {"keys": STRING, "interval": NUMBER, "url": STRING},
+        ["keys", "interval", "url"],
+    ),
+    "element_select": _data_schema(
+        "ElementSelectData",
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "selected": {"const": True},
+            "by": STRING,
+            "value": STRING,
+        },
+        [*SELECTOR_METADATA_REQUIRED, "selected", "by", "value"],
+    ),
+    "element_check": _data_schema(
+        "ElementCheckData",
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "checked": BOOLEAN,
+            "by_js": BOOLEAN,
+        },
+        [*SELECTOR_METADATA_REQUIRED, "checked", "by_js"],
+    ),
     "element_get_text": _data_schema(
         "ElementGetTextData",
         {"text": STRING, **SELECTOR_METADATA_SCHEMA},
@@ -606,6 +704,113 @@ TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
         "ElementGetHtmlData",
         {"html": STRING, **SELECTOR_METADATA_SCHEMA},
         ["html", *SELECTOR_METADATA_REQUIRED],
+    ),
+    "frame_list": _data_schema(
+        "FrameListData",
+        {
+            "count": INTEGER,
+            "returned": INTEGER,
+            "limit": INTEGER,
+            "frames": {"type": "array", "items": FRAME_SUMMARY_SCHEMA},
+        },
+        ["count", "returned", "limit", "frames"],
+    ),
+    "frame_snapshot": _data_schema(
+        "FrameSnapshotData",
+        {
+            "frame": FRAME_SUMMARY_SCHEMA,
+            "url": STRING,
+            "title": STRING,
+            "text_excerpt": STRING,
+            "headings": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "links": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "buttons": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "inputs": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "forms": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "counts": OUTLINE_COUNTS_SCHEMA,
+            "truncated": PAGE_SNAPSHOT_TRUNCATION_SCHEMA,
+            "limits": PAGE_SNAPSHOT_LIMITS_SCHEMA,
+            "meta": META_SCHEMA,
+        },
+        [
+            "frame",
+            "url",
+            "title",
+            "text_excerpt",
+            "headings",
+            "links",
+            "buttons",
+            "inputs",
+            "forms",
+            "counts",
+            "truncated",
+            "limits",
+            "meta",
+        ],
+    ),
+    "frame_find": _data_schema(
+        "FrameFindData",
+        {"frame": FRAME_SUMMARY_SCHEMA, "element": ELEMENT_INFO_SCHEMA},
+        ["frame", "element"],
+    ),
+    "shadow_find": _data_schema(
+        "ShadowFindData",
+        {"host": SELECTOR_OBJECT_SCHEMA, "element": ELEMENT_INFO_SCHEMA},
+        ["host", "element"],
+    ),
+    "shadow_find_all": _data_schema(
+        "ShadowFindAllData",
+        {
+            "host": SELECTOR_OBJECT_SCHEMA,
+            "target": SELECTOR_OBJECT_SCHEMA,
+            "count": INTEGER,
+            "returned": INTEGER,
+            "limit": INTEGER,
+            "truncated": BOOLEAN,
+            "elements": {"type": "array", "items": OUTLINE_ELEMENT_SCHEMA},
+            "meta": META_SCHEMA,
+        },
+        [
+            "host",
+            "target",
+            "count",
+            "returned",
+            "limit",
+            "truncated",
+            "elements",
+            "meta",
+        ],
+    ),
+    "browser_cookies_get": _data_schema(
+        "BrowserCookiesGetData",
+        {
+            "count": INTEGER,
+            "include_values": BOOLEAN,
+            "all_domains": BOOLEAN,
+            "cookies": {"type": "array", "items": COOKIE_SCHEMA},
+        },
+        ["count", "include_values", "all_domains", "cookies"],
+    ),
+    "storage_get": _data_schema(
+        "StorageGetData",
+        {
+            "area": STRING,
+            "key": STRING,
+            "include_values": BOOLEAN,
+            "count": INTEGER,
+            "items": STORAGE_ITEMS_SCHEMA,
+        },
+        ["area", "key", "include_values", "count", "items"],
+    ),
+    "storage_set": _data_schema(
+        "StorageSetData",
+        {"area": STRING, "key": STRING, "set": {"const": True}},
+        ["area", "key", "set"],
+    ),
+    "storage_clear": _data_schema(
+        "StorageClearData",
+        {"area": STRING, "key": STRING, "cleared": {"const": True}},
+        ["area", "key", "cleared"],
     ),
     "wait_for_element": _data_schema(
         "WaitForElementData",

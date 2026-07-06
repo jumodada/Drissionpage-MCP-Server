@@ -4115,6 +4115,1024 @@
   },
   {
     "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Upload File"
+    },
+    "description": "Set files on an input[type=file]. Paths must exist under DP_MCP_UPLOAD_ROOT and response data only returns safe file names.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for file uploads.",
+      "properties": {
+        "paths": {
+          "description": "One or more local file paths under DP_MCP_UPLOAD_ROOT. Absolute paths are accepted but never echoed back in tool results.",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "selector": {
+          "description": "CSS/XPath/DrissionPage locator for an input[type=file].",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "description": "Timeout in seconds to wait for the file input.",
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector",
+        "paths"
+      ],
+      "title": "UploadFileInput",
+      "type": "object"
+    },
+    "name": "element_upload_file",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "file_count": {
+                  "type": "integer"
+                },
+                "filenames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "locator": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                },
+                "uploaded": {
+                  "const": true
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "uploaded",
+                "file_count",
+                "filenames"
+              ],
+              "title": "ElementUploadFileData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Upload File"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Scroll Page"
+    },
+    "description": "Scroll the current page by direction or to a position.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for page scrolling.",
+      "properties": {
+        "direction": {
+          "default": "down",
+          "description": "Scroll direction or target: down, up, left, right, top, bottom, half, position.",
+          "enum": [
+            "down",
+            "up",
+            "left",
+            "right",
+            "top",
+            "bottom",
+            "half",
+            "position"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "pixels": {
+          "default": 300,
+          "description": "Pixel distance for directional scrolling.",
+          "maximum": 20000,
+          "minimum": 0,
+          "title": "Pixels",
+          "type": "integer"
+        },
+        "x": {
+          "default": 0,
+          "description": "X coordinate for direction=position.",
+          "minimum": 0,
+          "title": "X",
+          "type": "integer"
+        },
+        "y": {
+          "default": 0,
+          "description": "Y coordinate for direction=position.",
+          "minimum": 0,
+          "title": "Y",
+          "type": "integer"
+        }
+      },
+      "title": "PageScrollInput",
+      "type": "object"
+    },
+    "name": "page_scroll",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "direction": {
+                  "type": "string"
+                },
+                "pixels": {
+                  "type": "integer"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "integer"
+                },
+                "y": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "direction",
+                "pixels",
+                "x",
+                "y",
+                "url"
+              ],
+              "title": "PageScrollData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Scroll Page"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Scroll Element Into View"
+    },
+    "description": "Scroll an element into the viewport before a later action.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for scrolling an element into view.",
+      "properties": {
+        "center": {
+          "default": true,
+          "description": "Center the element in the viewport.",
+          "title": "Center",
+          "type": "boolean"
+        },
+        "selector": {
+          "description": "CSS/XPath/DrissionPage element locator.",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "ElementScrollIntoViewInput",
+      "type": "object"
+    },
+    "name": "element_scroll_into_view",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "center": {
+                  "type": "boolean"
+                },
+                "locator": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "center",
+                "url"
+              ],
+              "title": "ElementScrollIntoViewData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Scroll Element Into View"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Hover Element"
+    },
+    "description": "Move the mouse over an element.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for hovering an element.",
+      "properties": {
+        "offset_x": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional hover X offset.",
+          "title": "Offset X"
+        },
+        "offset_y": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional hover Y offset.",
+          "title": "Offset Y"
+        },
+        "selector": {
+          "description": "CSS/XPath/DrissionPage element locator.",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "ElementHoverInput",
+      "type": "object"
+    },
+    "name": "element_hover",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "locator": {
+                  "type": "string"
+                },
+                "offset_x": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "offset_y": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "url",
+                "offset_x",
+                "offset_y"
+              ],
+              "title": "ElementHoverData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Hover Element"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Keyboard Press"
+    },
+    "description": "Send keyboard text/keys to the active page element.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for sending keys to the active element.",
+      "properties": {
+        "interval": {
+          "default": 0,
+          "description": "Optional interval between key events in seconds.",
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Interval",
+          "type": "number"
+        },
+        "keys": {
+          "description": "Text or DrissionPage key string to send.",
+          "title": "Keys",
+          "type": "string"
+        }
+      },
+      "required": [
+        "keys"
+      ],
+      "title": "KeyboardPressInput",
+      "type": "object"
+    },
+    "name": "keyboard_press",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "interval": {
+                  "type": "number"
+                },
+                "keys": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "keys",
+                "interval",
+                "url"
+              ],
+              "title": "KeyboardPressData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Keyboard Press"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Select Element Option"
+    },
+    "description": "Select an option from a select element by value, text, or index.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for selecting an option.",
+      "properties": {
+        "by": {
+          "default": "value",
+          "description": "Select by value, text, or index.",
+          "enum": [
+            "value",
+            "text",
+            "index"
+          ],
+          "title": "By",
+          "type": "string"
+        },
+        "selector": {
+          "description": "CSS/XPath/DrissionPage select locator.",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        },
+        "value": {
+          "description": "Option value, text, or index string.",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "selector",
+        "value"
+      ],
+      "title": "ElementSelectInput",
+      "type": "object"
+    },
+    "name": "element_select",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "by": {
+                  "type": "string"
+                },
+                "locator": {
+                  "type": "string"
+                },
+                "selected": {
+                  "const": true
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                },
+                "value": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "selected",
+                "by",
+                "value"
+              ],
+              "title": "ElementSelectData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Select Element Option"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Check Element"
+    },
+    "description": "Set a checkbox or radio element to checked/unchecked.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for checkbox/radio state.",
+      "properties": {
+        "by_js": {
+          "default": false,
+          "description": "Use JavaScript-backed checking.",
+          "title": "By Js",
+          "type": "boolean"
+        },
+        "checked": {
+          "default": true,
+          "description": "Desired checked state.",
+          "title": "Checked",
+          "type": "boolean"
+        },
+        "selector": {
+          "description": "CSS/XPath/DrissionPage checkbox locator.",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 10,
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "ElementCheckInput",
+      "type": "object"
+    },
+    "name": "element_check",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "by_js": {
+                  "type": "boolean"
+                },
+                "checked": {
+                  "type": "boolean"
+                },
+                "locator": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "checked",
+                "by_js"
+              ],
+              "title": "ElementCheckData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Check Element"
+  },
+  {
+    "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,
       "openWorldHint": true,
@@ -4446,6 +5464,1831 @@
       "type": "object"
     },
     "title": "Inspect Forms"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "List Frames"
+    },
+    "description": "List iframe/frame contexts on the current page without changing global state.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for listing frames.",
+      "properties": {
+        "limit": {
+          "default": 20,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "title": "FrameListInput",
+      "type": "object"
+    },
+    "name": "frame_list",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer"
+                },
+                "frames": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "selector",
+                      "id",
+                      "name",
+                      "title",
+                      "url"
+                    ],
+                    "title": "FrameSummary",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "limit": {
+                  "type": "integer"
+                },
+                "returned": {
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "count",
+                "returned",
+                "limit",
+                "frames"
+              ],
+              "title": "FrameListData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "List Frames"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Frame Snapshot"
+    },
+    "description": "Return a bounded page outline from a selected iframe/frame.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for frame snapshots.",
+      "properties": {
+        "frame_index": {
+          "default": 0,
+          "description": "Zero-based frame index.",
+          "minimum": 0,
+          "title": "Frame Index",
+          "type": "integer"
+        },
+        "frame_selector": {
+          "default": "",
+          "description": "Optional iframe/frame selector. When empty, frame_index is used.",
+          "title": "Frame Selector",
+          "type": "string"
+        },
+        "include_html": {
+          "default": false,
+          "title": "Include Html",
+          "type": "boolean"
+        },
+        "max_elements": {
+          "default": 50,
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Max Elements",
+          "type": "integer"
+        },
+        "max_text_chars": {
+          "default": 4000,
+          "maximum": 20000,
+          "minimum": 0,
+          "title": "Max Text Chars",
+          "type": "integer"
+        },
+        "timeout": {
+          "default": 3,
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "title": "FrameSnapshotInput",
+      "type": "object"
+    },
+    "name": "frame_snapshot",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "buttons": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "counts": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "type": "object"
+                },
+                "forms": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "frame": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "index": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "selector",
+                    "id",
+                    "name",
+                    "title",
+                    "url"
+                  ],
+                  "title": "FrameSummary",
+                  "type": "object"
+                },
+                "headings": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "inputs": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "limits": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "max_elements": {
+                      "type": "integer"
+                    },
+                    "max_text_chars": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "max_elements",
+                    "max_text_chars"
+                  ],
+                  "title": "PageSnapshotLimits",
+                  "type": "object"
+                },
+                "links": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "meta": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "approx_tokens": {
+                      "type": "integer"
+                    },
+                    "json_chars": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "approx_tokens",
+                    "json_chars",
+                    "truncated"
+                  ],
+                  "title": "ResponseMeta",
+                  "type": "object"
+                },
+                "text_excerpt": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "truncated": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "elements": {
+                      "type": "boolean"
+                    },
+                    "returned_elements": {
+                      "type": "integer"
+                    },
+                    "text": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "text",
+                    "elements",
+                    "returned_elements"
+                  ],
+                  "title": "PageSnapshotTruncation",
+                  "type": "object"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "frame",
+                "url",
+                "title",
+                "text_excerpt",
+                "headings",
+                "links",
+                "buttons",
+                "inputs",
+                "forms",
+                "counts",
+                "truncated",
+                "limits",
+                "meta"
+              ],
+              "title": "FrameSnapshotData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Frame Snapshot"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Find Element In Frame"
+    },
+    "description": "Find an element inside a selected iframe/frame without global frame state.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for finding one element inside a frame.",
+      "properties": {
+        "frame_index": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Frame Index",
+          "type": "integer"
+        },
+        "frame_selector": {
+          "default": "",
+          "title": "Frame Selector",
+          "type": "string"
+        },
+        "selector": {
+          "description": "Selector inside the target frame.",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 3,
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "FrameFindInput",
+      "type": "object"
+    },
+    "name": "frame_find",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "element": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "found": {
+                      "const": true
+                    },
+                    "html": {
+                      "type": "string"
+                    },
+                    "locator": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "selector_normalized": {
+                      "type": "boolean"
+                    },
+                    "selector_strategy": {
+                      "type": "string"
+                    },
+                    "tag": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "visible": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "found",
+                    "selector",
+                    "locator",
+                    "selector_strategy",
+                    "selector_normalized",
+                    "text"
+                  ],
+                  "title": "ElementInfo",
+                  "type": "object"
+                },
+                "frame": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "index": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "selector",
+                    "id",
+                    "name",
+                    "title",
+                    "url"
+                  ],
+                  "title": "FrameSummary",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "frame",
+                "element"
+              ],
+              "title": "FrameFindData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Find Element In Frame"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Find Shadow Element"
+    },
+    "description": "Find one element inside an open shadow root.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for finding one element inside an open shadow root.",
+      "properties": {
+        "host_selector": {
+          "description": "Selector for the shadow host element.",
+          "title": "Host Selector",
+          "type": "string"
+        },
+        "selector": {
+          "description": "Selector inside the shadow root.",
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 3,
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "host_selector",
+        "selector"
+      ],
+      "title": "ShadowFindInput",
+      "type": "object"
+    },
+    "name": "shadow_find",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "element": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "found": {
+                      "const": true
+                    },
+                    "html": {
+                      "type": "string"
+                    },
+                    "locator": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "selector_normalized": {
+                      "type": "boolean"
+                    },
+                    "selector_strategy": {
+                      "type": "string"
+                    },
+                    "tag": {
+                      "type": "string"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "visible": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "found",
+                    "selector",
+                    "locator",
+                    "selector_strategy",
+                    "selector_normalized",
+                    "text"
+                  ],
+                  "title": "ElementInfo",
+                  "type": "object"
+                },
+                "host": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "locator": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "selector_normalized": {
+                      "type": "boolean"
+                    },
+                    "selector_strategy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "selector",
+                    "locator",
+                    "selector_strategy",
+                    "selector_normalized"
+                  ],
+                  "title": "SelectorMetadata",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "host",
+                "element"
+              ],
+              "title": "ShadowFindData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Find Shadow Element"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Find Shadow Elements"
+    },
+    "description": "Find repeated elements inside an open shadow root.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for finding repeated elements inside an open shadow root.",
+      "properties": {
+        "host_selector": {
+          "description": "Selector for the shadow host element.",
+          "title": "Host Selector",
+          "type": "string"
+        },
+        "include_html": {
+          "default": false,
+          "title": "Include Html",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 20,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "selector": {
+          "description": "Selector inside the shadow root.",
+          "title": "Selector",
+          "type": "string"
+        }
+      },
+      "required": [
+        "host_selector",
+        "selector"
+      ],
+      "title": "ShadowFindAllInput",
+      "type": "object"
+    },
+    "name": "shadow_find_all",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer"
+                },
+                "elements": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "action": {
+                        "type": "string"
+                      },
+                      "attributes": {
+                        "additionalProperties": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "type": "object"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "html": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "tag",
+                      "text",
+                      "selector",
+                      "attributes"
+                    ],
+                    "title": "OutlineElement",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "host": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "locator": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "selector_normalized": {
+                      "type": "boolean"
+                    },
+                    "selector_strategy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "selector",
+                    "locator",
+                    "selector_strategy",
+                    "selector_normalized"
+                  ],
+                  "title": "SelectorMetadata",
+                  "type": "object"
+                },
+                "limit": {
+                  "type": "integer"
+                },
+                "meta": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "approx_tokens": {
+                      "type": "integer"
+                    },
+                    "json_chars": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "approx_tokens",
+                    "json_chars",
+                    "truncated"
+                  ],
+                  "title": "ResponseMeta",
+                  "type": "object"
+                },
+                "returned": {
+                  "type": "integer"
+                },
+                "target": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "locator": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "selector_normalized": {
+                      "type": "boolean"
+                    },
+                    "selector_strategy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "selector",
+                    "locator",
+                    "selector_strategy",
+                    "selector_normalized"
+                  ],
+                  "title": "SelectorMetadata",
+                  "type": "object"
+                },
+                "truncated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "host",
+                "target",
+                "count",
+                "returned",
+                "limit",
+                "truncated",
+                "elements",
+                "meta"
+              ],
+              "title": "ShadowFindAllData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Find Shadow Elements"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Get Browser Cookies"
+    },
+    "description": "Read normalized cookies with values redacted by default.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for reading cookies.",
+      "properties": {
+        "all_domains": {
+          "default": false,
+          "title": "All Domains",
+          "type": "boolean"
+        },
+        "all_info": {
+          "default": false,
+          "title": "All Info",
+          "type": "boolean"
+        },
+        "include_values": {
+          "default": false,
+          "description": "Return cookie values. Defaults to false to avoid leaking secrets.",
+          "title": "Include Values",
+          "type": "boolean"
+        }
+      },
+      "title": "BrowserCookiesGetInput",
+      "type": "object"
+    },
+    "name": "browser_cookies_get",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "all_domains": {
+                  "type": "boolean"
+                },
+                "cookies": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "domain": {
+                        "type": "string"
+                      },
+                      "expires": {},
+                      "http_only": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "secure": {
+                        "type": "boolean"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "value",
+                      "domain",
+                      "path",
+                      "expires",
+                      "secure",
+                      "http_only"
+                    ],
+                    "title": "CookieSummary",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "include_values": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "count",
+                "include_values",
+                "all_domains",
+                "cookies"
+              ],
+              "title": "BrowserCookiesGetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Get Browser Cookies"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Get Web Storage"
+    },
+    "description": "Read localStorage or sessionStorage by key or as a bounded map.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for reading web storage.",
+      "properties": {
+        "area": {
+          "default": "local",
+          "enum": [
+            "local",
+            "session"
+          ],
+          "title": "Area",
+          "type": "string"
+        },
+        "include_values": {
+          "default": true,
+          "title": "Include Values",
+          "type": "boolean"
+        },
+        "key": {
+          "default": "",
+          "description": "Optional key. Empty returns all keys.",
+          "title": "Key",
+          "type": "string"
+        }
+      },
+      "title": "StorageGetInput",
+      "type": "object"
+    },
+    "name": "storage_get",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "area": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "include_values": {
+                  "type": "boolean"
+                },
+                "items": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "area",
+                "key",
+                "include_values",
+                "count",
+                "items"
+              ],
+              "title": "StorageGetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Get Web Storage"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Set Web Storage"
+    },
+    "description": "Set one localStorage/sessionStorage item. The value is not echoed.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for setting web storage.",
+      "properties": {
+        "area": {
+          "default": "local",
+          "enum": [
+            "local",
+            "session"
+          ],
+          "title": "Area",
+          "type": "string"
+        },
+        "key": {
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "value": {
+          "description": "String value to store. Not echoed in result.",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "value"
+      ],
+      "title": "StorageSetInput",
+      "type": "object"
+    },
+    "name": "storage_set",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "area": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                },
+                "set": {
+                  "const": true
+                }
+              },
+              "required": [
+                "area",
+                "key",
+                "set"
+              ],
+              "title": "StorageSetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Set Web Storage"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Clear Web Storage"
+    },
+    "description": "Clear one key or all items from localStorage/sessionStorage.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for clearing web storage.",
+      "properties": {
+        "area": {
+          "default": "local",
+          "enum": [
+            "local",
+            "session"
+          ],
+          "title": "Area",
+          "type": "string"
+        },
+        "key": {
+          "default": "",
+          "description": "Optional key. Empty clears the area.",
+          "title": "Key",
+          "type": "string"
+        }
+      },
+      "title": "StorageClearInput",
+      "type": "object"
+    },
+    "name": "storage_clear",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "area": {
+                  "type": "string"
+                },
+                "cleared": {
+                  "const": true
+                },
+                "key": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "area",
+                "key",
+                "cleared"
+              ],
+              "title": "StorageClearData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Clear Web Storage"
   },
   {
     "annotations": {

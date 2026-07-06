@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-与基于截图的方法不同，它通过 29 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+与基于截图的方法不同，它通过 46 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -123,7 +123,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 29 个强大工具 + MCP Resources/Prompts
+## 🛠️ 46 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
@@ -135,11 +135,16 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `tab_switch` - 切换到 `tab_list` 返回的标签页
 - `tab_close` - 关闭单个标签页，不关闭整个浏览器
 
-### 🎯 元素交互与提取（8 个）
+### 🎯 元素交互与提取（13 个）
 - `element_find` - 通过 CSS 选择器或 XPath 查找单个元素；`h1` 等裸选择器按 CSS 处理
 - `element_find_all` - 提取重复列表、卡片和表格元素，返回有界文本、属性和推荐 selector
 - `element_click` - 点击任意元素
 - `element_type` - 向元素输入文本
+- `element_upload_file` - 从 `DP_MCP_UPLOAD_ROOT` 上传文件到 `input[type=file]`
+- `element_scroll_into_view` - 将元素滚动到视口内
+- `element_hover` - 悬停元素以触发菜单/提示状态
+- `element_select` - 按 value、text 或 index 选择下拉选项
+- `element_check` - 勾选或取消 checkbox/radio
 - `element_get_text` - 获取元素或整页文本
 - `element_get_attribute` - 获取 HTML attribute
 - `element_get_property` - 获取实时 DOM property，例如输入框当前 value
@@ -148,15 +153,31 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 ### 🧾 表单工具（1 个）
 - `form_inspect` - 检查表单和控件，返回 label、selector、必填/禁用状态、选项和安全的可选 value
 
-### 📸 页面操作（8 个）
+### 📸 页面操作（11 个）
 - `page_screenshot` - 捕获完整页面或视口
+- `page_screenshot_save` - 保存截图到 `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - 返回有界页面 outline，包括标题、链接、按钮、输入框、表单和 selector 推荐
 - `page_observe` - 返回紧凑页面指纹，包括 URL、标题、元素数量、可见文本样本、当前焦点元素和最近 console 摘要
 - `page_evaluate` - 在当前页面运行有界 JavaScript，并返回 JSON-safe 结果
+- `page_scroll` - 按方向或坐标滚动页面
+- `keyboard_press` - 向当前焦点元素/页面发送键盘输入
 - `page_resize` - 调整浏览器窗口
 - `page_click_xy` - 通过坐标点击
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
+
+### 🧱 iframe / Shadow DOM（5 个）
+- `frame_list` - 列出 iframe/frame，不改变全局 frame 状态
+- `frame_snapshot` - 对指定 iframe 返回有界 outline
+- `frame_find` - 在指定 iframe 内查找元素
+- `shadow_find` - 在 open shadow root 内查找单个元素
+- `shadow_find_all` - 在 open shadow root 内提取重复元素
+
+### 🍪 Cookie 与 Storage（4 个）
+- `browser_cookies_get` - 读取归一化 cookie，默认脱敏 value
+- `storage_get` - 按 key 或整体读取 localStorage/sessionStorage
+- `storage_set` - 设置一个 storage 项，结果不回显 value
+- `storage_clear` - 清理一个 storage key 或整个区域
 
 ### 🧪 调试与可观察性（1 个）
 - `page_console_logs` - 读取有界浏览器 console 消息，支持级别过滤、cursor 分页和数量限制
@@ -168,7 +189,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `wait_time` - 延迟执行
 
 ### 🧩 MCP Resources 和 Prompts
-- Resources：`drissionpage://session/summary`、`drissionpage://session/history`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
+- Resources：`drissionpage://session/summary`、`drissionpage://session/history`、`drissionpage://session/state`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
 - Prompts：`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_fill_form_safely`、`browser_debug_page_issue`
 
 ---
@@ -197,7 +218,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 29 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
+│   └── tools/              # 46 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -349,7 +370,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.5.4`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.5.5`。
 
 ### 浏览器问题？
 ```bash
@@ -378,14 +399,14 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.5.4 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.5.5 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.5.4)
-- [x] 29 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
+### 当前版本 (v0.5.5)
+- [x] 46 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -395,17 +416,17 @@ which chromium         # macOS
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
 - [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
+- [x] 文件上传、滚动、hover、select/check、键盘、iframe、shadow DOM、cookie 和 storage 工具，面向 DrissionPage 4.x
 - [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
 - [x] 脱敏 session history resource，以及有界输出的响应大小 metadata
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] Resources、Prompts、eval harness、兼容性和故障排除文档
 - [x] PyPI 发布
 
-### 未来版本 (v0.5+)
-- [ ] 表单填写工具
-- [ ] 文件上传支持
-- [ ] Shadow DOM 选择器
-- [ ] 会话持久化
+### 未来版本 (v0.6+)
+- [ ] 组合 0.5.x 原子工具的更高层 workflow 工具
+- [ ] 等 DrissionPage 4.x 合同稳定后扩展网络/listener workflow
+- [ ] 在脱敏 state summary 之外提供可选会话持久化
 - [ ] 代理支持
 - [ ] 网络拦截
 
@@ -542,20 +563,18 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.5.4
+## 🆕 最新版本：v0.5.5
 
-发布日期：2026-07-03。本版本在 0.5.3 console 可观察性基础上收紧浏览器启动默认值：
+发布日期：2026-07-06。本版本在 0.5.4 的安全默认值基础上扩展 DrissionPage 4.x 工具面：
 
-- 普通桌面/客户端安装默认保持 Chrome sandbox 开启。
-- `DP_NO_SANDBOX=1` 仍可用于无法在 sandbox 下启动 Chromium 的受限容器/root 环境。
-- `drissionpage-mcp doctor` 会在 `DP_NO_SANDBOX` 关闭 Chrome sandbox 时给出提醒。
-- 公开的 Codex、Claude、Cursor 和 JSON 配置示例不再建议普通安装关闭 sandbox。
-- `page_console_logs` 可读取当前标签页的有界 console 消息，支持 `level`、`since` 和 `limit` 参数。
-- 可观察动作保留 `console_errors_added`、`console_warnings_added` 和 `new_console_messages` 等 console 变化字段。
-- `page_observe`、`page_evaluate` 和 `wait_until` 仍是动作后检查动态页面状态的主要工具。
-- `tab_list`、`tab_switch` 和 `tab_close` 可以管理 MCP 工具或页面交互打开的标签页，例如 `target="_blank"` 链接。
-- `drissionpage://session/history` 会记录最近工具操作，对敏感参数脱敏，并在存在时保留紧凑变化摘要。
-- `page_snapshot`、`element_find_all` 和 `form_inspect` 保留 `meta.approx_tokens` 与大小 metadata，便于控制有界输出。
+- 新增 `element_upload_file`，上传路径必须位于 `DP_MCP_UPLOAD_ROOT` 下，结果只回显文件名。
+- 新增动作原子工具：`page_scroll`、`element_scroll_into_view`、`element_hover`、`keyboard_press`、`element_select`、`element_check`。
+- 新增 iframe 与 shadow DOM 只读工具：`frame_list`、`frame_snapshot`、`frame_find`、`shadow_find`、`shadow_find_all`。
+- 新增 cookie/storage 工具：`browser_cookies_get`、`storage_get`、`storage_set`、`storage_clear`；cookie value 默认脱敏。
+- 新增 `drissionpage://session/state` resource，用于脱敏总结当前 tab 的 cookie 名称和 storage key。
+- `drissionpage-mcp doctor` 会标记 DrissionPage 5.x 为不支持，依赖范围继续保持 `DrissionPage>=4.1.1.4,<5`。
+- 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仍仅用于受限容器/root 环境。
+- 既有页面理解、可观察动作、console、标签页、表单和恢复建议工具保持兼容；可观察变化继续包含 `console_errors_added`；有界输出继续保留 `meta.approx_tokens`。
 - 失败 payload 会在 `error.details.hints` 中返回机器可读恢复建议；浏览器启动提示仍会指向 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH` 和 `DP_HEADLESS`。
 - `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并提示客户端使用准确的 snake_case 字段名。
-- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数为 29 个。
+- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数为 46 个。

@@ -10,7 +10,20 @@ import pytest
 from DrissionPage.errors import ElementNotFoundError
 
 from drissionpage_mcp.response import ToolResponse
-from drissionpage_mcp.tools import common, debug, element, forms, navigate, tabs, wait
+from drissionpage_mcp.tools import (
+    common,
+    debug,
+    element,
+    files,
+    forms,
+    frame,
+    interaction,
+    navigate,
+    shadow,
+    storage,
+    tabs,
+    wait,
+)
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
@@ -390,6 +403,330 @@ class FakeTab:
         self._record("get_html", selector)
         return "<html></html>" if selector == "" else "<input>"
 
+    async def upload_file(self, selector: str, paths: list[str], timeout: int = 10) -> dict[str, Any]:
+        self._record("upload_file", selector, paths, timeout=timeout)
+        return {
+            "selector": selector,
+            "locator": "css:#upload",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+            "uploaded": True,
+            "file_count": len(paths),
+            "filenames": [Path(path).name for path in paths],
+        }
+
+    async def scroll_page(
+        self,
+        *,
+        direction: str = "down",
+        pixels: int = 300,
+        x: int = 0,
+        y: int = 0,
+    ) -> dict[str, Any]:
+        self._record("scroll_page", direction=direction, pixels=pixels, x=x, y=y)
+        return {"direction": direction, "pixels": pixels, "x": x, "y": y, "url": self.url}
+
+    async def scroll_element_into_view(
+        self, selector: str, *, center: bool = True, timeout: int = 10
+    ) -> dict[str, Any]:
+        self._record("scroll_element_into_view", selector, center=center, timeout=timeout)
+        return {
+            "selector": selector,
+            "locator": "css:#deep",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+            "center": center,
+            "url": self.url,
+        }
+
+    async def hover_element(
+        self,
+        selector: str,
+        *,
+        timeout: int = 10,
+        offset_x: int | None = None,
+        offset_y: int | None = None,
+    ) -> dict[str, Any]:
+        self._record(
+            "hover_element",
+            selector,
+            timeout=timeout,
+            offset_x=offset_x,
+            offset_y=offset_y,
+        )
+        return {
+            "selector": selector,
+            "locator": "css:#hover",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+            "url": self.url,
+            "offset_x": offset_x,
+            "offset_y": offset_y,
+        }
+
+    async def keyboard_press(self, keys: str, *, interval: float = 0) -> dict[str, Any]:
+        self._record("keyboard_press", keys, interval=interval)
+        return {"keys": keys, "interval": interval, "url": self.url}
+
+    async def select_element(
+        self,
+        selector: str,
+        *,
+        value: str,
+        by: str = "value",
+        timeout: int = 10,
+    ) -> dict[str, Any]:
+        self._record("select_element", selector, value=value, by=by, timeout=timeout)
+        return {
+            "selector": selector,
+            "locator": "css:#mode",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+            "selected": True,
+            "by": by,
+            "value": value,
+        }
+
+    async def check_element(
+        self,
+        selector: str,
+        *,
+        checked: bool = True,
+        by_js: bool = False,
+        timeout: int = 10,
+    ) -> dict[str, Any]:
+        self._record(
+            "check_element", selector, checked=checked, by_js=by_js, timeout=timeout
+        )
+        return {
+            "selector": selector,
+            "locator": "css:#agree",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+            "checked": checked,
+            "by_js": by_js,
+        }
+
+    async def list_frames(self, *, limit: int = 20) -> dict[str, Any]:
+        self._record("list_frames", limit=limit)
+        return {
+            "count": 1,
+            "returned": 1,
+            "limit": limit,
+            "frames": [
+                {
+                    "index": 0,
+                    "selector": "#fixture-frame",
+                    "id": "fixture-frame",
+                    "name": "fixture-frame",
+                    "title": "Frame",
+                    "url": "https://example.test/frame",
+                }
+            ],
+        }
+
+    async def frame_snapshot(
+        self,
+        *,
+        frame_selector: str = "",
+        frame_index: int = 0,
+        include_html: bool = False,
+        max_elements: int = 50,
+        max_text_chars: int = 4000,
+        timeout: int = 3,
+    ) -> dict[str, Any]:
+        self._record(
+            "frame_snapshot",
+            frame_selector=frame_selector,
+            frame_index=frame_index,
+            include_html=include_html,
+            max_elements=max_elements,
+            max_text_chars=max_text_chars,
+            timeout=timeout,
+        )
+        return {
+            "frame": {
+                "index": frame_index,
+                "selector": frame_selector or "#fixture-frame",
+                "id": "fixture-frame",
+                "name": "fixture-frame",
+                "title": "Frame",
+                "url": "https://example.test/frame",
+            },
+            "url": "https://example.test/frame",
+            "title": "Frame",
+            "text_excerpt": "Frame text",
+            "headings": [],
+            "links": [],
+            "buttons": [],
+            "inputs": [],
+            "forms": [],
+            "counts": {},
+            "truncated": {"text": False, "elements": False, "returned_elements": 0},
+            "limits": {"max_elements": max_elements, "max_text_chars": max_text_chars},
+        }
+
+    async def frame_find(
+        self,
+        *,
+        selector: str,
+        frame_selector: str = "",
+        frame_index: int = 0,
+        timeout: int = 3,
+    ) -> dict[str, Any]:
+        self._record(
+            "frame_find",
+            selector=selector,
+            frame_selector=frame_selector,
+            frame_index=frame_index,
+            timeout=timeout,
+        )
+        return {
+            "frame": {
+                "index": frame_index,
+                "selector": frame_selector or "#fixture-frame",
+                "id": "fixture-frame",
+                "name": "fixture-frame",
+                "title": "Frame",
+                "url": "https://example.test/frame",
+            },
+            "element": {
+                "found": True,
+                "selector": selector,
+                "locator": "css:#frame-text",
+                "selector_strategy": "css",
+                "selector_normalized": True,
+                "text": "frame ready",
+                "tag": "p",
+                "html": "<p id='frame-text'>frame ready</p>",
+                "visible": True,
+            },
+        }
+
+    async def shadow_find(
+        self,
+        *,
+        host_selector: str,
+        selector: str,
+        timeout: int = 3,
+    ) -> dict[str, Any]:
+        self._record(
+            "shadow_find", host_selector=host_selector, selector=selector, timeout=timeout
+        )
+        return {
+            "host": {
+                "selector": host_selector,
+                "locator": "css:#shadow-host",
+                "selector_strategy": "css",
+                "selector_normalized": True,
+            },
+            "element": {
+                "found": True,
+                "selector": selector,
+                "locator": "css:#shadow-button",
+                "selector_strategy": "css",
+                "selector_normalized": True,
+                "text": "Shadow Action",
+                "tag": "button",
+                "html": "<button id='shadow-button'>Shadow Action</button>",
+                "visible": True,
+            },
+        }
+
+    async def shadow_find_all(
+        self,
+        *,
+        host_selector: str,
+        selector: str,
+        limit: int = 20,
+        include_html: bool = False,
+    ) -> dict[str, Any]:
+        self._record(
+            "shadow_find_all",
+            host_selector=host_selector,
+            selector=selector,
+            limit=limit,
+            include_html=include_html,
+        )
+        return {
+            "host": {
+                "selector": host_selector,
+                "locator": "css:#shadow-host",
+                "selector_strategy": "css",
+                "selector_normalized": True,
+            },
+            "target": {
+                "selector": selector,
+                "locator": "css:.shadow-item",
+                "selector_strategy": "css",
+                "selector_normalized": True,
+            },
+            "count": 2,
+            "returned": min(limit, 2),
+            "limit": limit,
+            "truncated": limit < 2,
+            "elements": [
+                {
+                    "index": 0,
+                    "tag": "li",
+                    "text": "Shadow Alpha",
+                    "selector": "#shadow-alpha",
+                    "attributes": {"id": "shadow-alpha"},
+                }
+            ][:limit],
+        }
+
+    async def cookies_get(
+        self,
+        *,
+        all_domains: bool = False,
+        all_info: bool = False,
+        include_values: bool = False,
+    ) -> dict[str, Any]:
+        self._record(
+            "cookies_get",
+            all_domains=all_domains,
+            all_info=all_info,
+            include_values=include_values,
+        )
+        value = "fixture-cookie" if include_values else "<redacted>"
+        return {
+            "count": 1,
+            "include_values": include_values,
+            "all_domains": all_domains,
+            "cookies": [
+                {
+                    "name": "fixture",
+                    "value": value,
+                    "domain": "example.test",
+                    "path": "/",
+                    "expires": None,
+                    "secure": False,
+                    "http_only": False,
+                }
+            ],
+        }
+
+    async def storage_get(
+        self, *, area: str = "local", key: str = "", include_values: bool = True
+    ) -> dict[str, Any]:
+        self._record("storage_get", area=area, key=key, include_values=include_values)
+        return {
+            "area": area,
+            "key": key,
+            "include_values": include_values,
+            "count": 1,
+            "items": {"mode": "dark" if include_values else "<redacted>"},
+        }
+
+    async def storage_set(self, *, area: str, key: str, value: str) -> dict[str, Any]:
+        self._record("storage_set", area=area, key=key, value=value)
+        return {"area": area, "key": key, "set": True}
+
+    async def storage_clear(self, *, area: str, key: str = "") -> dict[str, Any]:
+        self._record("storage_clear", area=area, key=key)
+        return {"area": area, "key": key, "cleared": True}
+
     def _record(self, name: str, *args: Any, **kwargs: Any) -> None:
         self.calls.append((name, args, kwargs))
 
@@ -616,6 +953,170 @@ async def test_form_tools_success_paths() -> None:
             "max_fields_per_form": 3,
         },
     )
+
+
+@pytest.mark.asyncio
+async def test_file_and_interaction_tools_success_paths(monkeypatch, tmp_path) -> None:
+    ctx = FakeContext()
+    upload_root = tmp_path / "uploads"
+    upload_root.mkdir()
+    upload_file = upload_root / "fixture.txt"
+    upload_file.write_text("upload", encoding="utf-8")
+    monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(upload_root))
+
+    upload_response = await _execute(
+        files.element_upload_file,
+        ctx,
+        files.UploadFileInput(selector="#upload", paths=[str(upload_file)], timeout=2),
+    )
+    upload_payload = upload_response.get_structured_content()
+    assert upload_payload["data"] == {
+        "selector": "#upload",
+        "locator": "css:#upload",
+        "selector_strategy": "css",
+        "selector_normalized": True,
+        "uploaded": True,
+        "file_count": 1,
+        "filenames": ["fixture.txt"],
+    }
+    assert str(upload_file) not in str(upload_payload["data"])
+
+    scroll_response = await _execute(
+        interaction.page_scroll,
+        ctx,
+        interaction.PageScrollInput(direction="bottom"),
+    )
+    assert scroll_response.get_structured_content()["data"]["direction"] == "bottom"
+
+    into_view_response = await _execute(
+        interaction.element_scroll_into_view,
+        ctx,
+        interaction.ElementScrollIntoViewInput(
+            selector="#deep",
+            center=False,
+            timeout=2,
+        ),
+    )
+    assert into_view_response.get_structured_content()["data"]["center"] is False
+
+    hover_response = await _execute(
+        interaction.element_hover,
+        ctx,
+        interaction.ElementHoverInput(selector="#hover", offset_x=1, offset_y=2),
+    )
+    assert hover_response.get_structured_content()["data"]["offset_x"] == 1
+
+    keyboard_response = await _execute(
+        interaction.keyboard_press,
+        ctx,
+        interaction.KeyboardPressInput(keys="abc", interval=0.01),
+    )
+    assert keyboard_response.get_structured_content()["data"] == {
+        "keys": "abc",
+        "interval": 0.01,
+        "url": "https://example.test/current",
+    }
+
+    select_response = await _execute(
+        interaction.element_select,
+        ctx,
+        interaction.ElementSelectInput(selector="#mode", value="advanced", by="value"),
+    )
+    assert select_response.get_structured_content()["data"]["selected"] is True
+
+    check_response = await _execute(
+        interaction.element_check,
+        ctx,
+        interaction.ElementCheckInput(selector="#agree", checked=True, by_js=True),
+    )
+    assert check_response.get_structured_content()["data"]["checked"] is True
+
+
+@pytest.mark.asyncio
+async def test_frame_shadow_and_storage_tools_success_paths() -> None:
+    ctx = FakeContext()
+
+    frames_response = await _execute(
+        frame.frame_list,
+        ctx,
+        frame.FrameListInput(limit=5),
+    )
+    frames_payload = frames_response.get_structured_content()
+    assert frames_payload["data"]["count"] == 1
+    assert frames_payload["data"]["frames"][0]["selector"] == "#fixture-frame"
+
+    snapshot_response = await _execute(
+        frame.frame_snapshot,
+        ctx,
+        frame.FrameSnapshotInput(frame_index=0, max_elements=3, max_text_chars=100),
+    )
+    snapshot_payload = snapshot_response.get_structured_content()
+    assert snapshot_payload["data"]["frame"]["id"] == "fixture-frame"
+    assert snapshot_payload["data"]["meta"]["truncated"] is False
+
+    frame_find_response = await _execute(
+        frame.frame_find,
+        ctx,
+        frame.FrameFindInput(frame_index=0, selector="#frame-text"),
+    )
+    assert frame_find_response.get_structured_content()["data"]["element"]["text"] == (
+        "frame ready"
+    )
+
+    shadow_response = await _execute(
+        shadow.shadow_find,
+        ctx,
+        shadow.ShadowFindInput(host_selector="#shadow-host", selector="#shadow-button"),
+    )
+    assert shadow_response.get_structured_content()["data"]["element"]["tag"] == "button"
+
+    shadow_all_response = await _execute(
+        shadow.shadow_find_all,
+        ctx,
+        shadow.ShadowFindAllInput(
+            host_selector="#shadow-host",
+            selector=".shadow-item",
+            limit=1,
+        ),
+    )
+    shadow_all = shadow_all_response.get_structured_content()["data"]
+    assert shadow_all["returned"] == 1
+    assert shadow_all["meta"]["truncated"] is True
+
+    cookies_response = await _execute(
+        storage.browser_cookies_get,
+        ctx,
+        storage.BrowserCookiesGetInput(include_values=False),
+    )
+    cookies = cookies_response.get_structured_content()["data"]
+    assert cookies["cookies"][0]["value"] == "<redacted>"
+
+    storage_get_response = await _execute(
+        storage.storage_get,
+        ctx,
+        storage.StorageGetInput(area="local", include_values=True),
+    )
+    assert storage_get_response.get_structured_content()["data"]["items"] == {
+        "mode": "dark"
+    }
+
+    storage_set_response = await _execute(
+        storage.storage_set,
+        ctx,
+        storage.StorageSetInput(area="session", key="draft", value="42"),
+    )
+    assert storage_set_response.get_structured_content()["data"] == {
+        "area": "session",
+        "key": "draft",
+        "set": True,
+    }
+
+    storage_clear_response = await _execute(
+        storage.storage_clear,
+        ctx,
+        storage.StorageClearInput(area="session", key="draft"),
+    )
+    assert storage_clear_response.get_structured_content()["data"]["cleared"] is True
 
 
 @pytest.mark.asyncio

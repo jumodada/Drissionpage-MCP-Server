@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -10,6 +11,7 @@ from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.policy import SafetyPolicy
 from drissionpage_mcp.response import ErrorCode, ToolResponse
 from drissionpage_mcp.tools.common import ScreenshotSaveInput, screenshot_save
+from drissionpage_mcp.tools.files import UploadFileInput, element_upload_file
 from drissionpage_mcp.tools.navigate import NavigateInput, navigate
 
 
@@ -154,11 +156,75 @@ def test_screenshot_save_root_policy_allows_child_path(monkeypatch, tmp_path) ->
     SafetyPolicy.from_env().validate_screenshot_path(str(tmp_path / "screen.png"))
 
 
+@pytest.mark.asyncio
+async def test_upload_requires_configured_root_before_file_access(
+    monkeypatch, tmp_path
+) -> None:
+    _clear_policy_env(monkeypatch)
+    candidate = tmp_path / "upload.txt"
+    candidate.write_text("ok", encoding="utf-8")
+    context = Mock(spec=DrissionPageContext)
+    context.current_tab_or_die = Mock()
+    response = ToolResponse()
+
+    await element_upload_file.handler(
+        context,
+        UploadFileInput(selector="#upload", paths=[str(candidate)]),
+        response,
+    )
+
+    assert response.is_error() is True
+    payload = response.get_structured_content()
+    assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
+    assert "DP_MCP_UPLOAD_ROOT" in payload["message"]
+    context.current_tab_or_die.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_upload_root_policy_blocks_outside_path_before_browser_use(
+    monkeypatch, tmp_path
+) -> None:
+    _clear_policy_env(monkeypatch)
+    allowed = tmp_path / "allowed"
+    allowed.mkdir()
+    outside = tmp_path / "outside.txt"
+    outside.write_text("nope", encoding="utf-8")
+    monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(allowed))
+    context = Mock(spec=DrissionPageContext)
+    context.current_tab_or_die = Mock()
+    response = ToolResponse()
+
+    await element_upload_file.handler(
+        context,
+        UploadFileInput(selector="#upload", paths=[str(outside)]),
+        response,
+    )
+
+    assert response.is_error() is True
+    payload = response.get_structured_content()
+    assert payload["error"]["code"] == "POLICY_DENIED"
+    assert str(allowed) not in json.dumps(payload)
+    assert str(outside) not in json.dumps(payload)
+    context.current_tab_or_die.assert_not_called()
+
+
+def test_upload_root_policy_allows_existing_child_files(monkeypatch, tmp_path) -> None:
+    _clear_policy_env(monkeypatch)
+    monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(tmp_path))
+    candidate = tmp_path / "upload.txt"
+    candidate.write_text("ok", encoding="utf-8")
+
+    paths = SafetyPolicy.from_env().validate_upload_paths([str(candidate)])
+
+    assert paths == [candidate.resolve()]
+
+
 def _clear_policy_env(monkeypatch) -> None:
     for name in (
         "DP_MCP_NAV_ALLOWLIST",
         "DP_MCP_NAV_BLOCKLIST",
         "DP_MCP_BLOCK_PRIVATE_NETWORK",
         "DP_MCP_SCREENSHOT_ROOT",
+        "DP_MCP_UPLOAD_ROOT",
     ):
         monkeypatch.delenv(name, raising=False)

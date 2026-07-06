@@ -604,6 +604,391 @@ class PageTab:
             logger.error(f"Failed to resize window to {width}x{height}: {e}")
             raise
 
+    async def upload_file(
+        self, selector: str, paths: list[str], timeout: int = 10
+    ) -> dict[str, Any]:
+        """Set one or more files on a file input element."""
+
+        try:
+            plan = normalize_selector(selector)
+            element = await self._element_by_plan(plan, timeout=timeout)
+            element.input(paths)
+            await self._stabilize("upload_file", timeout=1.0, fallback_sleep=0.02)
+            return {
+                **plan.metadata(),
+                "uploaded": True,
+                "file_count": len(paths),
+                "filenames": [os.path.basename(path) for path in paths],
+            }
+        except Exception as e:
+            logger.error(f"Failed to upload file into {selector}: {e}")
+            raise
+
+    async def scroll_page(
+        self,
+        *,
+        direction: str = "down",
+        pixels: int = 300,
+        x: int = 0,
+        y: int = 0,
+    ) -> dict[str, Any]:
+        """Scroll the current page."""
+
+        try:
+            scroll = getattr(self.page, "scroll", None)
+            if scroll is None:
+                raise RuntimeError("Current page does not expose DrissionPage scroll API.")
+            if direction == "down":
+                scroll.down(pixels)
+            elif direction == "up":
+                scroll.up(pixels)
+            elif direction == "left":
+                scroll.left(pixels)
+            elif direction == "right":
+                scroll.right(pixels)
+            elif direction == "top":
+                scroll.to_top()
+            elif direction == "bottom":
+                scroll.to_bottom()
+            elif direction == "half":
+                scroll.to_half()
+            elif direction == "position":
+                scroll.to_location(x, y)
+            else:
+                raise ValueError(f"Unsupported scroll direction: {direction}")
+            await self._stabilize("page_scroll", timeout=0.5, fallback_sleep=0.02)
+            return {"direction": direction, "pixels": pixels, "x": x, "y": y, "url": self.url}
+        except Exception as e:
+            logger.error(f"Failed to scroll page: {e}")
+            raise
+
+    async def scroll_element_into_view(
+        self, selector: str, *, center: bool = True, timeout: int = 10
+    ) -> dict[str, Any]:
+        """Scroll an element into the viewport."""
+
+        try:
+            plan = normalize_selector(selector)
+            element = await self._element_by_plan(plan, timeout=timeout)
+            element.scroll.to_see(center=center)
+            await self._stabilize("element_scroll_into_view", timeout=0.5, fallback_sleep=0.02)
+            return {**plan.metadata(), "center": center, "url": self.url}
+        except Exception as e:
+            logger.error(f"Failed to scroll element into view {selector}: {e}")
+            raise
+
+    async def hover_element(
+        self,
+        selector: str,
+        *,
+        timeout: int = 10,
+        offset_x: int | None = None,
+        offset_y: int | None = None,
+    ) -> dict[str, Any]:
+        """Hover an element."""
+
+        try:
+            plan = normalize_selector(selector)
+            element = await self._element_by_plan(plan, timeout=timeout)
+            element.hover(offset_x=offset_x, offset_y=offset_y)
+            await self._stabilize("element_hover", timeout=0.5, fallback_sleep=0.02)
+            return {
+                **plan.metadata(),
+                "url": self.url,
+                "offset_x": offset_x,
+                "offset_y": offset_y,
+            }
+        except Exception as e:
+            logger.error(f"Failed to hover element {selector}: {e}")
+            raise
+
+    async def keyboard_press(
+        self, keys: str, *, interval: float = 0
+    ) -> dict[str, Any]:
+        """Send keys to the active element/page."""
+
+        try:
+            self.page.actions.type(keys, interval=interval)
+            await self._stabilize("keyboard_press", timeout=0.5, fallback_sleep=0.02)
+            return {"keys": keys, "interval": interval, "url": self.url}
+        except Exception as e:
+            logger.error(f"Failed to press keyboard keys: {e}")
+            raise
+
+    async def select_element(
+        self,
+        selector: str,
+        *,
+        value: str,
+        by: str = "value",
+        timeout: int = 10,
+    ) -> dict[str, Any]:
+        """Select an option from a select element by value, text, or index."""
+
+        try:
+            plan = normalize_selector(selector)
+            element = await self._element_by_plan(plan, timeout=timeout)
+            select = element.select
+            if by == "value":
+                select.by_value(value, timeout=timeout)
+            elif by == "text":
+                select.by_text(value, timeout=timeout)
+            elif by == "index":
+                select.by_index(int(value), timeout=timeout)
+            else:
+                raise ValueError(f"Unsupported select mode: {by}")
+            await self._stabilize("element_select", timeout=0.5, fallback_sleep=0.02)
+            return {**plan.metadata(), "selected": True, "by": by, "value": value}
+        except Exception as e:
+            logger.error(f"Failed to select option for {selector}: {e}")
+            raise
+
+    async def check_element(
+        self,
+        selector: str,
+        *,
+        checked: bool = True,
+        by_js: bool = False,
+        timeout: int = 10,
+    ) -> dict[str, Any]:
+        """Set a checkbox or radio element to the requested checked state."""
+
+        try:
+            plan = normalize_selector(selector)
+            element = await self._element_by_plan(plan, timeout=timeout)
+            element.check(uncheck=not checked, by_js=by_js)
+            await self._stabilize("element_check", timeout=0.5, fallback_sleep=0.02)
+            return {**plan.metadata(), "checked": checked, "by_js": by_js}
+        except Exception as e:
+            logger.error(f"Failed to check element {selector}: {e}")
+            raise
+
+    async def list_frames(self, *, limit: int = 20) -> dict[str, Any]:
+        """List iframe/frame contexts on the current page."""
+
+        try:
+            frames = self._frames()
+            summaries = [
+                _frame_summary(frame, index)
+                for index, frame in enumerate(frames[: max(0, limit)])
+            ]
+            return {
+                "count": len(frames),
+                "returned": len(summaries),
+                "limit": limit,
+                "frames": summaries,
+            }
+        except Exception as e:
+            logger.error(f"Failed to list frames: {e}")
+            raise
+
+    async def frame_snapshot(
+        self,
+        *,
+        frame_selector: str = "",
+        frame_index: int = 0,
+        include_html: bool = False,
+        max_elements: int = 50,
+        max_text_chars: int = 4000,
+        timeout: int = 3,
+    ) -> dict[str, Any]:
+        """Return a bounded page snapshot from a selected iframe."""
+
+        try:
+            frame, index = self._resolve_frame(
+                frame_selector=frame_selector,
+                frame_index=frame_index,
+                timeout=timeout,
+            )
+            result = _frame_snapshot_payload(
+                frame,
+                include_html=include_html,
+                max_elements=max_elements,
+                max_text_chars=max_text_chars,
+            )
+            return {"frame": _frame_summary(frame, index, frame_selector), **result}
+        except Exception as e:
+            logger.error(f"Failed to capture frame snapshot: {e}")
+            raise
+
+    async def frame_find(
+        self,
+        *,
+        selector: str,
+        frame_selector: str = "",
+        frame_index: int = 0,
+        timeout: int = 3,
+    ) -> dict[str, Any]:
+        """Find one element inside a selected iframe."""
+
+        try:
+            frame, index = self._resolve_frame(
+                frame_selector=frame_selector,
+                frame_index=frame_index,
+                timeout=timeout,
+            )
+            plan = normalize_selector(selector)
+            element = frame.ele(plan.locator, timeout=timeout)
+            if not element:
+                raise ElementNotFoundError(f"Element not found: {selector}")
+            return {
+                "frame": _frame_summary(frame, index, frame_selector),
+                "element": _element_info(element, plan),
+            }
+        except Exception as e:
+            logger.error(f"Failed to find frame element {selector}: {e}")
+            raise
+
+    async def shadow_find(
+        self,
+        *,
+        host_selector: str,
+        selector: str,
+        timeout: int = 3,
+    ) -> dict[str, Any]:
+        """Find one element inside an open shadow root."""
+
+        try:
+            host_plan, root = await self._shadow_root(host_selector, timeout=timeout)
+            target_plan = normalize_selector(selector)
+            element = root.ele(target_plan.locator, timeout=timeout)
+            if not element:
+                raise ElementNotFoundError(f"Element not found: {selector}")
+            return {
+                "host": host_plan.metadata(),
+                "element": _element_info(element, target_plan),
+            }
+        except Exception as e:
+            logger.error(f"Failed to find shadow element {selector}: {e}")
+            raise
+
+    async def shadow_find_all(
+        self,
+        *,
+        host_selector: str,
+        selector: str,
+        limit: int = 20,
+        include_html: bool = False,
+    ) -> dict[str, Any]:
+        """Find multiple elements inside an open shadow root."""
+
+        try:
+            host_plan, root = await self._shadow_root(host_selector, timeout=3)
+            target_plan = normalize_selector(selector)
+            elements = list(root.eles(target_plan.locator, timeout=0) or [])
+            summaries, truncated = summarize_elements(
+                elements,
+                limit=limit,
+                include_html=include_html,
+            )
+            return {
+                "host": host_plan.metadata(),
+                "target": target_plan.metadata(),
+                "count": len(elements),
+                "returned": len(summaries),
+                "limit": limit,
+                "truncated": truncated,
+                "elements": summaries,
+            }
+        except Exception as e:
+            logger.error(f"Failed to find shadow elements {selector}: {e}")
+            raise
+
+    async def cookies_get(
+        self,
+        *,
+        all_domains: bool = False,
+        all_info: bool = False,
+        include_values: bool = False,
+    ) -> dict[str, Any]:
+        """Return normalized browser cookies with opt-in values."""
+
+        try:
+            cookies = self._cookies(
+                all_domains=all_domains,
+                all_info=all_info,
+                include_values=include_values,
+            )
+            return {
+                "count": len(cookies),
+                "include_values": include_values,
+                "all_domains": all_domains,
+                "cookies": cookies,
+            }
+        except Exception as e:
+            logger.error(f"Failed to read cookies: {e}")
+            raise
+
+    async def storage_get(
+        self, *, area: str = "local", key: str = "", include_values: bool = True
+    ) -> dict[str, Any]:
+        """Read localStorage or sessionStorage."""
+
+        try:
+            return self._storage_get(area=area, key=key, include_values=include_values)
+        except Exception as e:
+            logger.error(f"Failed to read {area} storage: {e}")
+            raise
+
+    async def storage_set(self, *, area: str, key: str, value: str) -> dict[str, Any]:
+        """Set localStorage or sessionStorage item."""
+
+        try:
+            storage_name = _storage_name(area)
+            self.page.run_js(
+                (
+                    "(() => {"
+                    f"{storage_name}.setItem({json.dumps(key)}, {json.dumps(value)});"
+                    "return true;"
+                    "})()"
+                ),
+                as_expr=True,
+            )
+            return {"area": area, "key": key, "set": True}
+        except Exception as e:
+            logger.error(f"Failed to set {area} storage key {key}: {e}")
+            raise
+
+    async def storage_clear(self, *, area: str, key: str = "") -> dict[str, Any]:
+        """Clear one or all localStorage/sessionStorage items."""
+
+        try:
+            storage_name = _storage_name(area)
+            if key:
+                script = f"{storage_name}.removeItem({json.dumps(key)});"
+            else:
+                script = f"{storage_name}.clear();"
+            self.page.run_js(f"(() => {{{script} return true;}})()", as_expr=True)
+            return {"area": area, "key": key, "cleared": True}
+        except Exception as e:
+            logger.error(f"Failed to clear {area} storage: {e}")
+            raise
+
+    def session_state(self) -> dict[str, Any]:
+        """Return a redacted current-tab state summary for MCP Resources."""
+
+        return {
+            "available": True,
+            "browser_active": bool(self.context and self.context.is_active()),
+            "current_url": self.url,
+            "cookies": {
+                "count": len(self._cookies(include_values=False)),
+                "names": [
+                    cookie["name"]
+                    for cookie in self._cookies(include_values=False)
+                    if cookie.get("name")
+                ],
+            },
+            "storage": {
+                "local": _storage_summary(
+                    self._storage_get(area="local", include_values=False)
+                ),
+                "session": _storage_summary(
+                    self._storage_get(area="session", include_values=False)
+                ),
+            },
+        }
+
     def _console_surface(self) -> Any | None:
         try:
             return getattr(self.page, "console", None)
@@ -616,6 +1001,145 @@ class PageTab:
         if not isinstance(result, dict):
             raise RuntimeError(error_message)
         return result
+
+    async def _element_by_plan(
+        self, plan: SelectorPlan, *, timeout: int = 10
+    ) -> Any:
+        if timeout > 0:
+            loaded = await self._wait_for_selector_plan(plan, timeout)
+            if not loaded:
+                raise ElementNotFoundError(f"Element not found: {plan.original}")
+        element = self.page.ele(plan.locator, timeout=0)
+        if not element:
+            raise ElementNotFoundError(f"Element not found: {plan.original}")
+        return element
+
+    def _frames(self) -> list[Any]:
+        get_frames = getattr(self.page, "get_frames", None)
+        if not callable(get_frames):
+            return []
+        try:
+            raw_frames = list(get_frames(timeout=0) or [])
+        except TypeError:
+            raw_frames = list(get_frames() or [])
+        frames: list[Any] = []
+        for raw in raw_frames:
+            frame = self._coerce_frame(raw)
+            if frame is not None:
+                frames.append(frame)
+        return frames
+
+    def _coerce_frame(self, frame_like: Any) -> Any | None:
+        if hasattr(frame_like, "frame_ele") or (
+            hasattr(frame_like, "ele") and hasattr(frame_like, "run_js")
+        ):
+            return frame_like
+        get_frame = getattr(self.page, "get_frame", None)
+        if not callable(get_frame):
+            return None
+        try:
+            return get_frame(frame_like, timeout=0)
+        except Exception:
+            logger.debug("Could not resolve frame object", exc_info=True)
+            return None
+
+    def _resolve_frame(
+        self,
+        *,
+        frame_selector: str = "",
+        frame_index: int = 0,
+        timeout: int = 3,
+    ) -> tuple[Any, int]:
+        if frame_selector:
+            plan = normalize_selector(frame_selector)
+            get_frame = getattr(self.page, "get_frame", None)
+            if not callable(get_frame):
+                raise ElementNotFoundError("Frames are not supported by this page")
+            frame = get_frame(plan.locator, timeout=timeout)
+            if not frame:
+                raise ElementNotFoundError(f"Frame not found: {frame_selector}")
+            frames = self._frames()
+            index = next(
+                (idx for idx, candidate in enumerate(frames) if candidate is frame),
+                max(0, frame_index),
+            )
+            return frame, index
+
+        frames = self._frames()
+        if frame_index < 0 or frame_index >= len(frames):
+            raise ElementNotFoundError(f"Frame index not found: {frame_index}")
+        return frames[frame_index], frame_index
+
+    async def _shadow_root(
+        self, host_selector: str, *, timeout: int = 3
+    ) -> tuple[SelectorPlan, Any]:
+        host_plan = normalize_selector(host_selector)
+        host = await self._element_by_plan(host_plan, timeout=timeout)
+        root = getattr(host, "shadow_root", None)
+        if not root:
+            raise ElementNotFoundError(f"Shadow root not found: {host_selector}")
+        return host_plan, root
+
+    def _cookies(
+        self,
+        *,
+        all_domains: bool = False,
+        all_info: bool = False,
+        include_values: bool = False,
+    ) -> list[dict[str, Any]]:
+        raw = self.page.cookies(all_domains=all_domains, all_info=all_info)
+        if isinstance(raw, Mapping):
+            items = [
+                {"name": str(name), "value": value}
+                for name, value in raw.items()
+            ]
+        else:
+            try:
+                items = list(raw or [])
+            except TypeError:
+                items = []
+        return [_normalize_cookie(item, include_values=include_values) for item in items]
+
+    def _storage_get(
+        self, *, area: str = "local", key: str = "", include_values: bool = True
+    ) -> dict[str, Any]:
+        storage_name = _storage_name(area)
+        script = f"""
+(() => {{
+  const storage = {storage_name};
+  const key = {json.dumps(key)};
+  const items = {{}};
+  if (key) {{
+    const value = storage.getItem(key);
+    if (value !== null) items[key] = value;
+  }} else {{
+    for (let i = 0; i < storage.length; i += 1) {{
+      const itemKey = storage.key(i);
+      if (itemKey !== null) items[itemKey] = storage.getItem(itemKey);
+    }}
+  }}
+  return items;
+}})()
+"""
+        result = self.page.run_js(script, as_expr=True)
+        items = dict(result) if isinstance(result, Mapping) else {}
+        if not include_values:
+            items = {
+                str(item_key): "<redacted>" if item_value not in ("", None) else ""
+                for item_key, item_value in items.items()
+            }
+        else:
+            items = {
+                str(item_key): "" if item_value is None else str(item_value)
+                for item_key, item_value in items.items()
+            }
+        return {
+            "area": area,
+            "key": key,
+            "include_values": include_values,
+            "count": len(items),
+            "items": items,
+        }
 
     def _normalized_console_messages(self) -> list[dict[str, Any]]:
         console = self._console_surface()
@@ -852,6 +1376,159 @@ class PageTab:
             "text": text[:500],
             "signature": f"{tag}|{text[:100]}|{disabled}",
         }
+
+
+def _element_info(element: Any, plan: SelectorPlan) -> dict[str, Any]:
+    return {
+        "found": True,
+        **plan.metadata(),
+        "text": _safe_string_attr(element, "text"),
+        "tag": _safe_string_attr(element, "tag") or "unknown",
+        "html": _safe_string_attr(element, "html"),
+        "visible": True,
+    }
+
+
+def _frame_summary(frame: Any, index: int, selector: str = "") -> dict[str, Any]:
+    frame_ele = getattr(frame, "frame_ele", None) or frame
+    frame_id = _safe_element_attr(frame_ele, "id")
+    frame_name = _safe_element_attr(frame_ele, "name")
+    frame_selector = selector or (
+        f"#{frame_id}"
+        if frame_id
+        else (f'iframe[name="{frame_name}"]' if frame_name else f"iframe:nth-of-type({index + 1})")
+    )
+    return {
+        "index": index,
+        "selector": frame_selector,
+        "id": frame_id,
+        "name": frame_name,
+        "title": _safe_string_attr(frame, "title"),
+        "url": _safe_string_attr(frame, "url"),
+    }
+
+
+def _frame_snapshot_payload(
+    frame: Any,
+    *,
+    include_html: bool = False,
+    max_elements: int = 50,
+    max_text_chars: int = 4000,
+) -> dict[str, Any]:
+    text = _safe_string_attr(frame, "text")
+    if not text:
+        try:
+            body = frame.ele("tag:body", timeout=0)
+            text = _safe_string_attr(body, "text") if body else ""
+        except Exception:
+            text = ""
+    text_excerpt = text[:max_text_chars]
+    text_truncated = len(text) > max_text_chars
+
+    remaining = max(0, max_elements)
+    groups: dict[str, tuple[str, ...]] = {
+        "headings": ("css:h1,h2,h3,h4,h5,h6",),
+        "links": ("css:a",),
+        "buttons": ("css:button,input[type='button'],input[type='submit']",),
+        "inputs": ("css:input,textarea,select",),
+        "forms": ("css:form",),
+    }
+    payload: dict[str, Any] = {}
+    counts: dict[str, int] = {}
+    returned_total = 0
+    elements_truncated = False
+    for name, locators in groups.items():
+        elements = _frame_elements(frame, locators)
+        counts[name] = len(elements)
+        summaries, truncated = summarize_elements(
+            elements,
+            limit=remaining,
+            include_html=include_html,
+        )
+        payload[name] = summaries
+        returned_total += len(summaries)
+        remaining = max(0, remaining - len(summaries))
+        elements_truncated = elements_truncated or truncated
+
+    return {
+        "url": _safe_string_attr(frame, "url"),
+        "title": _safe_string_attr(frame, "title"),
+        "text_excerpt": text_excerpt,
+        **payload,
+        "counts": counts,
+        "truncated": {
+            "text": text_truncated,
+            "elements": elements_truncated,
+            "returned_elements": returned_total,
+        },
+        "limits": {
+            "max_elements": max_elements,
+            "max_text_chars": max_text_chars,
+        },
+    }
+
+
+def _frame_elements(frame: Any, locators: tuple[str, ...]) -> list[Any]:
+    for locator in locators:
+        try:
+            return list(frame.eles(locator, timeout=0) or [])
+        except Exception:
+            logger.debug("Frame element lookup failed for %s", locator, exc_info=True)
+    return []
+
+
+def _safe_string_attr(obj: Any, name: str) -> str:
+    try:
+        value = getattr(obj, name, "")
+    except Exception:
+        return ""
+    return "" if value is None else str(value)
+
+
+def _safe_element_attr(element: Any, name: str) -> str:
+    attr = getattr(element, "attr", None)
+    if callable(attr):
+        try:
+            value = attr(name)
+            return "" if value is None else str(value)
+        except Exception:
+            return ""
+    return _safe_string_attr(element, name)
+
+
+def _normalize_cookie(cookie: Any, *, include_values: bool = False) -> dict[str, Any]:
+    if isinstance(cookie, Mapping):
+        get = cookie.get
+    else:
+        def get(name: str, default: Any = None) -> Any:
+            return getattr(cookie, name, default)
+
+    value = get("value", "")
+    if not include_values and value not in ("", None):
+        value = "<redacted>"
+    return {
+        "name": "" if get("name", "") is None else str(get("name", "")),
+        "value": "" if value is None else str(value),
+        "domain": "" if get("domain", "") is None else str(get("domain", "")),
+        "path": "" if get("path", "") is None else str(get("path", "")),
+        "expires": get("expires", None),
+        "secure": bool(get("secure", False)),
+        "http_only": bool(get("httpOnly", get("http_only", False))),
+    }
+
+
+def _storage_name(area: str) -> str:
+    if area == "local":
+        return "localStorage"
+    if area == "session":
+        return "sessionStorage"
+    raise ValueError(f"Unsupported storage area: {area}")
+
+
+def _storage_summary(storage_payload: dict[str, Any]) -> dict[str, Any]:
+    items = storage_payload.get("items") or {}
+    keys = sorted(str(key) for key in items.keys()) if isinstance(items, Mapping) else []
+    return {"count": len(keys), "keys": keys}
 
 
 def _selector_state_script(locator: str) -> str:

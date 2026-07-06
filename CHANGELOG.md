@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-07-06
+
+### Added
+- Added `element_upload_file` with `DP_MCP_UPLOAD_ROOT` path policy and filename-only result data.
+- Added interaction primitives: `page_scroll`, `element_scroll_into_view`, `element_hover`, `keyboard_press`, `element_select`, and `element_check`.
+- Added iframe read-only tools: `frame_list`, `frame_snapshot`, and `frame_find`.
+- Added shadow DOM read-only tools: `shadow_find` and `shadow_find_all`.
+- Added cookie/storage tools: `browser_cookies_get`, `storage_get`, `storage_set`, and `storage_clear`.
+- Added `drissionpage://session/state` for redacted cookie names and storage keys.
+- Added browser integration coverage for upload, interactions, iframe, shadow DOM, cookies, and storage on local fixtures.
+
+### Changed
+- Tool registry now exposes 46 public tools.
+- `drissionpage-mcp doctor` now reports DrissionPage 5.x as unsupported; 0.5.5 remains on `DrissionPage>=4.1.1.4,<5`.
+
 ## [0.5.4] - 2026-07-03
 
 ### Security
@@ -183,10 +198,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Browser startup no longer disables web security by default.
 
 ### Planned
-- Form handling utilities
-- File upload support
-- Advanced selectors (shadow DOM, iframes)
-- Session management
+- Higher-level form workflows
+- Optional session persistence
 - Proxy support
 - Network interception
 
@@ -253,7 +266,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.4...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.2...v0.5.3
 [0.5.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.1...v0.5.2

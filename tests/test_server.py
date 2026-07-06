@@ -102,11 +102,33 @@ class TestToolsIntegration:
         assert "element_find_all" in tool_names
         assert "element_click" in tool_names
         assert "element_type" in tool_names
+        assert "element_upload_file" in tool_names
+        assert "element_scroll_into_view" in tool_names
+        assert "element_hover" in tool_names
+        assert "element_select" in tool_names
+        assert "element_check" in tool_names
         assert "element_input_text" not in tool_names
         assert "element_get_text" in tool_names
         assert "element_get_attribute" in tool_names
         assert "element_get_property" in tool_names
         assert "element_get_html" in tool_names
+
+        # Page interaction tools
+        assert "page_scroll" in tool_names
+        assert "keyboard_press" in tool_names
+
+        # Frame and shadow DOM tools
+        assert "frame_list" in tool_names
+        assert "frame_snapshot" in tool_names
+        assert "frame_find" in tool_names
+        assert "shadow_find" in tool_names
+        assert "shadow_find_all" in tool_names
+
+        # Session state tools
+        assert "browser_cookies_get" in tool_names
+        assert "storage_get" in tool_names
+        assert "storage_set" in tool_names
+        assert "storage_clear" in tool_names
 
         # Form tools
         assert "form_inspect" in tool_names
@@ -117,7 +139,7 @@ class TestToolsIntegration:
         assert "wait_time" in tool_names
         assert "wait_until" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 30
+        assert len(tool_names) == 46
 
 
 if __name__ == "__main__":

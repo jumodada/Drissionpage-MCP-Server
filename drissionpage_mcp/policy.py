@@ -20,6 +20,7 @@ ENV_NAV_ALLOWLIST = "DP_MCP_NAV_ALLOWLIST"
 ENV_NAV_BLOCKLIST = "DP_MCP_NAV_BLOCKLIST"
 ENV_BLOCK_PRIVATE = "DP_MCP_BLOCK_PRIVATE_NETWORK"
 ENV_SCREENSHOT_ROOT = "DP_MCP_SCREENSHOT_ROOT"
+ENV_UPLOAD_ROOT = "DP_MCP_UPLOAD_ROOT"
 
 
 class PolicyDeniedError(ValueError):
@@ -40,17 +41,22 @@ class SafetyPolicy:
     navigation_blocklist: tuple[str, ...] = field(default_factory=tuple)
     block_private_network: bool = False
     screenshot_root: Path | None = None
+    upload_root: Path | None = None
 
     @classmethod
     def from_env(cls) -> "SafetyPolicy":
         """Build a policy from process environment variables."""
 
         root = os.getenv(ENV_SCREENSHOT_ROOT)
+        upload_root = os.getenv(ENV_UPLOAD_ROOT)
         return cls(
             navigation_allowlist=_split_env(os.getenv(ENV_NAV_ALLOWLIST)),
             navigation_blocklist=_split_env(os.getenv(ENV_NAV_BLOCKLIST)),
             block_private_network=_env_bool(ENV_BLOCK_PRIVATE),
             screenshot_root=Path(root).expanduser().resolve() if root else None,
+            upload_root=Path(upload_root).expanduser().resolve()
+            if upload_root
+            else None,
         )
 
     def validate_navigation(self, url: str) -> None:
@@ -120,6 +126,44 @@ class SafetyPolicy:
                 value=path,
             ) from exc
 
+    def validate_upload_paths(self, paths: Iterable[str]) -> list[Path]:
+        """Validate file-upload paths before exposing them to the browser."""
+
+        requested_paths = [str(path) for path in paths if str(path)]
+        if not requested_paths:
+            raise PolicyDeniedError(
+                "File upload requires at least one path.",
+                rule=ENV_UPLOAD_ROOT,
+                value="",
+            )
+
+        if self.upload_root is None:
+            raise PolicyDeniedError(
+                "File uploads require DP_MCP_UPLOAD_ROOT.",
+                rule=ENV_UPLOAD_ROOT,
+                value="<redacted>",
+            )
+
+        resolved: list[Path] = []
+        for path in requested_paths:
+            requested = Path(path).expanduser().resolve()
+            try:
+                requested.relative_to(self.upload_root)
+            except ValueError as exc:
+                raise PolicyDeniedError(
+                    "Upload path must be inside DP_MCP_UPLOAD_ROOT.",
+                    rule=ENV_UPLOAD_ROOT,
+                    value="<redacted>",
+                ) from exc
+            if not requested.is_file():
+                raise PolicyDeniedError(
+                    "Upload path must exist and be a file.",
+                    rule=ENV_UPLOAD_ROOT,
+                    value="<redacted>",
+                )
+            resolved.append(requested)
+        return resolved
+
     def profile(self) -> str:
         """Return a compact public profile name for configured controls."""
 
@@ -133,6 +177,7 @@ class SafetyPolicy:
             "navigation_blocklist": bool(self.navigation_blocklist),
             "block_private_network": self.block_private_network,
             "screenshot_root": self.screenshot_root is not None,
+            "upload_root": self.upload_root is not None,
         }
 
     def public_summary(self) -> dict[str, object]:
@@ -152,6 +197,14 @@ class SafetyPolicy:
                         else {}
                     ),
                 },
+                "upload_root": {
+                    "configured": self.upload_root is not None,
+                    **(
+                        {"value": "<redacted>"}
+                        if self.upload_root is not None
+                        else {}
+                    ),
+                },
             },
         }
 
@@ -166,6 +219,12 @@ def validate_screenshot_path(path: str) -> None:
     """Validate screenshot path against the current environment policy."""
 
     SafetyPolicy.from_env().validate_screenshot_path(path)
+
+
+def validate_upload_paths(paths: Iterable[str]) -> list[Path]:
+    """Validate upload paths against the current environment policy."""
+
+    return SafetyPolicy.from_env().validate_upload_paths(paths)
 
 
 def _split_env(value: str | None) -> tuple[str, ...]:

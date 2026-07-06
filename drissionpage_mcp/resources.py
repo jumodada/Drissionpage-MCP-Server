@@ -21,6 +21,7 @@ RESOURCE_JSON_MAX_CHARS = 12000
 
 SESSION_SUMMARY_URI = "drissionpage://session/summary"
 SESSION_HISTORY_URI = "drissionpage://session/history"
+SESSION_STATE_URI = "drissionpage://session/state"
 PAGE_CURRENT_URI = "drissionpage://page/current"
 TOOLS_CATALOG_URI = "drissionpage://tools/catalog"
 POLICY_SUMMARY_URI = "drissionpage://policy/summary"
@@ -28,6 +29,7 @@ POLICY_SUMMARY_URI = "drissionpage://policy/summary"
 RESOURCE_URIS = [
     SESSION_SUMMARY_URI,
     SESSION_HISTORY_URI,
+    SESSION_STATE_URI,
     PAGE_CURRENT_URI,
     TOOLS_CATALOG_URI,
     POLICY_SUMMARY_URI,
@@ -50,6 +52,13 @@ def list_resources() -> list[Resource]:
             name="session_history",
             title="Session History",
             description="Recent DrissionPage MCP tool actions with sensitive arguments redacted.",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri=_uri(SESSION_STATE_URI),
+            name="session_state",
+            title="Session State",
+            description="Redacted current-tab cookies and web-storage keys.",
             mimeType="application/json",
         ),
         Resource(
@@ -89,6 +98,8 @@ def read_resource(
         payload = session_summary(context)
     elif normalized_uri == SESSION_HISTORY_URI:
         payload = session_history(context)
+    elif normalized_uri == SESSION_STATE_URI:
+        payload = session_state(context)
     elif normalized_uri == PAGE_CURRENT_URI:
         payload = current_page(context)
     elif normalized_uri == TOOLS_CATALOG_URI:
@@ -131,6 +142,26 @@ def session_history(context: Any) -> dict[str, Any]:
         "count": 0,
         "actions": [],
     }
+
+
+def session_state(context: Any) -> dict[str, Any]:
+    """Return redacted current-tab cookie/storage state without initializing."""
+
+    tab = context.current_tab() if context else None
+    if tab is None:
+        return _empty_session_state(
+            browser_active=bool(context and context.is_active()),
+        )
+    state = getattr(tab, "session_state", None)
+    if callable(state):
+        try:
+            return cast(dict[str, Any], state())
+        except Exception:
+            pass
+    return _empty_session_state(
+        browser_active=bool(context and context.is_active()),
+        current_url=getattr(tab, "url", "") or "",
+    )
 
 
 def current_page(context: Any) -> dict[str, Any]:
@@ -177,6 +208,22 @@ def current_page(context: Any) -> dict[str, Any]:
     if html_truncation["truncated"]:
         payload["html_truncation"] = html_truncation
     return _finalize_page_resource(payload)
+
+
+def _empty_session_state(
+    *, browser_active: bool = False, current_url: str = ""
+) -> dict[str, Any]:
+    return {
+        "available": False,
+        "reason": "NO_ACTIVE_TAB",
+        "browser_active": browser_active,
+        "current_url": current_url,
+        "cookies": {"count": 0, "names": []},
+        "storage": {
+            "local": {"count": 0, "keys": []},
+            "session": {"count": 0, "keys": []},
+        },
+    }
 
 
 def tools_catalog(tools: Mapping[str, Tool]) -> dict[str, Any]:

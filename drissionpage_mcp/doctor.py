@@ -5,6 +5,7 @@ import importlib.metadata
 import json
 import os
 import platform
+import re
 import shutil
 import sys
 from typing import Any, Dict, List, Optional
@@ -80,6 +81,11 @@ def _config() -> Dict[str, Any]:
         "DP_SCRIPT_TIMEOUT",
         "DP_NO_SANDBOX",
         "DP_DISABLE_WEB_SECURITY",
+        "DP_MCP_NAV_ALLOWLIST",
+        "DP_MCP_NAV_BLOCKLIST",
+        "DP_MCP_BLOCK_PRIVATE_NETWORK",
+        "DP_MCP_SCREENSHOT_ROOT",
+        "DP_MCP_UPLOAD_ROOT",
     ]
     return {name: os.getenv(name) for name in names if os.getenv(name) is not None}
 
@@ -103,6 +109,13 @@ def run_diagnostics(launch_browser: bool = False) -> Dict[str, Any]:
 
     dp_version = _package_version("DrissionPage")
     check("drissionpage_package", not dp_version.startswith("unavailable"), dp_version)
+    dp_supported = not _is_drissionpage_5_or_newer(dp_version)
+    check("drissionpage_supported", dp_supported, "supported range: >=4.1.1.4,<5")
+    if not dp_supported:
+        hints.append(
+            "DrissionPage 5.x is not supported by drissionpage-mcp 0.5.5; "
+            "install DrissionPage>=4.1.1.4,<5."
+        )
 
     browser_path = _find_browser()
     check(
@@ -157,6 +170,15 @@ def run_diagnostics(launch_browser: bool = False) -> Dict[str, Any]:
         "checks": checks,
         "hints": hints,
     }
+
+
+def _is_drissionpage_5_or_newer(version: str) -> bool:
+    """Return True for version strings whose major version is >= 5."""
+
+    match = re.search(r"(\d+)", version)
+    if not match:
+        return False
+    return int(match.group(1)) >= 5
 
 
 def format_diagnostics(report: Dict[str, Any]) -> str:

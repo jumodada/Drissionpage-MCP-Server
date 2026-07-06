@@ -92,7 +92,7 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current 0.5.4 tool registry should load 29 tools.
+The current 0.5.5 tool registry should load 46 tools.
 
 ## Browser Does Not Start
 
@@ -162,8 +162,10 @@ Useful recovery steps:
 7. Use `wait_for_element` before simple `element_click` or `element_type` calls.
 8. Increase the per-tool timeout where supported. `element_find` defaults to 3 seconds for fast feedback; explicit wait tools keep longer waits.
 9. Re-check selectors in the browser devtools. Bare selectors are treated as CSS; use `text:Submit` for text matching and explicit `tag:`, `css:`, `xpath:`, or `@name=value` forms when needed.
-10. If the element may be inside an iframe or delayed UI state, inspect that
-   context before retrying the action.
+10. If the element may be inside an iframe, inspect with `frame_list`,
+   `frame_snapshot`, and `frame_find` before retrying the action.
+11. If the element may be inside an open shadow root, inspect with `shadow_find`
+   or `shadow_find_all`.
 
 ## Screenshots Fail
 
@@ -177,6 +179,15 @@ If `page_screenshot_save` fails:
 
 - Set `DP_MCP_SCREENSHOT_ROOT` to the directory where screenshots may be written.
 - Save only to a path inside that directory.
+
+## File Uploads Fail
+
+`element_upload_file` is intentionally root-gated:
+
+- Set `DP_MCP_UPLOAD_ROOT` to the directory containing files that MCP may upload.
+- Pass paths that resolve inside that directory.
+- Confirm each path exists and is a regular file.
+- Successful responses return file names only, not absolute paths.
 
 ## Reporting Issues
 

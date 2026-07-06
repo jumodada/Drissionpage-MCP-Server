@@ -63,6 +63,123 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/upload":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Upload</title></head>
+                  <body>
+                    <main id="upload-workflow">
+                      <h1>Upload Workflow</h1>
+                      <label for="upload">Upload file</label>
+                      <input id="upload" name="upload" type="file" />
+                      <output id="upload-name">none</output>
+                    </main>
+                    <script>
+                      document.getElementById('upload').addEventListener('change', function () {
+                        document.getElementById('upload-name').textContent =
+                          this.files.length ? this.files[0].name : 'none';
+                      });
+                    </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/interactions":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head>
+                    <title>Fixture Interactions</title>
+                    <style>
+                      body { min-height: 1800px; }
+                      #deep-target { margin-top: 1200px; }
+                      #hover-target { display: inline-block; padding: 8px; }
+                    </style>
+                  </head>
+                  <body>
+                    <main id="interaction-workflow">
+                      <h1>Interaction Workflow</h1>
+                      <label for="mode">Mode</label>
+                      <select id="mode" name="mode">
+                        <option value="basic">Basic</option>
+                        <option value="advanced">Advanced</option>
+                      </select>
+                      <label for="agree">Agree</label>
+                      <input id="agree" name="agree" type="checkbox" />
+                      <label for="keyboard-input">Keyboard</label>
+                      <input id="keyboard-input" name="keyboard" value="" />
+                      <button id="hover-target" type="button">Hover me</button>
+                      <output id="hover-status">waiting</output>
+                      <section id="deep-target">Deep target</section>
+                    </main>
+                    <script>
+                      document.getElementById('hover-target').addEventListener('mouseover', function () {
+                        document.getElementById('hover-status').textContent = 'hovered';
+                      });
+                    </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/shadow":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Shadow</title></head>
+                  <body>
+                    <main id="shadow-workflow">
+                      <h1>Shadow Workflow</h1>
+                      <div id="shadow-host"></div>
+                    </main>
+                    <script>
+                      const host = document.getElementById('shadow-host');
+                      const root = host.attachShadow({mode: 'open'});
+                      root.innerHTML = `
+                        <section id="shadow-root">
+                          <button id="shadow-button" type="button">Shadow Action</button>
+                          <ul>
+                            <li id="shadow-alpha" class="shadow-item">Shadow Alpha</li>
+                            <li id="shadow-beta" class="shadow-item">Shadow Beta</li>
+                          </ul>
+                        </section>
+                      `;
+                    </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/storage":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Storage</title></head>
+                  <body>
+                    <main id="storage-workflow">
+                      <h1>Storage Workflow</h1>
+                      <output id="storage-status">ready</output>
+                    </main>
+                    <script>
+                      document.cookie = 'fixture_cookie=fixture; path=/; SameSite=Lax';
+                      localStorage.setItem('fixture-local', 'local-value');
+                      sessionStorage.setItem('fixture-session', 'session-value');
+                    </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
         if path == "/dynamic":
             self._send_html(
                 """

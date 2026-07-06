@@ -195,6 +195,15 @@ def recovery_hints(
                 env="DP_MCP_BLOCK_PRIVATE_NETWORK",
             ),
         ]
+        if "upload" in lowered_message or "file" in lowered_message:
+            hints.insert(
+                0,
+                _hint(
+                    "configure_upload_root",
+                    "Upload files from DP_MCP_UPLOAD_ROOT and pass only paths inside that directory.",
+                    env="DP_MCP_UPLOAD_ROOT",
+                ),
+            )
         if "screenshot" in lowered_message or "path" in lowered_message:
             hints.insert(
                 0,

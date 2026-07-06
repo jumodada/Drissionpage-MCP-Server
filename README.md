@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 29 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 46 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -123,7 +123,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 29 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 46 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -135,11 +135,16 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `tab_switch` - Switch to a tab returned by `tab_list`
 - `tab_close` - Close one tab without closing the whole browser
 
-### 🎯 Element Interaction & Extraction (8 tools)
+### 🎯 Element Interaction & Extraction (13 tools)
 - `element_find` - Find one element by CSS selector or XPath; bare selectors like `h1` are treated as CSS
 - `element_find_all` - Extract bounded repeated elements with text, attributes, and recommended selectors
 - `element_click` - Click any element
 - `element_type` - Input text into elements
+- `element_upload_file` - Upload files from `DP_MCP_UPLOAD_ROOT` to `input[type=file]`
+- `element_scroll_into_view` - Bring an element into the viewport before acting
+- `element_hover` - Hover an element to trigger menu/tooltip states
+- `element_select` - Select an option by value, text, or index
+- `element_check` - Check or uncheck checkbox/radio controls
 - `element_get_text` - Get element or page text
 - `element_get_attribute` - Get an HTML attribute
 - `element_get_property` - Get a live DOM property such as an input value
@@ -148,16 +153,31 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 ### 🧾 Form Operations (1 tool)
 - `form_inspect` - Inspect forms and controls with labels, selectors, requirements, options, and safe optional values
 
-### 📸 Page Operations (9 tools)
+### 📸 Page Operations (11 tools)
 - `page_screenshot` - Capture an inline full-page or viewport screenshot
 - `page_screenshot_save` - Save a screenshot under `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
 - `page_observe` - Return a compact page fingerprint with URL, title, counts, visible text samples, active element, and recent console summary
 - `page_evaluate` - Run bounded JavaScript in the current page and return a JSON-safe result
+- `page_scroll` - Scroll the page by direction or to a position
+- `keyboard_press` - Send keys to the active element/page
 - `page_resize` - Adjust browser window
 - `page_click_xy` - Click by coordinates
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
+
+### 🧱 Frame / Shadow DOM (5 tools)
+- `frame_list` - List iframe/frame contexts without changing global frame state
+- `frame_snapshot` - Inspect a selected iframe with bounded outline data
+- `frame_find` - Find an element inside a selected iframe
+- `shadow_find` - Find one element inside an open shadow root
+- `shadow_find_all` - Extract repeated elements inside an open shadow root
+
+### 🍪 Cookies & Storage (4 tools)
+- `browser_cookies_get` - Read normalized cookies with values redacted by default
+- `storage_get` - Read localStorage/sessionStorage by key or as a map
+- `storage_set` - Set one localStorage/sessionStorage item without echoing the value
+- `storage_clear` - Clear one storage key or an entire storage area
 
 ### 🧪 Debug / Observability (1 tool)
 - `page_console_logs` - Read bounded browser console messages with level filtering, cursor pagination, and limits
@@ -169,7 +189,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `wait_time` - Delay execution
 
 ### 🧩 MCP Resources and Prompts
-- Resources: `drissionpage://session/summary`, `drissionpage://session/history`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
+- Resources: `drissionpage://session/summary`, `drissionpage://session/history`, `drissionpage://session/state`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
 - Prompts: `browser_navigate_and_summarize`, `browser_extract_structured_data`, `browser_fill_form_safely`, `browser_debug_page_issue`
 
 ---
@@ -198,7 +218,7 @@ DrissionMCP/
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 29 automation, tab-management, page-understanding, form, debug, and observable-action tools
+│   └── tools/              # 46 automation, tab/frame/shadow, page-understanding, form, debug, and session-state tools
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -350,7 +370,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.5.4`.
+Should output the installed package version, for example `drissionpage-mcp 0.5.5`.
 
 ### Browser Issues?
 ```bash
@@ -379,14 +399,14 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.5.4 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.5.5 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.5.4)
-- [x] 29 core automation, tab-management, page-understanding, form-inspection, and console-observability tools with removed alias surface
+### Current (v0.5.5)
+- [x] 46 core automation, tab/frame/shadow, page-understanding, form-inspection, session-state, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -396,17 +416,17 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
 - [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
 - [x] Console observability with `page_console_logs`, console summary in `page_observe`, and console change fields in `observe=true`
+- [x] File upload, scrolling, hover, select/check, keyboard, iframe, shadow DOM, cookie, and storage tools for DrissionPage 4.x
 - [x] Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` is reserved for restricted container/root environments
 - [x] Redacted session history resource and response size metadata for bounded outputs
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
 - [x] PyPI distribution
 
-### Future (v0.5+)
-- [ ] Form handling utilities
-- [ ] File upload support
-- [ ] Shadow DOM selectors
-- [ ] Session persistence
+### Future (v0.6+)
+- [ ] Higher-level workflow tools that compose the 0.5.x primitive tools
+- [ ] Network/listener workflows after DrissionPage 4.x contracts are stable
+- [ ] Optional session persistence beyond redacted state summaries
 - [ ] Proxy support
 - [ ] Network interception
 
@@ -543,20 +563,18 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.5.4
+## 🆕 Latest Version: v0.5.5
 
-Released on 2026-07-03. This release hardens the browser startup defaults on top of the 0.5.3 console-observability workflow:
+Released on 2026-07-06. This release expands DrissionPage 4.x coverage from the 0.5.4 hardened baseline:
 
-- Chrome sandbox remains enabled by default for normal desktop/client installs.
-- `DP_NO_SANDBOX=1` remains available only for restricted container/root environments that cannot launch Chromium with sandboxing.
-- `drissionpage-mcp doctor` warns when Chrome sandboxing is disabled by `DP_NO_SANDBOX`.
-- Public Codex, Claude, Cursor, and JSON setup examples no longer suggest disabling the sandbox for normal installs.
-- `page_console_logs` reads bounded current-tab console messages with `level`, `since`, and `limit` parameters.
-- Observable actions keep console change fields such as `console_errors_added`, `console_warnings_added`, and `new_console_messages`.
-- `page_observe`, `page_evaluate`, and `wait_until` remain the main tools for checking dynamic page state after actions.
-- `tab_list`, `tab_switch`, and `tab_close` manage tabs opened by MCP tools or normal page interactions such as `target="_blank"` links.
-- `drissionpage://session/history` records recent actions with sensitive arguments redacted and compact observable-change summaries when present.
-- `page_snapshot`, `element_find_all`, and `form_inspect` keep `meta.approx_tokens` and size metadata for bounded outputs.
+- New file upload support via `element_upload_file`; upload paths must be under `DP_MCP_UPLOAD_ROOT` and results only expose file names.
+- New action primitives: `page_scroll`, `element_scroll_into_view`, `element_hover`, `keyboard_press`, `element_select`, and `element_check`.
+- New iframe and shadow DOM read-only tools: `frame_list`, `frame_snapshot`, `frame_find`, `shadow_find`, and `shadow_find_all`.
+- New cookie/storage tools: `browser_cookies_get`, `storage_get`, `storage_set`, and `storage_clear`; cookie values are redacted by default.
+- New `drissionpage://session/state` resource summarizes current-tab cookie names and storage keys without returning secret values.
+- `drissionpage-mcp doctor` now flags DrissionPage 5.x as unsupported and keeps the package range on `DrissionPage>=4.1.1.4,<5`.
+- Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` remains reserved for restricted container/root environments.
+- Existing page-understanding, observable-action, console, tab, form, and recovery-hint tools remain compatible; observable changes still include `console_errors_added`; bounded outputs keep `meta.approx_tokens`.
 - Failure payloads include machine-readable `error.details.hints`; browser startup hints still point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, and `DP_HEADLESS`.
 - `MCP_ARGUMENT_INVALID` continues to protect strict schemas and point clients toward exact snake_case field names.
-- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry has 29 tools.
+- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry has 46 tools.

@@ -46,6 +46,10 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert _read(base_url + "/status/404")[0] == 404
         assert _read(base_url + "/status/500")[0] == 500
         assert "Iframe Content" in _read(base_url + "/iframe")[1]
+        assert "Upload Workflow" in _read(base_url + "/upload")[1]
+        assert "Interaction Workflow" in _read(base_url + "/interactions")[1]
+        assert "shadow-host" in _read(base_url + "/shadow")[1]
+        assert "Storage Workflow" in _read(base_url + "/storage")[1]
 
 
 def test_shared_drissionpage_test_site_contract_when_configured() -> None:
@@ -723,6 +727,214 @@ async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions()
             assert wait_payload["error"]["code"] == "TIMEOUT"
             wait_hints = wait_payload["error"]["details"]["hints"]
             assert any(hint["action"] == "increase_timeout" for hint in wait_hints)
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_0_5_5_interaction_and_upload_tools_use_local_fixture(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    """exercises 0.5.5 interaction and upload tools in a real browser."""
+
+    upload_root = tmp_path / "uploads"
+    upload_root.mkdir()
+    upload_file = upload_root / "fixture-upload.txt"
+    upload_file.write_text("fixture upload", encoding="utf-8")
+    monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(upload_root))
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/upload"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, upload_payload = await _execute_tool(
+                server,
+                "element_upload_file",
+                {"selector": "#upload", "paths": [str(upload_file)], "timeout": 2},
+            )
+            assert upload_payload["ok"] is True
+            assert upload_payload["data"]["filenames"] == ["fixture-upload.txt"]
+            assert str(upload_file) not in json.dumps(upload_payload["data"])
+
+            _content, upload_state = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": "return document.querySelector('#upload').files[0].name;",
+                },
+            )
+            assert upload_state["data"]["result"] == "fixture-upload.txt"
+
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/interactions"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, scroll_payload = await _execute_tool(
+                server, "page_scroll", {"direction": "bottom"}
+            )
+            assert scroll_payload["ok"] is True
+
+            _content, into_view_payload = await _execute_tool(
+                server,
+                "element_scroll_into_view",
+                {"selector": "#deep-target", "center": True, "timeout": 2},
+            )
+            assert into_view_payload["ok"] is True
+
+            _content, hover_payload = await _execute_tool(
+                server,
+                "element_hover",
+                {"selector": "#hover-target", "timeout": 2},
+            )
+            assert hover_payload["ok"] is True
+
+            _content, select_payload = await _execute_tool(
+                server,
+                "element_select",
+                {"selector": "#mode", "value": "advanced", "by": "value"},
+            )
+            assert select_payload["data"]["selected"] is True
+
+            _content, check_payload = await _execute_tool(
+                server,
+                "element_check",
+                {"selector": "#agree", "checked": True, "by_js": True},
+            )
+            assert check_payload["data"]["checked"] is True
+
+            _content, click_payload = await _execute_tool(
+                server, "element_click", {"selector": "#keyboard-input", "timeout": 2}
+            )
+            assert click_payload["ok"] is True
+
+            _content, key_payload = await _execute_tool(
+                server, "keyboard_press", {"keys": "XYZ", "interval": 0}
+            )
+            assert key_payload["ok"] is True
+
+            _content, state_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": (
+                        "return {"
+                        "mode: document.querySelector('#mode').value,"
+                        "checked: document.querySelector('#agree').checked,"
+                        "keys: document.querySelector('#keyboard-input').value,"
+                        "hovered: document.querySelector('#hover-status').textContent"
+                        "};"
+                    )
+                },
+            )
+            state = state_payload["data"]["result"]
+            assert state["mode"] == "advanced"
+            assert state["checked"] is True
+            assert state["keys"].endswith("XYZ")
+            assert state["hovered"] == "hovered"
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> None:
+    """exercises iframe, shadow DOM, cookies, and storage in a real browser."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, frames_payload = await _execute_tool(server, "frame_list", {})
+            assert frames_payload["ok"] is True
+            assert frames_payload["data"]["count"] >= 1
+
+            _content, frame_find_payload = await _execute_tool(
+                server,
+                "frame_find",
+                {"frame_selector": "#fixture-frame", "selector": "#frame-text"},
+            )
+            assert frame_find_payload["data"]["element"]["text"] == "frame ready"
+
+            _content, frame_snapshot_payload = await _execute_tool(
+                server,
+                "frame_snapshot",
+                {"frame_selector": "#fixture-frame", "max_elements": 10},
+            )
+            assert "Iframe Content" in frame_snapshot_payload["data"]["text_excerpt"]
+
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/shadow"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, shadow_payload = await _execute_tool(
+                server,
+                "shadow_find",
+                {"host_selector": "#shadow-host", "selector": "#shadow-button"},
+            )
+            assert shadow_payload["data"]["element"]["text"] == "Shadow Action"
+
+            _content, shadow_all_payload = await _execute_tool(
+                server,
+                "shadow_find_all",
+                {"host_selector": "#shadow-host", "selector": ".shadow-item"},
+            )
+            assert shadow_all_payload["data"]["count"] == 2
+
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/storage"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, cookies_payload = await _execute_tool(
+                server, "browser_cookies_get", {"include_values": False}
+            )
+            assert cookies_payload["ok"] is True
+            assert any(
+                item["name"] == "fixture_cookie"
+                for item in cookies_payload["data"]["cookies"]
+            )
+            assert all(
+                item["value"] in {"", "<redacted>"}
+                for item in cookies_payload["data"]["cookies"]
+            )
+
+            _content, set_payload = await _execute_tool(
+                server,
+                "storage_set",
+                {"area": "local", "key": "mcp-mode", "value": "green"},
+            )
+            assert set_payload["data"] == {
+                "area": "local",
+                "key": "mcp-mode",
+                "set": True,
+            }
+
+            _content, get_payload = await _execute_tool(
+                server,
+                "storage_get",
+                {"area": "local", "key": "mcp-mode", "include_values": True},
+            )
+            assert get_payload["data"]["items"] == {"mcp-mode": "green"}
+
+            _content, clear_payload = await _execute_tool(
+                server, "storage_clear", {"area": "local", "key": "mcp-mode"}
+            )
+            assert clear_payload["data"]["cleared"] is True
+
+            _content, state_payload = await _execute_tool(
+                server, "storage_get", {"area": "local", "key": "mcp-mode"}
+            )
+            assert state_payload["data"]["items"] == {}
     finally:
         await server.cleanup()
 

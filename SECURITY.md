@@ -51,6 +51,7 @@ configuration:
 | `DP_MCP_NAV_BLOCKLIST` | Comma-separated host names or URL prefixes to reject. |
 | `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost, loopback, private, link-local, reserved, and multicast IP navigation. |
 | `DP_MCP_SCREENSHOT_ROOT` | Restrict `page_screenshot.path` writes to this directory tree. |
+| `DP_MCP_UPLOAD_ROOT` | Restrict `element_upload_file` inputs to existing files inside this directory tree. |
 
 Example:
 
@@ -62,7 +63,8 @@ Example:
       "env": {
         "DP_MCP_NAV_ALLOWLIST": "example.com,https://docs.example.com/app",
         "DP_MCP_BLOCK_PRIVATE_NETWORK": "1",
-        "DP_MCP_SCREENSHOT_ROOT": "/tmp/drissionpage-mcp-screenshots"
+        "DP_MCP_SCREENSHOT_ROOT": "/tmp/drissionpage-mcp-screenshots",
+        "DP_MCP_UPLOAD_ROOT": "/tmp/drissionpage-mcp-uploads"
       }
     }
   }
