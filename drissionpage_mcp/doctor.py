@@ -87,7 +87,33 @@ def _config() -> Dict[str, Any]:
         "DP_MCP_SCREENSHOT_ROOT",
         "DP_MCP_UPLOAD_ROOT",
     ]
-    return {name: os.getenv(name) for name in names if os.getenv(name) is not None}
+    path_like = {
+        "CHROME_PATH",
+        "DP_BROWSER_PATH",
+        "DP_USER_DATA_PATH",
+        "DP_MCP_SCREENSHOT_ROOT",
+        "DP_MCP_UPLOAD_ROOT",
+    }
+    config: Dict[str, Any] = {}
+    for name in names:
+        value = os.getenv(name)
+        if value is None:
+            continue
+        if name in path_like:
+            config[name] = {
+                "configured": True,
+                "value": "<redacted>",
+                "exists": os.path.exists(value),
+            }
+        elif name in {"DP_MCP_NAV_ALLOWLIST", "DP_MCP_NAV_BLOCKLIST"}:
+            config[name] = {
+                "configured": True,
+                "value": "<redacted>",
+                "count": len([part for part in value.split(",") if part.strip()]),
+            }
+        else:
+            config[name] = value
+    return config
 
 
 def run_diagnostics(launch_browser: bool = False) -> Dict[str, Any]:
@@ -113,7 +139,7 @@ def run_diagnostics(launch_browser: bool = False) -> Dict[str, Any]:
     check("drissionpage_supported", dp_supported, "supported range: >=4.1.1.4,<5")
     if not dp_supported:
         hints.append(
-            "DrissionPage 5.x is not supported by drissionpage-mcp 0.5.5; "
+            f"DrissionPage 5.x is not supported by drissionpage-mcp {__version__}; "
             "install DrissionPage>=4.1.1.4,<5."
         )
 
@@ -132,6 +158,23 @@ def run_diagnostics(launch_browser: bool = False) -> Dict[str, Any]:
         True,
         json.dumps(config, sort_keys=True) if config else "default environment",
     )
+
+    user_data_path = os.getenv("DP_USER_DATA_PATH")
+    if user_data_path:
+        exists = os.path.exists(user_data_path)
+        parent = os.path.dirname(os.path.abspath(user_data_path)) or "."
+        parent_ok = os.path.isdir(parent) and os.access(parent, os.W_OK)
+        check(
+            "profile_path",
+            exists or parent_ok,
+            "DP_USER_DATA_PATH configured (<redacted>); "
+            + ("exists" if exists else "parent writable" if parent_ok else "parent not writable"),
+        )
+        if not exists and not parent_ok:
+            hints.append(
+                "DP_USER_DATA_PATH is configured but its parent directory is not writable."
+            )
+
     if _env_truthy("DP_NO_SANDBOX"):
         hints.append(
             "Chrome sandbox is disabled by DP_NO_SANDBOX. "

@@ -23,6 +23,8 @@ from drissionpage_mcp.tools import (
     storage,
     tabs,
     wait,
+    workflow,
+    network,
 )
 
 PNG_1X1 = base64.b64decode(
@@ -263,6 +265,243 @@ class FakeTab:
                 }
             ],
         }
+
+    async def open_and_snapshot(
+        self,
+        *,
+        url: str,
+        wait_condition: str = "",
+        selector: str = "",
+        wait_value: str = "",
+        wait_timeout: float = 5.0,
+        include_html: bool = False,
+        include_forms: bool = False,
+        include_console: bool = False,
+        max_elements: int = 50,
+        max_text_chars: int = 4000,
+    ) -> dict[str, Any]:
+        self._record(
+            "open_and_snapshot",
+            url=url,
+            wait_condition=wait_condition,
+            selector=selector,
+            wait_value=wait_value,
+            wait_timeout=wait_timeout,
+            include_html=include_html,
+            include_forms=include_forms,
+            include_console=include_console,
+            max_elements=max_elements,
+            max_text_chars=max_text_chars,
+        )
+        self.url = url
+        payload = {
+            "url": url,
+            "final_url": url,
+            "title": "Workflow Page",
+            "wait": {
+                "condition": wait_condition,
+                "selector": selector,
+                "value": wait_value,
+                "matched": True,
+                "timeout": wait_timeout,
+            },
+            "snapshot": await self.page_snapshot(
+                include_html=include_html,
+                max_elements=max_elements,
+                max_text_chars=max_text_chars,
+            ),
+        }
+        if include_forms:
+            payload["forms"] = await self.inspect_forms()
+        if include_console:
+            payload["console"] = await self.console_logs()
+        return payload
+
+    async def extract_links(
+        self,
+        *,
+        selector: str = "a",
+        limit: int = 50,
+        include_text: bool = True,
+        same_origin_only: bool = False,
+        absolute_urls: bool = True,
+    ) -> dict[str, Any]:
+        self._record(
+            "extract_links",
+            selector=selector,
+            limit=limit,
+            include_text=include_text,
+            same_origin_only=same_origin_only,
+            absolute_urls=absolute_urls,
+        )
+        links = [
+            {
+                "index": 0,
+                "text": "Docs" if include_text else "",
+                "href": "/docs",
+                "url": "https://example.test/docs" if absolute_urls else "/docs",
+                "absolute_url": "https://example.test/docs",
+                "selector": "#docs-link",
+                "rel": "",
+                "target": "",
+            },
+            {
+                "index": 1,
+                "text": "External" if include_text else "",
+                "href": "https://external.test/",
+                "url": "https://external.test/",
+                "absolute_url": "https://external.test/",
+                "selector": "#external-link",
+                "rel": "nofollow",
+                "target": "_blank",
+            },
+        ]
+        selected = links[:limit]
+        return {
+            "selector": selector,
+            "locator": "css:a",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+            "include_text": include_text,
+            "same_origin_only": same_origin_only,
+            "absolute_urls": absolute_urls,
+            "count": 2,
+            "returned": len(selected),
+            "limit": limit,
+            "truncated": limit < 2,
+            "links": selected,
+        }
+
+    async def form_fill_preview(
+        self,
+        *,
+        form_selector: str = "form",
+        fields: dict[str, Any],
+        redact_values: bool = True,
+    ) -> dict[str, Any]:
+        self._record(
+            "form_fill_preview",
+            form_selector=form_selector,
+            fields=fields,
+            redact_values=redact_values,
+        )
+        return {
+            "form_selector": {
+                "selector": form_selector,
+                "locator": "css:#fixture-form",
+                "selector_strategy": "css",
+                "selector_normalized": True,
+            },
+            "form_found": True,
+            "form": {
+                "selector": "#fixture-form",
+                "id": "fixture-form",
+                "name": "",
+                "method": "post",
+                "action": "/api/echo.json",
+            },
+            "field_count": 3,
+            "filled_count": len(fields),
+            "skipped_count": 0,
+            "filled": [
+                {
+                    "key": key,
+                    "selector": f"#{key}",
+                    "matched_by": "name",
+                    "tag": "input",
+                    "type": "text",
+                    "value": "<redacted>" if redact_values else str(value),
+                }
+                for key, value in fields.items()
+            ],
+            "skipped": [],
+            "requires_confirmation": True,
+            "submitted": False,
+            "redacted": redact_values,
+        }
+
+    async def network_listen_start(
+        self,
+        *,
+        targets: list[str] | None = None,
+        is_regex: bool = False,
+        method: str = "",
+        resource_type: str = "",
+        clear: bool = True,
+    ) -> dict[str, Any]:
+        self._record(
+            "network_listen_start",
+            targets=targets or [],
+            is_regex=is_regex,
+            method=method,
+            resource_type=resource_type,
+            clear=clear,
+        )
+        return {
+            "listening": True,
+            "filters": {
+                "targets": targets or [],
+                "is_regex": is_regex,
+                "method": method,
+                "resource_type": resource_type,
+            },
+            "started_at": "2026-07-07T00:00:00+00:00",
+            "tab_id": self.mcp_tab_id,
+            "cleared": clear,
+        }
+
+    async def network_listen_wait(
+        self,
+        *,
+        timeout: float = 5.0,
+        limit: int = 10,
+        include_headers: bool = False,
+        include_body: bool = False,
+        max_body_chars: int = 2000,
+    ) -> dict[str, Any]:
+        self._record(
+            "network_listen_wait",
+            timeout=timeout,
+            limit=limit,
+            include_headers=include_headers,
+            include_body=include_body,
+            max_body_chars=max_body_chars,
+        )
+        packet = {
+            "index": 0,
+            "url": "https://example.test/api/data.json",
+            "method": "GET",
+            "resource_type": "Fetch",
+            "status": 200,
+            "mime_type": "application/json",
+            "failed": False,
+            "fail_error": "",
+        }
+        if include_headers:
+            packet["request_headers"] = {"authorization": "<redacted>"}
+            packet["response_headers"] = {"content-type": "application/json"}
+        if include_body:
+            packet.update(
+                {
+                    "body_excerpt": "{\"ok\":true}",
+                    "body_truncated": False,
+                    "body_type": "json",
+                    "request_body_excerpt": "",
+                    "request_body_truncated": False,
+                    "request_body_type": "none",
+                }
+            )
+        return {
+            "listening": True,
+            "timed_out": False,
+            "count": 1,
+            "limit": limit,
+            "packets": [packet],
+        }
+
+    async def network_listen_stop(self, *, clear: bool = True) -> dict[str, Any]:
+        self._record("network_listen_stop", clear=clear)
+        return {"listening": False, "was_listening": True, "cleared": clear}
 
     async def click(self, x: int, y: int) -> None:
         self._record("click", x, y)
@@ -924,6 +1163,102 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_workflow_tools_success_paths() -> None:
+    ctx = FakeContext()
+
+    open_response = await _execute(
+        workflow.browser_open_and_snapshot,
+        ctx,
+        workflow.BrowserOpenAndSnapshotInput(
+            url="https://example.test/workflow",
+            wait_condition="visible",
+            selector="#app",
+            include_forms=True,
+            include_console=True,
+            max_elements=5,
+            max_text_chars=100,
+        ),
+    )
+    open_payload = open_response.get_structured_content()
+    assert open_payload["data"]["final_url"] == "https://example.test/workflow"
+    assert open_payload["data"]["snapshot"]["limits"] == {
+        "max_elements": 5,
+        "max_text_chars": 100,
+    }
+    assert open_payload["data"]["forms"]["count"] == 1
+    assert open_payload["data"]["console"]["count"] == 2
+
+    links_response = await _execute(
+        workflow.browser_extract_links,
+        ctx,
+        workflow.BrowserExtractLinksInput(limit=1, same_origin_only=True),
+    )
+    links_payload = links_response.get_structured_content()
+    assert links_payload["data"]["returned"] == 1
+    assert links_payload["data"]["truncated"] is True
+    assert links_payload["data"]["links"][0]["url"].endswith("/docs")
+    assert links_payload["data"]["meta"]["truncated"] is True
+
+    fill_response = await _execute(
+        workflow.form_fill_preview,
+        ctx,
+        workflow.FormFillPreviewInput(
+            form_selector="#fixture-form",
+            fields={"name": "Ada", "secret": "do-not-echo"},
+        ),
+    )
+    fill_payload = fill_response.get_structured_content()
+    assert fill_payload["data"]["requires_confirmation"] is True
+    assert fill_payload["data"]["submitted"] is False
+    assert fill_payload["data"]["filled_count"] == 2
+    assert "Ada" not in str(fill_payload["data"])
+    assert "do-not-echo" not in str(fill_payload["data"])
+
+
+@pytest.mark.asyncio
+async def test_network_tools_success_paths() -> None:
+    ctx = FakeContext()
+
+    start_response = await _execute(
+        network.network_listen_start,
+        ctx,
+        network.NetworkListenStartInput(targets=["/api"], method="GET"),
+    )
+    start_payload = start_response.get_structured_content()
+    assert start_payload["data"]["listening"] is True
+    assert start_payload["data"]["filters"]["targets"] == ["/api"]
+
+    wait_response = await _execute(
+        network.network_listen_wait,
+        ctx,
+        network.NetworkListenWaitInput(
+            timeout=1,
+            limit=5,
+            include_headers=True,
+            include_body=True,
+            max_body_chars=20,
+        ),
+    )
+    wait_payload = wait_response.get_structured_content()
+    packet = wait_payload["data"]["packets"][0]
+    assert wait_payload["data"]["count"] == 1
+    assert packet["request_headers"]["authorization"] == "<redacted>"
+    assert packet["body_excerpt"] == '{"ok":true}'
+    assert wait_payload["data"]["meta"]["json_chars"] > 0
+
+    stop_response = await _execute(
+        network.network_listen_stop,
+        ctx,
+        network.NetworkListenStopInput(clear=True),
+    )
+    assert stop_response.get_structured_content()["data"] == {
+        "listening": False,
+        "was_listening": True,
+        "cleared": True,
+    }
+
+
+@pytest.mark.asyncio
 async def test_form_tools_success_paths() -> None:
     ctx = FakeContext()
 
@@ -1296,6 +1631,11 @@ def test_get_property_input_uses_property_field_only() -> None:
             element.GetPropertyInput,
             {"selector": "#name", "property": "value", "property_name": "value"},
         ),
+        (workflow.BrowserOpenAndSnapshotInput, {"url": "https://example.test", "maxElements": 10}),
+        (workflow.BrowserExtractLinksInput, {"sameOriginOnly": True}),
+        (workflow.FormFillPreviewInput, {"fields": {"name": "Ada"}, "submit_now": True}),
+        (network.NetworkListenStartInput, {"target": "/api"}),
+        (network.NetworkListenWaitInput, {"timeout_ms": 1000}),
         (wait.WaitTimeInput, {"seconds": 1, "milliseconds": 500}),
         (wait.WaitUntilInput, {"condition": "visible", "timeout_ms": 1}),
     ],

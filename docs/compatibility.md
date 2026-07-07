@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.5.5. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.5.6. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -26,11 +26,14 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
 
-## 0.5.4 to 0.5.5 Migration
+## 0.5.4 to 0.5.6 Migration
 
-0.5.5 is additive for DrissionPage 4.x users:
+0.5.6 is additive for DrissionPage 4.x users:
 
-- The public tool registry grows to 46 tools.
+- The public tool registry grows to 52 tools.
+- New workflow helpers are additive: `browser_open_and_snapshot`, `browser_extract_links`, and `form_fill_preview`.
+- Network listener beta is observe-only for HTTP/XHR/Fetch through `network_listen_start`, `network_listen_wait`, and `network_listen_stop`; interception and mocking remain out of scope.
+- `drissionpage://session/config` reports redacted browser/profile configuration.
 - File upload requires `DP_MCP_UPLOAD_ROOT` and never echoes absolute file paths.
 - Cookie values are redacted by default in `browser_cookies_get`.
 - `drissionpage://session/state` exposes only cookie names and storage keys.

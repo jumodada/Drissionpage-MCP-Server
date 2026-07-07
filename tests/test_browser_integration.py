@@ -50,6 +50,10 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "Interaction Workflow" in _read(base_url + "/interactions")[1]
         assert "shadow-host" in _read(base_url + "/shadow")[1]
         assert "Storage Workflow" in _read(base_url + "/storage")[1]
+        assert "Links Workflow" in _read(base_url + "/links")[1]
+        assert "Workflow Form" in _read(base_url + "/workflow-form")[1]
+        assert "Network Workflow" in _read(base_url + "/network")[1]
+        assert _json(base_url + "/api/data.json")["ok"] is True
 
 
 def test_shared_drissionpage_test_site_contract_when_configured() -> None:
@@ -935,6 +939,188 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
                 server, "storage_get", {"area": "local", "key": "mcp-mode"}
             )
             assert state_payload["data"]["items"] == {}
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_0_5_6_open_and_snapshot_workflow_uses_local_fixture() -> None:
+    """opens a page and returns snapshot/forms/console in one workflow call."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            content, payload = await _execute_tool(
+                server,
+                "browser_open_and_snapshot",
+                {
+                    "url": base_url + "/workflow-form",
+                    "wait_condition": "visible",
+                    "selector": "#workflow-form",
+                    "include_forms": True,
+                    "include_console": True,
+                    "max_elements": 20,
+                    "max_text_chars": 1000,
+                },
+            )
+            text_content = "\n".join(item.text for item in content if item.type == "text")
+            _skip_if_browser_unavailable(text_content)
+            assert payload["ok"] is True
+            data = payload["data"]
+            assert data["final_url"].endswith("/workflow-form")
+            assert data["snapshot"]["title"] == "Fixture Workflow Form"
+            assert "Workflow Form" in data["snapshot"]["text_excerpt"]
+            assert data["forms"]["count"] == 1
+            assert data["wait"]["matched"] is True
+            assert data["meta"]["json_chars"] > 0
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_0_5_6_extract_links_returns_bounded_absolute_urls() -> None:
+    """extracts bounded, normalized links from a local page."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/links"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, payload = await _execute_tool(
+                server,
+                "browser_extract_links",
+                {"limit": 3, "absolute_urls": True},
+            )
+            assert payload["ok"] is True
+            data = payload["data"]
+            assert data["count"] == 4
+            assert data["returned"] == 3
+            assert data["truncated"] is True
+            assert data["links"][0]["url"] == base_url + "/docs"
+            assert data["links"][2]["target"] == "_blank"
+
+            _content, same_origin = await _execute_tool(
+                server,
+                "browser_extract_links",
+                {"same_origin_only": True, "limit": 10},
+            )
+            assert same_origin["data"]["count"] == 3
+            assert all(base_url in item["url"] for item in same_origin["data"]["links"])
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_0_5_6_form_fill_preview_does_not_submit_or_echo_secrets() -> None:
+    """prefills fields without submitting and keeps sensitive values redacted."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/workflow-form"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, payload = await _execute_tool(
+                server,
+                "form_fill_preview",
+                {
+                    "form_selector": "#workflow-form",
+                    "fields": {
+                        "name": "Ada Lovelace",
+                        "secret": "super-secret",
+                        "mode": "advanced",
+                        "agree": True,
+                    },
+                },
+            )
+            assert payload["ok"] is True
+            data = payload["data"]
+            assert data["requires_confirmation"] is True
+            assert data["submitted"] is False
+            assert data["filled_count"] == 4
+            assert "Ada Lovelace" not in json.dumps(data)
+            assert "super-secret" not in json.dumps(data)
+
+            _content, state_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": (
+                        "return {"
+                        "name: document.querySelector('#wf-name').value,"
+                        "secret: document.querySelector('#wf-secret').value,"
+                        "mode: document.querySelector('#wf-mode').value,"
+                        "agree: document.querySelector('#wf-agree').checked,"
+                        "url: location.href"
+                        "};"
+                    )
+                },
+            )
+            state = state_payload["data"]["result"]
+            assert state["name"] == "Ada Lovelace"
+            assert state["secret"] == "super-secret"
+            assert state["mode"] == "advanced"
+            assert state["agree"] is True
+            assert state["url"].endswith("/workflow-form")
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
+    """observes local fetch/XHR packets without interception."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/network"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, start_payload = await _execute_tool(
+                server,
+                "network_listen_start",
+                {"targets": ["/api"], "clear": True},
+            )
+            if not start_payload["ok"]:
+                if start_payload["error"]["code"] == "UNSUPPORTED_OPERATION":
+                    pytest.skip(start_payload["message"])
+                pytest.fail(start_payload["message"])
+            assert start_payload["data"]["listening"] is True
+
+            _content, click_payload = await _execute_tool(
+                server, "element_click", {"selector": "#network-action", "timeout": 2}
+            )
+            assert click_payload["ok"] is True
+
+            _content, wait_payload = await _execute_tool(
+                server,
+                "network_listen_wait",
+                {
+                    "timeout": 5,
+                    "limit": 2,
+                    "include_headers": True,
+                    "include_body": True,
+                    "max_body_chars": 500,
+                },
+            )
+            assert wait_payload["ok"] is True
+            urls = {packet["url"] for packet in wait_payload["data"]["packets"]}
+            assert any("/api/data.json" in url for url in urls)
+            assert any("/api/echo.json" in url for url in urls)
+            assert "fixture-secret" not in json.dumps(wait_payload["data"])
+
+            _content, stop_payload = await _execute_tool(
+                server, "network_listen_stop", {"clear": True}
+            )
+            assert stop_payload["ok"] is True
+            assert stop_payload["data"]["listening"] is False
     finally:
         await server.cleanup()
 

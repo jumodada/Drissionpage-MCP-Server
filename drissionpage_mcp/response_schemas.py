@@ -438,6 +438,124 @@ OBSERVATION_CHANGES_SCHEMA = _data_schema(
     ],
 )
 
+
+WORKFLOW_WAIT_SCHEMA = _data_schema(
+    "WorkflowWaitResult",
+    {
+        "condition": STRING,
+        "selector": STRING,
+        "value": STRING,
+        "matched": BOOLEAN,
+        "timeout": NUMBER,
+        "elapsed_ms": INTEGER,
+        "state": {"type": "object", "additionalProperties": True},
+    },
+    ["condition", "selector", "value", "matched", "timeout"],
+)
+
+LINK_SUMMARY_SCHEMA = _data_schema(
+    "LinkSummary",
+    {
+        "index": INTEGER,
+        "text": STRING,
+        "href": STRING,
+        "url": STRING,
+        "absolute_url": STRING,
+        "selector": STRING,
+        "rel": STRING,
+        "target": STRING,
+    },
+    ["index", "text", "href", "url", "selector", "rel", "target"],
+)
+
+FORM_FILL_FORM_SCHEMA = {
+    "anyOf": [
+        _data_schema(
+            "FormFillForm",
+            {
+                "selector": STRING,
+                "id": STRING,
+                "name": STRING,
+                "method": STRING,
+                "action": STRING,
+            },
+            ["selector", "id", "name", "method", "action"],
+        ),
+        {"type": "null"},
+    ]
+}
+
+FORM_FILL_FIELD_SCHEMA = _data_schema(
+    "FormFillField",
+    {
+        "key": STRING,
+        "selector": STRING,
+        "matched_by": STRING,
+        "tag": STRING,
+        "type": STRING,
+        "value": STRING,
+    },
+    ["key", "selector", "matched_by", "tag", "type", "value"],
+)
+
+FORM_FILL_SKIPPED_SCHEMA = _data_schema(
+    "FormFillSkippedField",
+    {
+        "key": STRING,
+        "reason": STRING,
+        "selector": STRING,
+    },
+    ["key", "reason"],
+)
+
+NETWORK_FILTERS_SCHEMA = _data_schema(
+    "NetworkListenerFilters",
+    {
+        "targets": {"type": "array", "items": STRING},
+        "is_regex": BOOLEAN,
+        "method": STRING,
+        "resource_type": STRING,
+    },
+    ["targets", "is_regex", "method", "resource_type"],
+)
+
+NETWORK_HEADERS_SCHEMA = {
+    "type": "object",
+    "additionalProperties": STRING,
+}
+
+NETWORK_PACKET_SCHEMA = _data_schema(
+    "NetworkPacket",
+    {
+        "index": INTEGER,
+        "url": STRING,
+        "method": STRING,
+        "resource_type": STRING,
+        "status": {"type": ["integer", "null"]},
+        "mime_type": STRING,
+        "failed": BOOLEAN,
+        "fail_error": STRING,
+        "request_headers": NETWORK_HEADERS_SCHEMA,
+        "response_headers": NETWORK_HEADERS_SCHEMA,
+        "body_excerpt": STRING,
+        "body_truncated": BOOLEAN,
+        "body_type": STRING,
+        "request_body_excerpt": STRING,
+        "request_body_truncated": BOOLEAN,
+        "request_body_type": STRING,
+    },
+    [
+        "index",
+        "url",
+        "method",
+        "resource_type",
+        "status",
+        "mime_type",
+        "failed",
+        "fail_error",
+    ],
+)
+
 _GENERIC_DATA_SCHEMA = _data_schema(
     "GenericToolData",
     {},
@@ -445,6 +563,108 @@ _GENERIC_DATA_SCHEMA = _data_schema(
 )
 
 TOOL_DATA_SCHEMAS: Dict[str, Dict[str, Any]] = {
+    "browser_open_and_snapshot": _data_schema(
+        "BrowserOpenAndSnapshotData",
+        {
+            "url": STRING,
+            "final_url": STRING,
+            "title": STRING,
+            "wait": WORKFLOW_WAIT_SCHEMA,
+            "snapshot": {"type": "object", "additionalProperties": True},
+            "forms": {"type": "object", "additionalProperties": True},
+            "console": {"type": "object", "additionalProperties": True},
+            "meta": META_SCHEMA,
+        },
+        ["url", "final_url", "title", "wait", "snapshot", "meta"],
+    ),
+    "browser_extract_links": _data_schema(
+        "BrowserExtractLinksData",
+        {
+            **SELECTOR_METADATA_SCHEMA,
+            "include_text": BOOLEAN,
+            "same_origin_only": BOOLEAN,
+            "absolute_urls": BOOLEAN,
+            "count": INTEGER,
+            "returned": INTEGER,
+            "limit": INTEGER,
+            "truncated": BOOLEAN,
+            "links": {"type": "array", "items": LINK_SUMMARY_SCHEMA},
+            "meta": META_SCHEMA,
+        },
+        [
+            *SELECTOR_METADATA_REQUIRED,
+            "include_text",
+            "same_origin_only",
+            "absolute_urls",
+            "count",
+            "returned",
+            "limit",
+            "truncated",
+            "links",
+            "meta",
+        ],
+    ),
+    "form_fill_preview": _data_schema(
+        "FormFillPreviewData",
+        {
+            "form_selector": SELECTOR_OBJECT_SCHEMA,
+            "form_found": BOOLEAN,
+            "form": FORM_FILL_FORM_SCHEMA,
+            "field_count": INTEGER,
+            "filled_count": INTEGER,
+            "skipped_count": INTEGER,
+            "filled": {"type": "array", "items": FORM_FILL_FIELD_SCHEMA},
+            "skipped": {"type": "array", "items": FORM_FILL_SKIPPED_SCHEMA},
+            "requires_confirmation": BOOLEAN,
+            "submitted": BOOLEAN,
+            "redacted": BOOLEAN,
+        },
+        [
+            "form_selector",
+            "form_found",
+            "form",
+            "field_count",
+            "filled_count",
+            "skipped_count",
+            "filled",
+            "skipped",
+            "requires_confirmation",
+            "submitted",
+            "redacted",
+        ],
+    ),
+    "network_listen_start": _data_schema(
+        "NetworkListenStartData",
+        {
+            "listening": BOOLEAN,
+            "filters": NETWORK_FILTERS_SCHEMA,
+            "started_at": STRING,
+            "tab_id": STRING,
+            "cleared": BOOLEAN,
+        },
+        ["listening", "filters", "started_at", "tab_id", "cleared"],
+    ),
+    "network_listen_wait": _data_schema(
+        "NetworkListenWaitData",
+        {
+            "listening": BOOLEAN,
+            "timed_out": BOOLEAN,
+            "count": INTEGER,
+            "limit": INTEGER,
+            "packets": {"type": "array", "items": NETWORK_PACKET_SCHEMA},
+            "meta": META_SCHEMA,
+        },
+        ["listening", "timed_out", "count", "limit", "packets", "meta"],
+    ),
+    "network_listen_stop": _data_schema(
+        "NetworkListenStopData",
+        {
+            "listening": BOOLEAN,
+            "was_listening": BOOLEAN,
+            "cleared": BOOLEAN,
+        },
+        ["listening", "was_listening", "cleared"],
+    ),
     "page_navigate": _data_schema(
         "PageNavigateData",
         {

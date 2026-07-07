@@ -28,6 +28,18 @@ SENSITIVE_HISTORY_KEYS = {
     "cookies",
     "text",
     "value",
+    "values",
+    "fields",
+    "body",
+    "headers",
+    "request_headers",
+    "response_headers",
+    "request_body",
+    "response_body",
+    "post_data",
+    "postdata",
+    "set-cookie",
+    "proxy-authorization",
 }
 
 
@@ -354,7 +366,18 @@ def _redact_history_value(value: Any) -> Any:
             key_text = str(key).lower()
             if key_text in SENSITIVE_HISTORY_KEYS or any(
                 marker in key_text
-                for marker in ("password", "secret", "token", "cookie", "api_key")
+                for marker in (
+                    "password",
+                    "secret",
+                    "token",
+                    "cookie",
+                    "api_key",
+                    "authorization",
+                    "body",
+                    "header",
+                    "field",
+                    "value",
+                )
             ):
                 redacted[key] = "<redacted>"
             else:

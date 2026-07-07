@@ -133,13 +133,23 @@ class TestToolsIntegration:
         # Form tools
         assert "form_inspect" in tool_names
 
+        # Workflow tools
+        assert "browser_open_and_snapshot" in tool_names
+        assert "browser_extract_links" in tool_names
+        assert "form_fill_preview" in tool_names
+
+        # Network beta tools
+        assert "network_listen_start" in tool_names
+        assert "network_listen_wait" in tool_names
+        assert "network_listen_stop" in tool_names
+
         # Wait tools
         assert "wait_for_element" in tool_names
         assert "wait_for_url" in tool_names
         assert "wait_time" in tool_names
         assert "wait_until" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 46
+        assert len(tool_names) == 52
 
 
 if __name__ == "__main__":

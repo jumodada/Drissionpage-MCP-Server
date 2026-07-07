@@ -15,6 +15,21 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
 
     server_version = "DrissionMCPTestFixture/1.0"
 
+    def do_POST(self) -> None:  # noqa: N802 - stdlib hook name
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/echo.json":
+            length = int(self.headers.get("Content-Length", "0") or "0")
+            body = self.rfile.read(length).decode("utf-8") if length else ""
+            payload = {
+                "ok": True,
+                "method": "POST",
+                "query": parse_qs(parsed.query),
+                "body": body,
+            }
+            self._send_json(payload)
+            return
+        self._send_text("not found", status=404)
+
     def do_GET(self) -> None:  # noqa: N802 - stdlib hook name
         parsed = urlparse(self.path)
         path = parsed.path
@@ -383,6 +398,99 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/links":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Links</title></head>
+                  <body>
+                    <main id="links-workflow">
+                      <h1>Links Workflow</h1>
+                      <a id="docs-link" href="/docs">Docs</a>
+                      <a id="relative-link" href="../relative/page">Relative Page</a>
+                      <a id="blank-link" href="/new-tab" target="_blank">Blank</a>
+                      <a id="external-link" href="https://external.example/path" rel="nofollow">External</a>
+                    </main>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/workflow-form":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Workflow Form</title></head>
+                  <body>
+                    <main id="workflow-form-root">
+                      <h1>Workflow Form</h1>
+                      <form id="workflow-form" method="post" action="/api/echo.json">
+                        <label for="wf-name">Name</label>
+                        <input id="wf-name" name="name" value="" />
+                        <label for="wf-secret">Secret</label>
+                        <input id="wf-secret" name="secret" type="password" value="" />
+                        <label for="wf-mode">Mode</label>
+                        <select id="wf-mode" name="mode">
+                          <option value="basic">Basic</option>
+                          <option value="advanced">Advanced</option>
+                        </select>
+                        <label for="wf-agree">Agree</label>
+                        <input id="wf-agree" name="agree" type="checkbox" />
+                        <button id="wf-submit" type="submit">Submit</button>
+                      </form>
+                      <output id="workflow-status">ready</output>
+                    </main>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/network":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Network</title></head>
+                  <body>
+                    <main id="network-workflow">
+                      <h1>Network Workflow</h1>
+                      <button id="network-action" type="button">Run network</button>
+                      <output id="network-status">idle</output>
+                    </main>
+                    <script>
+                      document.getElementById('network-action').addEventListener('click', async function () {
+                        const data = await fetch('/api/data.json?source=fetch', {
+                          headers: {'X-Api-Key': 'fixture-secret'}
+                        }).then((response) => response.json());
+                        const xhrResult = await new Promise((resolve) => {
+                          const xhr = new XMLHttpRequest();
+                          xhr.open('POST', '/api/echo.json?source=xhr');
+                          xhr.setRequestHeader('Content-Type', 'application/json');
+                          xhr.onload = () => resolve(xhr.responseText);
+                          xhr.send(JSON.stringify({ok: true, item: data.items[0]}));
+                        });
+                        document.getElementById('network-status').textContent =
+                          data.ok && xhrResult ? 'network complete' : 'network failed';
+                      });
+                    </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/api/data.json":
+            self._send_json({"ok": True, "items": ["alpha", "beta"]})
+            return
+
+        if path == "/api/echo.json":
+            self._send_json({"ok": True, "method": "GET", "query": parse_qs(parsed.query)})
+            return
+
         if path == "/redirect":
             self.send_response(302)
             self.send_header("Location", "/")
@@ -430,6 +538,10 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
     def _send_html(self, html: str, status: int = 200) -> None:
         body = _dedent_html(html).encode("utf-8")
         self._send_bytes(body, status=status, content_type="text/html; charset=utf-8")
+
+    def _send_json(self, payload: dict, status: int = 200) -> None:
+        body = json.dumps(payload).encode("utf-8")
+        self._send_bytes(body, status=status, content_type="application/json; charset=utf-8")
 
     def _send_text(self, text: str, status: int = 200) -> None:
         self._send_bytes(

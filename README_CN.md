@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-与基于截图的方法不同，它通过 46 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+与基于截图的方法不同，它通过 52 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -123,7 +123,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 46 个强大工具 + MCP Resources/Prompts
+## 🛠️ 52 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
@@ -218,7 +218,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 46 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
+│   └── tools/              # 52 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -370,7 +370,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.5.5`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.5.6`。
 
 ### 浏览器问题？
 ```bash
@@ -399,14 +399,14 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.5.5 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.5.6 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.5.5)
-- [x] 46 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
+### 当前版本 (v0.5.6)
+- [x] 52 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -416,6 +416,8 @@ which chromium         # macOS
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
 - [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
+- [x] Workflow helper：`browser_open_and_snapshot`、`browser_extract_links`、`form_fill_preview`
+- [x] Network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，用于 HTTP/XHR/Fetch 观察
 - [x] 文件上传、滚动、hover、select/check、键盘、iframe、shadow DOM、cookie 和 storage 工具，面向 DrissionPage 4.x
 - [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
 - [x] 脱敏 session history resource，以及有界输出的响应大小 metadata
@@ -424,8 +426,7 @@ which chromium         # macOS
 - [x] PyPI 发布
 
 ### 未来版本 (v0.6+)
-- [ ] 组合 0.5.x 原子工具的更高层 workflow 工具
-- [ ] 等 DrissionPage 4.x 合同稳定后扩展网络/listener workflow
+- [ ] 将 workflow/network beta 合同经过实测后推进到 0.6.0
 - [ ] 在脱敏 state summary 之外提供可选会话持久化
 - [ ] 代理支持
 - [ ] 网络拦截
@@ -563,10 +564,13 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.5.5
+## 🆕 最新版本：v0.5.6
 
-发布日期：2026-07-06。本版本在 0.5.4 的安全默认值基础上扩展 DrissionPage 4.x 工具面：
+发布日期：2026-07-07。本版本新增 workflow helper、network listener beta 和 session config 可见化，并继续只支持 DrissionPage 4.x：
 
+- 新增 workflow helper：`browser_open_and_snapshot`、`browser_extract_links`、`form_fill_preview`，减少页面理解、链接提取和非提交表单预填的重复调用链。
+- 新增 network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，只观察 HTTP/XHR/Fetch，不做拦截或响应 mock。
+- 新增 `drissionpage://session/config` 资源，脱敏展示 `DP_USER_DATA_PATH`、浏览器路径、headless、sandbox 和 policy 状态。
 - 新增 `element_upload_file`，上传路径必须位于 `DP_MCP_UPLOAD_ROOT` 下，结果只回显文件名。
 - 新增动作原子工具：`page_scroll`、`element_scroll_into_view`、`element_hover`、`keyboard_press`、`element_select`、`element_check`。
 - 新增 iframe 与 shadow DOM 只读工具：`frame_list`、`frame_snapshot`、`frame_find`、`shadow_find`、`shadow_find_all`。
@@ -577,4 +581,4 @@ codex mcp list
 - 既有页面理解、可观察动作、console、标签页、表单和恢复建议工具保持兼容；可观察变化继续包含 `console_errors_added`；有界输出继续保留 `meta.approx_tokens`。
 - 失败 payload 会在 `error.details.hints` 中返回机器可读恢复建议；浏览器启动提示仍会指向 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH` 和 `DP_HEADLESS`。
 - `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并提示客户端使用准确的 snake_case 字段名。
-- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数为 46 个。
+- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数为 52 个。

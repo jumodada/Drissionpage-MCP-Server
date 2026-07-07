@@ -7828,5 +7828,1291 @@
       "type": "object"
     },
     "title": "Wait Until"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Open and Snapshot"
+    },
+    "description": "Open a URL, optionally wait for a page condition, then return a bounded snapshot plus optional form and console context.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for opening a page and immediately capturing context.",
+      "properties": {
+        "include_console": {
+          "default": false,
+          "description": "Also include recent console messages from the page.",
+          "title": "Include Console",
+          "type": "boolean"
+        },
+        "include_forms": {
+          "default": false,
+          "description": "Also include safe form metadata without field values.",
+          "title": "Include Forms",
+          "type": "boolean"
+        },
+        "include_html": {
+          "default": false,
+          "description": "Include bounded HTML excerpts in the nested page snapshot.",
+          "title": "Include Html",
+          "type": "boolean"
+        },
+        "max_elements": {
+          "default": 50,
+          "description": "Maximum summarized elements in the nested snapshot.",
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Max Elements",
+          "type": "integer"
+        },
+        "max_text_chars": {
+          "default": 4000,
+          "description": "Maximum page text excerpt characters in the nested snapshot.",
+          "maximum": 20000,
+          "minimum": 0,
+          "title": "Max Text Chars",
+          "type": "integer"
+        },
+        "selector": {
+          "default": "",
+          "description": "Selector used by element/text wait conditions.",
+          "title": "Selector",
+          "type": "string"
+        },
+        "url": {
+          "description": "URL to open in the active browser tab.",
+          "title": "Url",
+          "type": "string"
+        },
+        "wait_condition": {
+          "default": "",
+          "description": "Optional wait condition before snapshot capture.",
+          "enum": [
+            "",
+            "present",
+            "visible",
+            "hidden",
+            "detached",
+            "clickable",
+            "stable",
+            "url_contains",
+            "url_matches",
+            "text_contains",
+            "text_matches"
+          ],
+          "title": "Wait Condition",
+          "type": "string"
+        },
+        "wait_timeout": {
+          "default": 5.0,
+          "description": "Maximum seconds for the optional wait condition.",
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Wait Timeout",
+          "type": "number"
+        },
+        "wait_value": {
+          "default": "",
+          "description": "Value used by URL/text wait conditions.",
+          "title": "Wait Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "BrowserOpenAndSnapshotInput",
+      "type": "object"
+    },
+    "name": "browser_open_and_snapshot",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "console": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "final_url": {
+                  "type": "string"
+                },
+                "forms": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "meta": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "approx_tokens": {
+                      "type": "integer"
+                    },
+                    "json_chars": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "approx_tokens",
+                    "json_chars",
+                    "truncated"
+                  ],
+                  "title": "ResponseMeta",
+                  "type": "object"
+                },
+                "snapshot": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string"
+                },
+                "wait": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "condition": {
+                      "type": "string"
+                    },
+                    "elapsed_ms": {
+                      "type": "integer"
+                    },
+                    "matched": {
+                      "type": "boolean"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "state": {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    "timeout": {
+                      "type": "number"
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "condition",
+                    "selector",
+                    "value",
+                    "matched",
+                    "timeout"
+                  ],
+                  "title": "WorkflowWaitResult",
+                  "type": "object"
+                }
+              },
+              "required": [
+                "url",
+                "final_url",
+                "title",
+                "wait",
+                "snapshot",
+                "meta"
+              ],
+              "title": "BrowserOpenAndSnapshotData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Open and Snapshot"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Extract Links"
+    },
+    "description": "Extract bounded link data from the current page with optional origin filtering and URL normalization.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for bounded link extraction.",
+      "properties": {
+        "absolute_urls": {
+          "default": true,
+          "description": "Return absolute URLs in the url field when possible.",
+          "title": "Absolute Urls",
+          "type": "boolean"
+        },
+        "include_text": {
+          "default": true,
+          "description": "Include bounded visible link text.",
+          "title": "Include Text",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 50,
+          "description": "Maximum links to return.",
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "same_origin_only": {
+          "default": false,
+          "description": "Return only links whose absolute URL has the current page origin.",
+          "title": "Same Origin Only",
+          "type": "boolean"
+        },
+        "selector": {
+          "default": "a",
+          "description": "CSS/XPath/DrissionPage locator selecting links or containers.",
+          "title": "Selector",
+          "type": "string"
+        }
+      },
+      "title": "BrowserExtractLinksInput",
+      "type": "object"
+    },
+    "name": "browser_extract_links",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "absolute_urls": {
+                  "type": "boolean"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "include_text": {
+                  "type": "boolean"
+                },
+                "limit": {
+                  "type": "integer"
+                },
+                "links": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "absolute_url": {
+                        "type": "string"
+                      },
+                      "href": {
+                        "type": "string"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "rel": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "target": {
+                        "type": "string"
+                      },
+                      "text": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "text",
+                      "href",
+                      "url",
+                      "selector",
+                      "rel",
+                      "target"
+                    ],
+                    "title": "LinkSummary",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "locator": {
+                  "type": "string"
+                },
+                "meta": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "approx_tokens": {
+                      "type": "integer"
+                    },
+                    "json_chars": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "approx_tokens",
+                    "json_chars",
+                    "truncated"
+                  ],
+                  "title": "ResponseMeta",
+                  "type": "object"
+                },
+                "returned": {
+                  "type": "integer"
+                },
+                "same_origin_only": {
+                  "type": "boolean"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                },
+                "truncated": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "include_text",
+                "same_origin_only",
+                "absolute_urls",
+                "count",
+                "returned",
+                "limit",
+                "truncated",
+                "links",
+                "meta"
+              ],
+              "title": "BrowserExtractLinksData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Extract Links"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Fill Form Preview"
+    },
+    "description": "Prefill matched form controls without submitting. Returns a redacted review payload and requires explicit confirmation before submit.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for safe form prefill without submission.",
+      "properties": {
+        "fields": {
+          "additionalProperties": true,
+          "description": "Map of field selectors, ids, names, labels, or placeholders to values. Values are redacted from output by default.",
+          "minProperties": 1,
+          "title": "Fields",
+          "type": "object"
+        },
+        "form_selector": {
+          "default": "form",
+          "description": "CSS/XPath/DrissionPage locator for a form or form container.",
+          "title": "Form Selector",
+          "type": "string"
+        },
+        "redact_values": {
+          "default": true,
+          "description": "Redact submitted field values from tool output.",
+          "title": "Redact Values",
+          "type": "boolean"
+        },
+        "submit": {
+          "default": false,
+          "description": "Must remain false; this preview tool never submits forms.",
+          "title": "Submit",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "title": "FormFillPreviewInput",
+      "type": "object"
+    },
+    "name": "form_fill_preview",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "field_count": {
+                  "type": "integer"
+                },
+                "filled": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "matched_by": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      },
+                      "tag": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "selector",
+                      "matched_by",
+                      "tag",
+                      "type",
+                      "value"
+                    ],
+                    "title": "FormFillField",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "filled_count": {
+                  "type": "integer"
+                },
+                "form": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "action": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "method": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "selector": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "selector",
+                        "id",
+                        "name",
+                        "method",
+                        "action"
+                      ],
+                      "title": "FormFillForm",
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "form_found": {
+                  "type": "boolean"
+                },
+                "form_selector": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "locator": {
+                      "type": "string"
+                    },
+                    "selector": {
+                      "type": "string"
+                    },
+                    "selector_normalized": {
+                      "type": "boolean"
+                    },
+                    "selector_strategy": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "selector",
+                    "locator",
+                    "selector_strategy",
+                    "selector_normalized"
+                  ],
+                  "title": "SelectorMetadata",
+                  "type": "object"
+                },
+                "redacted": {
+                  "type": "boolean"
+                },
+                "requires_confirmation": {
+                  "type": "boolean"
+                },
+                "skipped": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "selector": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "key",
+                      "reason"
+                    ],
+                    "title": "FormFillSkippedField",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "skipped_count": {
+                  "type": "integer"
+                },
+                "submitted": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "form_selector",
+                "form_found",
+                "form",
+                "field_count",
+                "filled_count",
+                "skipped_count",
+                "filled",
+                "skipped",
+                "requires_confirmation",
+                "submitted",
+                "redacted"
+              ],
+              "title": "FormFillPreviewData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Fill Form Preview"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Start Network Listener"
+    },
+    "description": "Start beta HTTP/XHR/Fetch network observation for the active tab. This observes packets only; it does not intercept or modify requests.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for starting HTTP/XHR/Fetch observation.",
+      "properties": {
+        "clear": {
+          "default": true,
+          "description": "Clear any existing listener queue before starting.",
+          "title": "Clear",
+          "type": "boolean"
+        },
+        "is_regex": {
+          "default": false,
+          "description": "Treat targets as regular expressions when targets are provided.",
+          "title": "Is Regex",
+          "type": "boolean"
+        },
+        "method": {
+          "default": "",
+          "description": "Optional HTTP method filter such as GET or POST.",
+          "title": "Method",
+          "type": "string"
+        },
+        "resource_type": {
+          "default": "",
+          "description": "Optional resource type filter such as Fetch, XHR, or Document.",
+          "title": "Resource Type",
+          "type": "string"
+        },
+        "targets": {
+          "description": "Optional URL substrings or regex patterns passed to DrissionPage.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Targets",
+          "type": "array"
+        }
+      },
+      "title": "NetworkListenStartInput",
+      "type": "object"
+    },
+    "name": "network_listen_start",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "cleared": {
+                  "type": "boolean"
+                },
+                "filters": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "is_regex": {
+                      "type": "boolean"
+                    },
+                    "method": {
+                      "type": "string"
+                    },
+                    "resource_type": {
+                      "type": "string"
+                    },
+                    "targets": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "targets",
+                    "is_regex",
+                    "method",
+                    "resource_type"
+                  ],
+                  "title": "NetworkListenerFilters",
+                  "type": "object"
+                },
+                "listening": {
+                  "type": "boolean"
+                },
+                "started_at": {
+                  "type": "string"
+                },
+                "tab_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "listening",
+                "filters",
+                "started_at",
+                "tab_id",
+                "cleared"
+              ],
+              "title": "NetworkListenStartData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Start Network Listener"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Wait Network Listener"
+    },
+    "description": "Wait for observed HTTP/XHR/Fetch packets and return bounded metadata. Bodies and headers are opt-in and sensitive headers are redacted.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for waiting on observed packets.",
+      "properties": {
+        "include_body": {
+          "default": false,
+          "description": "Include bounded request/response body excerpts.",
+          "title": "Include Body",
+          "type": "boolean"
+        },
+        "include_headers": {
+          "default": false,
+          "description": "Include request/response headers with sensitive names redacted.",
+          "title": "Include Headers",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 10,
+          "description": "Maximum packets to return.",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "max_body_chars": {
+          "default": 2000,
+          "description": "Maximum characters for each body excerpt when include_body is true.",
+          "maximum": 20000,
+          "minimum": 0,
+          "title": "Max Body Chars",
+          "type": "integer"
+        },
+        "timeout": {
+          "default": 5.0,
+          "description": "Maximum seconds to wait for packets.",
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "title": "NetworkListenWaitInput",
+      "type": "object"
+    },
+    "name": "network_listen_wait",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "type": "integer"
+                },
+                "limit": {
+                  "type": "integer"
+                },
+                "listening": {
+                  "type": "boolean"
+                },
+                "meta": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "approx_tokens": {
+                      "type": "integer"
+                    },
+                    "json_chars": {
+                      "type": "integer"
+                    },
+                    "truncated": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "approx_tokens",
+                    "json_chars",
+                    "truncated"
+                  ],
+                  "title": "ResponseMeta",
+                  "type": "object"
+                },
+                "packets": {
+                  "items": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "body_excerpt": {
+                        "type": "string"
+                      },
+                      "body_truncated": {
+                        "type": "boolean"
+                      },
+                      "body_type": {
+                        "type": "string"
+                      },
+                      "fail_error": {
+                        "type": "string"
+                      },
+                      "failed": {
+                        "type": "boolean"
+                      },
+                      "index": {
+                        "type": "integer"
+                      },
+                      "method": {
+                        "type": "string"
+                      },
+                      "mime_type": {
+                        "type": "string"
+                      },
+                      "request_body_excerpt": {
+                        "type": "string"
+                      },
+                      "request_body_truncated": {
+                        "type": "boolean"
+                      },
+                      "request_body_type": {
+                        "type": "string"
+                      },
+                      "request_headers": {
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "type": "object"
+                      },
+                      "resource_type": {
+                        "type": "string"
+                      },
+                      "response_headers": {
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "type": "object"
+                      },
+                      "status": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "url": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "index",
+                      "url",
+                      "method",
+                      "resource_type",
+                      "status",
+                      "mime_type",
+                      "failed",
+                      "fail_error"
+                    ],
+                    "title": "NetworkPacket",
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "timed_out": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "listening",
+                "timed_out",
+                "count",
+                "limit",
+                "packets",
+                "meta"
+              ],
+              "title": "NetworkListenWaitData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Wait Network Listener"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Stop Network Listener"
+    },
+    "description": "Stop beta network observation for the active tab and optionally clear it.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for stopping packet observation.",
+      "properties": {
+        "clear": {
+          "default": true,
+          "description": "Clear the listener queue while stopping.",
+          "title": "Clear",
+          "type": "boolean"
+        }
+      },
+      "title": "NetworkListenStopInput",
+      "type": "object"
+    },
+    "name": "network_listen_stop",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "cleared": {
+                  "type": "boolean"
+                },
+                "listening": {
+                  "type": "boolean"
+                },
+                "was_listening": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "listening",
+                "was_listening",
+                "cleared"
+              ],
+              "title": "NetworkListenStopData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Stop Network Listener"
   }
 ]

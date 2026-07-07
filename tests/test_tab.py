@@ -8,7 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from drissionpage_mcp.tab import PageTab
+from drissionpage_mcp.tab import PageTab, _extract_links_script, _form_fill_preview_script
 
 
 @pytest.fixture(autouse=True)
@@ -259,6 +259,37 @@ class RaisingIdentityPage(FakePage):
     @title.setter
     def title(self, _value):
         pass
+
+
+def test_mcp_0_5_6_workflow_scripts_escape_css_literals() -> None:
+    """locks generated JS escaping used by workflow tools before browser execution."""
+
+    escaped_identifier_replacement = (
+        r"""replace(/[^a-zA-Z0-9_-]/g, '\\$&')"""
+    )
+    escaped_attribute_value = (
+        r"""split('\\').join('\\\\').replace(/"/g, '\\"')"""
+    )
+
+    form_script = _form_fill_preview_script(
+        form_locator="css:#workflow-form",
+        fields={'#weird"name\\field': 'Ada "Lovelace" \\ secret'},
+        redact_values=True,
+    )
+    links_script = _extract_links_script(
+        locator="css:a",
+        limit=5,
+        include_text=True,
+        same_origin_only=False,
+        absolute_urls=True,
+        base_url="http://127.0.0.1/links",
+    )
+
+    assert escaped_identifier_replacement in form_script
+    assert escaped_attribute_value in form_script
+    assert escaped_identifier_replacement in links_script
+    assert escaped_attribute_value in links_script
+    assert 'replace(/\\/g' not in form_script
 
 
 @pytest.mark.asyncio

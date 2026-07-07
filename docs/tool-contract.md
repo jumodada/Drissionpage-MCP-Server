@@ -106,7 +106,7 @@ Common runtime failures include structured recovery hints under
 `page_snapshot`, `element_find_all`, `wait_for_element`, and iframe/dynamic
 content checks.
 
-Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `SCREENSHOT_FAILED`, `POLICY_DENIED`, and `UNKNOWN_ERROR`. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
+Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `SCREENSHOT_FAILED`, `POLICY_DENIED`, `UNSUPPORTED_OPERATION`, and `UNKNOWN_ERROR`. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
 
 ## Tool Annotations
 
@@ -118,6 +118,23 @@ The server marks tools with MCP annotations:
 - Tools operate on the open web, so `openWorldHint=true` is set.
 
 ## Tool Inventory
+
+
+### Workflow Helpers
+
+| Tool | Type | Required input | Description |
+| --- | --- | --- | --- |
+| `browser_open_and_snapshot` | Destructive | `url` | Open a URL, optionally wait for a condition, and return snapshot/forms/console context in one call. Optional: `wait_condition`, `selector`, `wait_value`, `include_forms`, `include_console`, `max_elements`, `max_text_chars`. |
+| `browser_extract_links` | Read-only | none | Extract bounded links with text, href, normalized URL, selector, rel, target, truncation metadata, and optional same-origin filtering. Optional: `selector`, `limit`, `include_text`, `same_origin_only`, `absolute_urls`. |
+| `form_fill_preview` | Destructive | `fields` | Prefill matched form controls without submitting. Values are redacted by default and output includes `requires_confirmation=true`. Optional: `form_selector`, `redact_values`. |
+
+### Network Listener Beta
+
+| Tool | Type | Required input | Description |
+| --- | --- | --- | --- |
+| `network_listen_start` | Destructive | none | Start DrissionPage 4.x network observation for HTTP/XHR/Fetch packets. No interception or mocking. Optional: `targets`, `is_regex`, `method`, `resource_type`, `clear`. |
+| `network_listen_wait` | Read-only | none | Wait for bounded network packets with URL, method, resource type, status, MIME type, optional redacted headers, and optional bounded body excerpts. Optional: `timeout`, `limit`, `include_headers`, `include_body`, `max_body_chars`. |
+| `network_listen_stop` | Destructive | none | Stop network observation and optionally clear the listener queue. Optional: `clear`. |
 
 ### Navigation
 
@@ -219,6 +236,7 @@ The server exposes deterministic JSON resources:
 | `drissionpage://session/summary` | Browser/session activity, tab count, current URL, and policy flags. |
 | `drissionpage://session/history` | Redacted recent tool actions for recovering long-session context. |
 | `drissionpage://session/state` | Redacted current-tab cookie names and local/session storage keys. |
+| `drissionpage://session/config` | Redacted browser/profile configuration including headless, browser path configured, `DP_USER_DATA_PATH` configured, sandbox, and policy state. |
 | `drissionpage://page/current` | Bounded current page title, URL, text excerpt, and HTML excerpt. |
 | `drissionpage://tools/catalog` | Public tool catalog with annotations and output data schema names. |
 | `drissionpage://policy/summary` | Redacted local safety policy summary. |

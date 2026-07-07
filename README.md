@@ -30,7 +30,7 @@
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 46 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
+Unlike screenshot-based approaches, it provides **structured, deterministic web automation** through 52 tools plus MCP Resources/Prompts that leverage the efficiency of [DrissionPage](https://github.com/g1879/DrissionPage), a high-performance browser automation framework.
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -370,7 +370,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.5.5`.
+Should output the installed package version, for example `drissionpage-mcp 0.5.6`.
 
 ### Browser Issues?
 ```bash
@@ -399,14 +399,14 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.5.5 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.5.6 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.5.5)
-- [x] 46 core automation, tab/frame/shadow, page-understanding, form-inspection, session-state, and console-observability tools with removed alias surface
+### Current (v0.5.6)
+- [x] 52 core automation, tab/frame/shadow, page-understanding, form-inspection, workflow, network-listener, session-state, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -416,6 +416,8 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
 - [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
 - [x] Console observability with `page_console_logs`, console summary in `page_observe`, and console change fields in `observe=true`
+- [x] Workflow helpers with `browser_open_and_snapshot`, `browser_extract_links`, and `form_fill_preview`
+- [x] Network listener beta with `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation
 - [x] File upload, scrolling, hover, select/check, keyboard, iframe, shadow DOM, cookie, and storage tools for DrissionPage 4.x
 - [x] Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` is reserved for restricted container/root environments
 - [x] Redacted session history resource and response size metadata for bounded outputs
@@ -424,8 +426,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] PyPI distribution
 
 ### Future (v0.6+)
-- [ ] Higher-level workflow tools that compose the 0.5.x primitive tools
-- [ ] Network/listener workflows after DrissionPage 4.x contracts are stable
+- [ ] Promote workflow/network beta contracts toward 0.6.0 after field testing
 - [ ] Optional session persistence beyond redacted state summaries
 - [ ] Proxy support
 - [ ] Network interception
@@ -563,10 +564,14 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.5.5
+## 🆕 Latest Version: v0.5.6
 
-Released on 2026-07-06. This release expands DrissionPage 4.x coverage from the 0.5.4 hardened baseline:
+Released on 2026-07-07. This release adds workflow helpers, network listener beta, and session config visibility while staying on DrissionPage 4.x:
 
+
+- New workflow helpers: `browser_open_and_snapshot`, `browser_extract_links`, and `form_fill_preview` reduce repeated client tool chains for page understanding, link discovery, and no-submit form prefill.
+- New network listener beta: `network_listen_start`, `network_listen_wait`, and `network_listen_stop` observe HTTP/XHR/Fetch packets without interception or response mocking.
+- New `drissionpage://session/config` resource reports redacted browser/profile configuration such as `DP_USER_DATA_PATH`, browser path, headless, sandbox, and policy state.
 - New file upload support via `element_upload_file`; upload paths must be under `DP_MCP_UPLOAD_ROOT` and results only expose file names.
 - New action primitives: `page_scroll`, `element_scroll_into_view`, `element_hover`, `keyboard_press`, `element_select`, and `element_check`.
 - New iframe and shadow DOM read-only tools: `frame_list`, `frame_snapshot`, `frame_find`, `shadow_find`, and `shadow_find_all`.
@@ -577,4 +582,4 @@ Released on 2026-07-06. This release expands DrissionPage 4.x coverage from the 
 - Existing page-understanding, observable-action, console, tab, form, and recovery-hint tools remain compatible; observable changes still include `console_errors_added`; bounded outputs keep `meta.approx_tokens`.
 - Failure payloads include machine-readable `error.details.hints`; browser startup hints still point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, and `DP_HEADLESS`.
 - `MCP_ARGUMENT_INVALID` continues to protect strict schemas and point clients toward exact snake_case field names.
-- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry has 46 tools.
+- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry has 52 tools.

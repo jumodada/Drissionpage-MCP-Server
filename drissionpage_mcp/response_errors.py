@@ -19,6 +19,7 @@ class ErrorCode(str, Enum):
     TOOL_NOT_FOUND = "TOOL_NOT_FOUND"
     MCP_ARGUMENT_INVALID = "MCP_ARGUMENT_INVALID"
     POLICY_DENIED = "POLICY_DENIED"
+    UNSUPPORTED_OPERATION = "UNSUPPORTED_OPERATION"
 
 
 @dataclass
@@ -42,8 +43,14 @@ class ToolError:
 def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
     """Best-effort mapping from runtime exceptions to stable tool error codes."""
 
-    if getattr(exc, "code", None) == ErrorCode.POLICY_DENIED:
-        return ErrorCode.POLICY_DENIED
+    exc_code = getattr(exc, "code", None)
+    if isinstance(exc_code, ErrorCode):
+        return exc_code
+    if isinstance(exc_code, str):
+        try:
+            return ErrorCode(exc_code)
+        except ValueError:
+            pass
 
     if isinstance(exc, TimeoutError):
         return ErrorCode.TIMEOUT
@@ -69,6 +76,8 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
         return ErrorCode.SCREENSHOT_FAILED
     if "policy" in text or "allowlist" in text or "blocklist" in text:
         return ErrorCode.POLICY_DENIED
+    if "unsupported" in text or "not supported" in text or "unavailable" in text:
+        return ErrorCode.UNSUPPORTED_OPERATION
     if "browser" in text and (
         "start" in text or "initialize" in text or "launch" in text
     ):
@@ -276,6 +285,33 @@ def recovery_hints(
                 "Call tools/list and use one of the public tool names.",
             )
         ]
+
+    if code_value == ErrorCode.UNSUPPORTED_OPERATION.value:
+        hints = [
+            _hint(
+                "check_drissionpage_version",
+                "Use a supported DrissionPage 4.x release that exposes this browser API.",
+                command="python -m drissionpage_mcp.cli doctor",
+            ),
+            _hint(
+                "run_doctor",
+                "Run diagnostics from the same environment as the MCP client.",
+                command="drissionpage-mcp doctor --launch-browser",
+            ),
+            _hint(
+                "fallback_to_primitives",
+                "Use lower-level page or element tools when the workflow helper is unavailable.",
+            ),
+        ]
+        if "network" in lowered_tool or "listener" in lowered_message:
+            hints.insert(
+                0,
+                _hint(
+                    "verify_listener_api",
+                    "Check that the current DrissionPage 4.x tab exposes tab.listen.start/wait/stop.",
+                ),
+            )
+        return hints
 
     return []
 

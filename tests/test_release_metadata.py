@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.5.5."""
+"""Release metadata and documentation checks for 0.5.6."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_5_5() -> None:
+def test_package_version_metadata_is_0_5_6() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.5"
-    assert drissionpage_mcp.__version__ == "0.5.5"
+    assert pyproject["project"]["version"] == "0.5.6"
+    assert drissionpage_mcp.__version__ == "0.5.6"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -38,11 +38,11 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "browser_navigate_and_summarize" in contract
 
 
-def test_readmes_end_with_latest_0_5_5_feature_summary() -> None:
+def test_readmes_end_with_latest_0_5_6_feature_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
 
-    assert "## 🆕 Latest Version: v0.5.5" in readme
+    assert "## 🆕 Latest Version: v0.5.6" in readme
     assert "tab_list" in readme
     assert "drissionpage://session/history" in readme
     assert "meta.approx_tokens" in readme
@@ -50,7 +50,7 @@ def test_readmes_end_with_latest_0_5_5_feature_summary() -> None:
     assert "error.details.hints" in readme
     assert "page_snapshot" in readme
     assert "element_find_all" in readme
-    assert "46 tools" in readme
+    assert "52 tools" in readme
     assert "page_observe" in readme
     assert "page_console_logs" in readme
     assert "console_errors_added" in readme
@@ -65,10 +65,16 @@ def test_readmes_end_with_latest_0_5_5_feature_summary() -> None:
     assert "drissionpage://session/state" in readme
     assert "DrissionPage 5.x" in readme
     assert "drissionpage-mcp doctor --launch-browser" in readme
+    assert "browser_open_and_snapshot" in readme
+    assert "browser_extract_links" in readme
+    assert "form_fill_preview" in readme
+    assert "network_listen_start" in readme
+    assert "network_listen_wait" in readme
+    assert "drissionpage://session/config" in readme
     assert "MCP_ARGUMENT_INVALID" in readme
     assert "Chrome sandbox remains enabled by default" in readme
     assert "restricted container/root environments" in readme
-    assert "## 🆕 最新版本：v0.5.5" in readme_cn
+    assert "## 🆕 最新版本：v0.5.6" in readme_cn
     assert "tab_list" in readme_cn
     assert "drissionpage://session/history" in readme_cn
     assert "meta.approx_tokens" in readme_cn
@@ -76,7 +82,7 @@ def test_readmes_end_with_latest_0_5_5_feature_summary() -> None:
     assert "error.details.hints" in readme_cn
     assert "page_snapshot" in readme_cn
     assert "element_find_all" in readme_cn
-    assert "46 个" in readme_cn
+    assert "52 个" in readme_cn
     assert "page_observe" in readme_cn
     assert "page_console_logs" in readme_cn
     assert "console_errors_added" in readme_cn
@@ -91,6 +97,12 @@ def test_readmes_end_with_latest_0_5_5_feature_summary() -> None:
     assert "drissionpage://session/state" in readme_cn
     assert "DrissionPage 5.x" in readme_cn
     assert "drissionpage-mcp doctor --launch-browser" in readme_cn
+    assert "browser_open_and_snapshot" in readme_cn
+    assert "browser_extract_links" in readme_cn
+    assert "form_fill_preview" in readme_cn
+    assert "network_listen_start" in readme_cn
+    assert "network_listen_wait" in readme_cn
+    assert "drissionpage://session/config" in readme_cn
     assert "MCP_ARGUMENT_INVALID" in readme_cn
     assert "默认保持 Chrome sandbox 开启" in readme_cn
     assert "受限容器/root 环境" in readme_cn

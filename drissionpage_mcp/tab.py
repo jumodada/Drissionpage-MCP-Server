@@ -8,6 +8,7 @@ import os
 import re
 import tempfile
 import time
+from datetime import datetime, timezone
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Dict, Optional
 
@@ -15,6 +16,7 @@ from DrissionPage.errors import ElementNotFoundError
 
 from .forms import build_form_inspect_script
 from .observation import bounded_json_value, build_observe_script, result_type, safe_int
+from .response_errors import ErrorCode
 from .outline import build_page_snapshot_script, summarize_elements
 from .selector import SelectorPlan, normalize_selector
 
@@ -22,6 +24,13 @@ if TYPE_CHECKING:
     from .context import DrissionPageContext
 
 logger = logging.getLogger(__name__)
+
+
+class UnsupportedOperationError(RuntimeError):
+    """Raised when the installed DrissionPage build lacks an optional API."""
+
+    code = ErrorCode.UNSUPPORTED_OPERATION
+
 
 
 class PageTab:
@@ -41,6 +50,8 @@ class PageTab:
         self.mcp_tab_id = mcp_tab_id
         self._url = ""
         self._console_log_cache: list[dict[str, Any]] = []
+        self._network_started_at = ""
+        self._network_filters: dict[str, Any] = {}
 
     @property
     def native_tab_id(self) -> str:
@@ -327,6 +338,220 @@ class PageTab:
         except Exception as e:
             logger.error(f"Failed to inspect forms: {e}")
             raise
+
+    async def open_and_snapshot(
+        self,
+        *,
+        url: str,
+        wait_condition: str = "",
+        selector: str = "",
+        wait_value: str = "",
+        wait_timeout: float = 5.0,
+        include_html: bool = False,
+        include_forms: bool = False,
+        include_console: bool = False,
+        max_elements: int = 50,
+        max_text_chars: int = 4000,
+    ) -> dict[str, Any]:
+        """Open a URL, optionally wait, then capture a bounded page snapshot."""
+
+        await self.navigate(url)
+        wait_result = {
+            "condition": wait_condition,
+            "selector": selector,
+            "value": wait_value,
+            "matched": wait_condition == "",
+            "timeout": wait_timeout,
+        }
+        if wait_condition:
+            wait_result = await self.wait_until(
+                condition=wait_condition,
+                selector=selector,
+                value=wait_value,
+                timeout=wait_timeout,
+            )
+
+        snapshot = await self.page_snapshot(
+            include_html=include_html,
+            max_elements=max_elements,
+            max_text_chars=max_text_chars,
+        )
+        payload: dict[str, Any] = {
+            "url": url,
+            "final_url": self.url,
+            "title": str(snapshot.get("title") or self.title),
+            "wait": wait_result,
+            "snapshot": snapshot,
+        }
+        if include_forms:
+            payload["forms"] = await self.inspect_forms(
+                selector="",
+                include_values=False,
+                max_forms=10,
+                max_fields_per_form=50,
+            )
+        if include_console:
+            payload["console"] = await self.console_logs(level="all", since=-1, limit=20)
+        return payload
+
+    async def extract_links(
+        self,
+        *,
+        selector: str = "a",
+        limit: int = 50,
+        include_text: bool = True,
+        same_origin_only: bool = False,
+        absolute_urls: bool = True,
+    ) -> dict[str, Any]:
+        """Extract bounded link data from the current page."""
+
+        plan = normalize_selector(selector)
+        script = _extract_links_script(
+            locator=plan.locator,
+            limit=limit,
+            include_text=include_text,
+            same_origin_only=same_origin_only,
+            absolute_urls=absolute_urls,
+            base_url=self.url,
+        )
+        result = self._run_structured_script(
+            script,
+            "link extraction script returned no structured data",
+        )
+        return {**plan.metadata(), **result}
+
+    async def form_fill_preview(
+        self,
+        *,
+        form_selector: str = "form",
+        fields: Mapping[str, Any],
+        redact_values: bool = True,
+    ) -> dict[str, Any]:
+        """Fill matched controls without submitting and return a redacted preview."""
+
+        plan = normalize_selector(form_selector)
+        script = _form_fill_preview_script(
+            form_locator=plan.locator,
+            fields=dict(fields),
+            redact_values=redact_values,
+        )
+        result = self._run_structured_script(
+            script,
+            "form fill preview script returned no structured data",
+        )
+        return {"form_selector": plan.metadata(), **result}
+
+    async def network_listen_start(
+        self,
+        *,
+        targets: list[str] | None = None,
+        is_regex: bool = False,
+        method: str = "",
+        resource_type: str = "",
+        clear: bool = True,
+    ) -> dict[str, Any]:
+        """Start DrissionPage's HTTP/XHR/Fetch listener for the current tab."""
+
+        listener = self._network_listener()
+        if clear and bool(getattr(listener, "listening", False)):
+            self._safe_network_stop(listener)
+        elif clear and callable(getattr(listener, "clear", None)):
+            listener.clear()
+
+        target_arg: Any = None
+        if targets:
+            target_arg = targets[0] if len(targets) == 1 else list(targets)
+
+        kwargs: dict[str, Any] = {
+            "targets": target_arg,
+            "is_regex": is_regex if target_arg is not None else None,
+            "method": method or None,
+            "res_type": resource_type or None,
+        }
+        try:
+            listener.start(**kwargs)
+        except TypeError:
+            listener.start(target_arg, is_regex if target_arg is not None else None)
+
+        self._network_started_at = datetime.now(timezone.utc).isoformat()
+        self._network_filters = {
+            "targets": list(targets or []),
+            "is_regex": bool(is_regex),
+            "method": method,
+            "resource_type": resource_type,
+        }
+        return {
+            "listening": bool(getattr(listener, "listening", False)),
+            "filters": dict(self._network_filters),
+            "started_at": self._network_started_at,
+            "tab_id": self.mcp_tab_id,
+            "cleared": bool(clear),
+        }
+
+    async def network_listen_wait(
+        self,
+        *,
+        timeout: float = 5.0,
+        limit: int = 10,
+        include_headers: bool = False,
+        include_body: bool = False,
+        max_body_chars: int = 2000,
+    ) -> dict[str, Any]:
+        """Wait for network packets and normalize them into bounded JSON."""
+
+        listener = self._network_listener()
+        if not bool(getattr(listener, "listening", False)):
+            raise UnsupportedOperationError("Network listener is not listening.")
+
+        raw_packets = await asyncio.to_thread(
+            listener.wait,
+            count=limit,
+            timeout=timeout,
+            fit_count=False,
+            raise_err=False,
+        )
+        timed_out = raw_packets is False
+        if raw_packets is False or raw_packets is None:
+            packets: list[Any] = []
+        elif isinstance(raw_packets, list):
+            packets = raw_packets
+            timed_out = len(packets) < limit
+        else:
+            packets = [raw_packets]
+            timed_out = limit > 1
+
+        normalized = [
+            _network_packet_payload(
+                packet,
+                index=index,
+                include_headers=include_headers,
+                include_body=include_body,
+                max_body_chars=max_body_chars,
+            )
+            for index, packet in enumerate(packets[:limit])
+        ]
+        return {
+            "listening": bool(getattr(listener, "listening", False)),
+            "timed_out": bool(timed_out),
+            "count": len(normalized),
+            "limit": limit,
+            "packets": normalized,
+        }
+
+    async def network_listen_stop(self, *, clear: bool = True) -> dict[str, Any]:
+        """Stop DrissionPage's listener for the current tab."""
+
+        listener = self._network_listener()
+        was_listening = bool(getattr(listener, "listening", False))
+        if was_listening:
+            self._safe_network_stop(listener, clear=clear)
+        elif clear and callable(getattr(listener, "clear", None)):
+            listener.clear()
+        return {
+            "listening": bool(getattr(listener, "listening", False)),
+            "was_listening": was_listening,
+            "cleared": bool(clear),
+        }
 
     async def find_elements(
         self,
@@ -989,6 +1214,36 @@ class PageTab:
             },
         }
 
+    def _network_listener(self) -> Any:
+        listener = getattr(self.page, "listen", None)
+        if listener is None:
+            raise UnsupportedOperationError(
+                "Network listener is unavailable on this DrissionPage tab."
+            )
+        required = ("start", "wait", "stop")
+        missing = [name for name in required if not callable(getattr(listener, name, None))]
+        if missing:
+            raise UnsupportedOperationError(
+                "Network listener is unsupported; missing: " + ", ".join(missing)
+            )
+        return listener
+
+    def _safe_network_stop(self, listener: Any, *, clear: bool = True) -> None:
+        try:
+            if clear:
+                listener.stop()
+            else:
+                pause = getattr(listener, "pause", None)
+                if callable(pause):
+                    pause(clear=False)
+                else:
+                    listener.stop()
+        except AttributeError:
+            logger.debug("Network listener stop hit a partial driver state", exc_info=True)
+        except Exception:
+            logger.debug("Network listener stop failed", exc_info=True)
+            raise
+
     def _console_surface(self) -> Any | None:
         try:
             return getattr(self.page, "console", None)
@@ -1377,6 +1632,430 @@ class PageTab:
             "signature": f"{tag}|{text[:100]}|{disabled}",
         }
 
+
+SENSITIVE_NETWORK_HEADERS = {
+    "authorization",
+    "cookie",
+    "set-cookie",
+    "x-api-key",
+    "proxy-authorization",
+}
+
+
+def _extract_links_script(
+    *,
+    locator: str,
+    limit: int,
+    include_text: bool,
+    same_origin_only: bool,
+    absolute_urls: bool,
+    base_url: str,
+) -> str:
+    return f"""
+(() => {{
+  const locator = {json.dumps(locator)};
+  const limit = {int(limit)};
+  const includeText = {json.dumps(include_text)};
+  const sameOriginOnly = {json.dumps(same_origin_only)};
+  const absoluteUrls = {json.dumps(absolute_urls)};
+  const baseUrl = {json.dumps(base_url)};
+
+  function cssIdent(value) {{
+    if (window.CSS && typeof window.CSS.escape === 'function') {{
+      return window.CSS.escape(value);
+    }}
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\\\$&');
+  }}
+
+  function cssString(value) {{
+    return String(value).split('\\\\').join('\\\\\\\\').replace(/"/g, '\\\\"');
+  }}
+
+  function textOf(node) {{
+    return (node.innerText || node.textContent || '').replace(/\\s+/g, ' ').trim();
+  }}
+
+  function recommendedSelector(el) {{
+    if (el.id) return '#' + cssIdent(el.id);
+    const testId = el.getAttribute('data-testid');
+    if (testId) return '[data-testid="' + cssString(testId) + '"]';
+    let index = 1;
+    let sibling = el;
+    while ((sibling = sibling.previousElementSibling)) {{
+      if (sibling.tagName === el.tagName) index += 1;
+    }}
+    return (el.tagName || 'a').toLowerCase() + ':nth-of-type(' + index + ')';
+  }}
+
+  function selectedNodes() {{
+    const strategy = locator.split(':', 1)[0];
+    const raw = locator.slice(strategy.length + 1);
+    if (strategy === 'xpath' || strategy === 'x') {{
+      const result = document.evaluate(
+        raw,
+        document,
+        null,
+        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+        null
+      );
+      const nodes = [];
+      for (let index = 0; index < result.snapshotLength; index += 1) {{
+        const node = result.snapshotItem(index);
+        if (node && node.nodeType === Node.ELEMENT_NODE) nodes.push(node);
+      }}
+      return nodes;
+    }}
+    const css = strategy === 'css' ? raw : 'a';
+    return Array.from(document.querySelectorAll(css));
+  }}
+
+  const pageUrl = new URL(window.location.href || baseUrl);
+  const allLinks = selectedNodes()
+    .filter((el) => (el.tagName || '').toLowerCase() === 'a' || el.href)
+    .map((el, index) => {{
+      const href = el.getAttribute('href') || '';
+      let absolute = '';
+      try {{ absolute = href ? new URL(href, pageUrl.href).href : ''; }} catch (_err) {{}}
+      return {{
+        index,
+        text: includeText ? textOf(el).slice(0, 300) : '',
+        href,
+        url: absoluteUrls ? absolute : href,
+        absolute_url: absolute,
+        selector: recommendedSelector(el),
+        rel: el.getAttribute('rel') || '',
+        target: el.getAttribute('target') || '',
+        origin: absolute ? new URL(absolute).origin : '',
+      }};
+    }})
+    .filter((item) => !sameOriginOnly || !item.origin || item.origin === pageUrl.origin);
+
+  const selected = allLinks.slice(0, limit).map((item) => {{
+    const copy = Object.assign({{}}, item);
+    delete copy.origin;
+    if (!absoluteUrls) delete copy.absolute_url;
+    return copy;
+  }});
+  return {{
+    include_text: includeText,
+    same_origin_only: sameOriginOnly,
+    absolute_urls: absoluteUrls,
+    count: allLinks.length,
+    returned: selected.length,
+    limit,
+    truncated: selected.length < allLinks.length,
+    links: selected,
+  }};
+}})()
+"""
+
+
+def _form_fill_preview_script(
+    *,
+    form_locator: str,
+    fields: dict[str, Any],
+    redact_values: bool,
+) -> str:
+    return f"""
+(() => {{
+  const formLocator = {json.dumps(form_locator)};
+  const fields = {json.dumps(fields, ensure_ascii=False, default=str)};
+  const redactValues = {json.dumps(redact_values)};
+
+  function cssIdent(value) {{
+    if (window.CSS && typeof window.CSS.escape === 'function') {{
+      return window.CSS.escape(value);
+    }}
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\\\$&');
+  }}
+
+  function cssString(value) {{
+    return String(value).split('\\\\').join('\\\\\\\\').replace(/"/g, '\\\\"');
+  }}
+
+  function textOf(node) {{
+    return (node.innerText || node.textContent || '').replace(/\\s+/g, ' ').trim();
+  }}
+
+  function selectedForm() {{
+    const strategy = formLocator.split(':', 1)[0];
+    const raw = formLocator.slice(strategy.length + 1);
+    if (strategy === 'xpath' || strategy === 'x') {{
+      const result = document.evaluate(
+        raw,
+        document,
+        null,
+        XPathResult.FIRST_ORDERED_NODE_TYPE,
+        null
+      );
+      const node = result.singleNodeValue;
+      if (!node) return null;
+      return node.matches && node.matches('form') ? node : node.querySelector('form');
+    }}
+    const css = strategy === 'css' ? raw : 'form';
+    const node = document.querySelector(css);
+    if (!node) return null;
+    return node.matches && node.matches('form') ? node : node.querySelector('form');
+  }}
+
+  function labelFor(el) {{
+    const id = el.getAttribute('id');
+    if (id) {{
+      const label = document.querySelector('label[for="' + cssString(id) + '"]');
+      if (label) return textOf(label);
+    }}
+    const wrapping = el.closest ? el.closest('label') : null;
+    return wrapping ? textOf(wrapping) : '';
+  }}
+
+  function selectorFor(el) {{
+    const tag = (el.tagName || 'input').toLowerCase();
+    if (el.id) return '#' + cssIdent(el.id);
+    const name = el.getAttribute('name');
+    if (name) return tag + '[name="' + cssString(name) + '"]';
+    let index = 1;
+    let sibling = el;
+    while ((sibling = sibling.previousElementSibling)) {{
+      if (sibling.tagName === el.tagName) index += 1;
+    }}
+    return tag + ':nth-of-type(' + index + ')';
+  }}
+
+  function controls(form) {{
+    return Array.from(form.querySelectorAll('input,textarea,select'));
+  }}
+
+  function matchesControl(el, key) {{
+    const lowered = String(key).toLowerCase();
+    const selector = selectorFor(el);
+    const options = [
+      ['selector', selector],
+      ['id', el.getAttribute('id') || ''],
+      ['name', el.getAttribute('name') || ''],
+      ['label', labelFor(el)],
+      ['placeholder', el.getAttribute('placeholder') || ''],
+    ];
+    for (const [kind, value] of options) {{
+      if (value && String(value).toLowerCase() === lowered) return kind;
+    }}
+    try {{
+      if (key && (String(key).startsWith('#') || String(key).startsWith('.') || String(key).includes('['))) {{
+        if (el.matches(key)) return 'selector';
+      }}
+    }} catch (_err) {{}}
+    return '';
+  }}
+
+  function previewValue(el, value) {{
+    const type = String(el.type || el.getAttribute('type') || '').toLowerCase();
+    if (redactValues || type === 'password') return '<redacted>';
+    if (typeof value === 'boolean') return value ? 'true' : 'false';
+    return String(value ?? '');
+  }}
+
+  function applyValue(el, value) {{
+    const tag = (el.tagName || '').toLowerCase();
+    const type = String(el.type || el.getAttribute('type') || '').toLowerCase();
+    if (type === 'checkbox' || type === 'radio') {{
+      el.checked = Boolean(value);
+    }} else if (tag === 'select') {{
+      const stringValue = String(value ?? '');
+      let matched = false;
+      for (const option of Array.from(el.options || [])) {{
+        if (option.value === stringValue || textOf(option) === stringValue) {{
+          option.selected = true;
+          matched = true;
+        }} else if (!el.multiple) {{
+          option.selected = false;
+        }}
+      }}
+      if (!matched) return 'OPTION_NOT_FOUND';
+    }} else {{
+      el.value = String(value ?? '');
+    }}
+    el.dispatchEvent(new Event('input', {{bubbles: true}}));
+    el.dispatchEvent(new Event('change', {{bubbles: true}}));
+    return '';
+  }}
+
+  const form = selectedForm();
+  const keys = Object.keys(fields || {{}});
+  if (!form) {{
+    return {{
+      form_found: false,
+      form: null,
+      field_count: 0,
+      filled_count: 0,
+      skipped_count: keys.length,
+      filled: [],
+      skipped: keys.map((key) => ({{key, reason: 'FORM_NOT_FOUND'}})),
+      requires_confirmation: true,
+      submitted: false,
+      redacted: redactValues,
+    }};
+  }}
+
+  const allControls = controls(form);
+  const filled = [];
+  const skipped = [];
+  for (const key of keys) {{
+    const value = fields[key];
+    let matched = null;
+    let matchedBy = '';
+    for (const control of allControls) {{
+      matchedBy = matchesControl(control, key);
+      if (matchedBy) {{ matched = control; break; }}
+    }}
+    if (!matched) {{
+      skipped.push({{key, reason: 'FIELD_NOT_MATCHED'}});
+      continue;
+    }}
+    if (matched.disabled || matched.readOnly) {{
+      skipped.push({{key, reason: matched.disabled ? 'FIELD_DISABLED' : 'FIELD_READONLY'}});
+      continue;
+    }}
+    const applyError = applyValue(matched, value);
+    if (applyError) {{
+      skipped.push({{key, reason: applyError, selector: selectorFor(matched)}});
+      continue;
+    }}
+    filled.push({{
+      key,
+      selector: selectorFor(matched),
+      matched_by: matchedBy,
+      tag: (matched.tagName || '').toLowerCase(),
+      type: String(matched.type || matched.getAttribute('type') || '').toLowerCase(),
+      value: previewValue(matched, value),
+    }});
+  }}
+
+  return {{
+    form_found: true,
+    form: {{
+      selector: selectorFor(form),
+      id: form.getAttribute('id') || '',
+      name: form.getAttribute('name') || '',
+      method: (form.getAttribute('method') || 'get').toLowerCase(),
+      action: form.action || form.getAttribute('action') || '',
+    }},
+    field_count: allControls.length,
+    filled_count: filled.length,
+    skipped_count: skipped.length,
+    filled,
+    skipped,
+    requires_confirmation: true,
+    submitted: false,
+    redacted: redactValues,
+  }};
+}})()
+"""
+
+
+def _network_packet_payload(
+    packet: Any,
+    *,
+    index: int,
+    include_headers: bool,
+    include_body: bool,
+    max_body_chars: int,
+) -> dict[str, Any]:
+    request = _safe_packet_attr(packet, "request")
+    response = _safe_packet_attr(packet, "response")
+    failed = bool(_safe_packet_attr(packet, "is_failed", False))
+    fail_info = _safe_packet_attr(packet, "fail_info") if failed else None
+    payload: dict[str, Any] = {
+        "index": index,
+        "url": str(_safe_packet_attr(packet, "url", "") or ""),
+        "method": str(_safe_packet_attr(packet, "method", "") or ""),
+        "resource_type": str(_safe_packet_attr(packet, "resourceType", "") or ""),
+        "status": _safe_int_or_none(_safe_packet_attr(response, "status")),
+        "mime_type": str(_safe_packet_attr(response, "mimeType", "") or ""),
+        "failed": failed,
+        "fail_error": str(_safe_packet_attr(fail_info, "errorText", "") or ""),
+    }
+    if include_headers:
+        payload["request_headers"] = _redact_network_headers(
+            _safe_packet_attr(request, "headers", {})
+        )
+        payload["response_headers"] = _redact_network_headers(
+            _safe_packet_attr(response, "headers", {})
+        )
+    if include_body:
+        body = _safe_packet_attr(response, "body", None)
+        body_excerpt, body_truncated, body_type = _bounded_body(body, max_body_chars)
+        payload.update(
+            {
+                "body_excerpt": body_excerpt,
+                "body_truncated": body_truncated,
+                "body_type": body_type,
+            }
+        )
+        request_body = _safe_packet_attr(request, "postData", None)
+        request_excerpt, request_truncated, request_type = _bounded_body(
+            request_body,
+            max_body_chars,
+        )
+        payload.update(
+            {
+                "request_body_excerpt": request_excerpt,
+                "request_body_truncated": request_truncated,
+                "request_body_type": request_type,
+            }
+        )
+    return payload
+
+
+def _safe_packet_attr(obj: Any, name: str, default: Any = None) -> Any:
+    if obj is None:
+        return default
+    try:
+        return getattr(obj, name)
+    except Exception:
+        return default
+
+
+def _safe_int_or_none(value: Any) -> int | None:
+    try:
+        if value is None:
+            return None
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _redact_network_headers(headers: Any) -> dict[str, str]:
+    if not isinstance(headers, Mapping):
+        try:
+            headers = dict(headers or {})
+        except Exception:
+            headers = {}
+    redacted: dict[str, str] = {}
+    for key, value in dict(headers).items():
+        key_text = str(key)
+        lowered = key_text.lower()
+        if lowered in SENSITIVE_NETWORK_HEADERS or any(
+            marker in lowered for marker in ("token", "secret", "api-key")
+        ):
+            redacted[key_text] = "<redacted>"
+        else:
+            redacted[key_text] = "" if value is None else str(value)
+    return redacted
+
+
+def _bounded_body(value: Any, max_chars: int) -> tuple[str, bool, str]:
+    if value in (None, False):
+        return "", False, "none"
+    if isinstance(value, (bytes, bytearray)):
+        text = base64.b64encode(bytes(value)).decode("ascii")
+        body_type = "bytes_base64"
+    elif isinstance(value, (dict, list, tuple)):
+        text = json.dumps(value, ensure_ascii=False, default=str, sort_keys=True)
+        body_type = "json"
+    else:
+        text = str(value)
+        body_type = "text"
+    limit = max(0, int(max_chars))
+    return text[:limit], len(text) > limit, body_type
 
 def _element_info(element: Any, plan: SelectorPlan) -> dict[str, Any]:
     return {

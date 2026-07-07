@@ -24,12 +24,12 @@ Include:
 
 - MCP clients can ask this server to open websites and interact with pages.
 - Browser automation may expose authenticated sessions in the configured browser profile.
-- Screenshots and extracted text can contain sensitive information.
+- Screenshots, extracted text, form values, and opt-in network body/header captures can contain sensitive information.
 - The server does not need external API credentials, but it can interact with any site reachable from the local machine.
 
 ## Safe Usage
 
-- Use a dedicated browser profile for automation when handling sensitive accounts.
+- Use a dedicated browser profile (`DP_USER_DATA_PATH`) for automation when handling sensitive accounts; avoid reusing a real daily browsing profile unless you accept cookie/session exposure.
 - Review MCP client prompts before allowing actions on authenticated or production systems.
 - Avoid saving screenshots or page content to shared paths unless needed.
 - Keep Chrome sandboxing enabled for normal desktop use; use `DP_NO_SANDBOX=1` only when Chromium cannot start inside a restricted container or root environment.
@@ -52,6 +52,7 @@ configuration:
 | `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost, loopback, private, link-local, reserved, and multicast IP navigation. |
 | `DP_MCP_SCREENSHOT_ROOT` | Restrict `page_screenshot.path` writes to this directory tree. |
 | `DP_MCP_UPLOAD_ROOT` | Restrict `element_upload_file` inputs to existing files inside this directory tree. |
+| `DP_USER_DATA_PATH` | Use a dedicated browser profile directory for MCP-owned sessions. Exposed only as configured/redacted in `drissionpage://session/config`. |
 
 Example:
 
@@ -74,6 +75,8 @@ Example:
 Policy denials return structured `POLICY_DENIED` errors. Navigation policy is
 checked before browser initialization, so a denied URL does not start a browser
 session.
+
+`form_fill_preview` redacts field values by default and never submits forms. Network listener beta tools only observe packets; headers are opt-in/redacted and bodies are opt-in/bounded.
 
 Runtime request throttling is not implemented for the current local stdio server
 because this package is a single-user MCP server rather than a remote

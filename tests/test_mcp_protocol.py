@@ -25,7 +25,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 46
+    assert len(tools) == 52
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -52,6 +52,12 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "shadow_find",
         "browser_cookies_get",
         "storage_get",
+        "browser_open_and_snapshot",
+        "browser_extract_links",
+        "form_fill_preview",
+        "network_listen_start",
+        "network_listen_wait",
+        "network_listen_stop",
     }
     for tool in tools:
         assert tool.description
@@ -165,7 +171,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 46
+            assert len(tools.tools) == 52
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -182,6 +188,12 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "frame_list",
                 "shadow_find",
                 "storage_get",
+                "browser_open_and_snapshot",
+                "browser_extract_links",
+                "form_fill_preview",
+                "network_listen_start",
+                "network_listen_wait",
+                "network_listen_stop",
             }
             assert "element_input_text" not in {tool.name for tool in tools.tools}
             assert "wait_sleep" not in {tool.name for tool in tools.tools}
@@ -262,4 +274,16 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     )
     assert schemas["storage_get"]["oneOf"][0]["properties"]["data"]["title"] == (
         "StorageGetData"
+    )
+    assert schemas["browser_open_and_snapshot"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "BrowserOpenAndSnapshotData"
+    )
+    assert schemas["browser_extract_links"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "BrowserExtractLinksData"
+    )
+    assert schemas["form_fill_preview"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "FormFillPreviewData"
+    )
+    assert schemas["network_listen_wait"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "NetworkListenWaitData"
     )

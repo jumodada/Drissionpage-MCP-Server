@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-07-07
+
+### Added
+- Added workflow tools: `browser_open_and_snapshot`, `browser_extract_links`, and `form_fill_preview`.
+- Added network listener beta tools: `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation without interception.
+- Added `drissionpage://session/config` for redacted browser/profile configuration visibility.
+- Added deterministic local fixture coverage for workflow forms, links, and network fetch/XHR scenarios.
+
+### Changed
+- Tool registry now exposes 52 public tools.
+- `drissionpage-mcp doctor` redacts configured paths and still reports DrissionPage 5.x as unsupported; 0.5.6 remains on `DrissionPage>=4.1.1.4,<5`.
+
+### Security
+- Form field maps, network headers, and body-like action-history arguments are redacted by default.
+- Network body capture remains opt-in and bounded by `max_body_chars`.
+
 ## [0.5.5] - 2026-07-06
 
 ### Added
@@ -266,7 +282,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.5...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.6...HEAD
+[0.5.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.3...v0.5.4
 [0.5.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.2...v0.5.3

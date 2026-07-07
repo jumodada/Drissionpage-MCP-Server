@@ -94,6 +94,11 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
         ErrorCode.POLICY_DENIED,
         message="Screenshot path denied by policy",
     )
+    unsupported_hints = recovery_hints(
+        ErrorCode.UNSUPPORTED_OPERATION,
+        tool_name="network_listen_start",
+        message="listener unavailable",
+    )
 
     assert {hint["action"] for hint in timeout_hints} >= {
         "increase_timeout",
@@ -107,6 +112,7 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
         hint.get("env") == "DP_MCP_SCREENSHOT_ROOT"
         for hint in screenshot_policy_hints
     )
+    assert any(hint["action"] == "verify_listener_api" for hint in unsupported_hints)
 
 
 def test_screenshot_result_includes_image_content_and_json_metadata() -> None:
@@ -164,6 +170,7 @@ def test_errors_module_reexports_stable_error_api() -> None:
         (RuntimeError("screenshot failed"), "", ErrorCode.SCREENSHOT_FAILED),
         (RuntimeError("policy allowlist denied"), "", ErrorCode.POLICY_DENIED),
         (RuntimeError("browser launch failed"), "", ErrorCode.BROWSER_START_FAILED),
+        (RuntimeError("listener unsupported"), "", ErrorCode.UNSUPPORTED_OPERATION),
     ],
 )
 def test_classify_error_maps_mcp_recovery_categories(
@@ -481,6 +488,131 @@ def test_observable_action_output_schemas_validate_success_payloads() -> None:
     validate(click_payload, tool_result_output_schema("element_click"))
     validate(type_payload, tool_result_output_schema("element_type"))
     validate(wait_payload, tool_result_output_schema("wait_until"))
+
+
+def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
+    open_payload = ToolResult.success(
+        "Opened page",
+        url="https://example.test/workflow",
+        final_url="https://example.test/workflow",
+        title="Workflow",
+        wait={
+            "condition": "visible",
+            "selector": "#app",
+            "value": "",
+            "matched": True,
+            "timeout": 5.0,
+        },
+        snapshot={"title": "Workflow", "links": []},
+        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
+    ).to_dict()
+    links_payload = ToolResult.success(
+        "Extracted links",
+        selector="a",
+        locator="css:a",
+        selector_strategy="css",
+        selector_normalized=True,
+        include_text=True,
+        same_origin_only=False,
+        absolute_urls=True,
+        count=1,
+        returned=1,
+        limit=50,
+        truncated=False,
+        links=[
+            {
+                "index": 0,
+                "text": "Docs",
+                "href": "/docs",
+                "url": "https://example.test/docs",
+                "selector": "#docs-link",
+                "rel": "",
+                "target": "",
+            }
+        ],
+        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
+    ).to_dict()
+    fill_payload = ToolResult.success(
+        "Prepared fields",
+        form_selector={
+            "selector": "#profile",
+            "locator": "css:#profile",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+        },
+        form_found=True,
+        form={
+            "selector": "#profile",
+            "id": "profile",
+            "name": "",
+            "method": "post",
+            "action": "/api/echo.json",
+        },
+        field_count=2,
+        filled_count=1,
+        skipped_count=0,
+        filled=[
+            {
+                "key": "name",
+                "selector": "#name",
+                "matched_by": "name",
+                "tag": "input",
+                "type": "text",
+                "value": "<redacted>",
+            }
+        ],
+        skipped=[],
+        requires_confirmation=True,
+        submitted=False,
+        redacted=True,
+    ).to_dict()
+    start_payload = ToolResult.success(
+        "Started network listener",
+        listening=True,
+        filters={"targets": ["/api"], "is_regex": False, "method": "", "resource_type": ""},
+        started_at="2026-07-07T00:00:00+00:00",
+        tab_id="t0",
+        cleared=True,
+    ).to_dict()
+    wait_payload = ToolResult.success(
+        "Captured 1 network packet",
+        listening=True,
+        timed_out=False,
+        count=1,
+        limit=10,
+        packets=[
+            {
+                "index": 0,
+                "url": "https://example.test/api/data.json",
+                "method": "GET",
+                "resource_type": "Fetch",
+                "status": 200,
+                "mime_type": "application/json",
+                "failed": False,
+                "fail_error": "",
+                "request_headers": {"authorization": "<redacted>"},
+                "response_headers": {"content-type": "application/json"},
+                "body_excerpt": "{\"ok\":true}",
+                "body_truncated": False,
+                "body_type": "json",
+            }
+        ],
+        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
+    ).to_dict()
+    stop_payload = ToolResult.success(
+        "Stopped network listener",
+        listening=False,
+        was_listening=True,
+        cleared=True,
+    ).to_dict()
+
+    validate(open_payload, tool_result_output_schema("browser_open_and_snapshot"))
+    validate(links_payload, tool_result_output_schema("browser_extract_links"))
+    validate(fill_payload, tool_result_output_schema("form_fill_preview"))
+    validate(start_payload, tool_result_output_schema("network_listen_start"))
+    validate(wait_payload, tool_result_output_schema("network_listen_wait"))
+    validate(stop_payload, tool_result_output_schema("network_listen_stop"))
+
 
 
 def test_add_image_accepts_bytes_and_rejects_invalid_input() -> None:

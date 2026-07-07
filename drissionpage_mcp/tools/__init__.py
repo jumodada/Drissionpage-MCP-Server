@@ -9,10 +9,12 @@ from . import (
     frame,
     interaction,
     navigate,
+    network,
     shadow,
     storage,
     tabs,
     wait,
+    workflow,
 )
 from .base import Tool, ToolSchema, ToolType, define_tool
 
@@ -34,6 +36,8 @@ def get_all_tools() -> list[Tool]:
     all_tools.extend(shadow.tools)
     all_tools.extend(storage.tools)
     all_tools.extend(wait.tools)
+    all_tools.extend(workflow.tools)
+    all_tools.extend(network.tools)
 
     return all_tools
 

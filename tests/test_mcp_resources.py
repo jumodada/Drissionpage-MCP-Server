@@ -23,6 +23,7 @@ RESOURCE_URIS = [
     "drissionpage://session/summary",
     "drissionpage://session/history",
     "drissionpage://session/state",
+    "drissionpage://session/config",
     "drissionpage://page/current",
     "drissionpage://tools/catalog",
     "drissionpage://policy/summary",
@@ -38,9 +39,9 @@ async def test_list_resources_is_deterministic_and_json_typed() -> None:
 
     resources = result.root.resources
     assert [str(resource.uri) for resource in resources] == RESOURCE_URIS
-    assert [resource.mimeType for resource in resources] == ["application/json"] * 6
+    assert [resource.mimeType for resource in resources] == ["application/json"] * 7
     assert all(resource.name and resource.description for resource in resources)
-    current_page = resources[3]
+    current_page = resources[4]
     assert current_page.name == "page_current"
     assert "redaction" not in current_page.description.lower()
 
@@ -57,6 +58,7 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     session_payload = await _read_json(server, "drissionpage://session/summary")
     state_payload = await _read_json(server, "drissionpage://session/state")
     policy_payload = await _read_json(server, "drissionpage://policy/summary")
+    config_payload = await _read_json(server, "drissionpage://session/config")
     history_payload = await _read_json(server, "drissionpage://session/history")
 
     assert server.context is None
@@ -87,6 +89,11 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
             "session": {"count": 0, "keys": []},
         },
     }
+    assert config_payload["available"] is True
+    assert config_payload["browser_active"] is False
+    assert config_payload["environment"]["user_data_path"]["configured"] is False
+    assert config_payload["environment"]["browser_path"]["value"] == ""
+    assert config_payload["policy"]["profile"] == "restricted"
     assert policy_payload["profile"] == "restricted"
     assert policy_payload["controls"]["navigation_allowlist"] == {
         "configured": True,
@@ -170,7 +177,7 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     payload = await _read_json(server, "drissionpage://tools/catalog")
 
     names = [tool["name"] for tool in payload["tools"]]
-    assert len(names) == 46
+    assert len(names) == 52
     assert names == list(server.tools.keys())
     assert "page_snapshot" in names
     assert "page_observe" in names
@@ -185,6 +192,12 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert "frame_list" in names
     assert "shadow_find" in names
     assert "storage_get" in names
+    assert "browser_open_and_snapshot" in names
+    assert "browser_extract_links" in names
+    assert "form_fill_preview" in names
+    assert "network_listen_start" in names
+    assert "network_listen_wait" in names
+    assert "network_listen_stop" in names
     assert {"tab_list", "tab_switch", "tab_close"} <= set(names)
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
@@ -199,6 +212,10 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert schema_by_name["element_upload_file"] == "ElementUploadFileData"
     assert schema_by_name["frame_snapshot"] == "FrameSnapshotData"
     assert schema_by_name["storage_get"] == "StorageGetData"
+    assert schema_by_name["browser_open_and_snapshot"] == "BrowserOpenAndSnapshotData"
+    assert schema_by_name["browser_extract_links"] == "BrowserExtractLinksData"
+    assert schema_by_name["form_fill_preview"] == "FormFillPreviewData"
+    assert schema_by_name["network_listen_wait"] == "NetworkListenWaitData"
     navigate_tool = payload["tools"][0]
     assert navigate_tool == {
         "name": "page_navigate",

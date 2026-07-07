@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from collections.abc import Mapping
 from typing import Any, cast
 
@@ -22,6 +23,7 @@ RESOURCE_JSON_MAX_CHARS = 12000
 SESSION_SUMMARY_URI = "drissionpage://session/summary"
 SESSION_HISTORY_URI = "drissionpage://session/history"
 SESSION_STATE_URI = "drissionpage://session/state"
+SESSION_CONFIG_URI = "drissionpage://session/config"
 PAGE_CURRENT_URI = "drissionpage://page/current"
 TOOLS_CATALOG_URI = "drissionpage://tools/catalog"
 POLICY_SUMMARY_URI = "drissionpage://policy/summary"
@@ -30,6 +32,7 @@ RESOURCE_URIS = [
     SESSION_SUMMARY_URI,
     SESSION_HISTORY_URI,
     SESSION_STATE_URI,
+    SESSION_CONFIG_URI,
     PAGE_CURRENT_URI,
     TOOLS_CATALOG_URI,
     POLICY_SUMMARY_URI,
@@ -59,6 +62,13 @@ def list_resources() -> list[Resource]:
             name="session_state",
             title="Session State",
             description="Redacted current-tab cookies and web-storage keys.",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri=_uri(SESSION_CONFIG_URI),
+            name="session_config",
+            title="Session Config",
+            description="Redacted DrissionPage MCP environment and profile configuration.",
             mimeType="application/json",
         ),
         Resource(
@@ -100,6 +110,8 @@ def read_resource(
         payload = session_history(context)
     elif normalized_uri == SESSION_STATE_URI:
         payload = session_state(context)
+    elif normalized_uri == SESSION_CONFIG_URI:
+        payload = session_config(context)
     elif normalized_uri == PAGE_CURRENT_URI:
         payload = current_page(context)
     elif normalized_uri == TOOLS_CATALOG_URI:
@@ -163,6 +175,26 @@ def session_state(context: Any) -> dict[str, Any]:
         current_url=getattr(tab, "url", "") or "",
     )
 
+
+
+def session_config(context: Any) -> dict[str, Any]:
+    """Return redacted browser/profile configuration without side effects."""
+
+    policy = SafetyPolicy.from_env()
+    return {
+        "available": True,
+        "browser_active": bool(context and context.is_active()),
+        "environment": {
+            "auto_port": _env_bool("DP_AUTO_PORT", True),
+            "headless": _env_bool("DP_HEADLESS", False),
+            "load_mode": os.getenv("DP_LOAD_MODE", "normal"),
+            "browser_path": _redacted_env_path("CHROME_PATH", "DP_BROWSER_PATH"),
+            "user_data_path": _redacted_env_path("DP_USER_DATA_PATH"),
+            "no_sandbox": _env_bool("DP_NO_SANDBOX", False),
+            "disable_web_security": _env_bool("DP_DISABLE_WEB_SECURITY", False),
+        },
+        "policy": policy.public_summary(),
+    }
 
 def current_page(context: Any) -> dict[str, Any]:
     """Return a bounded current-page payload without initializing the browser."""
@@ -243,6 +275,26 @@ def tools_catalog(tools: Mapping[str, Tool]) -> dict[str, Any]:
         ]
     }
 
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _redacted_env_path(*names: str) -> dict[str, Any]:
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return {
+                "configured": True,
+                "env": name,
+                "value": "<redacted>",
+                "exists": os.path.exists(value),
+            }
+    return {"configured": False, "env": "", "value": "", "exists": False}
 
 def _json_resource(payload: dict[str, Any]) -> str:
     return json.dumps(

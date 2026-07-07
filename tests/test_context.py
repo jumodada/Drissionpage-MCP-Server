@@ -277,6 +277,20 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
     assert action["args"]["nested"]["api_token"] == "<redacted>"
     assert action["args"]["nested"]["items"][0]["cookie"] == "<redacted>"
     assert action["args"]["nested"]["items"][1] == ["plain", "tuple"]
+
+    context.record_action(
+        "form_fill_preview",
+        {
+            "fields": {"name": "Ada", "password": "secret"},
+            "headers": {"authorization": "Bearer secret"},
+            "body": "token=secret",
+        },
+        {"ok": True},
+    )
+    sensitive_action = context.action_history()["actions"][-1]
+    assert sensitive_action["args"]["fields"] == "<redacted>"
+    assert sensitive_action["args"]["headers"] == "<redacted>"
+    assert sensitive_action["args"]["body"] == "<redacted>"
     assert action["tab_id"] == "t0"
     assert action["result"]["url"] == "https://example.test/home"
     assert action["result"]["changes"] == {

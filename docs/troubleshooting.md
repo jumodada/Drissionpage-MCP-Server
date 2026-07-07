@@ -92,7 +92,15 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current 0.5.5 tool registry should load 46 tools.
+The current 0.5.6 tool registry should load 52 tools.
+
+
+## Workflow / Network 0.5.6 Checks
+
+- Use `browser_open_and_snapshot` when a client would otherwise call navigate, wait, snapshot, form inspection, and console logs separately.
+- Use `form_fill_preview` only for no-submit prefill; submit with an explicit click after reviewing `requires_confirmation=true`.
+- Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.
+- Read `drissionpage://session/config` to confirm whether `DP_USER_DATA_PATH`, browser path, headless, sandbox, and policy controls are configured; paths are intentionally redacted.
 
 ## Browser Does Not Start
 
