@@ -9,6 +9,7 @@ from drissionpage_mcp.server import DrissionPageMCPServer
 
 
 PROMPT_NAMES = [
+    "drissionpage_mcp_usage_playbook",
     "browser_navigate_and_summarize",
     "browser_extract_structured_data",
     "browser_fill_form_safely",
@@ -29,7 +30,11 @@ async def test_list_prompts_is_deterministic_and_argumented() -> None:
         assert prompt.title
         assert prompt.description
         assert prompt.arguments
-    summarize = prompts[0]
+    usage = prompts[0]
+    assert [(arg.name, arg.required) for arg in usage.arguments] == [
+        ("task", False),
+    ]
+    summarize = prompts[1]
     assert [(arg.name, arg.required) for arg in summarize.arguments] == [
         ("url", True),
         ("focus", False),
@@ -52,6 +57,7 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
             "form_goal": "fill a contact form",
             "fields_json": "{\"name\":\"Ada\"}",
             "issue_description": "missing button",
+            "task": "inspect a page and fill a form without submitting",
         },
     )
 
@@ -61,7 +67,13 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
     assert "page_navigate" in text
     assert "element_input_text" not in text
     assert "wait_sleep" not in text
+    if prompt_name == "drissionpage_mcp_usage_playbook":
+        assert "DrissionPage>=4.1.1.4,<5" in text
+        assert "form_fill_preview" in text
+        assert "network_listen_start" in text
+        assert "observation only" in text.lower()
     if prompt_name == "browser_fill_form_safely":
+        assert "form_fill_preview" in text
         assert "confirmation" in text.lower()
         assert "do not submit" in text.lower()
 

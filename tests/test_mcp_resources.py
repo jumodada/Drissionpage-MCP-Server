@@ -24,6 +24,7 @@ RESOURCE_URIS = [
     "drissionpage://session/history",
     "drissionpage://session/state",
     "drissionpage://session/config",
+    "drissionpage://guide/model-usage",
     "drissionpage://page/current",
     "drissionpage://tools/catalog",
     "drissionpage://policy/summary",
@@ -39,9 +40,9 @@ async def test_list_resources_is_deterministic_and_json_typed() -> None:
 
     resources = result.root.resources
     assert [str(resource.uri) for resource in resources] == RESOURCE_URIS
-    assert [resource.mimeType for resource in resources] == ["application/json"] * 7
+    assert [resource.mimeType for resource in resources] == ["application/json"] * 8
     assert all(resource.name and resource.description for resource in resources)
-    current_page = resources[4]
+    current_page = resources[5]
     assert current_page.name == "page_current"
     assert "redaction" not in current_page.description.lower()
 
@@ -50,6 +51,9 @@ async def test_list_resources_is_deterministic_and_json_typed() -> None:
 async def test_read_session_and_policy_resources_do_not_initialize_browser(
     monkeypatch,
 ) -> None:
+    monkeypatch.delenv("CHROME_PATH", raising=False)
+    monkeypatch.delenv("DP_BROWSER_PATH", raising=False)
+    monkeypatch.delenv("DP_USER_DATA_PATH", raising=False)
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "example.com,allowed.test")
     monkeypatch.setenv("DP_MCP_BLOCK_PRIVATE_NETWORK", "1")
 
@@ -59,6 +63,7 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     state_payload = await _read_json(server, "drissionpage://session/state")
     policy_payload = await _read_json(server, "drissionpage://policy/summary")
     config_payload = await _read_json(server, "drissionpage://session/config")
+    guide_payload = await _read_json(server, "drissionpage://guide/model-usage")
     history_payload = await _read_json(server, "drissionpage://session/history")
 
     assert server.context is None
@@ -94,6 +99,14 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert config_payload["environment"]["user_data_path"]["configured"] is False
     assert config_payload["environment"]["browser_path"]["value"] == ""
     assert config_payload["policy"]["profile"] == "restricted"
+    assert guide_payload["available"] is True
+    assert guide_payload["version"] == "0.5.6"
+    assert "DrissionPage>=4.1.1.4,<5" in guide_payload["instructions"]
+    assert "form_fill_preview" in guide_payload["instructions"]
+    assert "network_listen_start" in guide_payload["instructions"]
+    assert "observation only" in guide_payload["network"]["boundary"]
+    assert guide_payload["tested"]["browser_backed"] is True
+    assert "element_input_text" not in json.dumps(guide_payload)
     assert policy_payload["profile"] == "restricted"
     assert policy_payload["controls"]["navigation_allowlist"] == {
         "configured": True,

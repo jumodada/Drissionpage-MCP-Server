@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added workflow tools: `browser_open_and_snapshot`, `browser_extract_links`, and `form_fill_preview`.
 - Added network listener beta tools: `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation without interception.
 - Added `drissionpage://session/config` for redacted browser/profile configuration visibility.
+- Added MCP-exposed model usage guide through server instructions, `drissionpage://guide/model-usage`, and `drissionpage_mcp_usage_playbook`.
 - Added deterministic local fixture coverage for workflow forms, links, and network fetch/XHR scenarios.
 
 ### Changed
