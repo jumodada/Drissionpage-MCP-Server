@@ -1024,3 +1024,675 @@ async def test_close_reports_browser_close_errors_without_raising() -> None:
     tab = PageTab(FakePage(), FakeContext(BrokenBrowser()))
 
     assert await tab.close() is False
+
+
+class RecordingActions(FakeActions):
+    def __init__(self) -> None:
+        super().__init__()
+        self.typed = None
+
+    def type(self, keys: str, *, interval: float = 0) -> None:
+        self.typed = (keys, interval)
+
+
+class RecordingScroll:
+    def __init__(self) -> None:
+        self.calls = []
+
+    def down(self, pixels: int) -> None:
+        self.calls.append(("down", pixels))
+
+    def up(self, pixels: int) -> None:
+        self.calls.append(("up", pixels))
+
+    def left(self, pixels: int) -> None:
+        self.calls.append(("left", pixels))
+
+    def right(self, pixels: int) -> None:
+        self.calls.append(("right", pixels))
+
+    def to_top(self) -> None:
+        self.calls.append(("top",))
+
+    def to_bottom(self) -> None:
+        self.calls.append(("bottom",))
+
+    def to_half(self) -> None:
+        self.calls.append(("half",))
+
+    def to_location(self, x: int, y: int) -> None:
+        self.calls.append(("position", x, y))
+
+
+class RecordingElementScroll:
+    def __init__(self) -> None:
+        self.center = None
+
+    def to_see(self, *, center: bool = True) -> None:
+        self.center = center
+
+
+class RecordingSelect:
+    def __init__(self) -> None:
+        self.calls = []
+
+    def by_value(self, value: str, *, timeout: int = 10) -> None:
+        self.calls.append(("value", value, timeout))
+
+    def by_text(self, value: str, *, timeout: int = 10) -> None:
+        self.calls.append(("text", value, timeout))
+
+    def by_index(self, value: int, *, timeout: int = 10) -> None:
+        self.calls.append(("index", value, timeout))
+
+
+class InteractionElement(FakeElement):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.scroll = RecordingElementScroll()
+        self.select = RecordingSelect()
+        self.hover_calls = []
+        self.check_calls = []
+        self.shadow_root = None
+
+    def hover(self, *, offset_x=None, offset_y=None) -> None:
+        self.hover_calls.append((offset_x, offset_y))
+
+    def check(self, *, uncheck: bool = False, by_js: bool = False) -> None:
+        self.check_calls.append((uncheck, by_js))
+
+
+@pytest.mark.asyncio
+async def test_page_and_element_interaction_tools_cover_success_branches() -> None:
+    element = InteractionElement(attrs={"id": "file", "disabled": None})
+    page = FakePage(element)
+    page.actions = RecordingActions()
+    page.scroll = RecordingScroll()
+    tab = PageTab(page, FakeContext())
+
+    for direction in ("down", "up", "left", "right", "top", "bottom", "half"):
+        result = await tab.scroll_page(direction=direction, pixels=17)
+        assert result["direction"] == direction
+    positioned = await tab.scroll_page(direction="position", x=11, y=22)
+    assert positioned["x"] == 11
+    assert page.scroll.calls == [
+        ("down", 17),
+        ("up", 17),
+        ("left", 17),
+        ("right", 17),
+        ("top",),
+        ("bottom",),
+        ("half",),
+        ("position", 11, 22),
+    ]
+
+    scrolled = await tab.scroll_element_into_view("#file", center=False)
+    hovered = await tab.hover_element("#file", offset_x=3, offset_y=4)
+    await tab.keyboard_press("Hello", interval=0.01)
+    uploaded = await tab.upload_file("#file", ["/tmp/a.txt", "/var/tmp/b.bin"])
+    await tab.select_element("#file", value="admin", by="value")
+    await tab.select_element("#file", value="Admin", by="text")
+    await tab.select_element("#file", value="2", by="index")
+    checked = await tab.check_element("#file", checked=False, by_js=True)
+
+    assert scrolled["center"] is False
+    assert element.scroll.center is False
+    assert hovered["offset_x"] == 3
+    assert element.hover_calls == [(3, 4)]
+    assert page.actions.typed == ("Hello", 0.01)
+    assert uploaded["file_count"] == 2
+    assert uploaded["filenames"] == ["a.txt", "b.bin"]
+    assert element.inputs == [["/tmp/a.txt", "/var/tmp/b.bin"]]
+    assert element.select.calls == [
+        ("value", "admin", 10),
+        ("text", "Admin", 10),
+        ("index", 2, 10),
+    ]
+    assert checked["checked"] is False
+    assert element.check_calls == [(True, True)]
+
+
+@pytest.mark.asyncio
+async def test_page_and_element_interaction_tools_reraise_failures() -> None:
+    tab = PageTab(FakePage(), FakeContext())
+
+    with pytest.raises(RuntimeError, match="scroll API"):
+        await tab.scroll_page()
+
+    page = FakePage(InteractionElement())
+    page.scroll = RecordingScroll()
+    tab = PageTab(page, FakeContext())
+
+    with pytest.raises(ValueError, match="Unsupported scroll direction"):
+        await tab.scroll_page(direction="diagonal")
+    with pytest.raises(ValueError, match="Unsupported select mode"):
+        await tab.select_element("#name", value="x", by="label")
+
+    class FailingInputElement(InteractionElement):
+        def input(self, text):
+            raise RuntimeError(f"cannot upload {text}")
+
+    class FailingHoverElement(InteractionElement):
+        def hover(self, *, offset_x=None, offset_y=None) -> None:
+            raise RuntimeError("hover failed")
+
+    class FailingCheckElement(InteractionElement):
+        def check(self, *, uncheck: bool = False, by_js: bool = False) -> None:
+            raise RuntimeError("check failed")
+
+    class FailingScrollElement(InteractionElement):
+        def __init__(self) -> None:
+            super().__init__()
+            self.scroll = SimpleNamespace(
+                to_see=lambda **_kwargs: (_ for _ in ()).throw(
+                    RuntimeError("scroll failed")
+                )
+            )
+
+    class FailingActionsPage(FakePage):
+        def __init__(self) -> None:
+            super().__init__(InteractionElement())
+            self.actions = SimpleNamespace(
+                type=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                    RuntimeError("type failed")
+                )
+            )
+
+    for element, call in (
+        (FailingInputElement(), lambda failing_tab: failing_tab.upload_file("#x", ["a"])),
+        (FailingHoverElement(), lambda failing_tab: failing_tab.hover_element("#x")),
+        (
+            FailingCheckElement(),
+            lambda failing_tab: failing_tab.check_element("#x"),
+        ),
+        (
+            FailingScrollElement(),
+            lambda failing_tab: failing_tab.scroll_element_into_view("#x"),
+        ),
+    ):
+        with pytest.raises(RuntimeError):
+            await call(PageTab(FakePage(element), FakeContext()))
+
+    with pytest.raises(RuntimeError, match="type failed"):
+        await PageTab(FailingActionsPage(), FakeContext()).keyboard_press("x")
+
+
+class FakeFrame:
+    def __init__(
+        self,
+        *,
+        frame_id: str = "frame1",
+        frame_name: str = "main",
+        text: str = "Frame body text",
+        target=None,
+        body=None,
+        fail_body: bool = False,
+        fail_eles: bool = False,
+    ) -> None:
+        self.frame_ele = FakeElement(
+            tag="iframe",
+            text="",
+            attrs={"id": frame_id, "name": frame_name},
+        )
+        self.title = "Frame Title"
+        self.url = "https://example.test/frame"
+        self.text = text
+        self.target = target if target is not None else FakeElement(
+            tag="button",
+            text="Inside",
+            html="<button id='inside'>Inside</button>",
+            attrs={"id": "inside"},
+        )
+        self.body = body if body is not None else FakeElement(
+            tag="body",
+            text="Fallback body",
+            html="<body>Fallback body</body>",
+        )
+        self.fail_body = fail_body
+        self.fail_eles = fail_eles
+
+    def run_js(self, *_args, **_kwargs):
+        return {}
+
+    def ele(self, selector: str, **_kwargs):
+        if self.fail_body and selector == "tag:body":
+            raise RuntimeError("body unavailable")
+        if selector == "tag:body":
+            return self.body
+        if selector in {"css:#inside", "#inside"}:
+            return self.target
+        return None
+
+    def eles(self, selector: str, **_kwargs):
+        if self.fail_eles:
+            raise RuntimeError("frame lookup failed")
+        if "h1" in selector:
+            return [
+                FakeElement(
+                    tag="h1",
+                    text="Frame Heading",
+                    html="<h1 id='fh'>Frame Heading</h1>",
+                    attrs={"id": "fh"},
+                )
+            ]
+        if selector == "css:a":
+            return [
+                FakeElement(
+                    tag="a",
+                    text="Frame Link",
+                    html="<a id='fl'>Frame Link</a>",
+                    attrs={"id": "fl", "href": "/frame"},
+                )
+            ]
+        return []
+
+
+class FramePage(FakePage):
+    def __init__(self, frames) -> None:
+        super().__init__()
+        self.frames = frames
+
+    def get_frames(self, **_kwargs):
+        return self.frames
+
+    def get_frame(self, selector, **_kwargs):
+        if selector in {"css:#frame1", "#frame1", "raw-ok"}:
+            return self.frames[0] if self.frames else None
+        if selector == "raw-bad":
+            raise RuntimeError("raw frame detached")
+        return None
+
+
+@pytest.mark.asyncio
+async def test_frame_tools_cover_resolution_snapshot_and_find_paths() -> None:
+    frame = FakeFrame(text="")
+    page = FramePage([frame])
+    tab = PageTab(page, FakeContext())
+
+    listed = await tab.list_frames(limit=1)
+    snapshot = await tab.frame_snapshot(frame_index=0, include_html=True)
+    found = await tab.frame_find(selector="#inside", frame_selector="#frame1")
+
+    assert listed["frames"][0]["selector"] == "#frame1"
+    assert snapshot["frame"]["id"] == "frame1"
+    assert snapshot["text_excerpt"] == "Fallback body"
+    assert snapshot["counts"]["headings"] == 1
+    assert found["frame"]["index"] == 0
+    assert found["element"]["selector"] == "#inside"
+
+    with pytest.raises(Exception, match="Element not found"):
+        await tab.frame_find(selector="#missing", frame_index=0)
+
+
+@pytest.mark.asyncio
+async def test_frame_tools_cover_fallbacks_and_error_paths() -> None:
+    assert await PageTab(FakePage(), FakeContext()).list_frames() == {
+        "count": 0,
+        "returned": 0,
+        "limit": 20,
+        "frames": [],
+    }
+
+    class NoKeywordGetFramesPage(FramePage):
+        def get_frames(self, **kwargs):
+            if kwargs:
+                raise TypeError("old signature")
+            return self.frames
+
+    old_signature = await PageTab(
+        NoKeywordGetFramesPage([FakeFrame()]),
+        FakeContext(),
+    ).list_frames()
+    assert old_signature["count"] == 1
+
+    raw_page = FramePage(["raw-ok", "raw-bad"])
+    raw_page.frames = [FakeFrame()]
+    raw_page.get_frames = lambda **_kwargs: ["raw-ok", "raw-bad"]
+    raw_list = await PageTab(raw_page, FakeContext()).list_frames()
+    assert raw_list["count"] == 1
+
+    class BrokenFramesPage(FakePage):
+        def get_frames(self, **_kwargs):
+            raise RuntimeError("frame list failed")
+
+    with pytest.raises(RuntimeError, match="frame list failed"):
+        await PageTab(BrokenFramesPage(), FakeContext()).list_frames()
+
+    with pytest.raises(Exception, match="Frames are not supported"):
+        await PageTab(FakePage(), FakeContext()).frame_snapshot(frame_selector="#f")
+
+    with pytest.raises(Exception, match="Frame not found"):
+        await PageTab(FramePage([FakeFrame()]), FakeContext()).frame_snapshot(
+            frame_selector="#missing"
+        )
+
+    with pytest.raises(Exception, match="Frame index not found"):
+        await PageTab(FramePage([]), FakeContext()).frame_snapshot(frame_index=1)
+
+    no_body_frame = FakeFrame(text="", fail_body=True, fail_eles=True)
+    no_body_snapshot = await PageTab(
+        FramePage([no_body_frame]),
+        FakeContext(),
+    ).frame_snapshot(frame_index=0)
+    assert no_body_snapshot["text_excerpt"] == ""
+    assert no_body_snapshot["counts"]["headings"] == 0
+
+
+class FakeShadowRoot:
+    def __init__(self, *, fail_many: bool = False) -> None:
+        self.fail_many = fail_many
+        self.element = FakeElement(
+            tag="span",
+            text="Shadow Item",
+            html="<span id='shadow-item'>Shadow Item</span>",
+            attrs={"id": "shadow-item"},
+        )
+
+    def ele(self, selector: str, **_kwargs):
+        return self.element if selector == "css:.item" else None
+
+    def eles(self, selector: str, **_kwargs):
+        if self.fail_many:
+            raise RuntimeError("shadow list failed")
+        return [self.element] if selector == "css:.item" else []
+
+
+@pytest.mark.asyncio
+async def test_shadow_tools_cover_success_and_failure_paths() -> None:
+    host = InteractionElement(attrs={"id": "host"})
+    host.shadow_root = FakeShadowRoot()
+    tab = PageTab(FakePage(host), FakeContext())
+
+    one = await tab.shadow_find(host_selector="#host", selector=".item")
+    many = await tab.shadow_find_all(
+        host_selector="#host",
+        selector=".item",
+        limit=1,
+        include_html=True,
+    )
+
+    assert one["host"]["locator"] == "css:#host"
+    assert one["element"]["text"] == "Shadow Item"
+    assert many["count"] == 1
+    assert many["elements"][0]["html"] == "<span id='shadow-item'>Shadow Item</span>"
+
+    with pytest.raises(Exception, match="Element not found"):
+        await tab.shadow_find(host_selector="#host", selector=".missing")
+
+    no_root = InteractionElement(attrs={"id": "host"})
+    with pytest.raises(Exception, match="Shadow root not found"):
+        await PageTab(FakePage(no_root), FakeContext()).shadow_find(
+            host_selector="#host",
+            selector=".item",
+        )
+
+    host_with_bad_root = InteractionElement(attrs={"id": "host"})
+    host_with_bad_root.shadow_root = FakeShadowRoot(fail_many=True)
+    with pytest.raises(RuntimeError, match="shadow list failed"):
+        await PageTab(FakePage(host_with_bad_root), FakeContext()).shadow_find_all(
+            host_selector="#host",
+            selector=".item",
+        )
+
+
+class ActiveContext(FakeContext):
+    def is_active(self) -> bool:
+        return True
+
+
+class CookieStoragePage(FakePage):
+    def __init__(self) -> None:
+        super().__init__()
+        self.cookie_payload = {"sid": "secret"}
+        self.storage_payload = {"token": "secret", "empty": None}
+        self.storage_scripts = []
+
+    def cookies(self, **_kwargs):
+        return self.cookie_payload
+
+    def run_js(self, script: str, **kwargs):
+        self.calls.append(("run_js", script[:40], kwargs))
+        if "localStorage" in script or "sessionStorage" in script:
+            self.storage_scripts.append(script)
+            if "return items" in script:
+                return self.storage_payload
+            return True
+        return super().run_js(script, **kwargs)
+
+
+@pytest.mark.asyncio
+async def test_cookie_storage_and_session_state_paths_are_normalized() -> None:
+    page = CookieStoragePage()
+    tab = PageTab(page, ActiveContext())
+
+    redacted = await tab.cookies_get(include_values=False)
+    assert redacted["cookies"] == [
+        {
+            "name": "sid",
+            "value": "<redacted>",
+            "domain": "",
+            "path": "",
+            "expires": None,
+            "secure": False,
+            "http_only": False,
+        }
+    ]
+
+    page.cookie_payload = [
+        SimpleNamespace(
+            name="token",
+            value=None,
+            domain="example.test",
+            path="/",
+            expires=123,
+            secure=True,
+            httpOnly=True,
+        )
+    ]
+    full_cookie = await tab.cookies_get(all_domains=True, all_info=True, include_values=True)
+    assert full_cookie["cookies"][0]["value"] == ""
+    assert full_cookie["cookies"][0]["http_only"] is True
+
+    page.cookie_payload = object()
+    assert (await tab.cookies_get())["cookies"] == []
+
+    storage = await tab.storage_get(area="local", include_values=False)
+    assert storage["items"] == {"token": "<redacted>", "empty": ""}
+    assert await tab.storage_set(area="session", key="mode", value="test") == {
+        "area": "session",
+        "key": "mode",
+        "set": True,
+    }
+    assert await tab.storage_clear(area="local", key="token") == {
+        "area": "local",
+        "key": "token",
+        "cleared": True,
+    }
+    assert await tab.storage_clear(area="session") == {
+        "area": "session",
+        "key": "",
+        "cleared": True,
+    }
+
+    page.cookie_payload = {"sid": "secret"}
+    session = tab.session_state()
+    assert session["browser_active"] is True
+    assert session["cookies"]["names"] == ["sid"]
+    assert session["storage"]["local"]["keys"] == ["empty", "token"]
+
+
+@pytest.mark.asyncio
+async def test_cookie_and_storage_failures_are_reraised() -> None:
+    class BrokenCookiesPage(CookieStoragePage):
+        def cookies(self, **_kwargs):
+            raise RuntimeError("cookies failed")
+
+    with pytest.raises(RuntimeError, match="cookies failed"):
+        await PageTab(BrokenCookiesPage(), FakeContext()).cookies_get()
+
+    page = CookieStoragePage()
+    tab = PageTab(page, FakeContext())
+
+    with pytest.raises(ValueError, match="Unsupported storage area"):
+        await tab.storage_get(area="bad")
+    with pytest.raises(ValueError, match="Unsupported storage area"):
+        await tab.storage_set(area="bad", key="x", value="y")
+    with pytest.raises(ValueError, match="Unsupported storage area"):
+        await tab.storage_clear(area="bad")
+
+
+@pytest.mark.asyncio
+async def test_console_helpers_cover_unreadable_and_noniterable_messages() -> None:
+    class ConsolePropertyRaisesPage(FakePage):
+        @property
+        def console(self):
+            raise RuntimeError("console detached")
+
+        @console.setter
+        def console(self, _value):
+            pass
+
+    unavailable = await PageTab(ConsolePropertyRaisesPage(), FakeContext()).console_logs()
+    assert unavailable["available"] is False
+    assert PageTab(ConsolePropertyRaisesPage(), FakeContext())._console_summary()[
+        "available"
+    ] is False
+
+    class MessagesRaiseConsole(FakeConsole):
+        @property
+        def messages(self):
+            raise RuntimeError("messages detached")
+
+        @messages.setter
+        def messages(self, _value):
+            pass
+
+    page = FakePage()
+    page.console = MessagesRaiseConsole()
+    assert (await PageTab(page, FakeContext()).console_logs())["logs"] == []
+
+    class NonIterableMessagesConsole(FakeConsole):
+        def __init__(self) -> None:
+            super().__init__(messages=[])
+            self.messages = object()
+
+    tab = PageTab(FakePage(), FakeContext())
+    tab.page.console = NonIterableMessagesConsole()
+    tab._console_log_cache = [
+        {
+            "index": 0,
+            "level": "log",
+            "text": "cached",
+            "url": "",
+            "line": 0,
+            "column": 0,
+            "source": "",
+        }
+    ]
+    assert (await tab.console_logs())["logs"][0]["text"] == "cached"
+
+
+@pytest.mark.asyncio
+async def test_console_message_normalization_handles_edge_message_shapes() -> None:
+    class FieldRaisesMessage:
+        @property
+        def level(self):
+            raise RuntimeError("level unavailable")
+
+        @property
+        def text(self):
+            raise RuntimeError("text unavailable")
+
+        @property
+        def message(self):
+            return "fallback message"
+
+    page = FakePage()
+    page.console = FakeConsole(
+        messages=[
+            "plain string",
+            {"level": "warn", "message": "warn fallback"},
+            {"level": "verbose", "text": "unknown level"},
+            FieldRaisesMessage(),
+        ]
+    )
+    tab = PageTab(page, FakeContext())
+
+    logs = (await tab.console_logs(limit=10))["logs"]
+
+    assert [item["text"] for item in logs] == [
+        "plain string",
+        "warn fallback",
+        "unknown level",
+        "fallback message",
+    ]
+    assert [item["level"] for item in logs] == ["log", "warning", "log", "log"]
+
+    tab._console_log_cache = [
+        {
+            "index": 0,
+            "level": "warning",
+            "text": "old",
+            "url": "",
+            "line": 0,
+            "column": 0,
+            "source": "",
+        }
+    ]
+    tab._merge_console_messages(
+        [
+            {"level": "error", "text": "new"},
+            {"level": "warning", "text": "old"},
+        ]
+    )
+    assert [item["text"] for item in tab._console_log_cache] == ["old", "new"]
+
+
+@pytest.mark.asyncio
+async def test_wait_condition_edge_paths_are_observable() -> None:
+    page = FakePage(element=None)
+    tab = PageTab(page, FakeContext())
+
+    empty_text = await tab.wait_until(
+        condition="text_contains",
+        selector="#missing",
+        value="",
+        timeout=0,
+    )
+    assert empty_text["state"]["text"] == ""
+
+    with pytest.raises(TimeoutError):
+        await tab.wait_until(condition="stable", selector="#missing", timeout=0)
+
+    with pytest.raises(ValueError, match="Unsupported wait condition"):
+        await tab.wait_until(condition="unknown", selector="#missing", timeout=0)
+
+    class SelectorAndElementFailPage(FakePage):
+        def run_js(self, script: str, **kwargs):
+            raise RuntimeError("selector js failed")
+
+        def ele(self, selector: str, **_kwargs):
+            raise RuntimeError("element lookup failed")
+
+    with pytest.raises(TimeoutError):
+        await PageTab(SelectorAndElementFailPage(), FakeContext()).wait_until(
+            condition="visible",
+            selector="#missing",
+            timeout=0,
+        )
+
+    class AttrRaisesElement(FakeElement):
+        def attr(self, attribute: str):
+            if attribute in {"disabled", "aria-disabled"}:
+                raise RuntimeError("attribute unavailable")
+            return super().attr(attribute)
+
+    class JsFailPage(FakePage):
+        def run_js(self, script: str, **kwargs):
+            raise RuntimeError("selector js failed")
+
+    clickable = await PageTab(
+        JsFailPage(AttrRaisesElement(tag="button", text="Save")),
+        FakeContext(),
+    ).wait_until(condition="clickable", selector="#save", timeout=0)
+    assert clickable["matched"] is True
