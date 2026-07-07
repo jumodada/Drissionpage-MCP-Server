@@ -189,8 +189,8 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `wait_time` - Delay execution
 
 ### 🧩 MCP Resources and Prompts
-- Resources: `drissionpage://session/summary`, `drissionpage://session/history`, `drissionpage://session/state`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
-- Prompts: `browser_navigate_and_summarize`, `browser_extract_structured_data`, `browser_fill_form_safely`, `browser_debug_page_issue`
+- Resources: `drissionpage://session/summary`, `drissionpage://session/history`, `drissionpage://session/state`, `drissionpage://session/config`, `drissionpage://guide/model-usage`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
+- Prompts: `drissionpage_mcp_usage_playbook`, `browser_navigate_and_summarize`, `browser_extract_structured_data`, `browser_fill_form_safely`, `browser_debug_page_issue`
 
 ---
 

@@ -108,6 +108,25 @@ def test_readmes_end_with_latest_0_5_6_feature_summary() -> None:
     assert "受限容器/root 环境" in readme_cn
 
 
+def test_public_guides_advertise_mcp_model_usage_surfaces() -> None:
+    """keeps model guidance discoverable through MCP surfaces, not long docs."""
+
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
+    contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert "drissionpage://guide/model-usage" in readme
+    assert "drissionpage://guide/model-usage" in readme_cn
+    assert "drissionpage://guide/model-usage" in contract
+    assert "drissionpage_mcp_usage_playbook" in readme
+    assert "drissionpage_mcp_usage_playbook" in readme_cn
+    assert "drissionpage_mcp_usage_playbook" in contract
+    assert "MCP-exposed model usage guide" in changelog
+    assert not Path("docs/model-usage-skill.md").exists()
+    assert not Path("docs/skills").exists()
+
+
 def test_public_guides_keep_no_sandbox_out_of_general_setup_examples() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")

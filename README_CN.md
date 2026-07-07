@@ -189,8 +189,8 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `wait_time` - 延迟执行
 
 ### 🧩 MCP Resources 和 Prompts
-- Resources：`drissionpage://session/summary`、`drissionpage://session/history`、`drissionpage://session/state`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
-- Prompts：`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_fill_form_safely`、`browser_debug_page_issue`
+- Resources：`drissionpage://session/summary`、`drissionpage://session/history`、`drissionpage://session/state`、`drissionpage://session/config`、`drissionpage://guide/model-usage`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
+- Prompts：`drissionpage_mcp_usage_playbook`、`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_fill_form_safely`、`browser_debug_page_issue`
 
 ---
 

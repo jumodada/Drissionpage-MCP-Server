@@ -11,6 +11,7 @@ from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.types import Resource
 from pydantic import AnyUrl
 
+from .guidance import MODEL_USAGE_RESOURCE_URI, model_usage_payload
 from .metadata import response_meta
 from .policy import SafetyPolicy
 from .response import tool_data_schema_title
@@ -24,6 +25,7 @@ SESSION_SUMMARY_URI = "drissionpage://session/summary"
 SESSION_HISTORY_URI = "drissionpage://session/history"
 SESSION_STATE_URI = "drissionpage://session/state"
 SESSION_CONFIG_URI = "drissionpage://session/config"
+GUIDE_MODEL_USAGE_URI = MODEL_USAGE_RESOURCE_URI
 PAGE_CURRENT_URI = "drissionpage://page/current"
 TOOLS_CATALOG_URI = "drissionpage://tools/catalog"
 POLICY_SUMMARY_URI = "drissionpage://policy/summary"
@@ -33,6 +35,7 @@ RESOURCE_URIS = [
     SESSION_HISTORY_URI,
     SESSION_STATE_URI,
     SESSION_CONFIG_URI,
+    GUIDE_MODEL_USAGE_URI,
     PAGE_CURRENT_URI,
     TOOLS_CATALOG_URI,
     POLICY_SUMMARY_URI,
@@ -69,6 +72,13 @@ def list_resources() -> list[Resource]:
             name="session_config",
             title="Session Config",
             description="Redacted DrissionPage MCP environment and profile configuration.",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri=_uri(GUIDE_MODEL_USAGE_URI),
+            name="model_usage",
+            title="Model Usage Guide",
+            description="Compact model-facing DrissionPage MCP tool-use guidance.",
             mimeType="application/json",
         ),
         Resource(
@@ -112,6 +122,8 @@ def read_resource(
         payload = session_state(context)
     elif normalized_uri == SESSION_CONFIG_URI:
         payload = session_config(context)
+    elif normalized_uri == GUIDE_MODEL_USAGE_URI:
+        payload = model_usage_payload()
     elif normalized_uri == PAGE_CURRENT_URI:
         payload = current_page(context)
     elif normalized_uri == TOOLS_CATALOG_URI:

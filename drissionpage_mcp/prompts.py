@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 from mcp.types import GetPromptResult, Prompt, PromptArgument, PromptMessage, TextContent
 
+from .guidance import MODEL_USAGE_PROMPT_NAME, usage_playbook_text
+
 
 @dataclass(frozen=True)
 class PromptSpec:
@@ -79,6 +81,10 @@ Steps:
 """
 
 
+def _usage_playbook(values: dict[str, str]) -> str:
+    return usage_playbook_text(task=values.get("task", ""))
+
+
 def _extract_structured_data(values: dict[str, str]) -> str:
     selector_hint = values.get("selector_hint", "")
     hint_line = f"Selector hint: {selector_hint}" if selector_hint else "Selector hint: none"
@@ -106,9 +112,9 @@ Goal: {values["form_goal"]}
 Fields JSON: {fields}
 
 Steps:
-1. Call `page_navigate`.
-2. Inspect the form with `element_find`, `element_get_text`, or `element_get_html`.
-3. Type values with `element_type`; never echo secrets in the final answer.
+1. Call `page_navigate` or `browser_open_and_snapshot`.
+2. Inspect forms with `form_inspect`.
+3. Prefill fields with `form_fill_preview`; never echo secrets in the final answer.
 4. Do not submit, click final confirmation buttons, or trigger destructive actions until
    explicit user confirmation is received.
 5. After filling, summarize what was entered and ask for confirmation before submit.
@@ -131,6 +137,15 @@ Steps:
 
 
 PROMPTS: tuple[PromptSpec, ...] = (
+    PromptSpec(
+        name=MODEL_USAGE_PROMPT_NAME,
+        title="DrissionPage MCP Usage Playbook",
+        description="Explain how an MCP-connected model should use DrissionPage MCP safely.",
+        arguments=(
+            _arg("task", "Optional current browser automation task.", required=False),
+        ),
+        render=_usage_playbook,
+    ),
     PromptSpec(
         name="browser_navigate_and_summarize",
         title="Navigate and Summarize",

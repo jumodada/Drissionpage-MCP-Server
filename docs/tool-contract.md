@@ -237,6 +237,7 @@ The server exposes deterministic JSON resources:
 | `drissionpage://session/history` | Redacted recent tool actions for recovering long-session context. |
 | `drissionpage://session/state` | Redacted current-tab cookie names and local/session storage keys. |
 | `drissionpage://session/config` | Redacted browser/profile configuration including headless, browser path configured, `DP_USER_DATA_PATH` configured, sandbox, and policy state. |
+| `drissionpage://guide/model-usage` | Compact model-facing guidance for choosing DrissionPage MCP tools safely. |
 | `drissionpage://page/current` | Bounded current page title, URL, text excerpt, and HTML excerpt. |
 | `drissionpage://tools/catalog` | Public tool catalog with annotations and output data schema names. |
 | `drissionpage://policy/summary` | Redacted local safety policy summary. |
@@ -253,6 +254,7 @@ The server exposes user-controlled workflow prompts:
 
 | Prompt | Purpose |
 | --- | --- |
+| `drissionpage_mcp_usage_playbook` | Explain the safe default tool flow for an MCP-connected model. |
 | `browser_navigate_and_summarize` | Navigate, inspect text, and summarize with source URL. |
 | `browser_extract_structured_data` | Navigate, inspect text/HTML, and return schema-shaped JSON. |
 | `browser_fill_form_safely` | Fill forms with confirmation guidance before submission. |

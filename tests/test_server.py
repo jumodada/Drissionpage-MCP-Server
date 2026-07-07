@@ -23,6 +23,12 @@ class TestDrissionPageMCPServer:
         assert server.name == "DrissionPage MCP"
         assert server.version == __version__
         assert server.context is None
+        assert server.server.instructions
+        assert "DrissionPage>=4.1.1.4,<5" in server.server.instructions
+        assert "page_snapshot" in server.server.instructions
+        assert "form_fill_preview" in server.server.instructions
+        assert "network_listen_start" in server.server.instructions
+        assert "element_input_text" not in server.server.instructions
 
     def test_server_custom_name_version(self):
         """Test server with custom name and version."""

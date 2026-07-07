@@ -22,6 +22,7 @@ from pydantic import ValidationError
 
 from . import __version__
 from .context import DrissionPageContext
+from .guidance import server_instructions
 from .prompts import get_prompt as get_prompt_definition
 from .prompts import list_prompts as list_prompt_definitions
 from .resources import list_resources as list_resource_definitions
@@ -40,7 +41,11 @@ class DrissionPageMCPServer:
     def __init__(self, name: str = "DrissionPage MCP", version: str = __version__):
         self.name = name
         self.version = version
-        self.server = Server(name)
+        self.server = Server(
+            name,
+            version=version,
+            instructions=server_instructions(version),
+        )
         self.context: Optional[DrissionPageContext] = None
         self.tools: Dict[str, DrissionTool] = {}
 
