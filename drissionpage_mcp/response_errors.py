@@ -265,9 +265,14 @@ def recovery_hints(
         return [
             _hint(
                 "navigate_first",
-                "Open a page before calling page or element inspection tools.",
+                "Open a page with the workflow helper when you need immediate page context; use page_navigate only for navigation-only retries.",
+                tool="browser_open_and_snapshot",
+            ),
+            _hint(
+                "navigation_only_retry",
+                "Use page_navigate when you only need to navigate and will inspect the page separately.",
                 tool="page_navigate",
-            )
+            ),
         ]
 
     if code_value == ErrorCode.MCP_ARGUMENT_INVALID.value:
@@ -275,7 +280,11 @@ def recovery_hints(
             _hint(
                 "check_input_schema",
                 "Use exact snake_case argument names from the tool input schema.",
-            )
+            ),
+            _hint(
+                "inspect_tools_catalog",
+                "Read drissionpage://tools/catalog or tools/list before retrying so the next call uses the public tool schema.",
+            ),
         ]
 
     if code_value == ErrorCode.TOOL_NOT_FOUND.value:
@@ -283,7 +292,11 @@ def recovery_hints(
             _hint(
                 "list_available_tools",
                 "Call tools/list and use one of the public tool names.",
-            )
+            ),
+            _hint(
+                "read_model_usage_guide",
+                "Read drissionpage://guide/model-usage to choose workflow helpers before low-level primitives.",
+            ),
         ]
 
     if code_value == ErrorCode.UNSUPPORTED_OPERATION.value:

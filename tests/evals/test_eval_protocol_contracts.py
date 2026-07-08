@@ -72,8 +72,16 @@ async def test_eval_tools_catalog_and_prompt_help_structured_extraction() -> Non
     catalog = json.loads(catalog_result.root.contents[0].text)
     prompt_text = prompt_result.root.messages[0].content.text
 
+    workflow_tool = next(
+        tool for tool in catalog["tools"] if tool["name"] == "browser_open_and_snapshot"
+    )
+    assert "bounded snapshot" in workflow_tool["description"]
     assert any(tool["name"] == "page_snapshot" for tool in catalog["tools"])
     assert any(tool["name"] == "element_find_all" for tool in catalog["tools"])
     assert any(tool["name"] == "element_get_html" for tool in catalog["tools"])
+    assert "browser_open_and_snapshot" in prompt_text
+    assert prompt_text.index("browser_open_and_snapshot") < prompt_text.index(
+        "element_get_html"
+    )
     assert "element_get_html" in prompt_text
     assert "rows: list of {name, role}" in prompt_text

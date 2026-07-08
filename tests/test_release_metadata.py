@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.5.6."""
+"""Release metadata and documentation checks for 0.5.7."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_5_6() -> None:
+def test_package_version_metadata_is_0_5_7() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.6"
-    assert drissionpage_mcp.__version__ == "0.5.6"
+    assert pyproject["project"]["version"] == "0.5.7"
+    assert drissionpage_mcp.__version__ == "0.5.7"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -38,11 +38,18 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "browser_navigate_and_summarize" in contract
 
 
-def test_readmes_end_with_latest_0_5_6_feature_summary() -> None:
+def test_readmes_end_with_latest_0_5_7_feature_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
+    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert "## 🆕 Latest Version: v0.5.6" in readme
+    assert "## 🆕 Latest Version: v0.5.7" in readme
+    assert "Released on 2026-07-08" in readme
+    assert "workflow-first" in readme
+    assert "workflow_routes" in readme
+    assert "drissionpage://tools/catalog" in readme
+    assert "structuredContent" in readme
+    assert "public registry stays at 52 tools" in readme
     assert "tab_list" in readme
     assert "drissionpage://session/history" in readme
     assert "meta.approx_tokens" in readme
@@ -74,7 +81,13 @@ def test_readmes_end_with_latest_0_5_6_feature_summary() -> None:
     assert "MCP_ARGUMENT_INVALID" in readme
     assert "Chrome sandbox remains enabled by default" in readme
     assert "restricted container/root environments" in readme
-    assert "## 🆕 最新版本：v0.5.6" in readme_cn
+    assert "## 🆕 最新版本：v0.5.7" in readme_cn
+    assert "发布日期：2026-07-08" in readme_cn
+    assert "workflow-first" in readme_cn
+    assert "workflow_routes" in readme_cn
+    assert "drissionpage://tools/catalog" in readme_cn
+    assert "structuredContent" in readme_cn
+    assert "公开工具数仍为 52 个" in readme_cn
     assert "tab_list" in readme_cn
     assert "drissionpage://session/history" in readme_cn
     assert "meta.approx_tokens" in readme_cn
@@ -106,6 +119,9 @@ def test_readmes_end_with_latest_0_5_6_feature_summary() -> None:
     assert "MCP_ARGUMENT_INVALID" in readme_cn
     assert "默认保持 Chrome sandbox 开启" in readme_cn
     assert "受限容器/root 环境" in readme_cn
+    assert "## [0.5.7] - 2026-07-08" in changelog
+    assert "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.7...HEAD" in changelog
+    assert "[0.5.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.6...v0.5.7" in changelog
 
 
 def test_public_guides_advertise_mcp_model_usage_surfaces() -> None:

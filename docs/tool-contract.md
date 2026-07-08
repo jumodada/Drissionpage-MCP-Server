@@ -239,7 +239,7 @@ The server exposes deterministic JSON resources:
 | `drissionpage://session/config` | Redacted browser/profile configuration including headless, browser path configured, `DP_USER_DATA_PATH` configured, sandbox, and policy state. |
 | `drissionpage://guide/model-usage` | Compact model-facing guidance for choosing DrissionPage MCP tools safely. |
 | `drissionpage://page/current` | Bounded current page title, URL, text excerpt, and HTML excerpt. |
-| `drissionpage://tools/catalog` | Public tool catalog with annotations and output data schema names. |
+| `drissionpage://tools/catalog` | Public tool catalog with annotations, descriptions, and output data schema names. |
 | `drissionpage://policy/summary` | Redacted local safety policy summary. |
 
 Resource caps:
@@ -255,10 +255,10 @@ The server exposes user-controlled workflow prompts:
 | Prompt | Purpose |
 | --- | --- |
 | `drissionpage_mcp_usage_playbook` | Explain the safe default tool flow for an MCP-connected model. |
-| `browser_navigate_and_summarize` | Navigate, inspect text, and summarize with source URL. |
-| `browser_extract_structured_data` | Navigate, inspect text/HTML, and return schema-shaped JSON. |
-| `browser_fill_form_safely` | Fill forms with confirmation guidance before submission. |
-| `browser_debug_page_issue` | Gather page text/HTML/screenshot evidence for debugging. |
+| `browser_navigate_and_summarize` | Navigate with `browser_open_and_snapshot`, inspect bounded page context, and summarize with source URL. |
+| `browser_extract_structured_data` | Navigate with workflow helpers, inspect bounded text/HTML only as needed, and return schema-shaped JSON. |
+| `browser_fill_form_safely` | Inspect and prefill forms with confirmation guidance before submission. |
+| `browser_debug_page_issue` | Gather workflow-first page evidence for debugging. |
 
 ## Compatibility Notes
 
@@ -278,7 +278,7 @@ The server exposes user-controlled workflow prompts:
 - `storage_set` does not echo the stored value in its success payload.
 - `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.
-- A browser tab must exist before read-only page/element tools can inspect content. Use `page_navigate` first in a fresh session.
+- A browser tab must exist before read-only page/element tools can inspect content. In a fresh session, use `browser_open_and_snapshot` when you need immediate page context after opening a URL; use `page_navigate` when you intentionally need navigation-only behavior and will inspect separately.
 - `element_input_text` and `wait_sleep` were removed in 0.4.0. Use
   `element_type` and `wait_time`.
 

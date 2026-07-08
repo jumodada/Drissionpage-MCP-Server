@@ -90,6 +90,9 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
 
     timeout_hints = recovery_hints(ErrorCode.TIMEOUT, tool_name="wait_for_url")
     browser_hints = recovery_hints(ErrorCode.BROWSER_START_FAILED)
+    not_initialized_hints = recovery_hints(ErrorCode.BROWSER_NOT_INITIALIZED)
+    argument_hints = recovery_hints(ErrorCode.MCP_ARGUMENT_INVALID)
+    not_found_hints = recovery_hints(ErrorCode.TOOL_NOT_FOUND)
     screenshot_policy_hints = recovery_hints(
         ErrorCode.POLICY_DENIED,
         message="Screenshot path denied by policy",
@@ -108,6 +111,18 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
         hint.get("command") == "drissionpage-mcp doctor --launch-browser"
         for hint in browser_hints
     )
+    assert not_initialized_hints[0] == {
+        "action": "navigate_first",
+        "message": (
+            "Open a page with the workflow helper when you need immediate page "
+            "context; use page_navigate only for navigation-only retries."
+        ),
+        "tool": "browser_open_and_snapshot",
+    }
+    assert argument_hints[0]["action"] == "check_input_schema"
+    assert any(hint["action"] == "inspect_tools_catalog" for hint in argument_hints)
+    assert not_found_hints[0]["action"] == "list_available_tools"
+    assert any(hint["action"] == "read_model_usage_guide" for hint in not_found_hints)
     assert any(
         hint.get("env") == "DP_MCP_SCREENSHOT_ROOT"
         for hint in screenshot_policy_hints

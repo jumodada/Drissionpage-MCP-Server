@@ -370,7 +370,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.5.6`.
+Should output the installed package version, for example `drissionpage-mcp 0.5.7`.
 
 ### Browser Issues?
 ```bash
@@ -399,13 +399,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.5.6 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.5.7 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.5.6)
+### Current (v0.5.7)
 - [x] 52 core automation, tab/frame/shadow, page-understanding, form-inspection, workflow, network-listener, session-state, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -564,22 +564,16 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.5.6
+## 🆕 Latest Version: v0.5.7
 
-Released on 2026-07-07. This release adds workflow helpers, network listener beta, and session config visibility while staying on DrissionPage 4.x:
+Released on 2026-07-08. This is a small AI/client ergonomics patch on top of the 0.5.6 workflow and network foundation; it keeps DrissionPage 4.x support and does not add public tools:
 
-
-- New workflow helpers: `browser_open_and_snapshot`, `browser_extract_links`, and `form_fill_preview` reduce repeated client tool chains for page understanding, link discovery, and no-submit form prefill.
-- New network listener beta: `network_listen_start`, `network_listen_wait`, and `network_listen_stop` observe HTTP/XHR/Fetch packets without interception or response mocking.
-- New `drissionpage://session/config` resource reports redacted browser/profile configuration such as `DP_USER_DATA_PATH`, browser path, headless, sandbox, and policy state.
-- New file upload support via `element_upload_file`; upload paths must be under `DP_MCP_UPLOAD_ROOT` and results only expose file names.
-- New action primitives: `page_scroll`, `element_scroll_into_view`, `element_hover`, `keyboard_press`, `element_select`, and `element_check`.
-- New iframe and shadow DOM read-only tools: `frame_list`, `frame_snapshot`, `frame_find`, `shadow_find`, and `shadow_find_all`.
-- New cookie/storage tools: `browser_cookies_get`, `storage_get`, `storage_set`, and `storage_clear`; cookie values are redacted by default.
-- New `drissionpage://session/state` resource summarizes current-tab cookie names and storage keys without returning secret values.
-- `drissionpage-mcp doctor` now flags DrissionPage 5.x as unsupported and keeps the package range on `DrissionPage>=4.1.1.4,<5`.
-- Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` remains reserved for restricted container/root environments.
-- Existing page-understanding, observable-action, console, tab, form, and recovery-hint tools remain compatible; observable changes still include `console_errors_added`; bounded outputs keep `meta.approx_tokens`.
-- Failure payloads include machine-readable `error.details.hints`; browser startup hints still point to `drissionpage-mcp doctor --launch-browser`, `CHROME_PATH`, and `DP_HEADLESS`.
-- `MCP_ARGUMENT_INVALID` continues to protect strict schemas and point clients toward exact snake_case field names.
-- The top-level JSON_RESULT envelope, strict input schemas, and typed `outputSchema` contracts remain unchanged; the public registry has 52 tools.
+- Model-facing guidance is now workflow-first: use `browser_open_and_snapshot` for fresh navigate-and-inspect tasks, `browser_extract_links` for bounded link discovery, and `page_navigate` only for navigation-only retries.
+- MCP prompts such as `drissionpage_mcp_usage_playbook`, structured extraction, safe form filling, and page debugging now steer clients through workflow helpers and bounded `page_snapshot` / `page_observe` checks before lower-level primitives.
+- `drissionpage://guide/model-usage` exposes `workflow_routes` so agents can choose summarize/inspect, link discovery, safe form fill, and network observation sequences without guessing.
+- `drissionpage://tools/catalog` now includes descriptions alongside annotations and output data schema names, improving AI tool choice while preserving the existing catalog contract.
+- Recovery hints are more actionable: fresh sessions point to `browser_open_and_snapshot`, `MCP_ARGUMENT_INVALID` points to schema/catalog inspection, and unknown tools point to `drissionpage://guide/model-usage`.
+- The 0.5.6 helpers remain the stable foundation: `browser_open_and_snapshot`, `browser_extract_links`, `form_fill_preview`, `network_listen_start`, `network_listen_wait`, and `drissionpage://session/config` are unchanged.
+- Existing page-understanding, observable-action, console, tab, form, upload, iframe/shadow, cookie/storage, and recovery-hint tools remain compatible; observable changes still include `console_errors_added`; bounded outputs keep `meta.approx_tokens`.
+- `drissionpage-mcp doctor` still flags DrissionPage 5.x as unsupported and `drissionpage-mcp doctor --launch-browser` remains the browser startup check; Chrome sandbox remains enabled by default and `DP_NO_SANDBOX=1` is reserved for restricted container/root environments.
+- The top-level JSON_RESULT envelope, strict input schemas, `structuredContent`, and typed `outputSchema` contracts remain unchanged; the public registry stays at 52 tools.

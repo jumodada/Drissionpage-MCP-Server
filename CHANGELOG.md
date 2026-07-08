@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-07-08
+
+### Changed
+- Model usage guidance is now workflow-first: fresh navigate-and-inspect tasks point to `browser_open_and_snapshot`, link discovery points to `browser_extract_links`, and navigation-only retries still use `page_navigate`.
+- MCP prompt recipes now prefer workflow helpers and bounded page-understanding tools before lower-level primitives such as full HTML extraction.
+- `drissionpage://tools/catalog` now includes tool descriptions alongside annotations and output data schema names so AI clients can choose tools with less guesswork.
+- Recovery hints now route fresh-session, schema, and unknown-tool failures toward `browser_open_and_snapshot`, `drissionpage://tools/catalog`, and `drissionpage://guide/model-usage`.
+
+### Compatibility
+- Public registry remains 52 tools; this release adds no public tools and does not change input schemas, the `JSON_RESULT` envelope, `structuredContent`, or typed `outputSchema` contracts.
+
 ## [0.5.6] - 2026-07-07
 
 ### Added
@@ -283,7 +294,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.6...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.7...HEAD
+[0.5.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.4...v0.5.5
 [0.5.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.3...v0.5.4

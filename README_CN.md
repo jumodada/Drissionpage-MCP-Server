@@ -370,7 +370,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.5.6`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.5.7`。
 
 ### 浏览器问题？
 ```bash
@@ -399,13 +399,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.5.6 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.5.7 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.5.6)
+### 当前版本 (v0.5.7)
 - [x] 52 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -564,21 +564,16 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.5.6
+## 🆕 最新版本：v0.5.7
 
-发布日期：2026-07-07。本版本新增 workflow helper、network listener beta 和 session config 可见化，并继续只支持 DrissionPage 4.x：
+发布日期：2026-07-08。这是在 0.5.6 workflow/network 基础上的小幅 AI/client 易用性补丁；继续面向 DrissionPage 4.x，不新增公开工具：
 
-- 新增 workflow helper：`browser_open_and_snapshot`、`browser_extract_links`、`form_fill_preview`，减少页面理解、链接提取和非提交表单预填的重复调用链。
-- 新增 network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，只观察 HTTP/XHR/Fetch，不做拦截或响应 mock。
-- 新增 `drissionpage://session/config` 资源，脱敏展示 `DP_USER_DATA_PATH`、浏览器路径、headless、sandbox 和 policy 状态。
-- 新增 `element_upload_file`，上传路径必须位于 `DP_MCP_UPLOAD_ROOT` 下，结果只回显文件名。
-- 新增动作原子工具：`page_scroll`、`element_scroll_into_view`、`element_hover`、`keyboard_press`、`element_select`、`element_check`。
-- 新增 iframe 与 shadow DOM 只读工具：`frame_list`、`frame_snapshot`、`frame_find`、`shadow_find`、`shadow_find_all`。
-- 新增 cookie/storage 工具：`browser_cookies_get`、`storage_get`、`storage_set`、`storage_clear`；cookie value 默认脱敏。
-- 新增 `drissionpage://session/state` resource，用于脱敏总结当前 tab 的 cookie 名称和 storage key。
-- `drissionpage-mcp doctor` 会标记 DrissionPage 5.x 为不支持，依赖范围继续保持 `DrissionPage>=4.1.1.4,<5`。
-- 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仍仅用于受限容器/root 环境。
-- 既有页面理解、可观察动作、console、标签页、表单和恢复建议工具保持兼容；可观察变化继续包含 `console_errors_added`；有界输出继续保留 `meta.approx_tokens`。
-- 失败 payload 会在 `error.details.hints` 中返回机器可读恢复建议；浏览器启动提示仍会指向 `drissionpage-mcp doctor --launch-browser`、`CHROME_PATH` 和 `DP_HEADLESS`。
-- `MCP_ARGUMENT_INVALID` 继续保护严格 schema，并提示客户端使用准确的 snake_case 字段名。
-- 顶层 JSON_RESULT envelope、严格输入 schema 和 typed `outputSchema` 合同保持不变；公开工具数为 52 个。
+- 面向模型的指引改为 workflow-first：新会话的“打开并检查页面”优先使用 `browser_open_and_snapshot`，链接发现使用 `browser_extract_links`，只有纯导航重试才使用 `page_navigate`。
+- `drissionpage_mcp_usage_playbook`、结构化抽取、安全表单填写和页面调试等 MCP prompts 会先引导客户端使用 workflow helper、有界 `page_snapshot` / `page_observe`，再考虑底层原子工具。
+- `drissionpage://guide/model-usage` 暴露 `workflow_routes`，让 agent 可直接选择总结/检查、链接发现、安全表单填写和网络观察调用链。
+- `drissionpage://tools/catalog` 现在在 annotations 和 output data schema 名称之外包含 description，帮助 AI 更准确选择工具，同时保持 catalog 合同稳定。
+- 恢复建议更明确：新会话未打开页面时指向 `browser_open_and_snapshot`，`MCP_ARGUMENT_INVALID` 指向 schema/catalog 检查，未知工具指向 `drissionpage://guide/model-usage`。
+- 0.5.6 的 helper 仍是稳定基础：`browser_open_and_snapshot`、`browser_extract_links`、`form_fill_preview`、`network_listen_start`、`network_listen_wait` 和 `drissionpage://session/config` 均保持不变。
+- 既有页面理解、可观察动作、console、标签页、表单、上传、iframe/shadow、cookie/storage 和恢复建议工具保持兼容；可观察变化继续包含 `console_errors_added`；有界输出继续保留 `meta.approx_tokens`。
+- `drissionpage-mcp doctor` 仍会标记 DrissionPage 5.x 为不支持，`drissionpage-mcp doctor --launch-browser` 仍是浏览器启动检查；默认保持 Chrome sandbox 开启，`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境。
+- 顶层 JSON_RESULT envelope、严格输入 schema、`structuredContent` 和 typed `outputSchema` 合同保持不变；公开工具数仍为 52 个。
