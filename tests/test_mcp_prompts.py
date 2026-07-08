@@ -79,6 +79,48 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
 
 
 @pytest.mark.asyncio
+async def test_prompts_prefer_workflow_helpers_for_common_ai_sequences() -> None:
+    server = DrissionPageMCPServer()
+
+    summarize = await _get_prompt(
+        server,
+        "browser_navigate_and_summarize",
+        {"url": "https://example.test/", "focus": "headings"},
+    )
+    summarize_text = summarize.root.messages[0].content.text
+    assert "browser_open_and_snapshot" in summarize_text
+    assert summarize_text.index("browser_open_and_snapshot") < summarize_text.index(
+        "page_snapshot"
+    )
+
+    extract = await _get_prompt(
+        server,
+        "browser_extract_structured_data",
+        {
+            "url": "https://example.test/",
+            "schema_description": "items: list of names",
+            "selector_hint": "#items",
+        },
+    )
+    extract_text = extract.root.messages[0].content.text
+    assert "browser_open_and_snapshot" in extract_text
+    assert "Return only JSON" in extract_text
+
+    debug = await _get_prompt(
+        server,
+        "browser_debug_page_issue",
+        {
+            "url": "https://example.test/",
+            "issue_description": "missing button",
+        },
+    )
+    debug_text = debug.root.messages[0].content.text
+    assert "browser_open_and_snapshot" in debug_text
+    assert "page_snapshot" in debug_text
+    assert "error.details.hints" in debug_text
+
+
+@pytest.mark.asyncio
 async def test_get_prompt_validates_required_arguments() -> None:
     server = DrissionPageMCPServer()
 

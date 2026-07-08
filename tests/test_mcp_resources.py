@@ -230,14 +230,58 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert schema_by_name["form_fill_preview"] == "FormFillPreviewData"
     assert schema_by_name["network_listen_wait"] == "NetworkListenWaitData"
     navigate_tool = payload["tools"][0]
-    assert navigate_tool == {
+    assert navigate_tool.items() >= {
         "name": "page_navigate",
         "title": "Navigate to URL",
         "readOnlyHint": False,
         "destructiveHint": True,
         "idempotentHint": False,
         "output_schema": "PageNavigateData",
-    }
+    }.items()
+    assert navigate_tool["description"] == "Navigate to a specific URL in the browser"
+
+
+@pytest.mark.asyncio
+async def test_model_usage_guide_exposes_workflow_first_routes() -> None:
+    server = DrissionPageMCPServer()
+
+    payload = await _read_json(server, "drissionpage://guide/model-usage")
+
+    routes = {route["task"]: route for route in payload["workflow_routes"]}
+    assert routes["summarize_or_inspect"]["preferred_sequence"][:2] == [
+        "browser_open_and_snapshot",
+        "page_snapshot",
+    ]
+    assert routes["link_discovery"]["preferred_sequence"] == [
+        "browser_extract_links"
+    ]
+    assert routes["safe_form_fill"]["preferred_sequence"][:2] == [
+        "form_inspect",
+        "form_fill_preview",
+    ]
+    assert routes["network_observation"]["preferred_sequence"] == [
+        "network_listen_start",
+        "trigger action",
+        "network_listen_wait",
+        "network_listen_stop",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_tools_catalog_exposes_descriptions_for_ai_tool_choice() -> None:
+    server = DrissionPageMCPServer()
+
+    payload = await _read_json(server, "drissionpage://tools/catalog")
+
+    by_name = {tool["name"]: tool for tool in payload["tools"]}
+    assert "Open a URL" in by_name["browser_open_and_snapshot"]["description"]
+    assert "bounded snapshot" in by_name["browser_open_and_snapshot"]["description"]
+    assert "Extract bounded link data" in by_name["browser_extract_links"][
+        "description"
+    ]
+    assert "without submitting" in by_name["form_fill_preview"]["description"]
+    assert "network observation" in by_name["network_listen_start"]["description"]
+    assert "does not intercept" in by_name["network_listen_start"]["description"]
 
 
 @pytest.mark.asyncio

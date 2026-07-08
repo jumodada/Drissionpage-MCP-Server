@@ -16,7 +16,7 @@ def server_instructions(version: str = __version__) -> str:
 
     return f"""DrissionPage MCP {version} is structured browser automation for DrissionPage 4.x.
 Compatibility: use {SUPPORTED_DRISSIONPAGE_RANGE}; do not assume DrissionPage 5 beta/internal builds are supported.
-Default flow: navigate with page_navigate or browser_open_and_snapshot, inspect with page_snapshot/page_observe, wait with wait_until, then act with element_click/element_type.
+Default flow: choose the highest-level workflow that matches the task before low-level primitives. Use browser_open_and_snapshot for navigate+inspect, browser_extract_links for link discovery, page_snapshot for more selectors/content, and page_navigate only when you need navigation without an immediate snapshot.
 Forms: use form_inspect, then form_fill_preview; treat requires_confirmation=true as a hard stop before submit and never echo field secrets.
 Network: use network_listen_start before the triggering action, network_listen_wait for bounded HTTP/XHR/Fetch metadata, then network_listen_stop; this is observation only, not interception or request mutation.
 Safety: respect error.details.hints, navigation policy errors, DP_MCP_SCREENSHOT_ROOT for saved screenshots, and DP_MCP_UPLOAD_ROOT for uploads.
@@ -31,7 +31,8 @@ def usage_playbook_text(*, task: str = "", version: str = __version__) -> str:
 
 {task_line}Core rules:
 - Target {SUPPORTED_DRISSIONPAGE_RANGE}; DrissionPage 5 beta/internal builds are unsupported.
-- Start with page_navigate, or browser_open_and_snapshot when you need navigation plus context in one call.
+- Prefer workflow helpers before low-level primitives when they match the task.
+- For page summary or inspection, start with browser_open_and_snapshot; use page_navigate only when you intentionally do not need immediate page context.
 - Use page_snapshot for selectors/content, page_observe after actions, and wait_until for dynamic UI instead of fixed sleeps.
 - For forms, call form_inspect then form_fill_preview. Do not submit until explicit user confirmation; do not echo secrets.
 - For links, use browser_extract_links with bounded limit and same_origin_only when useful.
@@ -51,8 +52,44 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
             "drissionpage_5_supported": False,
         },
         "instructions": server_instructions(version),
+        "workflow_routes": [
+            {
+                "task": "summarize_or_inspect",
+                "preferred_sequence": [
+                    "browser_open_and_snapshot",
+                    "page_snapshot",
+                    "page_get_url",
+                ],
+                "use_when": "Need page context, content, selectors, forms, or console hints after opening a URL.",
+            },
+            {
+                "task": "link_discovery",
+                "preferred_sequence": ["browser_extract_links"],
+                "use_when": "Need bounded link text and URLs from the current page.",
+            },
+            {
+                "task": "safe_form_fill",
+                "preferred_sequence": [
+                    "form_inspect",
+                    "form_fill_preview",
+                    "explicit confirmation",
+                    "element_click",
+                ],
+                "use_when": "Need to prefill controls without submitting or leaking field values.",
+            },
+            {
+                "task": "network_observation",
+                "preferred_sequence": [
+                    "network_listen_start",
+                    "trigger action",
+                    "network_listen_wait",
+                    "network_listen_stop",
+                ],
+                "use_when": "Need observe-only HTTP/XHR/Fetch evidence around a page action.",
+            },
+        ],
         "default_flow": [
-            "page_navigate or browser_open_and_snapshot",
+            "browser_open_and_snapshot for navigate plus context",
             "page_snapshot or page_observe",
             "wait_until for dynamic conditions",
             "element_click/element_type or specialized tools",

@@ -279,6 +279,7 @@ def tools_catalog(tools: Mapping[str, Tool]) -> dict[str, Any]:
             {
                 "name": tool.name,
                 "title": tool.title,
+                "description": tool.description,
                 "readOnlyHint": tool.tool_type == ToolType.READ_ONLY,
                 "destructiveHint": tool.tool_type == ToolType.DESTRUCTIVE,
                 "idempotentHint": tool.idempotent,

@@ -73,9 +73,11 @@ Target URL: {values["url"]}
 Focus: {focus}
 
 Steps:
-1. Call `page_navigate` with the target URL.
-2. Use `wait_for_element` only when a specific selector is needed.
-3. Call `element_get_text` with an empty selector to read page text.
+1. Call `browser_open_and_snapshot` with the target URL to navigate and gather
+   bounded page context in one step.
+2. Use `page_snapshot` if you need more selectors/content, or `page_navigate`
+   only when you intentionally do not need an immediate snapshot.
+3. Use `wait_for_element` only when a specific selector is needed.
 4. Use `page_get_url` and include the final source URL in the answer.
 5. Summarize concisely and mention uncertainty if the page content is incomplete.
 """
@@ -95,9 +97,10 @@ Schema: {values["schema_description"]}
 {hint_line}
 
 Steps:
-1. Call `page_navigate`.
-2. Inspect content with `element_get_text`; use `element_get_html` when structure matters.
-3. If a selector is provided, use `element_find` before extraction.
+1. Call `browser_open_and_snapshot` to navigate and capture bounded page context.
+2. Inspect with `page_snapshot`; use `element_get_html` only when structure matters.
+3. If a selector is provided, use `element_find` before extraction; use
+   `page_navigate` only for a deliberate navigation-only retry.
 4. Return only JSON matching the requested schema and include no unsupported fields.
 5. Do not use destructive tools for this read-only extraction task.
 """
@@ -128,11 +131,13 @@ Target URL: {values["url"]}
 Issue: {values["issue_description"]}
 
 Steps:
-1. Call `page_navigate` and then `page_get_url`.
-2. Use `wait_for_element` for the suspected selector if known.
-3. Inspect page text with `element_get_text` and targeted HTML with `element_get_html`.
+1. Call `browser_open_and_snapshot` to navigate and collect page evidence.
+2. Use `page_snapshot` and `wait_for_element` for the suspected selector if known.
+3. Use `page_navigate` only for a deliberate navigation-only retry, then
+   confirm with `page_get_url`.
 4. Use `page_screenshot` only when visual evidence is needed.
-5. Report likely causes, exact tool evidence, and the next safest action.
+5. Report likely causes, exact tool evidence, `error.details.hints` if present,
+   and the next safest action.
 """
 
 
