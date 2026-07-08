@@ -40,17 +40,6 @@ def _arguments(options: FakeOptions) -> list[str]:
     return [args[0] for name, args, _kwargs in options.calls if name == "set_argument"]
 
 
-def test_env_bool_parses_truthy_and_default(monkeypatch) -> None:
-    monkeypatch.delenv("DP_TEST_BOOL", raising=False)
-    assert compat._env_bool("DP_TEST_BOOL", default=True) is True
-
-    monkeypatch.setenv("DP_TEST_BOOL", " YeS ")
-    assert compat._env_bool("DP_TEST_BOOL") is True
-
-    monkeypatch.setenv("DP_TEST_BOOL", "0")
-    assert compat._env_bool("DP_TEST_BOOL", default=True) is False
-
-
 def test_new_chromium_options_uses_no_user_ini_when_supported(monkeypatch) -> None:
     monkeypatch.setattr(compat, "ChromiumOptions", FakeOptions)
 

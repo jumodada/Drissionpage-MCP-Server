@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterable
 from urllib.parse import urlparse
 
+from .env import env_bool
 from .response import ErrorCode
 
 ENV_NAV_ALLOWLIST = "DP_MCP_NAV_ALLOWLIST"
@@ -52,7 +53,7 @@ class SafetyPolicy:
         return cls(
             navigation_allowlist=_split_env(os.getenv(ENV_NAV_ALLOWLIST)),
             navigation_blocklist=_split_env(os.getenv(ENV_NAV_BLOCKLIST)),
-            block_private_network=_env_bool(ENV_BLOCK_PRIVATE),
+            block_private_network=env_bool(ENV_BLOCK_PRIVATE),
             screenshot_root=Path(root).expanduser().resolve() if root else None,
             upload_root=Path(upload_root).expanduser().resolve()
             if upload_root
@@ -239,11 +240,6 @@ def _redacted_sequence(values: tuple[str, ...]) -> dict[str, object]:
     if configured:
         payload["values"] = "<redacted>"
     return payload
-
-
-def _env_bool(name: str) -> bool:
-    value = os.getenv(name)
-    return bool(value and value.strip().lower() in {"1", "true", "yes", "y", "on"})
 
 
 def _matches_any(url: str, host: str, patterns: Iterable[str]) -> bool:

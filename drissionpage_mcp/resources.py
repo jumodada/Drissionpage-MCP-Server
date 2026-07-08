@@ -11,6 +11,7 @@ from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.types import Resource
 from pydantic import AnyUrl
 
+from .env import env_bool, redacted_env_path
 from .guidance import MODEL_USAGE_RESOURCE_URI, model_usage_payload
 from .metadata import response_meta
 from .policy import SafetyPolicy
@@ -188,7 +189,6 @@ def session_state(context: Any) -> dict[str, Any]:
     )
 
 
-
 def session_config(context: Any) -> dict[str, Any]:
     """Return redacted browser/profile configuration without side effects."""
 
@@ -197,16 +197,17 @@ def session_config(context: Any) -> dict[str, Any]:
         "available": True,
         "browser_active": bool(context and context.is_active()),
         "environment": {
-            "auto_port": _env_bool("DP_AUTO_PORT", True),
-            "headless": _env_bool("DP_HEADLESS", False),
+            "auto_port": env_bool("DP_AUTO_PORT", True),
+            "headless": env_bool("DP_HEADLESS", False),
             "load_mode": os.getenv("DP_LOAD_MODE", "normal"),
-            "browser_path": _redacted_env_path("CHROME_PATH", "DP_BROWSER_PATH"),
-            "user_data_path": _redacted_env_path("DP_USER_DATA_PATH"),
-            "no_sandbox": _env_bool("DP_NO_SANDBOX", False),
-            "disable_web_security": _env_bool("DP_DISABLE_WEB_SECURITY", False),
+            "browser_path": redacted_env_path("CHROME_PATH", "DP_BROWSER_PATH"),
+            "user_data_path": redacted_env_path("DP_USER_DATA_PATH"),
+            "no_sandbox": env_bool("DP_NO_SANDBOX", False),
+            "disable_web_security": env_bool("DP_DISABLE_WEB_SECURITY", False),
         },
         "policy": policy.public_summary(),
     }
+
 
 def current_page(context: Any) -> dict[str, Any]:
     """Return a bounded current-page payload without initializing the browser."""
@@ -287,26 +288,6 @@ def tools_catalog(tools: Mapping[str, Tool]) -> dict[str, Any]:
         ]
     }
 
-
-
-def _env_bool(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
-
-
-def _redacted_env_path(*names: str) -> dict[str, Any]:
-    for name in names:
-        value = os.getenv(name)
-        if value:
-            return {
-                "configured": True,
-                "env": name,
-                "value": "<redacted>",
-                "exists": os.path.exists(value),
-            }
-    return {"configured": False, "env": "", "value": "", "exists": False}
 
 def _json_resource(payload: dict[str, Any]) -> str:
     return json.dumps(

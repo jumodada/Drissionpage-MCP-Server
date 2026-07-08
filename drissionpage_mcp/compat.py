@@ -9,6 +9,8 @@ from typing import Any, Optional
 
 from DrissionPage import ChromiumOptions
 
+from .env import env_bool
+
 try:  # DrissionPage 4.x exports Chromium; 4.2 makes it the preferred API.
     from DrissionPage import Chromium
 except ImportError:  # pragma: no cover - kept for older/partial installs.
@@ -26,13 +28,6 @@ except Exception:  # pragma: no cover - defensive for unusual builds.
 
 
 logger = logging.getLogger(__name__)
-
-
-def _env_bool(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
 def _new_chromium_options() -> ChromiumOptions:
@@ -54,7 +49,7 @@ def build_chromium_options() -> ChromiumOptions:
 
     # Isolate MCP browser sessions by default. This avoids attaching to a user's
     # existing browser/debug port and works in both DrissionPage 4.1 and 4.2.
-    if _env_bool("DP_AUTO_PORT", True) and hasattr(options, "auto_port"):
+    if env_bool("DP_AUTO_PORT", True) and hasattr(options, "auto_port"):
         options.auto_port()
 
     chrome_path = os.getenv("CHROME_PATH") or os.getenv("DP_BROWSER_PATH")
@@ -66,7 +61,7 @@ def build_chromium_options() -> ChromiumOptions:
         options.set_user_data_path(user_data_path)
 
     if hasattr(options, "headless"):
-        options.headless(_env_bool("DP_HEADLESS", False))
+        options.headless(env_bool("DP_HEADLESS", False))
 
     if hasattr(options, "set_load_mode"):
         options.set_load_mode(os.getenv("DP_LOAD_MODE", "normal"))
@@ -81,12 +76,12 @@ def build_chromium_options() -> ChromiumOptions:
     if hasattr(options, "set_argument"):
         # Keep Chrome sandbox enabled by default. Container/root environments
         # that cannot launch Chromium with sandboxing may opt in explicitly.
-        if _env_bool("DP_NO_SANDBOX", False):
+        if env_bool("DP_NO_SANDBOX", False):
             options.set_argument("--no-sandbox")
         options.set_argument("--disable-dev-shm-usage")
         # Do not disable web security by default. Users can opt in for local
         # test pages, but the MCP server should not weaken browser isolation.
-        if _env_bool("DP_DISABLE_WEB_SECURITY", False):
+        if env_bool("DP_DISABLE_WEB_SECURITY", False):
             options.set_argument("--disable-web-security")
 
     return options
