@@ -43,7 +43,9 @@ class FakeSet:
 
 
 class FakeConsole:
-    def __init__(self, *, messages=None, listening: bool = False, start_raises=False) -> None:
+    def __init__(
+        self, *, messages=None, listening: bool = False, start_raises=False
+    ) -> None:
         self.messages = list(messages or [])
         self.listening = listening
         self.start_raises = start_raises
@@ -261,16 +263,15 @@ class RaisingIdentityPage(FakePage):
         pass
 
 
-
 @pytest.mark.asyncio
 async def test_navigation_coordinates_and_resize_paths() -> None:
     page = FakePage()
     tab = PageTab(page, FakeContext())
 
-    await tab.navigate("https://example.test")
-    await tab.go_back()
-    await tab.go_forward()
-    await tab.refresh()
+    await tab.navigation.navigate("https://example.test")
+    await tab.navigation.back()
+    await tab.navigation.forward()
+    await tab.navigation.refresh()
     await tab.click(3, 4)
     await tab.resize(800, 600)
 
@@ -289,10 +290,10 @@ async def test_element_actions_and_readers() -> None:
     page = FakePage(element)
     tab = PageTab(page, FakeContext())
 
-    await tab.click_element("#name")
-    await tab.input_text("#name", "Ada", clear=True)
-    await tab.type_text("#name", "Lovelace", clear=False)
-    found = await tab.find_element("#name")
+    await tab.elements.click("#name")
+    await tab.elements.input("#name", "Ada", clear=True)
+    await tab.elements.type("#name", "Lovelace", clear=False)
+    found = await tab.elements.find("#name")
 
     assert element.clicked is True
     assert element.cleared is True
@@ -308,13 +309,13 @@ async def test_element_actions_and_readers() -> None:
         "html": '<input id="name" value="Ada">',
         "visible": True,
     }
-    assert await tab.get_text("#name") == "Lovelace"
-    assert await tab.get_text() == "Whole page text"
-    assert await tab.get_attribute("#name", "id") == "name"
-    assert await tab.get_attribute("#name", "missing") is None
-    assert await tab.get_property("#name", "value") == "Lovelace"
-    assert await tab.get_html("#name") == '<input id="name" value="Ada">'
-    assert await tab.get_html() == "<html><body>Whole page text</body></html>"
+    assert await tab.elements.text("#name") == "Lovelace"
+    assert await tab.elements.text() == "Whole page text"
+    assert await tab.elements.attribute("#name", "id") == "name"
+    assert await tab.elements.attribute("#name", "missing") is None
+    assert await tab.elements.property("#name", "value") == "Lovelace"
+    assert await tab.elements.html("#name") == '<input id="name" value="Ada">'
+    assert await tab.elements.html() == "<html><body>Whole page text</body></html>"
 
 
 @pytest.mark.asyncio
@@ -362,7 +363,7 @@ async def test_page_snapshot_and_find_elements_return_bounded_summaries() -> Non
         max_elements=5,
         max_text_chars=100,
     )
-    found = await tab.find_elements(".product-card", limit=1, include_html=True)
+    found = await tab.elements.find_all(".product-card", limit=1, include_html=True)
 
     assert snapshot["title"] == "Catalog"
     assert ("run_js",) == (page.calls[-2][0],)
@@ -426,22 +427,22 @@ async def test_observe_evaluate_and_wait_until_return_observable_state() -> None
         args=["abcdef"],
         max_chars=4,
     )
-    url_wait = await tab.wait_until(
+    url_wait = await tab.waits.until(
         condition="url_contains",
         value="ready",
         timeout=0,
     )
-    text_wait = await tab.wait_until(
+    text_wait = await tab.waits.until(
         condition="text_contains",
         value="Ready",
         timeout=0,
     )
-    clickable_wait = await tab.wait_until(
+    clickable_wait = await tab.waits.until(
         condition="clickable",
         selector="#save",
         timeout=0,
     )
-    stable_wait = await tab.wait_until(
+    stable_wait = await tab.waits.until(
         condition="stable",
         selector="#save",
         timeout=0,
@@ -599,14 +600,18 @@ async def test_wait_until_conditions_cover_fallback_and_timeout_edges() -> None:
     page = FakePage(FakeElement(tag="button", text="Save"))
     tab = PageTab(page, FakeContext())
 
-    present = await tab.wait_until(condition="present", selector="tag:button", timeout=0)
-    visible = await tab.wait_until(condition="visible", selector="tag:button", timeout=0)
-    hidden = await PageTab(FakePage(element=None), FakeContext()).wait_until(
+    present = await tab.waits.until(
+        condition="present", selector="tag:button", timeout=0
+    )
+    visible = await tab.waits.until(
+        condition="visible", selector="tag:button", timeout=0
+    )
+    hidden = await PageTab(FakePage(element=None), FakeContext()).waits.until(
         condition="hidden",
         selector="tag:missing",
         timeout=0,
     )
-    detached = await PageTab(FakePage(element=None), FakeContext()).wait_until(
+    detached = await PageTab(FakePage(element=None), FakeContext()).waits.until(
         condition="detached",
         selector="tag:missing",
         timeout=0,
@@ -625,14 +630,14 @@ async def test_wait_until_conditions_cover_fallback_and_timeout_edges() -> None:
     fallback_visible = await PageTab(
         SelectorJsFailPage(FakeElement(tag="button", text="Save")),
         FakeContext(),
-    ).wait_until(condition="visible", selector="#save", timeout=0)
+    ).waits.until(condition="visible", selector="#save", timeout=0)
     assert fallback_visible["state"]["visible"] is True
 
     with pytest.raises(TimeoutError):
         await PageTab(
             FakePage(FakeElement(tag="button", attrs={"disabled": ""})),
             FakeContext(),
-        ).wait_until(condition="clickable", selector="tag:button", timeout=0)
+        ).waits.until(condition="clickable", selector="tag:button", timeout=0)
 
     class EleRaisingPage(FakePage):
         def ele(self, selector: str, **_kwargs):
@@ -640,7 +645,7 @@ async def test_wait_until_conditions_cover_fallback_and_timeout_edges() -> None:
             raise RuntimeError("element lookup failed")
 
     with pytest.raises(TimeoutError):
-        await PageTab(EleRaisingPage(), FakeContext()).wait_until(
+        await PageTab(EleRaisingPage(), FakeContext()).waits.until(
             condition="text_contains",
             selector="#missing",
             value="never",
@@ -648,10 +653,10 @@ async def test_wait_until_conditions_cover_fallback_and_timeout_edges() -> None:
         )
 
     with pytest.raises(ValueError, match="selector is required"):
-        await tab.wait_until(condition="visible", timeout=0)
+        await tab.waits.until(condition="visible", timeout=0)
 
     with pytest.raises(TimeoutError, match="was not met"):
-        await PageTab(FakePage(element=None), FakeContext()).wait_until(
+        await PageTab(FakePage(element=None), FakeContext()).waits.until(
             condition="visible",
             selector="tag:missing",
             timeout=0,
@@ -675,7 +680,7 @@ async def test_wait_until_conditions_cover_fallback_and_timeout_edges() -> None:
             pass
 
     with pytest.raises(TimeoutError):
-        await PageTab(TextAndHtmlRaisingPage(), FakeContext()).wait_until(
+        await PageTab(TextAndHtmlRaisingPage(), FakeContext()).waits.until(
             condition="text_contains",
             value="never",
             timeout=0,
@@ -697,11 +702,11 @@ async def test_missing_element_paths_raise() -> None:
     tab = PageTab(page, FakeContext())
 
     with pytest.raises(Exception, match="Element not found"):
-        await tab.click_element("#missing")
+        await tab.elements.click("#missing")
     with pytest.raises(Exception, match="Element not found"):
-        await tab.input_text("#missing", "text")
+        await tab.elements.input("#missing", "text")
     with pytest.raises(Exception, match="Element not found"):
-        await tab.find_element("#missing")
+        await tab.elements.find("#missing")
 
 
 @pytest.mark.asyncio
@@ -713,12 +718,12 @@ async def test_element_wait_success_but_lookup_missing_paths_raise() -> None:
     tab = PageTab(page, FakeContext())
 
     for call in (
-        tab.click_element("#missing"),
-        tab.find_element("#missing"),
-        tab.get_text("#missing"),
-        tab.get_attribute("#missing", "id"),
-        tab.get_property("#missing", "value"),
-        tab.get_html("#missing"),
+        tab.elements.click("#missing"),
+        tab.elements.find("#missing"),
+        tab.elements.text("#missing"),
+        tab.elements.attribute("#missing", "id"),
+        tab.elements.property("#missing", "value"),
+        tab.elements.html("#missing"),
     ):
         with pytest.raises(Exception, match="Element not found"):
             await call
@@ -732,7 +737,7 @@ async def test_type_text_stops_when_wait_times_out() -> None:
     tab = PageTab(page, FakeContext())
 
     with pytest.raises(Exception, match="Element not found"):
-        await tab.type_text("#delayed", "should-not-type", timeout=1)
+        await tab.elements.type("#delayed", "should-not-type", timeout=1)
 
     assert element.inputs == []
     assert ("ele", "#delayed") not in page.calls
@@ -744,14 +749,14 @@ async def test_page_text_falls_back_to_body_when_text_property_is_absent() -> No
     del page.text
     tab = PageTab(page, FakeContext())
 
-    assert await tab.get_text() == "Ada"
+    assert await tab.elements.text() == "Ada"
     assert ("ele", "tag:body") in page.calls
 
     empty_page = FakePage(element=None)
     del empty_page.text
     empty_tab = PageTab(empty_page, FakeContext())
 
-    assert await empty_tab.get_text() == ""
+    assert await empty_tab.elements.text() == ""
 
 
 @pytest.mark.asyncio
@@ -812,18 +817,18 @@ async def test_wait_close_url_and_connection_helpers() -> None:
     tab = PageTab(page, FakeContext(browser))
     tab._url = "https://cached.test"
 
-    assert await tab.wait_for_element("#ready") is True
+    assert await tab.waits.element("#ready") is True
 
     page.wait = FakeWaitFallback()
-    assert await tab.wait_for_element("#ready", timeout=2) is True
+    assert await tab.waits.element("#ready", timeout=2) is True
     assert page.wait.calls == [("css:#ready", 2, True)]
 
     page.wait = FakeWait(fail=True)
-    assert await tab.wait_for_element("#ready") is False
+    assert await tab.waits.element("#ready") is False
 
     page.url = "https://example.test/done"
-    assert await tab.wait_for_url("done") is True
-    assert await tab.wait_for_url("never", timeout=0) is False
+    assert await tab.waits.url("done") is True
+    assert await tab.waits.url("never", timeout=0) is False
 
     assert tab.is_connected() is True
     await tab.close()
@@ -854,7 +859,7 @@ async def test_wait_for_url_polls_and_handles_polling_errors(monkeypatch) -> Non
 
     monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", finish_after_first_poll)
 
-    assert await tab.wait_for_url("done", timeout=1) is True
+    assert await tab.waits.url("done", timeout=1) is True
     assert sleeps == [0.5]
 
     async def fail_sleep(_seconds: float) -> None:
@@ -863,7 +868,7 @@ async def test_wait_for_url_polls_and_handles_polling_errors(monkeypatch) -> Non
     page.url = "https://example.test/loading"
     monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", fail_sleep)
 
-    assert await tab.wait_for_url("done", timeout=1) is False
+    assert await tab.waits.url("done", timeout=1) is False
 
 
 @pytest.mark.asyncio
@@ -875,7 +880,7 @@ async def test_navigation_failure_is_reraised() -> None:
     tab = PageTab(FailedNavigationPage(), FakeContext())
 
     with pytest.raises(RuntimeError, match="Navigation failed"):
-        await tab.navigate("https://bad.test")
+        await tab.navigation.navigate("https://bad.test")
 
 
 @pytest.mark.asyncio
@@ -915,9 +920,9 @@ async def test_page_action_failures_are_reraised() -> None:
             super().refresh()
 
     for action, call in (
-        ("back", lambda tab: tab.go_back()),
-        ("forward", lambda tab: tab.go_forward()),
-        ("refresh", lambda tab: tab.refresh()),
+        ("back", lambda tab: tab.navigation.back()),
+        ("forward", lambda tab: tab.navigation.forward()),
+        ("refresh", lambda tab: tab.navigation.refresh()),
         ("click", lambda tab: tab.click(1, 2)),
         ("resize", lambda tab: tab.resize(800, 600)),
     ):
@@ -941,7 +946,7 @@ async def test_post_action_stabilization_prefers_doc_loaded() -> None:
     page.wait = WaitWithDocLoaded()
     tab = PageTab(page, FakeContext())
 
-    await tab.navigate("https://example.test")
+    await tab.navigation.navigate("https://example.test")
     await tab.click(1, 2)
 
     assert page.wait.doc_loaded_calls[0] == {"timeout": 5.0, "raise_err": False}
@@ -949,7 +954,9 @@ async def test_post_action_stabilization_prefers_doc_loaded() -> None:
 
 
 @pytest.mark.asyncio
-async def test_post_action_stabilization_tries_compatible_doc_loaded_signatures() -> None:
+async def test_post_action_stabilization_tries_compatible_doc_loaded_signatures() -> (
+    None
+):
     class WaitWithStrictDocLoaded(FakeWait):
         def __init__(self) -> None:
             super().__init__()
@@ -965,7 +972,7 @@ async def test_post_action_stabilization_tries_compatible_doc_loaded_signatures(
     page.wait = WaitWithStrictDocLoaded()
     tab = PageTab(page, FakeContext())
 
-    await tab.refresh()
+    await tab.navigation.refresh()
 
     assert page.wait.doc_loaded_calls == [
         {"timeout": 5.0, "raise_err": False},
@@ -1011,7 +1018,7 @@ async def test_post_action_stabilization_falls_back_to_bounded_sleep(
     page.wait = object()
     tab = PageTab(page, FakeContext())
 
-    await tab.go_back()
+    await tab.navigation.back()
 
     assert sleeps == [0.05]
 
@@ -1112,9 +1119,9 @@ async def test_page_and_element_interaction_tools_cover_success_branches() -> No
     tab = PageTab(page, FakeContext())
 
     for direction in ("down", "up", "left", "right", "top", "bottom", "half"):
-        result = await tab.scroll_page(direction=direction, pixels=17)
+        result = await tab.interaction.scroll_page(direction=direction, pixels=17)
         assert result["direction"] == direction
-    positioned = await tab.scroll_page(direction="position", x=11, y=22)
+    positioned = await tab.interaction.scroll_page(direction="position", x=11, y=22)
     assert positioned["x"] == 11
     assert page.scroll.calls == [
         ("down", 17),
@@ -1127,14 +1134,14 @@ async def test_page_and_element_interaction_tools_cover_success_branches() -> No
         ("position", 11, 22),
     ]
 
-    scrolled = await tab.scroll_element_into_view("#file", center=False)
-    hovered = await tab.hover_element("#file", offset_x=3, offset_y=4)
-    await tab.keyboard_press("Hello", interval=0.01)
-    uploaded = await tab.upload_file("#file", ["/tmp/a.txt", "/var/tmp/b.bin"])
-    await tab.select_element("#file", value="admin", by="value")
-    await tab.select_element("#file", value="Admin", by="text")
-    await tab.select_element("#file", value="2", by="index")
-    checked = await tab.check_element("#file", checked=False, by_js=True)
+    scrolled = await tab.interaction.scroll_element_into_view("#file", center=False)
+    hovered = await tab.interaction.hover_element("#file", offset_x=3, offset_y=4)
+    await tab.interaction.keyboard_press("Hello", interval=0.01)
+    uploaded = await tab.elements.upload("#file", ["/tmp/a.txt", "/var/tmp/b.bin"])
+    await tab.interaction.select_element("#file", value="admin", by="value")
+    await tab.interaction.select_element("#file", value="Admin", by="text")
+    await tab.interaction.select_element("#file", value="2", by="index")
+    checked = await tab.interaction.check_element("#file", checked=False, by_js=True)
 
     assert scrolled["center"] is False
     assert element.scroll.center is False
@@ -1158,16 +1165,16 @@ async def test_page_and_element_interaction_tools_reraise_failures() -> None:
     tab = PageTab(FakePage(), FakeContext())
 
     with pytest.raises(RuntimeError, match="scroll API"):
-        await tab.scroll_page()
+        await tab.interaction.scroll_page()
 
     page = FakePage(InteractionElement())
     page.scroll = RecordingScroll()
     tab = PageTab(page, FakeContext())
 
     with pytest.raises(ValueError, match="Unsupported scroll direction"):
-        await tab.scroll_page(direction="diagonal")
+        await tab.interaction.scroll_page(direction="diagonal")
     with pytest.raises(ValueError, match="Unsupported select mode"):
-        await tab.select_element("#name", value="x", by="label")
+        await tab.interaction.select_element("#name", value="x", by="label")
 
     class FailingInputElement(InteractionElement):
         def input(self, text):
@@ -1200,22 +1207,30 @@ async def test_page_and_element_interaction_tools_reraise_failures() -> None:
             )
 
     for element, call in (
-        (FailingInputElement(), lambda failing_tab: failing_tab.upload_file("#x", ["a"])),
-        (FailingHoverElement(), lambda failing_tab: failing_tab.hover_element("#x")),
+        (
+            FailingInputElement(),
+            lambda failing_tab: failing_tab.elements.upload("#x", ["a"]),
+        ),
+        (
+            FailingHoverElement(),
+            lambda failing_tab: failing_tab.interaction.hover_element("#x"),
+        ),
         (
             FailingCheckElement(),
-            lambda failing_tab: failing_tab.check_element("#x"),
+            lambda failing_tab: failing_tab.interaction.check_element("#x"),
         ),
         (
             FailingScrollElement(),
-            lambda failing_tab: failing_tab.scroll_element_into_view("#x"),
+            lambda failing_tab: failing_tab.interaction.scroll_element_into_view("#x"),
         ),
     ):
         with pytest.raises(RuntimeError):
             await call(PageTab(FakePage(element), FakeContext()))
 
     with pytest.raises(RuntimeError, match="type failed"):
-        await PageTab(FailingActionsPage(), FakeContext()).keyboard_press("x")
+        await PageTab(FailingActionsPage(), FakeContext()).interaction.keyboard_press(
+            "x"
+        )
 
 
 class FakeFrame:
@@ -1238,16 +1253,24 @@ class FakeFrame:
         self.title = "Frame Title"
         self.url = "https://example.test/frame"
         self.text = text
-        self.target = target if target is not None else FakeElement(
-            tag="button",
-            text="Inside",
-            html="<button id='inside'>Inside</button>",
-            attrs={"id": "inside"},
+        self.target = (
+            target
+            if target is not None
+            else FakeElement(
+                tag="button",
+                text="Inside",
+                html="<button id='inside'>Inside</button>",
+                attrs={"id": "inside"},
+            )
         )
-        self.body = body if body is not None else FakeElement(
-            tag="body",
-            text="Fallback body",
-            html="<body>Fallback body</body>",
+        self.body = (
+            body
+            if body is not None
+            else FakeElement(
+                tag="body",
+                text="Fallback body",
+                html="<body>Fallback body</body>",
+            )
         )
         self.fail_body = fail_body
         self.fail_eles = fail_eles
@@ -1310,9 +1333,9 @@ async def test_frame_tools_cover_resolution_snapshot_and_find_paths() -> None:
     page = FramePage([frame])
     tab = PageTab(page, FakeContext())
 
-    listed = await tab.list_frames(limit=1)
-    snapshot = await tab.frame_snapshot(frame_index=0, include_html=True)
-    found = await tab.frame_find(selector="#inside", frame_selector="#frame1")
+    listed = await tab.frames.list_frames(limit=1)
+    snapshot = await tab.frames.snapshot(frame_index=0, include_html=True)
+    found = await tab.frames.find(selector="#inside", frame_selector="#frame1")
 
     assert listed["frames"][0]["selector"] == "#frame1"
     assert snapshot["frame"]["id"] == "frame1"
@@ -1322,12 +1345,12 @@ async def test_frame_tools_cover_resolution_snapshot_and_find_paths() -> None:
     assert found["element"]["selector"] == "#inside"
 
     with pytest.raises(Exception, match="Element not found"):
-        await tab.frame_find(selector="#missing", frame_index=0)
+        await tab.frames.find(selector="#missing", frame_index=0)
 
 
 @pytest.mark.asyncio
 async def test_frame_tools_cover_fallbacks_and_error_paths() -> None:
-    assert await PageTab(FakePage(), FakeContext()).list_frames() == {
+    assert await PageTab(FakePage(), FakeContext()).frames.list_frames() == {
         "count": 0,
         "returned": 0,
         "limit": 20,
@@ -1343,13 +1366,13 @@ async def test_frame_tools_cover_fallbacks_and_error_paths() -> None:
     old_signature = await PageTab(
         NoKeywordGetFramesPage([FakeFrame()]),
         FakeContext(),
-    ).list_frames()
+    ).frames.list_frames()
     assert old_signature["count"] == 1
 
     raw_page = FramePage(["raw-ok", "raw-bad"])
     raw_page.frames = [FakeFrame()]
     raw_page.get_frames = lambda **_kwargs: ["raw-ok", "raw-bad"]
-    raw_list = await PageTab(raw_page, FakeContext()).list_frames()
+    raw_list = await PageTab(raw_page, FakeContext()).frames.list_frames()
     assert raw_list["count"] == 1
 
     class BrokenFramesPage(FakePage):
@@ -1357,24 +1380,24 @@ async def test_frame_tools_cover_fallbacks_and_error_paths() -> None:
             raise RuntimeError("frame list failed")
 
     with pytest.raises(RuntimeError, match="frame list failed"):
-        await PageTab(BrokenFramesPage(), FakeContext()).list_frames()
+        await PageTab(BrokenFramesPage(), FakeContext()).frames.list_frames()
 
     with pytest.raises(Exception, match="Frames are not supported"):
-        await PageTab(FakePage(), FakeContext()).frame_snapshot(frame_selector="#f")
+        await PageTab(FakePage(), FakeContext()).frames.snapshot(frame_selector="#f")
 
     with pytest.raises(Exception, match="Frame not found"):
-        await PageTab(FramePage([FakeFrame()]), FakeContext()).frame_snapshot(
+        await PageTab(FramePage([FakeFrame()]), FakeContext()).frames.snapshot(
             frame_selector="#missing"
         )
 
     with pytest.raises(Exception, match="Frame index not found"):
-        await PageTab(FramePage([]), FakeContext()).frame_snapshot(frame_index=1)
+        await PageTab(FramePage([]), FakeContext()).frames.snapshot(frame_index=1)
 
     no_body_frame = FakeFrame(text="", fail_body=True, fail_eles=True)
     no_body_snapshot = await PageTab(
         FramePage([no_body_frame]),
         FakeContext(),
-    ).frame_snapshot(frame_index=0)
+    ).frames.snapshot(frame_index=0)
     assert no_body_snapshot["text_excerpt"] == ""
     assert no_body_snapshot["counts"]["headings"] == 0
 
@@ -1404,8 +1427,8 @@ async def test_shadow_tools_cover_success_and_failure_paths() -> None:
     host.shadow_root = FakeShadowRoot()
     tab = PageTab(FakePage(host), FakeContext())
 
-    one = await tab.shadow_find(host_selector="#host", selector=".item")
-    many = await tab.shadow_find_all(
+    one = await tab.frames.shadow_find(host_selector="#host", selector=".item")
+    many = await tab.frames.shadow_find_all(
         host_selector="#host",
         selector=".item",
         limit=1,
@@ -1418,11 +1441,11 @@ async def test_shadow_tools_cover_success_and_failure_paths() -> None:
     assert many["elements"][0]["html"] == "<span id='shadow-item'>Shadow Item</span>"
 
     with pytest.raises(Exception, match="Element not found"):
-        await tab.shadow_find(host_selector="#host", selector=".missing")
+        await tab.frames.shadow_find(host_selector="#host", selector=".missing")
 
     no_root = InteractionElement(attrs={"id": "host"})
     with pytest.raises(Exception, match="Shadow root not found"):
-        await PageTab(FakePage(no_root), FakeContext()).shadow_find(
+        await PageTab(FakePage(no_root), FakeContext()).frames.shadow_find(
             host_selector="#host",
             selector=".item",
         )
@@ -1430,7 +1453,9 @@ async def test_shadow_tools_cover_success_and_failure_paths() -> None:
     host_with_bad_root = InteractionElement(attrs={"id": "host"})
     host_with_bad_root.shadow_root = FakeShadowRoot(fail_many=True)
     with pytest.raises(RuntimeError, match="shadow list failed"):
-        await PageTab(FakePage(host_with_bad_root), FakeContext()).shadow_find_all(
+        await PageTab(
+            FakePage(host_with_bad_root), FakeContext()
+        ).frames.shadow_find_all(
             host_selector="#host",
             selector=".item",
         )
@@ -1466,7 +1491,7 @@ async def test_cookie_storage_and_session_state_paths_are_normalized() -> None:
     page = CookieStoragePage()
     tab = PageTab(page, ActiveContext())
 
-    redacted = await tab.cookies_get(include_values=False)
+    redacted = await tab.storage.cookies_get(include_values=False)
     assert redacted["cookies"] == [
         {
             "name": "sid",
@@ -1490,33 +1515,35 @@ async def test_cookie_storage_and_session_state_paths_are_normalized() -> None:
             httpOnly=True,
         )
     ]
-    full_cookie = await tab.cookies_get(all_domains=True, all_info=True, include_values=True)
+    full_cookie = await tab.storage.cookies_get(
+        all_domains=True, all_info=True, include_values=True
+    )
     assert full_cookie["cookies"][0]["value"] == ""
     assert full_cookie["cookies"][0]["http_only"] is True
 
     page.cookie_payload = object()
-    assert (await tab.cookies_get())["cookies"] == []
+    assert (await tab.storage.cookies_get())["cookies"] == []
 
-    storage = await tab.storage_get(area="local", include_values=False)
+    storage = await tab.storage.get(area="local", include_values=False)
     assert storage["items"] == {"token": "<redacted>", "empty": ""}
-    assert await tab.storage_set(area="session", key="mode", value="test") == {
+    assert await tab.storage.set(area="session", key="mode", value="test") == {
         "area": "session",
         "key": "mode",
         "set": True,
     }
-    assert await tab.storage_clear(area="local", key="token") == {
+    assert await tab.storage.clear(area="local", key="token") == {
         "area": "local",
         "key": "token",
         "cleared": True,
     }
-    assert await tab.storage_clear(area="session") == {
+    assert await tab.storage.clear(area="session") == {
         "area": "session",
         "key": "",
         "cleared": True,
     }
 
     page.cookie_payload = {"sid": "secret"}
-    session = tab.session_state()
+    session = tab.storage.session_state()
     assert session["browser_active"] is True
     assert session["cookies"]["names"] == ["sid"]
     assert session["storage"]["local"]["keys"] == ["empty", "token"]
@@ -1529,17 +1556,17 @@ async def test_cookie_and_storage_failures_are_reraised() -> None:
             raise RuntimeError("cookies failed")
 
     with pytest.raises(RuntimeError, match="cookies failed"):
-        await PageTab(BrokenCookiesPage(), FakeContext()).cookies_get()
+        await PageTab(BrokenCookiesPage(), FakeContext()).storage.cookies_get()
 
     page = CookieStoragePage()
     tab = PageTab(page, FakeContext())
 
     with pytest.raises(ValueError, match="Unsupported storage area"):
-        await tab.storage_get(area="bad")
+        await tab.storage.get(area="bad")
     with pytest.raises(ValueError, match="Unsupported storage area"):
-        await tab.storage_set(area="bad", key="x", value="y")
+        await tab.storage.set(area="bad", key="x", value="y")
     with pytest.raises(ValueError, match="Unsupported storage area"):
-        await tab.storage_clear(area="bad")
+        await tab.storage.clear(area="bad")
 
 
 @pytest.mark.asyncio
@@ -1553,11 +1580,16 @@ async def test_console_helpers_cover_unreadable_and_noniterable_messages() -> No
         def console(self, _value):
             pass
 
-    unavailable = await PageTab(ConsolePropertyRaisesPage(), FakeContext()).console_logs()
+    unavailable = await PageTab(
+        ConsolePropertyRaisesPage(), FakeContext()
+    ).console_logs()
     assert unavailable["available"] is False
-    assert PageTab(ConsolePropertyRaisesPage(), FakeContext())._console_summary()[
-        "available"
-    ] is False
+    assert (
+        PageTab(ConsolePropertyRaisesPage(), FakeContext())._console_summary()[
+            "available"
+        ]
+        is False
+    )
 
     class MessagesRaiseConsole(FakeConsole):
         @property
@@ -1654,7 +1686,7 @@ async def test_wait_condition_edge_paths_are_observable() -> None:
     page = FakePage(element=None)
     tab = PageTab(page, FakeContext())
 
-    empty_text = await tab.wait_until(
+    empty_text = await tab.waits.until(
         condition="text_contains",
         selector="#missing",
         value="",
@@ -1663,10 +1695,10 @@ async def test_wait_condition_edge_paths_are_observable() -> None:
     assert empty_text["state"]["text"] == ""
 
     with pytest.raises(TimeoutError):
-        await tab.wait_until(condition="stable", selector="#missing", timeout=0)
+        await tab.waits.until(condition="stable", selector="#missing", timeout=0)
 
     with pytest.raises(ValueError, match="Unsupported wait condition"):
-        await tab.wait_until(condition="unknown", selector="#missing", timeout=0)
+        await tab.waits.until(condition="unknown", selector="#missing", timeout=0)
 
     class SelectorAndElementFailPage(FakePage):
         def run_js(self, script: str, **kwargs):
@@ -1676,7 +1708,7 @@ async def test_wait_condition_edge_paths_are_observable() -> None:
             raise RuntimeError("element lookup failed")
 
     with pytest.raises(TimeoutError):
-        await PageTab(SelectorAndElementFailPage(), FakeContext()).wait_until(
+        await PageTab(SelectorAndElementFailPage(), FakeContext()).waits.until(
             condition="visible",
             selector="#missing",
             timeout=0,
@@ -1695,5 +1727,52 @@ async def test_wait_condition_edge_paths_are_observable() -> None:
     clickable = await PageTab(
         JsFailPage(AttrRaisesElement(tag="button", text="Save")),
         FakeContext(),
-    ).wait_until(condition="clickable", selector="#save", timeout=0)
+    ).waits.until(condition="clickable", selector="#save", timeout=0)
     assert clickable["matched"] is True
+
+
+def test_page_tab_exposes_capabilities_without_legacy_domain_methods() -> None:
+    """Keep capability boundaries explicit instead of rebuilding PageTab as a facade."""
+
+    tab = PageTab(FakePage(), FakeContext())
+
+    assert tab.elements is not None
+    assert tab.frames is not None
+    assert tab.interaction is not None
+    assert tab.navigation is not None
+    assert tab.network is not None
+    assert tab.storage is not None
+    assert tab.waits is not None
+
+    legacy_methods = {
+        "click_element",
+        "find_element",
+        "find_elements",
+        "get_attribute",
+        "get_html",
+        "get_property",
+        "get_text",
+        "go_back",
+        "go_forward",
+        "hover_element",
+        "keyboard_press",
+        "list_frames",
+        "network_listen_start",
+        "network_listen_stop",
+        "network_listen_wait",
+        "refresh",
+        "scroll_element_into_view",
+        "scroll_page",
+        "select_element",
+        "shadow_find",
+        "shadow_find_all",
+        "storage_clear",
+        "storage_get",
+        "storage_set",
+        "type_text",
+        "upload_file",
+        "wait_for_element",
+        "wait_for_url",
+        "wait_until",
+    }
+    assert legacy_methods.isdisjoint(dir(tab))

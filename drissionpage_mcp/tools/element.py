@@ -173,7 +173,7 @@ async def find_element(
         response, lambda e: f"Failed to find element '{args.selector}': {e}"
     ):
         tab = context.current_tab_or_die()
-        element = await tab.find_element(args.selector, timeout=args.timeout)
+        element = await tab.elements.find(args.selector, timeout=args.timeout)
 
         response.add_code(f"element = page.ele({element['locator']!r})")
         response.add_result(f"Found element: {args.selector}", element=element)
@@ -200,15 +200,13 @@ async def find_all_elements(
         response, lambda e: f"Failed to find elements '{args.selector}': {e}"
     ):
         tab = context.current_tab_or_die()
-        result = await tab.find_elements(
+        result = await tab.elements.find_all(
             args.selector,
             limit=args.limit,
             include_html=args.include_html,
         )
 
-        response.add_code(
-            f"elements = page.eles({result['locator']!r}, timeout=0)"
-        )
+        response.add_code(f"elements = page.eles({result['locator']!r}, timeout=0)")
         response.add_result(
             f"Found {result['returned']} of {result['count']} elements: {args.selector}",
             **with_response_meta(result),
@@ -235,7 +233,7 @@ async def click_element(
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
         before = await maybe_observe(tab, args.observe)
-        await tab.click_element(args.selector, timeout=args.timeout)
+        await tab.elements.click(args.selector, timeout=args.timeout)
         changes = await observed_changes(tab, before)
 
         response.add_code(f"page.ele({plan.locator!r}).click()")
@@ -263,7 +261,7 @@ async def type_text(
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
         before = await maybe_observe(tab, args.observe)
-        await tab.type_text(
+        await tab.elements.type(
             args.selector, args.text, timeout=args.timeout, clear=args.clear
         )
         changes = await observed_changes(tab, before)
@@ -298,7 +296,7 @@ async def get_text(
     ):
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
-        text = await tab.get_text(args.selector)
+        text = await tab.elements.text(args.selector)
 
         code = f"page.ele({plan.locator!r}).text" if args.selector else "page.text"
         response.add_code(code)
@@ -320,13 +318,12 @@ async def get_attribute(
     async with tool_errors(
         response,
         lambda e: (
-            f"Failed to get attribute '{args.attribute}' "
-            f"from '{args.selector}': {e}"
+            f"Failed to get attribute '{args.attribute}' from '{args.selector}': {e}"
         ),
-        ):
+    ):
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
-        value = await tab.get_attribute(args.selector, args.attribute)
+        value = await tab.elements.attribute(args.selector, args.attribute)
 
         response.add_code(f"page.ele({plan.locator!r}).attr({args.attribute!r})")
         response.add_result(
@@ -352,13 +349,12 @@ async def get_property(
     async with tool_errors(
         response,
         lambda e: (
-            f"Failed to get property '{args.property}' "
-            f"from '{args.selector}': {e}"
+            f"Failed to get property '{args.property}' from '{args.selector}': {e}"
         ),
     ):
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
-        value = await tab.get_property(args.selector, args.property)
+        value = await tab.elements.property(args.selector, args.property)
 
         response.add_code(f"page.ele({plan.locator!r}).property({args.property!r})")
         response.add_result(
@@ -384,10 +380,10 @@ async def get_html(
     async with tool_errors(
         response,
         lambda e: f"Failed to get HTML from '{args.selector or 'page'}': {e}",
-        ):
+    ):
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
-        html = await tab.get_html(args.selector)
+        html = await tab.elements.html(args.selector)
 
         code = f"page.ele({plan.locator!r}).html" if args.selector else "page.html"
         response.add_code(code)

@@ -99,7 +99,7 @@ async def network_listen_start(
 
     async with tool_errors(response, "Failed to start network listener"):
         tab = context.current_tab_or_die()
-        result = await tab.network_listen_start(
+        result = await tab.network.start(
             targets=args.targets,
             is_regex=args.is_regex,
             method=args.method,
@@ -129,7 +129,7 @@ async def network_listen_wait(
 
     async with tool_errors(response, "Failed to wait for network packets"):
         tab = context.current_tab_or_die()
-        result = await tab.network_listen_wait(
+        result = await tab.network.wait(
             timeout=args.timeout,
             limit=args.limit,
             include_headers=args.include_headers,
@@ -160,7 +160,7 @@ async def network_listen_stop(
 
     async with tool_errors(response, "Failed to stop network listener"):
         tab = context.current_tab_or_die()
-        result = await tab.network_listen_stop(clear=args.clear)
+        result = await tab.network.stop(clear=args.clear)
         response.add_code("page.listen.stop()")
         response.add_result("Stopped network listener", **result)
 

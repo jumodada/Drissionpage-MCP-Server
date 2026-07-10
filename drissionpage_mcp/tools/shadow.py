@@ -48,7 +48,7 @@ async def shadow_find(
         lambda e: f"Failed to find shadow element '{args.selector}': {e}",
     ):
         tab = context.current_tab_or_die()
-        result = await tab.shadow_find(
+        result = await tab.frames.shadow_find(
             host_selector=args.host_selector,
             selector=args.selector,
             timeout=args.timeout,
@@ -73,7 +73,7 @@ async def shadow_find_all(
         lambda e: f"Failed to find shadow elements '{args.selector}': {e}",
     ):
         tab = context.current_tab_or_die()
-        result = await tab.shadow_find_all(
+        result = await tab.frames.shadow_find_all(
             host_selector=args.host_selector,
             selector=args.selector,
             limit=args.limit,

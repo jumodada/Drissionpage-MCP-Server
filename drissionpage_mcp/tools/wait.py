@@ -120,10 +120,10 @@ async def wait_for_element(
             f"Element '{args.selector}' did not appear within "
             f"{args.timeout} seconds: {e}"
         ),
-        ):
+    ):
         tab = context.current_tab_or_die()
         plan = normalize_selector(args.selector)
-        found = await tab.wait_for_element(args.selector, timeout=args.timeout)
+        found = await tab.waits.element(args.selector, timeout=args.timeout)
         if not found:
             raise TimeoutError(f"Element '{args.selector}' not found")
 
@@ -153,12 +153,11 @@ async def wait_for_url(
     async with tool_errors(
         response,
         lambda e: (
-            f"URL did not match '{args.url_pattern}' within "
-            f"{args.timeout} seconds: {e}"
+            f"URL did not match '{args.url_pattern}' within {args.timeout} seconds: {e}"
         ),
     ):
         tab = context.current_tab_or_die()
-        matched = await tab.wait_for_url(args.url_pattern, timeout=args.timeout)
+        matched = await tab.waits.url(args.url_pattern, timeout=args.timeout)
         if not matched:
             raise TimeoutError(f"URL did not contain '{args.url_pattern}'")
 
@@ -217,7 +216,7 @@ async def wait_until(
         ),
     ):
         tab = context.current_tab_or_die()
-        result = await tab.wait_until(
+        result = await tab.waits.until(
             condition=args.condition,
             selector=args.selector,
             value=args.value,

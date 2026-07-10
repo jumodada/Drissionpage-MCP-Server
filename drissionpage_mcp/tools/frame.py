@@ -57,7 +57,7 @@ async def frame_list(
 ) -> None:
     async with tool_errors(response, "Failed to list frames"):
         tab = context.current_tab_or_die()
-        result = await tab.list_frames(limit=args.limit)
+        result = await tab.frames.list_frames(limit=args.limit)
         response.add_code("page.get_frames()")
         response.add_result(f"Found {result['count']} frame(s)", **result)
 
@@ -75,7 +75,7 @@ async def frame_snapshot(
 ) -> None:
     async with tool_errors(response, "Failed to capture frame snapshot"):
         tab = context.current_tab_or_die()
-        result = await tab.frame_snapshot(
+        result = await tab.frames.snapshot(
             frame_selector=args.frame_selector,
             frame_index=args.frame_index,
             include_html=args.include_html,
@@ -103,7 +103,7 @@ async def frame_find(
         lambda e: f"Failed to find '{args.selector}' in frame: {e}",
     ):
         tab = context.current_tab_or_die()
-        result = await tab.frame_find(
+        result = await tab.frames.find(
             selector=args.selector,
             frame_selector=args.frame_selector,
             frame_index=args.frame_index,

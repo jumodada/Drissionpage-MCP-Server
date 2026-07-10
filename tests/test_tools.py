@@ -7,7 +7,11 @@ import pytest
 from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.response import JSON_RESULT_SENTINEL, ErrorCode, ToolResponse
 from drissionpage_mcp.tools import get_all_tools
-from drissionpage_mcp.tools.navigate import NavigateInput, navigate, tools as navigate_tools
+from drissionpage_mcp.tools.navigate import (
+    NavigateInput,
+    navigate,
+    tools as navigate_tools,
+)
 
 
 class TestNavigationTools:
@@ -28,7 +32,9 @@ class TestNavigationTools:
     @pytest.mark.asyncio
     async def test_navigate_tool_definition(self):
         """Test navigate tool definition."""
-        navigate_tool = next(tool for tool in navigate_tools if tool.name == "page_navigate")
+        navigate_tool = next(
+            tool for tool in navigate_tools if tool.name == "page_navigate"
+        )
 
         assert navigate_tool.name == "page_navigate"
         assert "navigate" in navigate_tool.description.lower()
@@ -52,7 +58,8 @@ class TestNavigationTools:
         mock_context = Mock(spec=DrissionPageContext)
         mock_tab = Mock()
         mock_tab.url = "https://example.com"
-        mock_tab.navigate = AsyncMock(return_value=None)
+        mock_tab.navigation = Mock()
+        mock_tab.navigation.navigate = AsyncMock(return_value=None)
         mock_context.ensure_tab = AsyncMock(return_value=mock_tab)
 
         # Create response object
@@ -66,7 +73,7 @@ class TestNavigationTools:
 
         # Verify that navigate was called
         mock_context.ensure_tab.assert_called_once()
-        mock_tab.navigate.assert_called_once_with("https://example.com")
+        mock_tab.navigation.navigate.assert_called_once_with("https://example.com")
 
         # Check response
         content = response.get_content()

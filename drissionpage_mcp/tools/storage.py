@@ -65,7 +65,7 @@ async def browser_cookies_get(
 ) -> None:
     async with tool_errors(response, "Failed to read browser cookies"):
         tab = context.current_tab_or_die()
-        result = await tab.cookies_get(
+        result = await tab.storage.cookies_get(
             all_domains=args.all_domains,
             all_info=args.all_info,
             include_values=args.include_values,
@@ -87,7 +87,7 @@ async def storage_get(
 ) -> None:
     async with tool_errors(response, f"Failed to read {args.area} storage"):
         tab = context.current_tab_or_die()
-        result = await tab.storage_get(
+        result = await tab.storage.get(
             area=args.area,
             key=args.key,
             include_values=args.include_values,
@@ -108,7 +108,7 @@ async def storage_set(
 ) -> None:
     async with tool_errors(response, f"Failed to set {args.area} storage"):
         tab = context.current_tab_or_die()
-        result = await tab.storage_set(area=args.area, key=args.key, value=args.value)
+        result = await tab.storage.set(area=args.area, key=args.key, value=args.value)
         response.add_code(f"{args.area}Storage.setItem({args.key!r}, <redacted>)")
         response.add_result(f"Set {args.area} storage key: {args.key}", **result)
         response.set_include_snapshot(True)
@@ -126,7 +126,7 @@ async def storage_clear(
 ) -> None:
     async with tool_errors(response, f"Failed to clear {args.area} storage"):
         tab = context.current_tab_or_die()
-        result = await tab.storage_clear(area=args.area, key=args.key)
+        result = await tab.storage.clear(area=args.area, key=args.key)
         response.add_code(f"{args.area}Storage.removeItem({args.key!r})")
         response.add_result(f"Cleared {args.area} storage", **result)
         response.set_include_snapshot(True)

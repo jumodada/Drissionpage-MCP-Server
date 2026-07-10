@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -45,6 +46,42 @@ class FakeTab:
         self.wait_element_result = True
         self.wait_url_result = True
         self.observe_count = 0
+        self.elements = SimpleNamespace(
+            find=self.find_element,
+            find_all=self.find_elements,
+            click=self.click_element,
+            type=self.type_text,
+            text=self.get_text,
+            attribute=self.get_attribute,
+            property=self.get_property,
+            html=self.get_html,
+            upload=self.upload_file,
+        )
+        self.frames = SimpleNamespace(
+            list_frames=self.list_frames,
+            snapshot=self.snapshot,
+            find=self.frame_find,
+            shadow_find=self.shadow_find,
+            shadow_find_all=self.shadow_find_all,
+        )
+        self.interaction = self
+        self.network = SimpleNamespace(
+            start=self.network_listen_start,
+            wait=self.network_listen_wait,
+            stop=self.network_listen_stop,
+        )
+        self.navigation = SimpleNamespace(
+            navigate=self.navigate,
+            back=self.go_back,
+            forward=self.go_forward,
+            refresh=self.refresh,
+        )
+        self.storage = self
+        self.waits = SimpleNamespace(
+            element=self.wait_for_element,
+            url=self.wait_for_url,
+            until=self.wait_until,
+        )
 
     def summary(self, *, active: bool = False) -> dict[str, Any]:
         return {
@@ -483,7 +520,7 @@ class FakeTab:
         if include_body:
             packet.update(
                 {
-                    "body_excerpt": "{\"ok\":true}",
+                    "body_excerpt": '{"ok":true}',
                     "body_truncated": False,
                     "body_type": "json",
                     "request_body_excerpt": "",
@@ -642,7 +679,9 @@ class FakeTab:
         self._record("get_html", selector)
         return "<html></html>" if selector == "" else "<input>"
 
-    async def upload_file(self, selector: str, paths: list[str], timeout: int = 10) -> dict[str, Any]:
+    async def upload_file(
+        self, selector: str, paths: list[str], timeout: int = 10
+    ) -> dict[str, Any]:
         self._record("upload_file", selector, paths, timeout=timeout)
         return {
             "selector": selector,
@@ -663,12 +702,20 @@ class FakeTab:
         y: int = 0,
     ) -> dict[str, Any]:
         self._record("scroll_page", direction=direction, pixels=pixels, x=x, y=y)
-        return {"direction": direction, "pixels": pixels, "x": x, "y": y, "url": self.url}
+        return {
+            "direction": direction,
+            "pixels": pixels,
+            "x": x,
+            "y": y,
+            "url": self.url,
+        }
 
     async def scroll_element_into_view(
         self, selector: str, *, center: bool = True, timeout: int = 10
     ) -> dict[str, Any]:
-        self._record("scroll_element_into_view", selector, center=center, timeout=timeout)
+        self._record(
+            "scroll_element_into_view", selector, center=center, timeout=timeout
+        )
         return {
             "selector": selector,
             "locator": "css:#deep",
@@ -764,7 +811,7 @@ class FakeTab:
             ],
         }
 
-    async def frame_snapshot(
+    async def snapshot(
         self,
         *,
         frame_selector: str = "",
@@ -850,7 +897,10 @@ class FakeTab:
         timeout: int = 3,
     ) -> dict[str, Any]:
         self._record(
-            "shadow_find", host_selector=host_selector, selector=selector, timeout=timeout
+            "shadow_find",
+            host_selector=host_selector,
+            selector=selector,
+            timeout=timeout,
         )
         return {
             "host": {
@@ -946,7 +996,7 @@ class FakeTab:
             ],
         }
 
-    async def storage_get(
+    async def get(
         self, *, area: str = "local", key: str = "", include_values: bool = True
     ) -> dict[str, Any]:
         self._record("storage_get", area=area, key=key, include_values=include_values)
@@ -958,11 +1008,11 @@ class FakeTab:
             "items": {"mode": "dark" if include_values else "<redacted>"},
         }
 
-    async def storage_set(self, *, area: str, key: str, value: str) -> dict[str, Any]:
+    async def set(self, *, area: str, key: str, value: str) -> dict[str, Any]:
         self._record("storage_set", area=area, key=key, value=value)
         return {"area": area, "key": key, "set": True}
 
-    async def storage_clear(self, *, area: str, key: str = "") -> dict[str, Any]:
+    async def clear(self, *, area: str, key: str = "") -> dict[str, Any]:
         self._record("storage_clear", area=area, key=key)
         return {"area": area, "key": key, "cleared": True}
 
@@ -1403,7 +1453,9 @@ async def test_frame_shadow_and_storage_tools_success_paths() -> None:
         ctx,
         shadow.ShadowFindInput(host_selector="#shadow-host", selector="#shadow-button"),
     )
-    assert shadow_response.get_structured_content()["data"]["element"]["tag"] == "button"
+    assert (
+        shadow_response.get_structured_content()["data"]["element"]["tag"] == "button"
+    )
 
     shadow_all_response = await _execute(
         shadow.shadow_find_all,
@@ -1484,7 +1536,9 @@ async def test_navigation_tools_success_paths() -> None:
     assert observed_nav_data["changes"]["url_changed"] is True
     assert observed_nav_data["changes"]["appeared_texts"] == ["after"]
     assert observed_nav_data["changes"]["console_errors_added"] == 1
-    assert observed_nav_data["changes"]["new_console_messages"][0]["text"] == "after error"
+    assert (
+        observed_nav_data["changes"]["new_console_messages"][0]["text"] == "after error"
+    )
 
     new_tab_response = await _execute(
         navigate.navigate,
@@ -1631,9 +1685,15 @@ def test_get_property_input_uses_property_field_only() -> None:
             element.GetPropertyInput,
             {"selector": "#name", "property": "value", "property_name": "value"},
         ),
-        (workflow.BrowserOpenAndSnapshotInput, {"url": "https://example.test", "maxElements": 10}),
+        (
+            workflow.BrowserOpenAndSnapshotInput,
+            {"url": "https://example.test", "maxElements": 10},
+        ),
         (workflow.BrowserExtractLinksInput, {"sameOriginOnly": True}),
-        (workflow.FormFillPreviewInput, {"fields": {"name": "Ada"}, "submit_now": True}),
+        (
+            workflow.FormFillPreviewInput,
+            {"fields": {"name": "Ada"}, "submit_now": True},
+        ),
         (network.NetworkListenStartInput, {"target": "/api"}),
         (network.NetworkListenWaitInput, {"timeout_ms": 1000}),
         (wait.WaitTimeInput, {"seconds": 1, "milliseconds": 500}),
@@ -1678,9 +1738,7 @@ async def test_tab_tools_success_paths() -> None:
     assert list_payload["data"]["active_tab_id"] == "t0"
     assert list_payload["data"]["tabs"][1]["url"] == "https://example.test/new"
 
-    switch_response = await _execute(
-        tabs.tab_switch, ctx, tabs.TabIdInput(tab_id="t1")
-    )
+    switch_response = await _execute(tabs.tab_switch, ctx, tabs.TabIdInput(tab_id="t1"))
     switch_payload = switch_response.get_structured_content()
     assert switch_payload["data"]["tab"]["id"] == "t1"
     assert switch_payload["data"]["tab"]["active"] is True

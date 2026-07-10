@@ -55,7 +55,7 @@ async def navigate(
     ):
         tab = await context.new_tab() if args.new_tab else await context.ensure_tab()
         before = await maybe_observe(tab, args.observe)
-        await tab.navigate(args.url)
+        await tab.navigation.navigate(args.url)
         changes = await observed_changes(tab, before)
 
         response.add_code(f"page.get({args.url!r})")
@@ -84,7 +84,7 @@ async def go_back(
     """Go back to the previous page."""
     async with tool_errors(response, "Failed to go back"):
         tab = context.current_tab_or_die()
-        await tab.go_back()
+        await tab.navigation.back()
 
         response.add_code("page.back()")
         response.add_result("Successfully went back to previous page", url=tab.url)
@@ -104,7 +104,7 @@ async def go_forward(
     """Go forward to the next page."""
     async with tool_errors(response, "Failed to go forward"):
         tab = context.current_tab_or_die()
-        await tab.go_forward()
+        await tab.navigation.forward()
 
         response.add_code("page.forward()")
         response.add_result("Successfully went forward to next page", url=tab.url)
@@ -124,7 +124,7 @@ async def refresh(
     """Refresh the current page."""
     async with tool_errors(response, "Failed to refresh page"):
         tab = context.current_tab_or_die()
-        await tab.refresh()
+        await tab.navigation.refresh()
 
         response.add_code("page.refresh()")
         response.add_result("Successfully refreshed page", url=tab.url)

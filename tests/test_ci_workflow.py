@@ -135,7 +135,11 @@ def test_distribution_does_not_publish_src_compat_shim() -> None:
     packages = pyproject["tool"]["setuptools"]["packages"]
     manifest = MANIFEST.read_text(encoding="utf-8")
 
-    assert packages == ["drissionpage_mcp", "drissionpage_mcp.tools"]
+    assert packages == [
+        "drissionpage_mcp",
+        "drissionpage_mcp.browser",
+        "drissionpage_mcp.tools",
+    ]
     assert "src" not in packages
     assert "recursive-include src" not in manifest
     assert not Path("src").exists()

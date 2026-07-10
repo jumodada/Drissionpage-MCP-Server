@@ -88,7 +88,8 @@ async def test_allowed_navigation_still_uses_existing_tab_flow(monkeypatch) -> N
     _clear_policy_env(monkeypatch)
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
     tab = Mock()
-    tab.navigate = AsyncMock()
+    tab.navigation = Mock()
+    tab.navigation.navigate = AsyncMock()
     context = Mock(spec=DrissionPageContext)
     context.ensure_tab = AsyncMock(return_value=tab)
     response = ToolResponse()
@@ -99,7 +100,7 @@ async def test_allowed_navigation_still_uses_existing_tab_flow(monkeypatch) -> N
 
     assert response.is_error() is False
     context.ensure_tab.assert_awaited_once()
-    tab.navigate.assert_awaited_once_with("https://allowed.test/")
+    tab.navigation.navigate.assert_awaited_once_with("https://allowed.test/")
 
 
 @pytest.mark.asyncio

@@ -134,7 +134,11 @@ def read_resource(
     else:
         raise ValueError(f"Unknown resource URI: {uri}")
 
-    return [ReadResourceContents(content=_json_resource(payload), mime_type="application/json")]
+    return [
+        ReadResourceContents(
+            content=_json_resource(payload), mime_type="application/json"
+        )
+    ]
 
 
 def session_summary(context: Any) -> dict[str, Any]:
@@ -177,12 +181,10 @@ def session_state(context: Any) -> dict[str, Any]:
         return _empty_session_state(
             browser_active=bool(context and context.is_active()),
         )
-    state = getattr(tab, "session_state", None)
-    if callable(state):
-        try:
-            return cast(dict[str, Any], state())
-        except Exception:
-            pass
+    try:
+        return cast(dict[str, Any], tab.storage.session_state())
+    except Exception:
+        pass
     return _empty_session_state(
         browser_active=bool(context and context.is_active()),
         current_url=getattr(tab, "url", "") or "",
@@ -370,7 +372,11 @@ def _without_meta(payload: dict[str, Any]) -> dict[str, Any]:
 
 def _truncate(value: str, limit: int) -> tuple[str, dict[str, Any]]:
     if len(value) <= limit:
-        return value, {"truncated": False, "original_length": len(value), "limit": limit}
+        return value, {
+            "truncated": False,
+            "original_length": len(value),
+            "limit": limit,
+        }
     return value[:limit], {
         "truncated": True,
         "original_length": len(value),

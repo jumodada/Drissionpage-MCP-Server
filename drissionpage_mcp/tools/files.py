@@ -70,7 +70,7 @@ async def element_upload_file(
         lambda e: f"Failed to upload file into '{args.selector}': {e}",
     ):
         tab = context.current_tab_or_die()
-        result = await tab.upload_file(
+        result = await tab.elements.upload(
             args.selector,
             [str(path) for path in safe_paths],
             timeout=args.timeout,

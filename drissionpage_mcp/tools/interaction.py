@@ -48,7 +48,9 @@ class ElementScrollIntoViewInput(ToolInput):
     """Input schema for scrolling an element into view."""
 
     selector: str = Field(..., description="CSS/XPath/DrissionPage element locator.")
-    center: bool = Field(default=True, description="Center the element in the viewport.")
+    center: bool = Field(
+        default=True, description="Center the element in the viewport."
+    )
     timeout: int = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
 
 
@@ -78,7 +80,9 @@ class ElementSelectInput(ToolInput):
 
     selector: str = Field(..., description="CSS/XPath/DrissionPage select locator.")
     value: str = Field(..., description="Option value, text, or index string.")
-    by: SelectBy = Field(default="value", description="Select by value, text, or index.")
+    by: SelectBy = Field(
+        default="value", description="Select by value, text, or index."
+    )
     timeout: int = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
 
 
@@ -103,7 +107,7 @@ async def page_scroll(
 ) -> None:
     async with tool_errors(response, "Failed to scroll page"):
         tab = context.current_tab_or_die()
-        result = await tab.scroll_page(
+        result = await tab.interaction.scroll_page(
             direction=args.direction,
             pixels=args.pixels,
             x=args.x,
@@ -130,7 +134,7 @@ async def element_scroll_into_view(
         response, lambda e: f"Failed to scroll element '{args.selector}' into view: {e}"
     ):
         tab = context.current_tab_or_die()
-        result = await tab.scroll_element_into_view(
+        result = await tab.interaction.scroll_element_into_view(
             args.selector,
             center=args.center,
             timeout=args.timeout,
@@ -154,7 +158,7 @@ async def element_hover(
         response, lambda e: f"Failed to hover element '{args.selector}': {e}"
     ):
         tab = context.current_tab_or_die()
-        result = await tab.hover_element(
+        result = await tab.interaction.hover_element(
             args.selector,
             timeout=args.timeout,
             offset_x=args.offset_x,
@@ -177,7 +181,7 @@ async def keyboard_press(
 ) -> None:
     async with tool_errors(response, "Failed to send keyboard keys"):
         tab = context.current_tab_or_die()
-        result = await tab.keyboard_press(args.keys, interval=args.interval)
+        result = await tab.interaction.keyboard_press(args.keys, interval=args.interval)
         response.add_code(f"page.actions.type({args.keys!r})")
         response.add_result("Sent keyboard keys", **result)
         response.set_include_snapshot(True)
@@ -197,7 +201,7 @@ async def element_select(
         response, lambda e: f"Failed to select option for '{args.selector}': {e}"
     ):
         tab = context.current_tab_or_die()
-        result = await tab.select_element(
+        result = await tab.interaction.select_element(
             args.selector,
             value=args.value,
             by=args.by,
@@ -222,7 +226,7 @@ async def element_check(
         response, lambda e: f"Failed to set check state for '{args.selector}': {e}"
     ):
         tab = context.current_tab_or_die()
-        result = await tab.check_element(
+        result = await tab.interaction.check_element(
             args.selector,
             checked=args.checked,
             by_js=args.by_js,
