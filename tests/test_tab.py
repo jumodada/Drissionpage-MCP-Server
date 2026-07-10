@@ -272,8 +272,8 @@ async def test_navigation_coordinates_and_resize_paths() -> None:
     await tab.navigation.back()
     await tab.navigation.forward()
     await tab.navigation.refresh()
-    await tab.click(3, 4)
-    await tab.resize(800, 600)
+    await tab.interaction.click_coordinates(3, 4)
+    await tab.page_ops.resize(800, 600)
 
     assert tab.url == "https://example.test"
     assert ("get", "https://example.test") in page.calls
@@ -358,7 +358,7 @@ async def test_page_snapshot_and_find_elements_return_bounded_summaries() -> Non
     ]
     tab = PageTab(page, FakeContext())
 
-    snapshot = await tab.page_snapshot(
+    snapshot = await tab.observation.snapshot(
         include_html=True,
         max_elements=5,
         max_text_chars=100,
@@ -421,8 +421,8 @@ async def test_observe_evaluate_and_wait_until_return_observable_state() -> None
     page.text = "Page is Ready"
     tab = PageTab(page, FakeContext())
 
-    observation = await tab.observe(max_texts=2, max_text_chars=50)
-    evaluated = await tab.evaluate_script(
+    observation = await tab.observation.observe(max_texts=2, max_text_chars=50)
+    evaluated = await tab.observation.evaluate(
         "return args[0];",
         args=["abcdef"],
         max_chars=4,
@@ -484,9 +484,9 @@ async def test_console_logs_are_normalized_filterable_and_cursor_based() -> None
     )
     tab = PageTab(page, FakeContext())
 
-    all_logs = await tab.console_logs(level="all", since=-1, limit=2)
-    error_logs = await tab.console_logs(level="error", since=-1, limit=20)
-    cursor_logs = await tab.console_logs(level="all", since=1, limit=20)
+    all_logs = await tab.observation.console_logs(level="all", since=-1, limit=2)
+    error_logs = await tab.observation.console_logs(level="error", since=-1, limit=20)
+    cursor_logs = await tab.observation.console_logs(level="all", since=1, limit=20)
 
     assert page.console.started is True
     assert all_logs["available"] is True
@@ -512,10 +512,10 @@ async def test_console_logs_are_normalized_filterable_and_cursor_based() -> None
 async def test_console_logs_report_capability_when_unavailable() -> None:
     page = FakePage()
     page.console = None
-    unavailable = await PageTab(page, FakeContext()).console_logs()
+    unavailable = await PageTab(page, FakeContext()).observation.console_logs()
 
     page.console = FakeConsole(start_raises=True)
-    start_failed = await PageTab(page, FakeContext()).console_logs()
+    start_failed = await PageTab(page, FakeContext()).observation.console_logs()
 
     assert unavailable == {
         "available": False,
@@ -554,7 +554,7 @@ async def test_observe_includes_bounded_console_summary() -> None:
     )
     tab = PageTab(page, FakeContext())
 
-    observation = await tab.observe()
+    observation = await tab.observation.observe()
 
     assert observation["console"]["available"] is True
     assert observation["console"]["error_count"] == 1
@@ -581,16 +581,20 @@ async def test_observable_helpers_raise_on_invalid_page_results() -> None:
             return "not structured"
 
     with pytest.raises(RuntimeError, match="page snapshot script returned"):
-        await PageTab(InvalidScriptPage("invalid"), FakeContext()).page_snapshot()
+        await PageTab(
+            InvalidScriptPage("invalid"), FakeContext()
+        ).observation.snapshot()
 
     with pytest.raises(RuntimeError, match="form inspect script returned"):
-        await PageTab(InvalidScriptPage("invalid"), FakeContext()).inspect_forms()
+        await PageTab(
+            InvalidScriptPage("invalid"), FakeContext()
+        ).workflows.inspect_forms()
 
     with pytest.raises(RuntimeError, match="page observe script returned"):
-        await PageTab(InvalidScriptPage("invalid"), FakeContext()).observe()
+        await PageTab(InvalidScriptPage("invalid"), FakeContext()).observation.observe()
 
     with pytest.raises(RuntimeError, match="script failed"):
-        await PageTab(InvalidScriptPage("raise"), FakeContext()).evaluate_script(
+        await PageTab(InvalidScriptPage("raise"), FakeContext()).observation.evaluate(
             "return 1;"
         )
 
@@ -760,54 +764,30 @@ async def test_page_text_falls_back_to_body_when_text_property_is_absent() -> No
 
 
 @pytest.mark.asyncio
-async def test_screenshot_inline_path_and_legacy_fallback(tmp_path) -> None:
+async def test_screenshot_inline_path_and_errors_are_explicit(tmp_path) -> None:
     tab = PageTab(FakePage(), FakeContext())
 
-    assert await tab.screenshot() == base64.b64encode(b"inline-png").decode()
+    assert await tab.page_ops.screenshot() == base64.b64encode(b"inline-png").decode()
 
     output = tmp_path / "screen.png"
-    assert await tab.screenshot(path=str(output), full_page=True) == str(output)
+    assert await tab.page_ops.screenshot(path=str(output), full_page=True) == str(
+        output
+    )
     assert output.read_bytes() == b"path-png"
 
-    class LegacyScreenshotPage(FakePage):
-        def get_screenshot(self, **kwargs):
-            if kwargs.get("as_base64"):
-                raise TypeError("old DrissionPage")
-            Path(kwargs["path"]).write_bytes(b"legacy-png")
+    class UnsupportedScreenshotPage(FakePage):
+        def get_screenshot(self, **_kwargs):
+            return None
 
-    legacy_tab = PageTab(LegacyScreenshotPage(), FakeContext())
-    assert await legacy_tab.screenshot() == base64.b64encode(b"legacy-png").decode()
-
-
-@pytest.mark.asyncio
-async def test_screenshot_cleans_temp_file_best_effort_and_reraises_failures(
-    monkeypatch,
-) -> None:
-    class LegacyScreenshotPage(FakePage):
-        def get_screenshot(self, **kwargs):
-            if kwargs.get("as_base64"):
-                raise TypeError("old DrissionPage")
-            Path(kwargs["path"]).write_bytes(b"legacy-png")
-
-    removed_paths = []
-
-    def fail_remove(path: str) -> None:
-        removed_paths.append(path)
-        raise OSError("already gone")
-
-    monkeypatch.setattr("drissionpage_mcp.tab.os.remove", fail_remove)
-    tab = PageTab(LegacyScreenshotPage(), FakeContext())
-
-    assert await tab.screenshot() == base64.b64encode(b"legacy-png").decode()
-    assert removed_paths
+    with pytest.raises(TypeError, match="unsupported type: NoneType"):
+        await PageTab(UnsupportedScreenshotPage(), FakeContext()).page_ops.screenshot()
 
     class BrokenScreenshotPage(FakePage):
         def get_screenshot(self, **_kwargs):
             raise RuntimeError("screenshot failed")
 
-    broken_tab = PageTab(BrokenScreenshotPage(), FakeContext())
     with pytest.raises(RuntimeError, match="screenshot failed"):
-        await broken_tab.screenshot()
+        await PageTab(BrokenScreenshotPage(), FakeContext()).page_ops.screenshot()
 
 
 @pytest.mark.asyncio
@@ -923,8 +903,8 @@ async def test_page_action_failures_are_reraised() -> None:
         ("back", lambda tab: tab.navigation.back()),
         ("forward", lambda tab: tab.navigation.forward()),
         ("refresh", lambda tab: tab.navigation.refresh()),
-        ("click", lambda tab: tab.click(1, 2)),
-        ("resize", lambda tab: tab.resize(800, 600)),
+        ("click", lambda tab: tab.interaction.click_coordinates(1, 2)),
+        ("resize", lambda tab: tab.page_ops.resize(800, 600)),
     ):
         tab = PageTab(BrokenPage(action), FakeContext())
         with pytest.raises(RuntimeError):
@@ -947,7 +927,7 @@ async def test_post_action_stabilization_prefers_doc_loaded() -> None:
     tab = PageTab(page, FakeContext())
 
     await tab.navigation.navigate("https://example.test")
-    await tab.click(1, 2)
+    await tab.interaction.click_coordinates(1, 2)
 
     assert page.wait.doc_loaded_calls[0] == {"timeout": 5.0, "raise_err": False}
     assert page.wait.doc_loaded_calls[1] == {"timeout": 1.0, "raise_err": False}
@@ -999,7 +979,7 @@ async def test_post_action_stabilization_falls_back_when_doc_loaded_fails(
     page.wait = WaitWithFailingDocLoaded()
     tab = PageTab(page, FakeContext())
 
-    await tab.click(1, 2)
+    await tab.interaction.click_coordinates(1, 2)
 
     assert sleeps == [0.02]
 
@@ -1582,12 +1562,12 @@ async def test_console_helpers_cover_unreadable_and_noniterable_messages() -> No
 
     unavailable = await PageTab(
         ConsolePropertyRaisesPage(), FakeContext()
-    ).console_logs()
+    ).observation.console_logs()
     assert unavailable["available"] is False
     assert (
-        PageTab(ConsolePropertyRaisesPage(), FakeContext())._console_summary()[
-            "available"
-        ]
+        PageTab(
+            ConsolePropertyRaisesPage(), FakeContext()
+        ).observation._console_summary()["available"]
         is False
     )
 
@@ -1602,7 +1582,7 @@ async def test_console_helpers_cover_unreadable_and_noniterable_messages() -> No
 
     page = FakePage()
     page.console = MessagesRaiseConsole()
-    assert (await PageTab(page, FakeContext()).console_logs())["logs"] == []
+    assert (await PageTab(page, FakeContext()).observation.console_logs())["logs"] == []
 
     class NonIterableMessagesConsole(FakeConsole):
         def __init__(self) -> None:
@@ -1611,7 +1591,7 @@ async def test_console_helpers_cover_unreadable_and_noniterable_messages() -> No
 
     tab = PageTab(FakePage(), FakeContext())
     tab.page.console = NonIterableMessagesConsole()
-    tab._console_log_cache = [
+    tab.observation._console_log_cache = [
         {
             "index": 0,
             "level": "log",
@@ -1622,7 +1602,7 @@ async def test_console_helpers_cover_unreadable_and_noniterable_messages() -> No
             "source": "",
         }
     ]
-    assert (await tab.console_logs())["logs"][0]["text"] == "cached"
+    assert (await tab.observation.console_logs())["logs"][0]["text"] == "cached"
 
 
 @pytest.mark.asyncio
@@ -1651,7 +1631,7 @@ async def test_console_message_normalization_handles_edge_message_shapes() -> No
     )
     tab = PageTab(page, FakeContext())
 
-    logs = (await tab.console_logs(limit=10))["logs"]
+    logs = (await tab.observation.console_logs(limit=10))["logs"]
 
     assert [item["text"] for item in logs] == [
         "plain string",
@@ -1661,7 +1641,7 @@ async def test_console_message_normalization_handles_edge_message_shapes() -> No
     ]
     assert [item["level"] for item in logs] == ["log", "warning", "log", "log"]
 
-    tab._console_log_cache = [
+    tab.observation._console_log_cache = [
         {
             "index": 0,
             "level": "warning",
@@ -1672,13 +1652,16 @@ async def test_console_message_normalization_handles_edge_message_shapes() -> No
             "source": "",
         }
     ]
-    tab._merge_console_messages(
+    tab.observation._merge_console_messages(
         [
             {"level": "error", "text": "new"},
             {"level": "warning", "text": "old"},
         ]
     )
-    assert [item["text"] for item in tab._console_log_cache] == ["old", "new"]
+    assert [item["text"] for item in tab.observation._console_log_cache] == [
+        "old",
+        "new",
+    ]
 
 
 @pytest.mark.asyncio
@@ -1741,10 +1724,25 @@ def test_page_tab_exposes_capabilities_without_legacy_domain_methods() -> None:
     assert tab.interaction is not None
     assert tab.navigation is not None
     assert tab.network is not None
+    assert tab.observation is not None
+    assert tab.page_ops is not None
     assert tab.storage is not None
     assert tab.waits is not None
+    assert tab.workflows is not None
 
     legacy_methods = {
+        "click",
+        "console_logs",
+        "ensure_console_capture",
+        "evaluate_script",
+        "extract_links",
+        "form_fill_preview",
+        "inspect_forms",
+        "open_and_snapshot",
+        "observe",
+        "page_snapshot",
+        "resize",
+        "screenshot",
         "click_element",
         "find_element",
         "find_elements",

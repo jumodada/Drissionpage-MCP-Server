@@ -1,28 +1,23 @@
 """Additional page and element interaction tools for DrissionPage MCP."""
 
 from __future__ import annotations
-
 from typing import TYPE_CHECKING, Literal
-
 from pydantic import Field
-
 from ..limits import MAX_WAIT_SECONDS
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..tool_outputs import (
+    PageScrollData,
+    ElementScrollIntoViewData,
+    ElementHoverData,
+    KeyboardPressData,
+    ElementSelectData,
+    ElementCheckData,
+)
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
-    from ..response import ToolResponse
-
-
 ScrollDirection = Literal[
-    "down",
-    "up",
-    "left",
-    "right",
-    "top",
-    "bottom",
-    "half",
-    "position",
+    "down", "up", "left", "right", "top", "bottom", "half", "position"
 ]
 SelectBy = Literal["value", "text", "index"]
 
@@ -101,21 +96,21 @@ class ElementCheckInput(ToolInput):
     description="Scroll the current page by direction or to a position.",
     input_schema=PageScrollInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=PageScrollData,
+    failure_message=lambda args, exc: "Failed to scroll page: " + str(exc),
 )
 async def page_scroll(
-    context: "DrissionPageContext", args: PageScrollInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(response, "Failed to scroll page"):
-        tab = context.current_tab_or_die()
-        result = await tab.interaction.scroll_page(
-            direction=args.direction,
-            pixels=args.pixels,
-            x=args.x,
-            y=args.y,
-        )
-        response.add_code(f"page.scroll.{args.direction}()")
-        response.add_result(f"Scrolled page {args.direction}", **result)
-        response.set_include_snapshot(True)
+    context: "DrissionPageContext", args: PageScrollInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.interaction.scroll_page(
+        direction=args.direction, pixels=args.pixels, x=args.x, y=args.y
+    )
+    outcome.add_code(f"page.scroll.{args.direction}()")
+    outcome.add_result(f"Scrolled page {args.direction}", **result)
+    outcome.set_include_snapshot(True)
+    return outcome
 
 
 @define_tool(
@@ -124,24 +119,23 @@ async def page_scroll(
     description="Scroll an element into the viewport before a later action.",
     input_schema=ElementScrollIntoViewInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=ElementScrollIntoViewData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to scroll element '{args.selector}' into view: {e}"
+    )(exc),
 )
 async def element_scroll_into_view(
-    context: "DrissionPageContext",
-    args: ElementScrollIntoViewInput,
-    response: "ToolResponse",
-) -> None:
-    async with tool_errors(
-        response, lambda e: f"Failed to scroll element '{args.selector}' into view: {e}"
-    ):
-        tab = context.current_tab_or_die()
-        result = await tab.interaction.scroll_element_into_view(
-            args.selector,
-            center=args.center,
-            timeout=args.timeout,
-        )
-        response.add_code(f"page.ele({result['locator']!r}).scroll.to_see()")
-        response.add_result(f"Scrolled element into view: {args.selector}", **result)
-        response.set_include_snapshot(True)
+    context: "DrissionPageContext", args: ElementScrollIntoViewInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.interaction.scroll_element_into_view(
+        args.selector, center=args.center, timeout=args.timeout
+    )
+    outcome.add_code(f"page.ele({result['locator']!r}).scroll.to_see()")
+    outcome.add_result(f"Scrolled element into view: {args.selector}", **result)
+    outcome.set_include_snapshot(True)
+    return outcome
 
 
 @define_tool(
@@ -150,23 +144,26 @@ async def element_scroll_into_view(
     description="Move the mouse over an element.",
     input_schema=ElementHoverInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=ElementHoverData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to hover element '{args.selector}': {e}"
+    )(exc),
 )
 async def element_hover(
-    context: "DrissionPageContext", args: ElementHoverInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(
-        response, lambda e: f"Failed to hover element '{args.selector}': {e}"
-    ):
-        tab = context.current_tab_or_die()
-        result = await tab.interaction.hover_element(
-            args.selector,
-            timeout=args.timeout,
-            offset_x=args.offset_x,
-            offset_y=args.offset_y,
-        )
-        response.add_code(f"page.ele({result['locator']!r}).hover()")
-        response.add_result(f"Hovered element: {args.selector}", **result)
-        response.set_include_snapshot(True)
+    context: "DrissionPageContext", args: ElementHoverInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.interaction.hover_element(
+        args.selector,
+        timeout=args.timeout,
+        offset_x=args.offset_x,
+        offset_y=args.offset_y,
+    )
+    outcome.add_code(f"page.ele({result['locator']!r}).hover()")
+    outcome.add_result(f"Hovered element: {args.selector}", **result)
+    outcome.set_include_snapshot(True)
+    return outcome
 
 
 @define_tool(
@@ -175,16 +172,19 @@ async def element_hover(
     description="Send keyboard text/keys to the active page element.",
     input_schema=KeyboardPressInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=KeyboardPressData,
+    failure_message=lambda args, exc: "Failed to send keyboard keys: " + str(exc),
 )
 async def keyboard_press(
-    context: "DrissionPageContext", args: KeyboardPressInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(response, "Failed to send keyboard keys"):
-        tab = context.current_tab_or_die()
-        result = await tab.interaction.keyboard_press(args.keys, interval=args.interval)
-        response.add_code(f"page.actions.type({args.keys!r})")
-        response.add_result("Sent keyboard keys", **result)
-        response.set_include_snapshot(True)
+    context: "DrissionPageContext", args: KeyboardPressInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.interaction.keyboard_press(args.keys, interval=args.interval)
+    outcome.add_code(f"page.actions.type({args.keys!r})")
+    outcome.add_result("Sent keyboard keys", **result)
+    outcome.set_include_snapshot(True)
+    return outcome
 
 
 @define_tool(
@@ -193,23 +193,23 @@ async def keyboard_press(
     description="Select an option from a select element by value, text, or index.",
     input_schema=ElementSelectInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=ElementSelectData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to select option for '{args.selector}': {e}"
+    )(exc),
 )
 async def element_select(
-    context: "DrissionPageContext", args: ElementSelectInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(
-        response, lambda e: f"Failed to select option for '{args.selector}': {e}"
-    ):
-        tab = context.current_tab_or_die()
-        result = await tab.interaction.select_element(
-            args.selector,
-            value=args.value,
-            by=args.by,
-            timeout=args.timeout,
-        )
-        response.add_code(f"page.ele({result['locator']!r}).select.{args.by}()")
-        response.add_result(f"Selected option in: {args.selector}", **result)
-        response.set_include_snapshot(True)
+    context: "DrissionPageContext", args: ElementSelectInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.interaction.select_element(
+        args.selector, value=args.value, by=args.by, timeout=args.timeout
+    )
+    outcome.add_code(f"page.ele({result['locator']!r}).select.{args.by}()")
+    outcome.add_result(f"Selected option in: {args.selector}", **result)
+    outcome.set_include_snapshot(True)
+    return outcome
 
 
 @define_tool(
@@ -218,30 +218,20 @@ async def element_select(
     description="Set a checkbox or radio element to checked/unchecked.",
     input_schema=ElementCheckInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=ElementCheckData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to set check state for '{args.selector}': {e}"
+    )(exc),
 )
 async def element_check(
-    context: "DrissionPageContext", args: ElementCheckInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(
-        response, lambda e: f"Failed to set check state for '{args.selector}': {e}"
-    ):
-        tab = context.current_tab_or_die()
-        result = await tab.interaction.check_element(
-            args.selector,
-            checked=args.checked,
-            by_js=args.by_js,
-            timeout=args.timeout,
-        )
-        response.add_code(f"page.ele({result['locator']!r}).check()")
-        response.add_result(f"Set check state for: {args.selector}", **result)
-        response.set_include_snapshot(True)
-
-
-tools = [
-    page_scroll,
-    element_scroll_into_view,
-    element_hover,
-    keyboard_press,
-    element_select,
-    element_check,
-]
+    context: "DrissionPageContext", args: ElementCheckInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.interaction.check_element(
+        args.selector, checked=args.checked, by_js=args.by_js, timeout=args.timeout
+    )
+    outcome.add_code(f"page.ele({result['locator']!r}).check()")
+    outcome.add_result(f"Set check state for: {args.selector}", **result)
+    outcome.set_include_snapshot(True)
+    return outcome

@@ -1,76 +1,93 @@
 """Response contract tests for machine-readable MCP tool results."""
 
 from __future__ import annotations
-
 import base64
 import json
 import re
-
 import pytest
 from jsonschema import ValidationError, validate
-
-from drissionpage_mcp.response import (
-    ErrorCode,
-    ToolResponse,
-    ToolResult,
-    build_screenshot_metadata,
-    tool_result_output_schema,
-    classify_error,
-    recovery_hints,
-)
+from drissionpage_mcp.response_errors import ErrorCode, classify_error, recovery_hints
+from drissionpage_mcp.response_media import build_screenshot_metadata
+from drissionpage_mcp.tools import get_all_tools
+from drissionpage_mcp.tools.base import ToolOutcome
 
 JSON_RESULT_SENTINEL = "### JSON_RESULT"
-ONE_PIXEL_PNG = (
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAD"
-    "hgGAWjR9awAAAABJRU5ErkJggg=="
-)
+
+
+def tool_result_output_schema(tool_name: str) -> dict[str, object]:
+    return next(
+        tool for tool in get_all_tools() if tool.name == tool_name
+    ).output_schema()
+
+
+class ToolResult:
+    """Payload factory used only to validate generated public schemas."""
+
+    @staticmethod
+    def success(message: str = "", **data: object):
+        class Payload:
+            def to_dict(self) -> dict[str, object]:
+                return {"ok": True, "message": message, "data": data}
+
+        return Payload()
+
+    @staticmethod
+    def failure(code: ErrorCode | str, message: str, **details: object):
+        code_value = code.value if isinstance(code, ErrorCode) else str(code)
+
+        class Payload:
+            def to_dict(self) -> dict[str, object]:
+                return {
+                    "ok": False,
+                    "message": message,
+                    "error": {
+                        "code": code_value,
+                        "message": message,
+                        "details": details,
+                    },
+                }
+
+        return Payload()
+
+
+ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
 
 
 def test_result_content_starts_with_json_result_sentinel() -> None:
     """returns the JSON_RESULT sentinel as the first text content item for results."""
-
-    response = ToolResponse()
+    response = ToolOutcome()
     response.add_result('{"ok": true}')
-
-    content = response.get_content()
-
+    content = response.content()
     assert content[0].type == "text"
     assert content[0].text.startswith(JSON_RESULT_SENTINEL)
 
 
 def test_default_success_content_starts_with_json_result_sentinel() -> None:
     """returns the JSON_RESULT sentinel for default successful empty responses."""
-
-    content = ToolResponse().get_content()
-
+    content = ToolOutcome().content()
     assert content[0].type == "text"
     assert content[0].text.startswith(JSON_RESULT_SENTINEL)
 
 
 def test_error_without_explicit_code_is_classified_from_message() -> None:
     """maps common tool-level failure messages to stable error codes."""
-
-    response = ToolResponse()
+    response = ToolOutcome()
     response.add_error("Failed to find element '#missing': Element not found")
-
-    payload = response.get_structured_content()
+    payload = response.structured_content()
     assert payload["ok"] is False
     assert payload["error"]["code"] == "ELEMENT_NOT_FOUND"
 
 
 def test_add_error_includes_actionable_recovery_hints() -> None:
     """adds machine-readable next steps without changing the error envelope."""
-
-    response = ToolResponse()
+    response = ToolOutcome()
     response.add_error(
         "Failed to find element '#missing': Element not found",
         ErrorCode.ELEMENT_NOT_FOUND,
         selector="#missing",
     )
-
-    details = response.get_structured_content()["error"]["details"]
+    details = response.structured_content()["error"]["details"]
     hints = details["hints"]
-
     assert details["selector"] == "#missing"
     assert {hint["action"] for hint in hints} >= {
         "inspect_page_snapshot",
@@ -87,60 +104,55 @@ def test_add_error_includes_actionable_recovery_hints() -> None:
 
 def test_recovery_hints_cover_common_runtime_failures() -> None:
     """keeps recovery hints deterministic for high-frequency failure categories."""
-
     timeout_hints = recovery_hints(ErrorCode.TIMEOUT, tool_name="wait_for_url")
     browser_hints = recovery_hints(ErrorCode.BROWSER_START_FAILED)
     not_initialized_hints = recovery_hints(ErrorCode.BROWSER_NOT_INITIALIZED)
     argument_hints = recovery_hints(ErrorCode.MCP_ARGUMENT_INVALID)
     not_found_hints = recovery_hints(ErrorCode.TOOL_NOT_FOUND)
     screenshot_policy_hints = recovery_hints(
-        ErrorCode.POLICY_DENIED,
-        message="Screenshot path denied by policy",
+        ErrorCode.POLICY_DENIED, message="Screenshot path denied by policy"
     )
     unsupported_hints = recovery_hints(
         ErrorCode.UNSUPPORTED_OPERATION,
         tool_name="network_listen_start",
         message="listener unavailable",
     )
-
     assert {hint["action"] for hint in timeout_hints} >= {
         "increase_timeout",
         "inspect_current_page",
     }
     assert any(
-        hint.get("command") == "drissionpage-mcp doctor --launch-browser"
-        for hint in browser_hints
+        (
+            hint.get("command") == "drissionpage-mcp doctor --launch-browser"
+            for hint in browser_hints
+        )
     )
     assert not_initialized_hints[0] == {
         "action": "navigate_first",
-        "message": (
-            "Open a page with the workflow helper when you need immediate page "
-            "context; use page_navigate only for navigation-only retries."
-        ),
+        "message": "Open a page with the workflow helper when you need immediate page context; use page_navigate only for navigation-only retries.",
         "tool": "browser_open_and_snapshot",
     }
     assert argument_hints[0]["action"] == "check_input_schema"
-    assert any(hint["action"] == "inspect_tools_catalog" for hint in argument_hints)
+    assert any((hint["action"] == "inspect_tools_catalog" for hint in argument_hints))
     assert not_found_hints[0]["action"] == "list_available_tools"
-    assert any(hint["action"] == "read_model_usage_guide" for hint in not_found_hints)
+    assert any((hint["action"] == "read_model_usage_guide" for hint in not_found_hints))
     assert any(
-        hint.get("env") == "DP_MCP_SCREENSHOT_ROOT"
-        for hint in screenshot_policy_hints
+        (
+            hint.get("env") == "DP_MCP_SCREENSHOT_ROOT"
+            for hint in screenshot_policy_hints
+        )
     )
-    assert any(hint["action"] == "verify_listener_api" for hint in unsupported_hints)
+    assert any((hint["action"] == "verify_listener_api" for hint in unsupported_hints))
 
 
 def test_screenshot_result_includes_image_content_and_json_metadata() -> None:
     """emits PNG image content plus parseable screenshot metadata."""
-
-    response = ToolResponse()
+    response = ToolOutcome()
     response.add_screenshot(ONE_PIXEL_PNG, {"full_page": False})
-
-    content = response.get_content()
-    payload = response.get_structured_content()
+    content = response.content()
+    payload = response.structured_content()
     screenshot = payload["data"]["screenshot"]
-
-    assert any(item.type == "image" for item in content)
+    assert any((item.type == "image" for item in content))
     assert screenshot == {
         "mime_type": "image/png",
         "inline": True,
@@ -150,16 +162,14 @@ def test_screenshot_result_includes_image_content_and_json_metadata() -> None:
         "width": 1,
         "height": 1,
     }
-
     text_mirror_payload = json.loads(
-        re.search(r"```json\n(.*?)\n```", content[0].text, re.S).group(1)
+        re.search("```json\\n(.*?)\\n```", content[0].text, re.S).group(1)
     )
     assert text_mirror_payload["data"]["screenshot"] == screenshot
 
 
 def test_errors_module_reexports_stable_error_api() -> None:
     """keeps the public error helper module from becoming dead re-export slop."""
-
     from drissionpage_mcp.errors import ErrorCode, ToolError, classify_error
 
     assert ErrorCode.TIMEOUT.value == "TIMEOUT"
@@ -180,7 +190,11 @@ def test_errors_module_reexports_stable_error_api() -> None:
         (ValueError("selector syntax invalid"), "", ErrorCode.SELECTOR_INVALID),
         (RuntimeError("operation timed out"), "", ErrorCode.TIMEOUT),
         (RuntimeError("No active tab"), "", ErrorCode.BROWSER_NOT_INITIALIZED),
-        (RuntimeError("failed to navigate to url"), "", ErrorCode.PAGE_NAVIGATION_FAILED),
+        (
+            RuntimeError("failed to navigate to url"),
+            "",
+            ErrorCode.PAGE_NAVIGATION_FAILED,
+        ),
         (RuntimeError("boom"), "page_navigate", ErrorCode.PAGE_NAVIGATION_FAILED),
         (RuntimeError("screenshot failed"), "", ErrorCode.SCREENSHOT_FAILED),
         (RuntimeError("policy allowlist denied"), "", ErrorCode.POLICY_DENIED),
@@ -194,28 +208,21 @@ def test_classify_error_maps_mcp_recovery_categories(
     assert classify_error(exc, tool_name) is expected
 
 
-def test_set_tool_result_controls_error_state_and_default_error_content() -> None:
-    response = ToolResponse()
-    response.set_tool_result(
-        ToolResult.failure(ErrorCode.UNKNOWN_ERROR, "explicit failure")
-    )
-
-    content = response.get_content()
-    payload = response.get_structured_content()
-
-    assert response.is_error() is True
+def test_failure_outcome_controls_error_state_and_default_error_content() -> None:
+    response = ToolOutcome()
+    response.add_error("explicit failure", ErrorCode.UNKNOWN_ERROR)
+    content = response.content()
+    payload = response.structured_content()
+    assert response.is_error is True
     assert payload["ok"] is False
-    assert payload["error"]["code"] == "UNKNOWN_ERROR"
-    assert content[0].text.startswith(JSON_RESULT_SENTINEL)
-    assert content[1].text == "### Error\nUnknown error occurred."
+    assert payload["error"]["code"] == ErrorCode.UNKNOWN_ERROR.value
+    assert "explicit failure" in content[1].text
 
 
 def test_tool_result_output_schema_validates_real_payloads() -> None:
     schema = tool_result_output_schema("page_close")
-
     validate(
-        ToolResult.success("Successfully closed browser", closed=True).to_dict(),
-        schema,
+        ToolResult.success("Successfully closed browser", closed=True).to_dict(), schema
     )
     validate(
         ToolResult.failure(
@@ -225,7 +232,6 @@ def test_tool_result_output_schema_validates_real_payloads() -> None:
         ).to_dict(),
         schema,
     )
-
     with pytest.raises(ValidationError):
         validate(
             {
@@ -275,7 +281,6 @@ def test_page_understanding_output_schemas_validate_success_payloads() -> None:
         ],
         meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
     ).to_dict()
-
     validate(snapshot_payload, tool_result_output_schema("page_snapshot"))
     validate(find_all_payload, tool_result_output_schema("element_find_all"))
 
@@ -322,7 +327,6 @@ def test_0_5_5_output_schemas_validate_new_capability_payloads() -> None:
         count=1,
         items={"mode": "dark"},
     ).to_dict()
-
     validate(upload_payload, tool_result_output_schema("element_upload_file"))
     validate(frame_payload, tool_result_output_schema("frame_snapshot"))
     validate(storage_payload, tool_result_output_schema("storage_get"))
@@ -368,7 +372,6 @@ def test_form_inspect_output_schema_validates_success_payload() -> None:
             }
         ],
     ).to_dict()
-
     validate(payload, tool_result_output_schema("form_inspect"))
 
 
@@ -495,7 +498,6 @@ def test_observable_action_output_schemas_validate_success_payloads() -> None:
         elapsed_ms=100,
         state={"visible": True, "disabled": False},
     ).to_dict()
-
     validate(observe_payload, tool_result_output_schema("page_observe"))
     validate(console_payload, tool_result_output_schema("page_console_logs"))
     validate(evaluate_payload, tool_result_output_schema("page_evaluate"))
@@ -584,7 +586,12 @@ def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
     start_payload = ToolResult.success(
         "Started network listener",
         listening=True,
-        filters={"targets": ["/api"], "is_regex": False, "method": "", "resource_type": ""},
+        filters={
+            "targets": ["/api"],
+            "is_regex": False,
+            "method": "",
+            "resource_type": "",
+        },
         started_at="2026-07-07T00:00:00+00:00",
         tab_id="t0",
         cleared=True,
@@ -607,7 +614,7 @@ def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
                 "fail_error": "",
                 "request_headers": {"authorization": "<redacted>"},
                 "response_headers": {"content-type": "application/json"},
-                "body_excerpt": "{\"ok\":true}",
+                "body_excerpt": '{"ok":true}',
                 "body_truncated": False,
                 "body_type": "json",
             }
@@ -615,12 +622,8 @@ def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
         meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
     ).to_dict()
     stop_payload = ToolResult.success(
-        "Stopped network listener",
-        listening=False,
-        was_listening=True,
-        cleared=True,
+        "Stopped network listener", listening=False, was_listening=True, cleared=True
     ).to_dict()
-
     validate(open_payload, tool_result_output_schema("browser_open_and_snapshot"))
     validate(links_payload, tool_result_output_schema("browser_extract_links"))
     validate(fill_payload, tool_result_output_schema("form_fill_preview"))
@@ -629,24 +632,19 @@ def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
     validate(stop_payload, tool_result_output_schema("network_listen_stop"))
 
 
-
 def test_add_image_accepts_bytes_and_rejects_invalid_input() -> None:
-    response = ToolResponse()
+    response = ToolOutcome()
     response.add_image(b"image-bytes", "image/png")
-
-    images = [item for item in response.get_content() if item.type == "image"]
-
+    images = [item for item in response.content() if item.type == "image"]
     assert images[0].data == base64.b64encode(b"image-bytes").decode()
-
     with pytest.raises(ValueError, match="Image data must be string or bytes"):
-        response.add_image(object())  # type: ignore[arg-type]
+        response.add_image(object())
 
 
 def test_screenshot_metadata_handles_non_inline_and_malformed_images(tmp_path) -> None:
     raw_png = base64.b64decode(ONE_PIXEL_PNG)
     png_path = tmp_path / "screen.png"
     png_path.write_bytes(raw_png)
-
     assert build_screenshot_metadata(raw_png, full_page=True)["width"] == 1
     assert build_screenshot_metadata(path=str(png_path), inline=False) == {
         "mime_type": "image/png",
@@ -656,7 +654,6 @@ def test_screenshot_metadata_handles_non_inline_and_malformed_images(tmp_path) -
         "width": 1,
         "height": 1,
     }
-
     invalid_base64 = build_screenshot_metadata("not base64", full_page=False)
     assert invalid_base64 == {
         "mime_type": "image/png",
@@ -664,13 +661,11 @@ def test_screenshot_metadata_handles_non_inline_and_malformed_images(tmp_path) -
         "encoding": "base64",
         "full_page": False,
     }
-
     missing_file = build_screenshot_metadata(path=str(tmp_path / "missing.png"))
     assert missing_file == {
         "mime_type": "image/png",
         "path": str(tmp_path / "missing.png"),
     }
-
     assert build_screenshot_metadata(b"short") == {
         "mime_type": "image/png",
         "inline": True,

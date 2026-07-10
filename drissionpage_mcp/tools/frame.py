@@ -1,18 +1,15 @@
 """Iframe/frame read-only tools for DrissionPage MCP."""
 
 from __future__ import annotations
-
 from typing import TYPE_CHECKING
-
 from pydantic import Field
-
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..tool_outputs import FrameListData, FrameSnapshotData, FrameFindData
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
-    from ..response import ToolResponse
 
 
 class FrameListInput(ToolInput):
@@ -51,15 +48,18 @@ class FrameFindInput(ToolInput):
     input_schema=FrameListInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=FrameListData,
+    failure_message=lambda args, exc: "Failed to list frames: " + str(exc),
 )
 async def frame_list(
-    context: "DrissionPageContext", args: FrameListInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(response, "Failed to list frames"):
-        tab = context.current_tab_or_die()
-        result = await tab.frames.list_frames(limit=args.limit)
-        response.add_code("page.get_frames()")
-        response.add_result(f"Found {result['count']} frame(s)", **result)
+    context: "DrissionPageContext", args: FrameListInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.frames.list_frames(limit=args.limit)
+    outcome.add_code("page.get_frames()")
+    outcome.add_result(f"Found {result['count']} frame(s)", **result)
+    return outcome
 
 
 @define_tool(
@@ -69,22 +69,25 @@ async def frame_list(
     input_schema=FrameSnapshotInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=FrameSnapshotData,
+    failure_message=lambda args, exc: "Failed to capture frame snapshot: " + str(exc),
 )
 async def frame_snapshot(
-    context: "DrissionPageContext", args: FrameSnapshotInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(response, "Failed to capture frame snapshot"):
-        tab = context.current_tab_or_die()
-        result = await tab.frames.snapshot(
-            frame_selector=args.frame_selector,
-            frame_index=args.frame_index,
-            include_html=args.include_html,
-            max_elements=args.max_elements,
-            max_text_chars=args.max_text_chars,
-            timeout=args.timeout,
-        )
-        response.add_code("frame.run_js(<bounded page outline script>)")
-        response.add_result("Captured frame snapshot", **with_response_meta(result))
+    context: "DrissionPageContext", args: FrameSnapshotInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.frames.snapshot(
+        frame_selector=args.frame_selector,
+        frame_index=args.frame_index,
+        include_html=args.include_html,
+        max_elements=args.max_elements,
+        max_text_chars=args.max_text_chars,
+        timeout=args.timeout,
+    )
+    outcome.add_code("frame.run_js(<bounded page outline script>)")
+    outcome.add_result("Captured frame snapshot", **with_response_meta(result))
+    return outcome
 
 
 @define_tool(
@@ -94,23 +97,22 @@ async def frame_snapshot(
     input_schema=FrameFindInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=FrameFindData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to find '{args.selector}' in frame: {e}"
+    )(exc),
 )
 async def frame_find(
-    context: "DrissionPageContext", args: FrameFindInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(
-        response,
-        lambda e: f"Failed to find '{args.selector}' in frame: {e}",
-    ):
-        tab = context.current_tab_or_die()
-        result = await tab.frames.find(
-            selector=args.selector,
-            frame_selector=args.frame_selector,
-            frame_index=args.frame_index,
-            timeout=args.timeout,
-        )
-        response.add_code("frame.ele(<selector>)")
-        response.add_result(f"Found frame element: {args.selector}", **result)
-
-
-tools = [frame_list, frame_snapshot, frame_find]
+    context: "DrissionPageContext", args: FrameFindInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.frames.find(
+        selector=args.selector,
+        frame_selector=args.frame_selector,
+        frame_index=args.frame_index,
+        timeout=args.timeout,
+    )
+    outcome.add_code("frame.ele(<selector>)")
+    outcome.add_result(f"Found frame element: {args.selector}", **result)
+    return outcome

@@ -1,4 +1,4 @@
-"""Tools module for DrissionPage MCP."""
+"""Canonical registry for DrissionPage MCP tool specifications."""
 
 from . import (
     common,
@@ -16,35 +16,69 @@ from . import (
     wait,
     workflow,
 )
-from .base import Tool, ToolSchema, ToolType, define_tool
+from .base import ToolSpec, ToolType, define_tool
 
 
-def get_all_tools() -> list[Tool]:
-    """Get all available tools."""
-    all_tools = []
+ALL_TOOLS: tuple[ToolSpec, ...] = (
+    navigate.navigate,
+    navigate.go_back,
+    navigate.go_forward,
+    navigate.refresh,
+    tabs.tab_list,
+    tabs.tab_switch,
+    tabs.tab_close,
+    common.resize,
+    common.screenshot,
+    common.screenshot_save,
+    common.page_snapshot,
+    common.page_observe,
+    common.page_evaluate,
+    common.click_coordinates,
+    common.close,
+    common.get_url,
+    debug.page_console_logs,
+    element.find_element,
+    element.find_all_elements,
+    element.click_element,
+    element.type_text,
+    element.get_text,
+    element.get_attribute,
+    element.get_property,
+    element.get_html,
+    files.element_upload_file,
+    interaction.page_scroll,
+    interaction.element_scroll_into_view,
+    interaction.element_hover,
+    interaction.keyboard_press,
+    interaction.element_select,
+    interaction.element_check,
+    forms.form_inspect,
+    frame.frame_list,
+    frame.frame_snapshot,
+    frame.frame_find,
+    shadow.shadow_find,
+    shadow.shadow_find_all,
+    storage.browser_cookies_get,
+    storage.storage_get,
+    storage.storage_set,
+    storage.storage_clear,
+    wait.wait_for_element,
+    wait.wait_for_url,
+    wait.wait_time,
+    wait.wait_until,
+    workflow.browser_open_and_snapshot,
+    workflow.browser_extract_links,
+    workflow.form_fill_preview,
+    network.network_listen_start,
+    network.network_listen_wait,
+    network.network_listen_stop,
+)
 
-    # Import tools from each module
-    all_tools.extend(navigate.tools)
-    all_tools.extend(tabs.tools)
-    all_tools.extend(common.tools)
-    all_tools.extend(debug.tools)
-    all_tools.extend(element.tools)
-    all_tools.extend(files.tools)
-    all_tools.extend(interaction.tools)
-    all_tools.extend(forms.tools)
-    all_tools.extend(frame.tools)
-    all_tools.extend(shadow.tools)
-    all_tools.extend(storage.tools)
-    all_tools.extend(wait.tools)
-    all_tools.extend(workflow.tools)
-    all_tools.extend(network.tools)
 
-    return all_tools
+def get_all_tools() -> list[ToolSpec]:
+    """Return the single ordered public tool registry."""
 
-__all__ = [
-    "Tool",
-    "ToolSchema",
-    "ToolType",
-    "define_tool",
-    "get_all_tools",
-]
+    return list(ALL_TOOLS)
+
+
+__all__ = ["ToolSpec", "ToolType", "define_tool", "get_all_tools"]

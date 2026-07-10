@@ -15,8 +15,7 @@ from .env import env_bool, redacted_env_path
 from .guidance import MODEL_USAGE_RESOURCE_URI, model_usage_payload
 from .metadata import response_meta
 from .policy import SafetyPolicy
-from .response import tool_data_schema_title
-from .tools.base import Tool, ToolType
+from .tools.base import ToolSpec, ToolType
 
 PAGE_TEXT_EXCERPT_CHARS = 4000
 PAGE_HTML_EXCERPT_CHARS = 8000
@@ -110,7 +109,7 @@ def read_resource(
     uri: str,
     *,
     context: Any,
-    tools: Mapping[str, Tool],
+    tools: Mapping[str, ToolSpec],
 ) -> list[ReadResourceContents]:
     """Read a resource without creating or initializing a browser."""
 
@@ -273,7 +272,7 @@ def _empty_session_state(
     }
 
 
-def tools_catalog(tools: Mapping[str, Tool]) -> dict[str, Any]:
+def tools_catalog(tools: Mapping[str, ToolSpec]) -> dict[str, Any]:
     """Return public tools with annotations and schema names."""
 
     return {
@@ -285,7 +284,7 @@ def tools_catalog(tools: Mapping[str, Tool]) -> dict[str, Any]:
                 "readOnlyHint": tool.tool_type == ToolType.READ_ONLY,
                 "destructiveHint": tool.tool_type == ToolType.DESTRUCTIVE,
                 "idempotentHint": tool.idempotent,
-                "output_schema": tool_data_schema_title(tool.name),
+                "output_schema": tool.output_model.__name__,
             }
             for tool in tools.values()
         ]

@@ -1,46 +1,40 @@
 """Unit coverage for opt-in local safety policy controls."""
 
 from __future__ import annotations
-
 import json
 from unittest.mock import AsyncMock, Mock
-
 import pytest
-
 from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.policy import SafetyPolicy
-from drissionpage_mcp.response import ErrorCode, ToolResponse
+from drissionpage_mcp.response_errors import ErrorCode
+from drissionpage_mcp.tools.base import ToolOutcome
 from drissionpage_mcp.tools.common import ScreenshotSaveInput, screenshot_save
 from drissionpage_mcp.tools.files import UploadFileInput, element_upload_file
 from drissionpage_mcp.tools.navigate import NavigateInput, navigate
+from drissionpage_mcp.tools.workflow import (
+    BrowserOpenAndSnapshotInput,
+    browser_open_and_snapshot,
+)
 
 
 @pytest.mark.parametrize(
-    "url",
-    [
-        "https://example.com/path",
-        "http://sub.example.com/path",
-    ],
+    "url", ["https://example.com/path", "http://sub.example.com/path"]
 )
 def test_navigation_policy_defaults_allow_http_urls(monkeypatch, url: str) -> None:
     _clear_policy_env(monkeypatch)
-
     SafetyPolicy.from_env().validate_navigation(url)
 
 
 def test_navigation_policy_defaults_do_not_block_non_http_urls(monkeypatch) -> None:
     _clear_policy_env(monkeypatch)
-
     SafetyPolicy.from_env().validate_navigation("about:blank")
 
 
 def test_navigation_policy_uses_allowlist_first(monkeypatch) -> None:
     _clear_policy_env(monkeypatch)
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "example.com,https://allowed.test/app")
-
     SafetyPolicy.from_env().validate_navigation("https://sub.example.com/page")
     SafetyPolicy.from_env().validate_navigation("https://allowed.test/app/1")
-
     with pytest.raises(Exception, match="allowlist|ALLOWLIST"):
         SafetyPolicy.from_env().validate_navigation("https://blocked.test/")
 
@@ -49,9 +43,7 @@ def test_navigation_policy_blocks_hosts_and_private_networks(monkeypatch) -> Non
     _clear_policy_env(monkeypatch)
     monkeypatch.setenv("DP_MCP_NAV_BLOCKLIST", "blocked.test")
     monkeypatch.setenv("DP_MCP_BLOCK_PRIVATE_NETWORK", "1")
-
     SafetyPolicy.from_env().validate_navigation("https://public.example/")
-
     for url in (
         "https://blocked.test/",
         "http://localhost:8000/",
@@ -69,17 +61,34 @@ async def test_denied_navigation_does_not_initialize_browser(monkeypatch) -> Non
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
     context = Mock(spec=DrissionPageContext)
     context.ensure_tab = AsyncMock()
-    response = ToolResponse()
+    response = ToolOutcome()
+    response = await navigate.execute(
+        context, NavigateInput(url="https://denied.test/")
+    )
+    assert response.is_error is True
+    payload = response.structured_content()
+    assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
+    context.ensure_tab.assert_not_called()
 
-    await navigate.handler(
+
+@pytest.mark.asyncio
+async def test_denied_open_and_snapshot_does_not_initialize_browser(
+    monkeypatch,
+) -> None:
+    _clear_policy_env(monkeypatch)
+    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
+    context = Mock(spec=DrissionPageContext)
+    context.ensure_tab = AsyncMock()
+
+    outcome = await browser_open_and_snapshot.execute(
         context,
-        NavigateInput(url="https://denied.test/"),
-        response,
+        BrowserOpenAndSnapshotInput(url="https://denied.test/"),
     )
 
-    assert response.is_error() is True
-    payload = response.get_structured_content()
-    assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
+    assert outcome.is_error is True
+    assert (
+        outcome.structured_content()["error"]["code"] == ErrorCode.POLICY_DENIED.value
+    )
     context.ensure_tab.assert_not_called()
 
 
@@ -88,17 +97,17 @@ async def test_allowed_navigation_still_uses_existing_tab_flow(monkeypatch) -> N
     _clear_policy_env(monkeypatch)
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
     tab = Mock()
+    tab.url = "https://allowed.test/"
+    tab.mcp_tab_id = "t0"
     tab.navigation = Mock()
     tab.navigation.navigate = AsyncMock()
     context = Mock(spec=DrissionPageContext)
     context.ensure_tab = AsyncMock(return_value=tab)
-    response = ToolResponse()
-
-    await navigate.handler(
-        context, NavigateInput(url="https://allowed.test/"), response
+    response = ToolOutcome()
+    response = await navigate.execute(
+        context, NavigateInput(url="https://allowed.test/")
     )
-
-    assert response.is_error() is False
+    assert response.is_error is False
     context.ensure_tab.assert_awaited_once()
     tab.navigation.navigate.assert_awaited_once_with("https://allowed.test/")
 
@@ -113,18 +122,14 @@ async def test_screenshot_save_root_policy_blocks_path_before_file_write(
     monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(allowed))
     context = Mock(spec=DrissionPageContext)
     context.current_tab_or_die = Mock()
-    response = ToolResponse()
-
-    await screenshot_save.handler(
-        context,
-        ScreenshotSaveInput(path=str(tmp_path / "outside.png")),
-        response,
+    response = ToolOutcome()
+    response = await screenshot_save.execute(
+        context, ScreenshotSaveInput(path=str(tmp_path / "outside.png"))
     )
-
-    assert response.is_error() is True
-    assert response.get_structured_content()["error"]["code"] == "POLICY_DENIED"
-    hints = response.get_structured_content()["error"]["details"]["hints"]
-    assert any(hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in hints)
+    assert response.is_error is True
+    assert response.structured_content()["error"]["code"] == "POLICY_DENIED"
+    hints = response.structured_content()["error"]["details"]["hints"]
+    assert any((hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in hints))
     context.current_tab_or_die.assert_not_called()
 
 
@@ -135,16 +140,12 @@ async def test_screenshot_save_requires_configured_root_before_file_write(
     _clear_policy_env(monkeypatch)
     context = Mock(spec=DrissionPageContext)
     context.current_tab_or_die = Mock()
-    response = ToolResponse()
-
-    await screenshot_save.handler(
-        context,
-        ScreenshotSaveInput(path=str(tmp_path / "screen.png")),
-        response,
+    response = ToolOutcome()
+    response = await screenshot_save.execute(
+        context, ScreenshotSaveInput(path=str(tmp_path / "screen.png"))
     )
-
-    assert response.is_error() is True
-    payload = response.get_structured_content()
+    assert response.is_error is True
+    payload = response.structured_content()
     assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
     assert "DP_MCP_SCREENSHOT_ROOT" in payload["message"]
     context.current_tab_or_die.assert_not_called()
@@ -153,7 +154,6 @@ async def test_screenshot_save_requires_configured_root_before_file_write(
 def test_screenshot_save_root_policy_allows_child_path(monkeypatch, tmp_path) -> None:
     _clear_policy_env(monkeypatch)
     monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(tmp_path))
-
     SafetyPolicy.from_env().validate_screenshot_path(str(tmp_path / "screen.png"))
 
 
@@ -166,16 +166,12 @@ async def test_upload_requires_configured_root_before_file_access(
     candidate.write_text("ok", encoding="utf-8")
     context = Mock(spec=DrissionPageContext)
     context.current_tab_or_die = Mock()
-    response = ToolResponse()
-
-    await element_upload_file.handler(
-        context,
-        UploadFileInput(selector="#upload", paths=[str(candidate)]),
-        response,
+    response = ToolOutcome()
+    response = await element_upload_file.execute(
+        context, UploadFileInput(selector="#upload", paths=[str(candidate)])
     )
-
-    assert response.is_error() is True
-    payload = response.get_structured_content()
+    assert response.is_error is True
+    payload = response.structured_content()
     assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
     assert "DP_MCP_UPLOAD_ROOT" in payload["message"]
     context.current_tab_or_die.assert_not_called()
@@ -193,16 +189,12 @@ async def test_upload_root_policy_blocks_outside_path_before_browser_use(
     monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(allowed))
     context = Mock(spec=DrissionPageContext)
     context.current_tab_or_die = Mock()
-    response = ToolResponse()
-
-    await element_upload_file.handler(
-        context,
-        UploadFileInput(selector="#upload", paths=[str(outside)]),
-        response,
+    response = ToolOutcome()
+    response = await element_upload_file.execute(
+        context, UploadFileInput(selector="#upload", paths=[str(outside)])
     )
-
-    assert response.is_error() is True
-    payload = response.get_structured_content()
+    assert response.is_error is True
+    payload = response.structured_content()
     assert payload["error"]["code"] == "POLICY_DENIED"
     assert str(allowed) not in json.dumps(payload)
     assert str(outside) not in json.dumps(payload)
@@ -214,9 +206,7 @@ def test_upload_root_policy_allows_existing_child_files(monkeypatch, tmp_path) -
     monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(tmp_path))
     candidate = tmp_path / "upload.txt"
     candidate.write_text("ok", encoding="utf-8")
-
     paths = SafetyPolicy.from_env().validate_upload_paths([str(candidate)])
-
     assert paths == [candidate.resolve()]
 
 

@@ -1,17 +1,26 @@
 """Common tools for DrissionPage MCP."""
 
 from typing import TYPE_CHECKING, Any
-
 from pydantic import Field
-
 from ..metadata import with_response_meta
 from ..policy import PolicyDeniedError, validate_screenshot_path
-from ..response import ErrorCode, build_screenshot_metadata
-from .base import EmptyInput, ToolInput, ToolType, define_tool, tool_errors
+from ..response_errors import ErrorCode
+from ..response_media import build_screenshot_metadata
+from .base import EmptyInput, ToolInput, ToolType, define_tool, ToolOutcome
+from ..tool_outputs import (
+    PageResizeData,
+    PageScreenshotData,
+    PageScreenshotSaveData,
+    PageSnapshotData,
+    PageObservation,
+    PageEvaluateData,
+    PageClickXYData,
+    PageCloseData,
+    PageGetUrlData,
+)
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
-    from ..response import ToolResponse
 
 
 class ResizeInput(ToolInput):
@@ -31,7 +40,8 @@ class ScreenshotSaveInput(ScreenshotInput):
     """Input schema for saving screenshots to an approved local path."""
 
     path: str = Field(
-        ..., description="Local file path under DP_MCP_SCREENSHOT_ROOT to save screenshot"
+        ...,
+        description="Local file path under DP_MCP_SCREENSHOT_ROOT to save screenshot",
     )
 
 
@@ -78,10 +88,7 @@ class PageEvaluateInput(ToolInput):
 
     script: str = Field(
         ...,
-        description=(
-            "JavaScript function body to run in the current page. Use return "
-            "to provide a JSON-serializable result."
-        ),
+        description="JavaScript function body to run in the current page. Use return to provide a JSON-serializable result.",
     )
     args: list[Any] = Field(
         default_factory=list,
@@ -111,21 +118,21 @@ class ClickCoordinatesInput(ToolInput):
     description="Resize the browser window to specified dimensions",
     input_schema=ResizeInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=PageResizeData,
+    failure_message=lambda args, exc: "Failed to resize window: " + str(exc),
 )
-async def resize(
-    context: "DrissionPageContext", args: ResizeInput, response: "ToolResponse"
-) -> None:
+async def resize(context: "DrissionPageContext", args: ResizeInput) -> "ToolOutcome":
     """Resize the browser window."""
-    async with tool_errors(response, "Failed to resize window"):
-        tab = context.current_tab_or_die()
-        await tab.resize(args.width, args.height)
-
-        response.add_code(f"page.set.window.size({args.width}, {args.height})")
-        response.add_result(
-            f"Successfully resized window to {args.width}x{args.height}",
-            width=args.width,
-            height=args.height,
-        )
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    await tab.page_ops.resize(args.width, args.height)
+    outcome.add_code(f"page.set.window.size({args.width}, {args.height})")
+    outcome.add_result(
+        f"Successfully resized window to {args.width}x{args.height}",
+        width=args.width,
+        height=args.height,
+    )
+    return outcome
 
 
 @define_tool(
@@ -135,19 +142,21 @@ async def resize(
     input_schema=ScreenshotInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=PageScreenshotData,
+    failure_message=lambda args, exc: "Failed to take screenshot: " + str(exc),
 )
 async def screenshot(
-    context: "DrissionPageContext", args: ScreenshotInput, response: "ToolResponse"
-) -> None:
+    context: "DrissionPageContext", args: ScreenshotInput
+) -> "ToolOutcome":
     """Take an inline screenshot."""
-    async with tool_errors(response, "Failed to take screenshot"):
-        tab = context.current_tab_or_die()
-        screenshot_data = await tab.screenshot(path=None, full_page=args.full_page)
-
-        response.add_code(
-            f"page.get_screenshot(as_base64=True, full_page={args.full_page!r})"
-        )
-        response.add_screenshot(screenshot_data, {"full_page": args.full_page})
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    screenshot_data = await tab.page_ops.screenshot(path=None, full_page=args.full_page)
+    outcome.add_code(
+        f"page.get_screenshot(as_base64=True, full_page={args.full_page!r})"
+    )
+    outcome.add_screenshot(screenshot_data, {"full_page": args.full_page})
+    return outcome
 
 
 @define_tool(
@@ -156,123 +165,108 @@ async def screenshot(
     description="Save a screenshot to a local path under DP_MCP_SCREENSHOT_ROOT",
     input_schema=ScreenshotSaveInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=PageScreenshotSaveData,
+    failure_message=lambda args, exc: "Failed to take screenshot: " + str(exc),
 )
 async def screenshot_save(
-    context: "DrissionPageContext", args: ScreenshotSaveInput, response: "ToolResponse"
-) -> None:
+    context: "DrissionPageContext", args: ScreenshotSaveInput
+) -> "ToolOutcome":
     """Save a screenshot to an approved local path."""
+    outcome = ToolOutcome()
     try:
         validate_screenshot_path(args.path)
     except PolicyDeniedError as exc:
-        response.add_error(
-            str(exc),
-            ErrorCode.POLICY_DENIED,
-            rule=exc.rule,
-            value=exc.value,
+        outcome.add_error(
+            str(exc), ErrorCode.POLICY_DENIED, rule=exc.rule, value=exc.value
         )
-        return
-
-    async with tool_errors(response, "Failed to take screenshot"):
-        tab = context.current_tab_or_die()
-        screenshot_data = await tab.screenshot(
-            path=args.path or None, full_page=args.full_page
-        )
-
-        response.add_code(
-            f"page.get_screenshot(path={args.path!r}, full_page={args.full_page!r})"
-        )
-        response.add_result(
-            f"Screenshot saved to: {screenshot_data}",
-            screenshot=build_screenshot_metadata(
-                path=screenshot_data,
-                full_page=args.full_page,
-                inline=False,
-            ),
-        )
+        return outcome
+    tab = context.current_tab_or_die()
+    screenshot_data = await tab.page_ops.screenshot(
+        path=args.path or None, full_page=args.full_page
+    )
+    outcome.add_code(
+        f"page.get_screenshot(path={args.path!r}, full_page={args.full_page!r})"
+    )
+    outcome.add_result(
+        f"Screenshot saved to: {screenshot_data}",
+        screenshot=build_screenshot_metadata(
+            path=screenshot_data, full_page=args.full_page, inline=False
+        ),
+    )
+    return outcome
 
 
 @define_tool(
     name="page_snapshot",
     title="Page Snapshot",
-    description=(
-        "Return a bounded page outline with text excerpt, headings, links, "
-        "buttons, inputs, forms, and recommended selectors."
-    ),
+    description="Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, and recommended selectors.",
     input_schema=PageSnapshotInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=PageSnapshotData,
+    failure_message=lambda args, exc: "Failed to build page snapshot: " + str(exc),
 )
 async def page_snapshot(
-    context: "DrissionPageContext", args: PageSnapshotInput, response: "ToolResponse"
-) -> None:
+    context: "DrissionPageContext", args: PageSnapshotInput
+) -> "ToolOutcome":
     """Get a bounded page outline for LLM page understanding."""
-    async with tool_errors(response, "Failed to build page snapshot"):
-        tab = context.current_tab_or_die()
-        snapshot = await tab.page_snapshot(
-            include_html=args.include_html,
-            max_elements=args.max_elements,
-            max_text_chars=args.max_text_chars,
-        )
-
-        response.add_code(
-            "page.run_js(<bounded page outline script>)"
-        )
-        response.add_result(
-            "Captured page snapshot",
-            **with_response_meta(snapshot),
-        )
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    snapshot = await tab.observation.snapshot(
+        include_html=args.include_html,
+        max_elements=args.max_elements,
+        max_text_chars=args.max_text_chars,
+    )
+    outcome.add_code("page.run_js(<bounded page outline script>)")
+    outcome.add_result("Captured page snapshot", **with_response_meta(snapshot))
+    return outcome
 
 
 @define_tool(
     name="page_observe",
     title="Observe Page",
-    description=(
-        "Return a compact current-page fingerprint with URL, title, ready state, "
-        "element counts, visible text samples, active element, and recent console summary."
-    ),
+    description="Return a compact current-page fingerprint with URL, title, ready state, element counts, visible text samples, active element, and recent console summary.",
     input_schema=PageObserveInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=PageObservation,
+    failure_message=lambda args, exc: "Failed to observe page: " + str(exc),
 )
 async def page_observe(
-    context: "DrissionPageContext", args: PageObserveInput, response: "ToolResponse"
-) -> None:
+    context: "DrissionPageContext", args: PageObserveInput
+) -> "ToolOutcome":
     """Observe the current page state."""
-    async with tool_errors(response, "Failed to observe page"):
-        tab = context.current_tab_or_die()
-        observation = await tab.observe(
-            max_texts=args.max_texts,
-            max_text_chars=args.max_text_chars,
-        )
-
-        response.add_code("page.run_js(<compact page observation script>)")
-        response.add_result("Observed page state", **observation)
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    observation = await tab.observation.observe(
+        max_texts=args.max_texts, max_text_chars=args.max_text_chars
+    )
+    outcome.add_code("page.run_js(<compact page observation script>)")
+    outcome.add_result("Observed page state", **observation)
+    return outcome
 
 
 @define_tool(
     name="page_evaluate",
     title="Evaluate JavaScript",
-    description=(
-        "Run a bounded JavaScript function body in the current page and return "
-        "a JSON-safe result. This can mutate the page."
-    ),
+    description="Run a bounded JavaScript function body in the current page and return a JSON-safe result. This can mutate the page.",
     input_schema=PageEvaluateInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=PageEvaluateData,
+    failure_message=lambda args, exc: "Failed to evaluate JavaScript: " + str(exc),
 )
 async def page_evaluate(
-    context: "DrissionPageContext", args: PageEvaluateInput, response: "ToolResponse"
-) -> None:
+    context: "DrissionPageContext", args: PageEvaluateInput
+) -> "ToolOutcome":
     """Evaluate JavaScript in the current page with bounded output."""
-    async with tool_errors(response, "Failed to evaluate JavaScript"):
-        tab = context.current_tab_or_die()
-        result = await tab.evaluate_script(
-            args.script,
-            args=args.args,
-            max_chars=args.max_chars,
-        )
-
-        response.add_code("page.run_js(<bounded user JavaScript>)")
-        response.add_result("Evaluated JavaScript", **result)
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.observation.evaluate(
+        args.script, args=args.args, max_chars=args.max_chars
+    )
+    outcome.add_code("page.run_js(<bounded user JavaScript>)")
+    outcome.add_result("Evaluated JavaScript", **result)
+    return outcome
 
 
 @define_tool(
@@ -281,28 +275,28 @@ async def page_evaluate(
     description="Click at specific coordinates on the page",
     input_schema=ClickCoordinatesInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=PageClickXYData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to click at ({args.x}, {args.y}): {e}"
+    )(exc),
 )
 async def click_coordinates(
-    context: "DrissionPageContext",
-    args: ClickCoordinatesInput,
-    response: "ToolResponse",
-) -> None:
+    context: "DrissionPageContext", args: ClickCoordinatesInput
+) -> "ToolOutcome":
     """Click at coordinates."""
-    async with tool_errors(
-        response, lambda e: f"Failed to click at ({args.x}, {args.y}): {e}"
-    ):
-        tab = context.current_tab_or_die()
-        await tab.click(args.x, args.y)
-
-        response.add_code(f"page.actions.click(({args.x}, {args.y}))")
-        response.add_result(
-            f"Successfully clicked at coordinates ({args.x}, {args.y})",
-            x=args.x,
-            y=args.y,
-            element=args.element,
-            url=tab.url,
-        )
-        response.set_include_snapshot(True)
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    await tab.interaction.click_coordinates(args.x, args.y)
+    outcome.add_code(f"page.actions.click(({args.x}, {args.y}))")
+    outcome.add_result(
+        f"Successfully clicked at coordinates ({args.x}, {args.y})",
+        x=args.x,
+        y=args.y,
+        element=args.element,
+        url=tab.url,
+    )
+    outcome.set_include_snapshot(True)
+    return outcome
 
 
 @define_tool(
@@ -311,18 +305,18 @@ async def click_coordinates(
     description="Close the current page/browser",
     input_schema=EmptyInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=PageCloseData,
+    failure_message=lambda args, exc: "Failed to close browser: " + str(exc),
 )
-async def close(
-    context: "DrissionPageContext", args: EmptyInput, response: "ToolResponse"
-) -> None:
+async def close(context: "DrissionPageContext", args: EmptyInput) -> "ToolOutcome":
     """Close the browser."""
-    async with tool_errors(response, "Failed to close browser"):
-        closed = await context.close_browser()
-        if closed is False:
-            raise RuntimeError("Browser close failed; local MCP state was cleared.")
-
-        response.add_code("page.quit()")
-        response.add_result("Successfully closed browser", closed=True)
+    outcome = ToolOutcome()
+    closed = await context.close_browser()
+    if closed is False:
+        raise RuntimeError("Browser close failed; local MCP state was cleared.")
+    outcome.add_code("page.quit()")
+    outcome.add_result("Successfully closed browser", closed=True)
+    return outcome
 
 
 @define_tool(
@@ -332,28 +326,14 @@ async def close(
     input_schema=EmptyInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=PageGetUrlData,
+    failure_message=lambda args, exc: "Failed to get URL: " + str(exc),
 )
-async def get_url(
-    context: "DrissionPageContext", args: EmptyInput, response: "ToolResponse"
-) -> None:
+async def get_url(context: "DrissionPageContext", args: EmptyInput) -> "ToolOutcome":
     """Get current URL."""
-    async with tool_errors(response, "Failed to get URL"):
-        tab = context.current_tab_or_die()
-        url = tab.url
-
-        response.add_code("page.url")
-        response.add_result(f"Current URL: {url}", url=url)
-
-
-# Export all tools
-tools = [
-    resize,
-    screenshot,
-    screenshot_save,
-    page_snapshot,
-    page_observe,
-    page_evaluate,
-    click_coordinates,
-    close,
-    get_url,
-]
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    url = tab.url
+    outcome.add_code("page.url")
+    outcome.add_result(f"Current URL: {url}", url=url)
+    return outcome

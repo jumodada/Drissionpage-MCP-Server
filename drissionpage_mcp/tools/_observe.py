@@ -16,7 +16,7 @@ async def maybe_observe(tab: Any, enabled: bool) -> dict[str, Any] | None:
 
     if not enabled:
         return None
-    return cast(dict[str, Any], await tab.observe())
+    return cast(dict[str, Any], await tab.observation.observe())
 
 
 async def observed_changes(
@@ -37,7 +37,7 @@ async def _observe_after_console_settles(
 ) -> dict[str, Any]:
     """Observe after an action, allowing browser console events to flush."""
 
-    after = cast(dict[str, Any], await tab.observe())
+    after = cast(dict[str, Any], await tab.observation.observe())
     before_cursor = _console_cursor(before)
     if before_cursor < 0 or not _console_is_available(before):
         return after
@@ -46,7 +46,7 @@ async def _observe_after_console_settles(
 
     for _ in range(_CONSOLE_SETTLE_ATTEMPTS):
         await asyncio.sleep(_CONSOLE_SETTLE_INTERVAL)
-        after = cast(dict[str, Any], await tab.observe())
+        after = cast(dict[str, Any], await tab.observation.observe())
         if _console_cursor(after) > before_cursor:
             break
     return after

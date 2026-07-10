@@ -15,7 +15,7 @@ from typing import Iterable
 from urllib.parse import urlparse
 
 from .env import env_bool
-from .response import ErrorCode
+from .response_errors import ErrorCode
 
 ENV_NAV_ALLOWLIST = "DP_MCP_NAV_ALLOWLIST"
 ENV_NAV_BLOCKLIST = "DP_MCP_NAV_BLOCKLIST"
@@ -55,9 +55,9 @@ class SafetyPolicy:
             navigation_blocklist=_split_env(os.getenv(ENV_NAV_BLOCKLIST)),
             block_private_network=env_bool(ENV_BLOCK_PRIVATE),
             screenshot_root=Path(root).expanduser().resolve() if root else None,
-            upload_root=Path(upload_root).expanduser().resolve()
-            if upload_root
-            else None,
+            upload_root=(
+                Path(upload_root).expanduser().resolve() if upload_root else None
+            ),
         )
 
     def validate_navigation(self, url: str) -> None:
@@ -200,11 +200,7 @@ class SafetyPolicy:
                 },
                 "upload_root": {
                     "configured": self.upload_root is not None,
-                    **(
-                        {"value": "<redacted>"}
-                        if self.upload_root is not None
-                        else {}
-                    ),
+                    **({"value": "<redacted>"} if self.upload_root is not None else {}),
                 },
             },
         }

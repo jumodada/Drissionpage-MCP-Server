@@ -27,10 +27,10 @@ from .prompts import get_prompt as get_prompt_definition
 from .prompts import list_prompts as list_prompt_definitions
 from .resources import list_resources as list_resource_definitions
 from .resources import read_resource as read_resource_definition
-from .response import ErrorCode, ToolResponse, classify_error, tool_result_output_schema
-from .tools import Tool as DrissionTool
+from .response_errors import ErrorCode, classify_error
+from .tools import ToolSpec as DrissionTool
 from .tools import get_all_tools
-from .tools.base import ToolType
+from .tools.base import ToolOutcome, ToolType
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +101,6 @@ class DrissionPageMCPServer:
             if not self.context:
                 self.context = DrissionPageContext()
 
-            response = ToolResponse()
-
             # Find tool
             tool = self.tools.get(name)
             if not tool:
@@ -112,12 +110,9 @@ class DrissionPageMCPServer:
                 if replacement:
                     message = f"{message}. Use '{replacement}' instead."
                     details["suggested_tool"] = replacement
-                response.add_error(
-                    message,
-                    ErrorCode.TOOL_NOT_FOUND,
-                    **details,
-                )
-                return self._call_result(response)
+                outcome = ToolOutcome()
+                outcome.add_error(message, ErrorCode.TOOL_NOT_FOUND, **details)
+                return self._call_result(outcome)
 
             try:
                 # Validate input
@@ -129,8 +124,8 @@ class DrissionPageMCPServer:
                 )
 
                 # Execute tool
-                await tool.execute(self.context, validated_args, response)
-                payload = response.get_structured_content()
+                outcome = await tool.execute(self.context, validated_args)
+                payload = outcome.structured_content()
                 current_tab = self.context.current_tab() if self.context else None
                 url_after = getattr(current_tab, "url", "") if current_tab else ""
                 tab_id_after = (
@@ -147,20 +142,20 @@ class DrissionPageMCPServer:
                     )
 
                 # Return response content
-                return self._call_result(response)
+                return self._call_result(outcome)
 
             except ValidationError as e:
-                response.clear()
-                response.add_error(
+                outcome = ToolOutcome()
+                outcome.add_error(
                     "Input validation error: %s" % e,
                     ErrorCode.MCP_ARGUMENT_INVALID,
                     tool_name=name,
                 )
-                return self._call_result(response)
+                return self._call_result(outcome)
             except Exception as e:
                 logger.exception(f"Error executing tool {name}")
-                response.clear()
-                response.add_error(
+                outcome = ToolOutcome()
+                outcome.add_error(
                     f"Error executing tool {name}: {str(e)}",
                     classify_error(e, name),
                     tool_name=name,
@@ -169,9 +164,9 @@ class DrissionPageMCPServer:
                     self.context.record_action(
                         name,
                         arguments or {},
-                        response.get_structured_content(),
+                        outcome.structured_content(),
                     )
-                return self._call_result(response)
+                return self._call_result(outcome)
 
         async def call_tool_handler(req: CallToolRequest) -> ServerResult:
             """MCP request handler for tool calls.
@@ -191,7 +186,12 @@ class DrissionPageMCPServer:
 
         # Touch these imports so static analysis keeps the request types associated
         # with the decorators above.
-        _ = (ListResourcesRequest, ReadResourceRequest, ListPromptsRequest, GetPromptRequest)
+        _ = (
+            ListResourcesRequest,
+            ReadResourceRequest,
+            ListPromptsRequest,
+            GetPromptRequest,
+        )
 
     def _tool_to_mcp_tool(self, tool: DrissionTool) -> Tool:
         """Convert an internal tool definition to an MCP SDK Tool model."""
@@ -210,15 +210,15 @@ class DrissionPageMCPServer:
             ),
         }
         if _tool_supports_output_schema():
-            kwargs["outputSchema"] = tool_result_output_schema(tool.name)
+            kwargs["outputSchema"] = tool.output_schema()
         return Tool(**kwargs)
 
-    def _call_result(self, response: ToolResponse) -> CallToolResult:
+    def _call_result(self, outcome: ToolOutcome) -> CallToolResult:
         """Build a direct MCP call result for tests and internal callers."""
         return CallToolResult(
-            content=list(response.get_content()),
-            structuredContent=response.get_structured_content(),
-            isError=response.is_error(),
+            content=list(outcome.content()),
+            structuredContent=outcome.structured_content(),
+            isError=outcome.is_error,
         )
 
     async def run_server(self, read_stream, write_stream) -> None:

@@ -1,17 +1,15 @@
 """Test MCP server functionality."""
 
 from unittest.mock import Mock
-
 import pytest
 from mcp.types import CallToolResult
 from pydantic import BaseModel
-
 import drissionpage_mcp.server as server_module
 from drissionpage_mcp import __version__
-from drissionpage_mcp.response import JSON_RESULT_SENTINEL
+from drissionpage_mcp.tools.base import JSON_RESULT_SENTINEL
 from drissionpage_mcp.server import DrissionPageMCPServer, _tool_supports_output_schema
 from drissionpage_mcp.tools import get_all_tools
-from drissionpage_mcp.tools.base import Tool, ToolSchema, ToolType
+from drissionpage_mcp.tools.base import ToolSpec, ToolType
 
 
 class TestDrissionPageMCPServer:
@@ -40,14 +38,10 @@ class TestDrissionPageMCPServer:
     async def test_cleanup(self):
         """Test server cleanup."""
         server = DrissionPageMCPServer()
-
-        # Mock context
         mock_context = Mock()
         mock_context.cleanup = Mock(return_value=None)
         server.context = mock_context
-
         await server.cleanup()
-
         mock_context.cleanup.assert_called_once()
         assert server.context is None
 
@@ -58,13 +52,11 @@ class TestToolsIntegration:
     def test_all_tools_have_required_attributes(self):
         """Test that all tools have required attributes."""
         tools = get_all_tools()
-
         for tool in tools:
             assert hasattr(tool, "name")
             assert hasattr(tool, "description")
             assert hasattr(tool, "input_schema")
             assert hasattr(tool, "handler")
-
             assert isinstance(tool.name, str)
             assert isinstance(tool.description, str)
             assert len(tool.name) > 0
@@ -74,15 +66,12 @@ class TestToolsIntegration:
         """Test that all tool names are unique."""
         tools = get_all_tools()
         names = [tool.name for tool in tools]
-
         assert len(names) == len(set(names)), "Tool names should be unique"
 
     def test_expected_tools_present(self):
         """Test that expected tools are present."""
         tools = get_all_tools()
         tool_names = [tool.name for tool in tools]
-
-        # Navigation tools
         assert "page_navigate" in tool_names
         assert "page_go_back" in tool_names
         assert "page_go_forward" in tool_names
@@ -90,8 +79,6 @@ class TestToolsIntegration:
         assert "tab_list" in tool_names
         assert "tab_switch" in tool_names
         assert "tab_close" in tool_names
-
-        # Common tools
         assert "page_resize" in tool_names
         assert "page_screenshot" in tool_names
         assert "page_screenshot_save" in tool_names
@@ -102,8 +89,6 @@ class TestToolsIntegration:
         assert "page_click_xy" in tool_names
         assert "page_close" in tool_names
         assert "page_get_url" in tool_names
-
-        # Element tools
         assert "element_find" in tool_names
         assert "element_find_all" in tool_names
         assert "element_click" in tool_names
@@ -118,38 +103,24 @@ class TestToolsIntegration:
         assert "element_get_attribute" in tool_names
         assert "element_get_property" in tool_names
         assert "element_get_html" in tool_names
-
-        # Page interaction tools
         assert "page_scroll" in tool_names
         assert "keyboard_press" in tool_names
-
-        # Frame and shadow DOM tools
         assert "frame_list" in tool_names
         assert "frame_snapshot" in tool_names
         assert "frame_find" in tool_names
         assert "shadow_find" in tool_names
         assert "shadow_find_all" in tool_names
-
-        # Session state tools
         assert "browser_cookies_get" in tool_names
         assert "storage_get" in tool_names
         assert "storage_set" in tool_names
         assert "storage_clear" in tool_names
-
-        # Form tools
         assert "form_inspect" in tool_names
-
-        # Workflow tools
         assert "browser_open_and_snapshot" in tool_names
         assert "browser_extract_links" in tool_names
         assert "form_fill_preview" in tool_names
-
-        # Network beta tools
         assert "network_listen_start" in tool_names
         assert "network_listen_wait" in tool_names
         assert "network_listen_stop" in tool_names
-
-        # Wait tools
         assert "wait_for_element" in tool_names
         assert "wait_for_url" in tool_names
         assert "wait_time" in tool_names
@@ -167,12 +138,11 @@ class TestCallToolResultContract:
 
     def test_call_result_has_structured_content_and_text_mirror(self):
         server = DrissionPageMCPServer()
-        from drissionpage_mcp.response import ToolResponse
+        from drissionpage_mcp.tools.base import ToolOutcome
 
-        response = ToolResponse()
+        response = ToolOutcome()
         response.add_result("done")
         result = server._call_result(response)
-
         assert isinstance(result, CallToolResult)
         assert result.structuredContent["ok"] is True
         assert result.content[0].text.startswith(JSON_RESULT_SENTINEL)
@@ -183,7 +153,6 @@ class TestCallToolResultContract:
 async def test_internal_call_tool_impl_success_path_uses_context() -> None:
     server = DrissionPageMCPServer()
     result = await server._call_tool_impl("wait_time", {"seconds": 0})
-
     assert result.isError is False
     assert result.structuredContent == {
         "ok": True,
@@ -201,10 +170,8 @@ async def test_internal_call_tool_impl_success_path_uses_context() -> None:
 async def test_internal_call_tool_impl_redacts_history_arguments() -> None:
     server = DrissionPageMCPServer()
     result = await server._call_tool_impl(
-        "element_type",
-        {"selector": "#password", "text": "secret", "timeout": 0},
+        "element_type", {"selector": "#password", "text": "secret", "timeout": 0}
     )
-
     assert result.isError is True
     assert server.context is not None
     action = server.context.action_history()["actions"][0]
@@ -214,32 +181,42 @@ async def test_internal_call_tool_impl_redacts_history_arguments() -> None:
 
 @pytest.mark.asyncio
 async def test_internal_call_tool_impl_converts_unexpected_exceptions() -> None:
+
     class EmptyArgs(BaseModel):
         pass
 
-    async def boom(_context, _args, _response) -> None:
+    async def boom(_context, _args):
         raise RuntimeError("browser launch failed")
 
     server = DrissionPageMCPServer()
-    server.tools["boom"] = Tool(
-        ToolSchema("boom", "Boom", "Raise for tests", EmptyArgs, ToolType.READ_ONLY),
-        boom,
+    from drissionpage_mcp.tool_outputs import PageCloseData
+
+    server.tools["boom"] = ToolSpec(
+        name="boom",
+        title="Boom",
+        description="Raise for tests",
+        input_model=EmptyArgs,
+        output_model=PageCloseData,
+        handler=boom,
+        tool_type=ToolType.READ_ONLY,
     )
-
     result = await server._call_tool_impl("boom", {})
-
     assert result.isError is True
     assert result.structuredContent["error"]["code"] == "BROWSER_START_FAILED"
     assert result.structuredContent["error"]["details"]["tool_name"] == "boom"
     assert any(
-        hint.get("command") == "drissionpage-mcp doctor --launch-browser"
-        for hint in result.structuredContent["error"]["details"]["hints"]
+        (
+            hint.get("command") == "drissionpage-mcp doctor --launch-browser"
+            for hint in result.structuredContent["error"]["details"]["hints"]
+        )
     )
 
 
 @pytest.mark.asyncio
 async def test_run_server_cleans_up_after_server_error() -> None:
+
     class FakeLowLevelServer:
+
         def get_capabilities(self, **_kwargs):
             return {}
 
@@ -247,6 +224,7 @@ async def test_run_server_cleans_up_after_server_error() -> None:
             raise RuntimeError("stdio failed")
 
     class AsyncCleanupContext:
+
         def __init__(self) -> None:
             self.cleaned = False
 
@@ -256,26 +234,23 @@ async def test_run_server_cleans_up_after_server_error() -> None:
     server = DrissionPageMCPServer()
     context = AsyncCleanupContext()
     server.context = context
-    server.server = FakeLowLevelServer()  # type: ignore[assignment]
-
+    server.server = FakeLowLevelServer()
     with pytest.raises(RuntimeError, match="stdio failed"):
         await server.run_server(object(), object())
-
     assert context.cleaned is True
     assert server.context is None
 
 
 def test_tool_supports_output_schema_signature_fallback(monkeypatch) -> None:
-    def fake_tool(*, outputSchema=None):  # noqa: N803 - mirror MCP field name
+
+    def fake_tool(*, outputSchema=None):
         return outputSchema
 
     monkeypatch.setattr(server_module, "Tool", fake_tool)
-
     assert _tool_supports_output_schema() is True
 
     def fail_signature(_obj):
         raise ValueError("not inspectable")
 
     monkeypatch.setattr(server_module.inspect, "signature", fail_signature)
-
     assert _tool_supports_output_schema() is False

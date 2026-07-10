@@ -1,18 +1,15 @@
 """Shadow DOM read-only tools for DrissionPage MCP."""
 
 from __future__ import annotations
-
 from typing import TYPE_CHECKING
-
 from pydantic import Field
-
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..tool_outputs import ShadowFindData, ShadowFindAllData
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
-    from ..response import ToolResponse
 
 
 class ShadowFindInput(ToolInput):
@@ -39,22 +36,22 @@ class ShadowFindAllInput(ToolInput):
     input_schema=ShadowFindInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=ShadowFindData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to find shadow element '{args.selector}': {e}"
+    )(exc),
 )
 async def shadow_find(
-    context: "DrissionPageContext", args: ShadowFindInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(
-        response,
-        lambda e: f"Failed to find shadow element '{args.selector}': {e}",
-    ):
-        tab = context.current_tab_or_die()
-        result = await tab.frames.shadow_find(
-            host_selector=args.host_selector,
-            selector=args.selector,
-            timeout=args.timeout,
-        )
-        response.add_code("page.ele(<host>).shadow_root.ele(<selector>)")
-        response.add_result(f"Found shadow element: {args.selector}", **result)
+    context: "DrissionPageContext", args: ShadowFindInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.frames.shadow_find(
+        host_selector=args.host_selector, selector=args.selector, timeout=args.timeout
+    )
+    outcome.add_code("page.ele(<host>).shadow_root.ele(<selector>)")
+    outcome.add_result(f"Found shadow element: {args.selector}", **result)
+    return outcome
 
 
 @define_tool(
@@ -64,26 +61,25 @@ async def shadow_find(
     input_schema=ShadowFindAllInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=ShadowFindAllData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to find shadow elements '{args.selector}': {e}"
+    )(exc),
 )
 async def shadow_find_all(
-    context: "DrissionPageContext", args: ShadowFindAllInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(
-        response,
-        lambda e: f"Failed to find shadow elements '{args.selector}': {e}",
-    ):
-        tab = context.current_tab_or_die()
-        result = await tab.frames.shadow_find_all(
-            host_selector=args.host_selector,
-            selector=args.selector,
-            limit=args.limit,
-            include_html=args.include_html,
-        )
-        response.add_code("page.ele(<host>).shadow_root.eles(<selector>)")
-        response.add_result(
-            f"Found {result['returned']} of {result['count']} shadow elements",
-            **with_response_meta(result),
-        )
-
-
-tools = [shadow_find, shadow_find_all]
+    context: "DrissionPageContext", args: ShadowFindAllInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.frames.shadow_find_all(
+        host_selector=args.host_selector,
+        selector=args.selector,
+        limit=args.limit,
+        include_html=args.include_html,
+    )
+    outcome.add_code("page.ele(<host>).shadow_root.eles(<selector>)")
+    outcome.add_result(
+        f"Found {result['returned']} of {result['count']} shadow elements",
+        **with_response_meta(result),
+    )
+    return outcome

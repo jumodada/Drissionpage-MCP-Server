@@ -1,16 +1,13 @@
 """Pure unit coverage for tool success paths without launching DrissionPage."""
 
 from __future__ import annotations
-
 import base64
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
-
 import pytest
 from DrissionPage.errors import ElementNotFoundError
-
-from drissionpage_mcp.response import ToolResponse
+from drissionpage_mcp.tools.base import ToolOutcome
 from drissionpage_mcp.tools import (
     common,
     debug,
@@ -64,7 +61,15 @@ class FakeTab:
             shadow_find=self.shadow_find,
             shadow_find_all=self.shadow_find_all,
         )
-        self.interaction = self
+        self.interaction = SimpleNamespace(
+            click_coordinates=self.click,
+            scroll_page=self.scroll_page,
+            scroll_element_into_view=self.scroll_element_into_view,
+            hover_element=self.hover_element,
+            keyboard_press=self.keyboard_press,
+            select_element=self.select_element,
+            check_element=self.check_element,
+        )
         self.network = SimpleNamespace(
             start=self.network_listen_start,
             wait=self.network_listen_wait,
@@ -78,9 +83,20 @@ class FakeTab:
         )
         self.storage = self
         self.waits = SimpleNamespace(
-            element=self.wait_for_element,
-            url=self.wait_for_url,
-            until=self.wait_until,
+            element=self.wait_for_element, url=self.wait_for_url, until=self.wait_until
+        )
+        self.observation = SimpleNamespace(
+            snapshot=self.page_snapshot,
+            observe=self.observe,
+            console_logs=self.console_logs,
+            evaluate=self.evaluate_script,
+        )
+        self.page_ops = SimpleNamespace(resize=self.resize, screenshot=self.screenshot)
+        self.workflows = SimpleNamespace(
+            inspect_forms=self.inspect_forms,
+            open_and_snapshot=self.open_and_snapshot,
+            extract_links=self.extract_links,
+            form_fill_preview=self.form_fill_preview,
         )
 
     def summary(self, *, active: bool = False) -> dict[str, Any]:
@@ -134,28 +150,14 @@ class FakeTab:
             "inputs": [],
             "forms": [],
             "counts": {"headings": 1},
-            "truncated": {
-                "text": False,
-                "elements": False,
-                "returned_elements": 1,
-            },
-            "limits": {
-                "max_elements": max_elements,
-                "max_text_chars": max_text_chars,
-            },
+            "truncated": {"text": False, "elements": False, "returned_elements": 1},
+            "limits": {"max_elements": max_elements, "max_text_chars": max_text_chars},
         }
 
     async def observe(
-        self,
-        *,
-        max_texts: int = 20,
-        max_text_chars: int = 160,
+        self, *, max_texts: int = 20, max_text_chars: int = 160
     ) -> dict[str, Any]:
-        self._record(
-            "observe",
-            max_texts=max_texts,
-            max_text_chars=max_text_chars,
-        )
+        self._record("observe", max_texts=max_texts, max_text_chars=max_text_chars)
         phase = self.observe_count
         self.observe_count += 1
         return {
@@ -185,18 +187,11 @@ class FakeTab:
                     }
                 ],
             },
-            "limits": {
-                "max_texts": max_texts,
-                "max_text_chars": max_text_chars,
-            },
+            "limits": {"max_texts": max_texts, "max_text_chars": max_text_chars},
         }
 
     async def console_logs(
-        self,
-        *,
-        level: str = "all",
-        since: int = -1,
-        limit: int = 20,
+        self, *, level: str = "all", since: int = -1, limit: int = 20
     ) -> dict[str, Any]:
         self._record("console_logs", level=level, since=since, limit=limit)
         logs = [
@@ -232,11 +227,7 @@ class FakeTab:
         }
 
     async def evaluate_script(
-        self,
-        script: str,
-        *,
-        args: list[Any] | None = None,
-        max_chars: int = 4000,
+        self, script: str, *, args: list[Any] | None = None, max_chars: int = 4000
     ) -> dict[str, Any]:
         self._record("evaluate_script", script, args=args or [], max_chars=max_chars)
         return {
@@ -608,18 +599,9 @@ class FakeTab:
         }
 
     async def find_elements(
-        self,
-        selector: str,
-        *,
-        limit: int = 20,
-        include_html: bool = False,
+        self, selector: str, *, limit: int = 20, include_html: bool = False
     ) -> dict[str, Any]:
-        self._record(
-            "find_elements",
-            selector,
-            limit=limit,
-            include_html=include_html,
-        )
+        self._record("find_elements", selector, limit=limit, include_html=include_html)
         elements = [
             {
                 "index": 0,
@@ -655,11 +637,7 @@ class FakeTab:
         self._record("click_element", selector, timeout=timeout)
 
     async def type_text(
-        self,
-        selector: str,
-        text: str,
-        timeout: int = 10,
-        clear: bool = True,
+        self, selector: str, text: str, timeout: int = 10, clear: bool = True
     ) -> None:
         self._record("type_text", selector, text, timeout=timeout, clear=clear)
 
@@ -694,12 +672,7 @@ class FakeTab:
         }
 
     async def scroll_page(
-        self,
-        *,
-        direction: str = "down",
-        pixels: int = 300,
-        x: int = 0,
-        y: int = 0,
+        self, *, direction: str = "down", pixels: int = 300, x: int = 0, y: int = 0
     ) -> dict[str, Any]:
         self._record("scroll_page", direction=direction, pixels=pixels, x=x, y=y)
         return {
@@ -755,12 +728,7 @@ class FakeTab:
         return {"keys": keys, "interval": interval, "url": self.url}
 
     async def select_element(
-        self,
-        selector: str,
-        *,
-        value: str,
-        by: str = "value",
-        timeout: int = 10,
+        self, selector: str, *, value: str, by: str = "value", timeout: int = 10
     ) -> dict[str, Any]:
         self._record("select_element", selector, value=value, by=by, timeout=timeout)
         return {
@@ -890,11 +858,7 @@ class FakeTab:
         }
 
     async def shadow_find(
-        self,
-        *,
-        host_selector: str,
-        selector: str,
-        timeout: int = 3,
+        self, *, host_selector: str, selector: str, timeout: int = 3
     ) -> dict[str, Any]:
         self._record(
             "shadow_find",
@@ -1021,6 +985,7 @@ class FakeTab:
 
 
 class FakeContext:
+
     def __init__(self) -> None:
         self.tab = FakeTab()
         self.created_tab = FakeTab()
@@ -1079,37 +1044,31 @@ class FakeContext:
         self.waited.append(seconds)
 
 
-async def _execute(tool, ctx: FakeContext, args) -> ToolResponse:
-    response = ToolResponse()
-    await tool.handler(ctx, args, response)
+async def _execute(tool, ctx: FakeContext, args) -> ToolOutcome:
+    response = ToolOutcome()
+    response = await tool.execute(ctx, args)
     return response
 
 
-def _message(response: ToolResponse) -> str:
-    return response.get_structured_content()["message"]
+def _message(response: ToolOutcome) -> str:
+    return response.structured_content()["message"]
 
 
 @pytest.mark.asyncio
 async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
     ctx = FakeContext()
-
     resize_response = await _execute(
         common.resize, ctx, common.ResizeInput(width=640, height=480)
     )
-    assert resize_response.get_structured_content()["data"] == {
-        "width": 640,
-        "height": 480,
-    }
+    assert resize_response.structured_content()["data"] == {"width": 640, "height": 480}
     assert "640x480" in _message(resize_response)
     assert ctx.tab.calls[-1] == ("resize", (640, 480), {})
-
     inline_response = await _execute(
         common.screenshot, ctx, common.ScreenshotInput(full_page=True)
     )
-    inline_payload = inline_response.get_structured_content()
+    inline_payload = inline_response.structured_content()
     assert inline_payload["data"]["screenshot"]["inline"] is True
     assert inline_payload["data"]["screenshot"]["full_page"] is True
-
     screenshot_path = tmp_path / "screen.png"
     monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(tmp_path))
     path_response = await _execute(
@@ -1117,20 +1076,15 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         ctx,
         common.ScreenshotSaveInput(path=str(screenshot_path), full_page=False),
     )
-    path_payload = path_response.get_structured_content()
+    path_payload = path_response.structured_content()
     assert path_payload["data"]["screenshot"]["path"] == str(screenshot_path)
     assert path_payload["data"]["screenshot"]["inline"] is False
-
     snapshot_response = await _execute(
         common.page_snapshot,
         ctx,
-        common.PageSnapshotInput(
-            include_html=True,
-            max_elements=5,
-            max_text_chars=100,
-        ),
+        common.PageSnapshotInput(include_html=True, max_elements=5, max_text_chars=100),
     )
-    snapshot_payload = snapshot_response.get_structured_content()
+    snapshot_payload = snapshot_response.structured_content()
     assert snapshot_payload["data"]["title"] == "Fake Catalog"
     assert snapshot_payload["data"]["limits"] == {
         "max_elements": 5,
@@ -1141,29 +1095,22 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         (),
         {"include_html": True, "max_elements": 5, "max_text_chars": 100},
     )
-
     observe_response = await _execute(
         common.page_observe,
         ctx,
         common.PageObserveInput(max_texts=3, max_text_chars=80),
     )
-    observe_payload = observe_response.get_structured_content()
+    observe_payload = observe_response.structured_content()
     assert observe_payload["data"]["url"] == "https://example.test/current"
-    assert observe_payload["data"]["limits"] == {
-        "max_texts": 3,
-        "max_text_chars": 80,
-    }
-
+    assert observe_payload["data"]["limits"] == {"max_texts": 3, "max_text_chars": 80}
     evaluate_response = await _execute(
         common.page_evaluate,
         ctx,
         common.PageEvaluateInput(
-            script="return {total: args[0] + args[1]};",
-            args=[2, 3],
-            max_chars=1000,
+            script="return {total: args[0] + args[1]};", args=[2, 3], max_chars=1000
         ),
     )
-    evaluate_payload = evaluate_response.get_structured_content()
+    evaluate_payload = evaluate_response.structured_content()
     assert evaluate_payload["data"]["result_type"] == "object"
     assert evaluate_payload["data"]["max_chars"] == 1000
     assert ctx.tab.calls[-1] == (
@@ -1171,13 +1118,12 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         ("return {total: args[0] + args[1]};",),
         {"args": [2, 3], "max_chars": 1000},
     )
-
     console_response = await _execute(
         debug.page_console_logs,
         ctx,
         debug.ConsoleLogsInput(level="error", since=0, limit=10),
     )
-    console_payload = console_response.get_structured_content()
+    console_payload = console_response.structured_content()
     assert console_payload["data"]["count"] == 1
     assert console_payload["data"]["logs"][0]["text"] == "after error"
     assert ctx.tab.calls[-1] == (
@@ -1185,28 +1131,23 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         (),
         {"level": "error", "since": 0, "limit": 10},
     )
-
     click_response = await _execute(
-        common.click_coordinates,
-        ctx,
-        common.ClickCoordinatesInput(x=7, y=9),
+        common.click_coordinates, ctx, common.ClickCoordinatesInput(x=7, y=9)
     )
-    assert click_response.get_structured_content()["data"] == {
+    assert click_response.structured_content()["data"] == {
         "x": 7,
         "y": 9,
         "element": "",
         "url": "https://example.test/current",
     }
     assert "(7, 9)" in _message(click_response)
-    assert click_response.should_include_snapshot() is True
-
+    assert click_response.include_snapshot is True
     close_response = await _execute(common.close, ctx, common.EmptyInput())
-    assert close_response.get_structured_content()["data"] == {"closed": True}
+    assert close_response.structured_content()["data"] == {"closed": True}
     assert ctx.closed is True
     assert "closed browser" in _message(close_response)
-
     url_response = await _execute(common.get_url, ctx, common.EmptyInput())
-    assert url_response.get_structured_content()["data"] == {
+    assert url_response.structured_content()["data"] == {
         "url": "https://example.test/current"
     }
     assert "https://example.test/current" in _message(url_response)
@@ -1215,7 +1156,6 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
 @pytest.mark.asyncio
 async def test_workflow_tools_success_paths() -> None:
     ctx = FakeContext()
-
     open_response = await _execute(
         workflow.browser_open_and_snapshot,
         ctx,
@@ -1229,7 +1169,7 @@ async def test_workflow_tools_success_paths() -> None:
             max_text_chars=100,
         ),
     )
-    open_payload = open_response.get_structured_content()
+    open_payload = open_response.structured_content()
     assert open_payload["data"]["final_url"] == "https://example.test/workflow"
     assert open_payload["data"]["snapshot"]["limits"] == {
         "max_elements": 5,
@@ -1237,18 +1177,16 @@ async def test_workflow_tools_success_paths() -> None:
     }
     assert open_payload["data"]["forms"]["count"] == 1
     assert open_payload["data"]["console"]["count"] == 2
-
     links_response = await _execute(
         workflow.browser_extract_links,
         ctx,
         workflow.BrowserExtractLinksInput(limit=1, same_origin_only=True),
     )
-    links_payload = links_response.get_structured_content()
+    links_payload = links_response.structured_content()
     assert links_payload["data"]["returned"] == 1
     assert links_payload["data"]["truncated"] is True
     assert links_payload["data"]["links"][0]["url"].endswith("/docs")
     assert links_payload["data"]["meta"]["truncated"] is True
-
     fill_response = await _execute(
         workflow.form_fill_preview,
         ctx,
@@ -1257,7 +1195,7 @@ async def test_workflow_tools_success_paths() -> None:
             fields={"name": "Ada", "secret": "do-not-echo"},
         ),
     )
-    fill_payload = fill_response.get_structured_content()
+    fill_payload = fill_response.structured_content()
     assert fill_payload["data"]["requires_confirmation"] is True
     assert fill_payload["data"]["submitted"] is False
     assert fill_payload["data"]["filled_count"] == 2
@@ -1268,16 +1206,14 @@ async def test_workflow_tools_success_paths() -> None:
 @pytest.mark.asyncio
 async def test_network_tools_success_paths() -> None:
     ctx = FakeContext()
-
     start_response = await _execute(
         network.network_listen_start,
         ctx,
         network.NetworkListenStartInput(targets=["/api"], method="GET"),
     )
-    start_payload = start_response.get_structured_content()
+    start_payload = start_response.structured_content()
     assert start_payload["data"]["listening"] is True
     assert start_payload["data"]["filters"]["targets"] == ["/api"]
-
     wait_response = await _execute(
         network.network_listen_wait,
         ctx,
@@ -1289,19 +1225,16 @@ async def test_network_tools_success_paths() -> None:
             max_body_chars=20,
         ),
     )
-    wait_payload = wait_response.get_structured_content()
+    wait_payload = wait_response.structured_content()
     packet = wait_payload["data"]["packets"][0]
     assert wait_payload["data"]["count"] == 1
     assert packet["request_headers"]["authorization"] == "<redacted>"
     assert packet["body_excerpt"] == '{"ok":true}'
     assert wait_payload["data"]["meta"]["json_chars"] > 0
-
     stop_response = await _execute(
-        network.network_listen_stop,
-        ctx,
-        network.NetworkListenStopInput(clear=True),
+        network.network_listen_stop, ctx, network.NetworkListenStopInput(clear=True)
     )
-    assert stop_response.get_structured_content()["data"] == {
+    assert stop_response.structured_content()["data"] == {
         "listening": False,
         "was_listening": True,
         "cleared": True,
@@ -1311,7 +1244,6 @@ async def test_network_tools_success_paths() -> None:
 @pytest.mark.asyncio
 async def test_form_tools_success_paths() -> None:
     ctx = FakeContext()
-
     response = await _execute(
         forms.form_inspect,
         ctx,
@@ -1322,8 +1254,7 @@ async def test_form_tools_success_paths() -> None:
             max_fields_per_form=3,
         ),
     )
-
-    payload = response.get_structured_content()
+    payload = response.structured_content()
     assert payload["message"] == "Inspected 1 of 1 forms"
     assert payload["data"]["forms"][0]["selector"] == "#fixture-form"
     assert payload["data"]["forms"][0]["fields"][0]["selector"] == "#name"
@@ -1348,13 +1279,12 @@ async def test_file_and_interaction_tools_success_paths(monkeypatch, tmp_path) -
     upload_file = upload_root / "fixture.txt"
     upload_file.write_text("upload", encoding="utf-8")
     monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(upload_root))
-
     upload_response = await _execute(
         files.element_upload_file,
         ctx,
         files.UploadFileInput(selector="#upload", paths=[str(upload_file)], timeout=2),
     )
-    upload_payload = upload_response.get_structured_content()
+    upload_payload = upload_response.structured_content()
     assert upload_payload["data"] == {
         "selector": "#upload",
         "locator": "css:#upload",
@@ -1365,173 +1295,145 @@ async def test_file_and_interaction_tools_success_paths(monkeypatch, tmp_path) -
         "filenames": ["fixture.txt"],
     }
     assert str(upload_file) not in str(upload_payload["data"])
-
     scroll_response = await _execute(
-        interaction.page_scroll,
-        ctx,
-        interaction.PageScrollInput(direction="bottom"),
+        interaction.page_scroll, ctx, interaction.PageScrollInput(direction="bottom")
     )
-    assert scroll_response.get_structured_content()["data"]["direction"] == "bottom"
-
+    assert scroll_response.structured_content()["data"]["direction"] == "bottom"
     into_view_response = await _execute(
         interaction.element_scroll_into_view,
         ctx,
         interaction.ElementScrollIntoViewInput(
-            selector="#deep",
-            center=False,
-            timeout=2,
+            selector="#deep", center=False, timeout=2
         ),
     )
-    assert into_view_response.get_structured_content()["data"]["center"] is False
-
+    assert into_view_response.structured_content()["data"]["center"] is False
     hover_response = await _execute(
         interaction.element_hover,
         ctx,
         interaction.ElementHoverInput(selector="#hover", offset_x=1, offset_y=2),
     )
-    assert hover_response.get_structured_content()["data"]["offset_x"] == 1
-
+    assert hover_response.structured_content()["data"]["offset_x"] == 1
     keyboard_response = await _execute(
         interaction.keyboard_press,
         ctx,
         interaction.KeyboardPressInput(keys="abc", interval=0.01),
     )
-    assert keyboard_response.get_structured_content()["data"] == {
+    assert keyboard_response.structured_content()["data"] == {
         "keys": "abc",
         "interval": 0.01,
         "url": "https://example.test/current",
     }
-
     select_response = await _execute(
         interaction.element_select,
         ctx,
         interaction.ElementSelectInput(selector="#mode", value="advanced", by="value"),
     )
-    assert select_response.get_structured_content()["data"]["selected"] is True
-
+    assert select_response.structured_content()["data"]["selected"] is True
     check_response = await _execute(
         interaction.element_check,
         ctx,
         interaction.ElementCheckInput(selector="#agree", checked=True, by_js=True),
     )
-    assert check_response.get_structured_content()["data"]["checked"] is True
+    assert check_response.structured_content()["data"]["checked"] is True
 
 
 @pytest.mark.asyncio
 async def test_frame_shadow_and_storage_tools_success_paths() -> None:
     ctx = FakeContext()
-
     frames_response = await _execute(
-        frame.frame_list,
-        ctx,
-        frame.FrameListInput(limit=5),
+        frame.frame_list, ctx, frame.FrameListInput(limit=5)
     )
-    frames_payload = frames_response.get_structured_content()
+    frames_payload = frames_response.structured_content()
     assert frames_payload["data"]["count"] == 1
     assert frames_payload["data"]["frames"][0]["selector"] == "#fixture-frame"
-
     snapshot_response = await _execute(
         frame.frame_snapshot,
         ctx,
         frame.FrameSnapshotInput(frame_index=0, max_elements=3, max_text_chars=100),
     )
-    snapshot_payload = snapshot_response.get_structured_content()
+    snapshot_payload = snapshot_response.structured_content()
     assert snapshot_payload["data"]["frame"]["id"] == "fixture-frame"
     assert snapshot_payload["data"]["meta"]["truncated"] is False
-
     frame_find_response = await _execute(
         frame.frame_find,
         ctx,
         frame.FrameFindInput(frame_index=0, selector="#frame-text"),
     )
-    assert frame_find_response.get_structured_content()["data"]["element"]["text"] == (
-        "frame ready"
+    assert (
+        frame_find_response.structured_content()["data"]["element"]["text"]
+        == "frame ready"
     )
-
     shadow_response = await _execute(
         shadow.shadow_find,
         ctx,
         shadow.ShadowFindInput(host_selector="#shadow-host", selector="#shadow-button"),
     )
-    assert (
-        shadow_response.get_structured_content()["data"]["element"]["tag"] == "button"
-    )
-
+    assert shadow_response.structured_content()["data"]["element"]["tag"] == "button"
     shadow_all_response = await _execute(
         shadow.shadow_find_all,
         ctx,
         shadow.ShadowFindAllInput(
-            host_selector="#shadow-host",
-            selector=".shadow-item",
-            limit=1,
+            host_selector="#shadow-host", selector=".shadow-item", limit=1
         ),
     )
-    shadow_all = shadow_all_response.get_structured_content()["data"]
+    shadow_all = shadow_all_response.structured_content()["data"]
     assert shadow_all["returned"] == 1
     assert shadow_all["meta"]["truncated"] is True
-
     cookies_response = await _execute(
         storage.browser_cookies_get,
         ctx,
         storage.BrowserCookiesGetInput(include_values=False),
     )
-    cookies = cookies_response.get_structured_content()["data"]
+    cookies = cookies_response.structured_content()["data"]
     assert cookies["cookies"][0]["value"] == "<redacted>"
-
     storage_get_response = await _execute(
         storage.storage_get,
         ctx,
         storage.StorageGetInput(area="local", include_values=True),
     )
-    assert storage_get_response.get_structured_content()["data"]["items"] == {
+    assert storage_get_response.structured_content()["data"]["items"] == {
         "mode": "dark"
     }
-
     storage_set_response = await _execute(
         storage.storage_set,
         ctx,
         storage.StorageSetInput(area="session", key="draft", value="42"),
     )
-    assert storage_set_response.get_structured_content()["data"] == {
+    assert storage_set_response.structured_content()["data"] == {
         "area": "session",
         "key": "draft",
         "set": True,
     }
-
     storage_clear_response = await _execute(
         storage.storage_clear,
         ctx,
         storage.StorageClearInput(area="session", key="draft"),
     )
-    assert storage_clear_response.get_structured_content()["data"]["cleared"] is True
+    assert storage_clear_response.structured_content()["data"]["cleared"] is True
 
 
 @pytest.mark.asyncio
 async def test_navigation_tools_success_paths() -> None:
     ctx = FakeContext()
-
     nav_response = await _execute(
-        navigate.navigate,
-        ctx,
-        navigate.NavigateInput(url="https://example.test/next"),
+        navigate.navigate, ctx, navigate.NavigateInput(url="https://example.test/next")
     )
-    assert nav_response.get_structured_content()["data"] == {
+    assert nav_response.structured_content()["data"] == {
         "url": "https://example.test/next",
         "final_url": "https://example.test/next",
         "new_tab": False,
         "tab_id": "t0",
     }
     assert "Successfully navigated" in _message(nav_response)
-    assert nav_response.should_include_snapshot() is True
+    assert nav_response.include_snapshot is True
     assert ctx.tab.url == "https://example.test/next"
-
     observed_ctx = FakeContext()
     observed_nav_response = await _execute(
         navigate.navigate,
         observed_ctx,
         navigate.NavigateInput(url="https://example.test/observed", observe=True),
     )
-    observed_nav_data = observed_nav_response.get_structured_content()["data"]
+    observed_nav_data = observed_nav_response.structured_content()["data"]
     assert observed_nav_data["final_url"] == "https://example.test/observed"
     assert observed_nav_data["changes"]["url_changed"] is True
     assert observed_nav_data["changes"]["appeared_texts"] == ["after"]
@@ -1539,41 +1441,36 @@ async def test_navigation_tools_success_paths() -> None:
     assert (
         observed_nav_data["changes"]["new_console_messages"][0]["text"] == "after error"
     )
-
     new_tab_response = await _execute(
         navigate.navigate,
         ctx,
         navigate.NavigateInput(url="https://example.test/new", new_tab=True),
     )
-    new_tab_payload = new_tab_response.get_structured_content()
+    new_tab_payload = new_tab_response.structured_content()
     assert new_tab_payload["data"]["url"] == "https://example.test/new"
     assert new_tab_payload["data"]["final_url"] == "https://example.test/new"
     assert new_tab_payload["data"]["new_tab"] is True
-
     for tool, expected_call, expected_message in [
         (navigate.go_back, "go_back", "went back"),
         (navigate.go_forward, "go_forward", "went forward"),
         (navigate.refresh, "refresh", "refreshed page"),
     ]:
         response = await _execute(tool, ctx, navigate.EmptyInput())
-        assert response.get_structured_content()["data"] == {
+        assert response.structured_content()["data"] == {
             "url": "https://example.test/next"
         }
         assert expected_message in _message(response)
-        assert response.should_include_snapshot() is True
+        assert response.include_snapshot is True
         assert ctx.tab.calls[-1][0] == expected_call
 
 
 @pytest.mark.asyncio
 async def test_wait_tools_success_and_timeout_paths() -> None:
     ctx = FakeContext()
-
     element_response = await _execute(
-        wait.wait_for_element,
-        ctx,
-        wait.WaitElementInput(selector="#ready", timeout=2),
+        wait.wait_for_element, ctx, wait.WaitElementInput(selector="#ready", timeout=2)
     )
-    assert element_response.get_structured_content()["data"] == {
+    assert element_response.structured_content()["data"] == {
         "selector": "#ready",
         "locator": "css:#ready",
         "selector_strategy": "css",
@@ -1582,27 +1479,22 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
         "timeout": 2,
     }
     assert "appeared within 2 seconds" in _message(element_response)
-
     url_response = await _execute(
-        wait.wait_for_url,
-        ctx,
-        wait.WaitUrlInput(url_pattern="ready", timeout=3),
+        wait.wait_for_url, ctx, wait.WaitUrlInput(url_pattern="ready", timeout=3)
     )
-    assert url_response.get_structured_content()["data"] == {
+    assert url_response.structured_content()["data"] == {
         "url_pattern": "ready",
         "matched": True,
         "url": "https://example.test/current",
         "timeout": 3,
     }
     assert "URL matched" in _message(url_response)
-
     time_response = await _execute(
         wait.wait_time, ctx, wait.WaitTimeInput(seconds=0.25)
     )
-    assert time_response.get_structured_content()["data"] == {"waited_seconds": 0.25}
+    assert time_response.structured_content()["data"] == {"waited_seconds": 0.25}
     assert ctx.waited == [0.25]
     assert "Waited for 0.25 seconds" in _message(time_response)
-
     until_response = await _execute(
         wait.wait_until,
         ctx,
@@ -1614,7 +1506,7 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
             stable_ms=50,
         ),
     )
-    until_payload = until_response.get_structured_content()
+    until_payload = until_response.structured_content()
     assert until_payload["data"] == {
         "condition": "clickable",
         "selector": "#ready",
@@ -1624,31 +1516,24 @@ async def test_wait_tools_success_and_timeout_paths() -> None:
         "elapsed_ms": 15,
         "state": {"selector": "#ready", "visible": True},
     }
-
     ctx.tab.wait_element_result = False
     timeout_response = await _execute(
         wait.wait_for_element,
         ctx,
         wait.WaitElementInput(selector="#missing", timeout=1),
     )
-    assert timeout_response.is_error() is True
-    assert "did not appear" in timeout_response.get_structured_content()["message"]
-
+    assert timeout_response.is_error is True
+    assert "did not appear" in timeout_response.structured_content()["message"]
     ctx.tab.wait_url_result = False
     url_timeout_response = await _execute(
-        wait.wait_for_url,
-        ctx,
-        wait.WaitUrlInput(url_pattern="never", timeout=1),
+        wait.wait_for_url, ctx, wait.WaitUrlInput(url_pattern="never", timeout=1)
     )
-    assert url_timeout_response.is_error() is True
-    assert (
-        "URL did not match" in url_timeout_response.get_structured_content()["message"]
-    )
+    assert url_timeout_response.is_error is True
+    assert "URL did not match" in url_timeout_response.structured_content()["message"]
 
 
 def test_element_find_default_timeout_is_llm_friendly() -> None:
     args = element.FindElementInput(selector="h1")
-
     assert args.timeout == 3
 
 
@@ -1656,9 +1541,7 @@ def test_get_property_input_uses_property_field_only() -> None:
     args = element.GetPropertyInput.model_validate(
         {"selector": "#name", "property": "value"}
     )
-
     assert args.property == "value"
-
     with pytest.raises(Exception, match="property"):
         element.GetPropertyInput.model_validate(
             {"selector": "#name", "property_name": "value"}
@@ -1702,7 +1585,6 @@ def test_get_property_input_uses_property_field_only() -> None:
 )
 def test_tool_inputs_reject_unknown_fields(model, payload) -> None:
     """LLM/client field typos should fail instead of being silently ignored."""
-
     with pytest.raises(Exception, match="Extra inputs"):
         model.model_validate(payload)
 
@@ -1712,10 +1594,7 @@ def test_tool_inputs_reject_unknown_fields(model, payload) -> None:
     [
         (element.FindElementInput, {"selector": "h1", "timeout": 121}),
         (element.ClickElementInput, {"selector": "button", "timeout": 121}),
-        (
-            element.TypeTextInput,
-            {"selector": "#name", "text": "Ada", "timeout": 121},
-        ),
+        (element.TypeTextInput, {"selector": "#name", "text": "Ada", "timeout": 121}),
         (wait.WaitElementInput, {"selector": "#ready", "timeout": 121}),
         (wait.WaitUrlInput, {"url_pattern": "ready", "timeout": 121}),
         (wait.WaitTimeInput, {"seconds": 121}),
@@ -1723,7 +1602,6 @@ def test_tool_inputs_reject_unknown_fields(model, payload) -> None:
 )
 def test_wait_inputs_reject_excessive_timeouts(model, payload) -> None:
     """Client-controlled waits should stay bounded."""
-
     with pytest.raises(Exception):
         model.model_validate(payload)
 
@@ -1731,20 +1609,17 @@ def test_wait_inputs_reject_excessive_timeouts(model, payload) -> None:
 @pytest.mark.asyncio
 async def test_tab_tools_success_paths() -> None:
     ctx = FakeContext()
-
     list_response = await _execute(tabs.tab_list, ctx, tabs.EmptyInput())
-    list_payload = list_response.get_structured_content()
+    list_payload = list_response.structured_content()
     assert list_payload["data"]["count"] == 2
     assert list_payload["data"]["active_tab_id"] == "t0"
     assert list_payload["data"]["tabs"][1]["url"] == "https://example.test/new"
-
     switch_response = await _execute(tabs.tab_switch, ctx, tabs.TabIdInput(tab_id="t1"))
-    switch_payload = switch_response.get_structured_content()
+    switch_payload = switch_response.structured_content()
     assert switch_payload["data"]["tab"]["id"] == "t1"
     assert switch_payload["data"]["tab"]["active"] is True
-
     close_response = await _execute(tabs.tab_close, ctx, tabs.TabIdInput(tab_id="t1"))
-    close_payload = close_response.get_structured_content()
+    close_payload = close_response.structured_content()
     assert close_payload["data"]["closed"] is True
     assert close_payload["data"]["tab_id"] == "t1"
 
@@ -1758,13 +1633,10 @@ async def test_element_tools_success_paths() -> None:
         "selector_strategy": "css",
         "selector_normalized": True,
     }
-
     found_response = await _execute(
-        element.find_element,
-        ctx,
-        element.FindElementInput(selector="#name", timeout=1),
+        element.find_element, ctx, element.FindElementInput(selector="#name", timeout=1)
     )
-    assert found_response.get_structured_content()["data"] == {
+    assert found_response.structured_content()["data"] == {
         "element": {
             "found": True,
             **selector_metadata,
@@ -1774,18 +1646,15 @@ async def test_element_tools_success_paths() -> None:
             "visible": True,
         }
     }
-    assert found_response.get_structured_content()["message"] == "Found element: #name"
-
+    assert found_response.structured_content()["message"] == "Found element: #name"
     found_all_response = await _execute(
         element.find_all_elements,
         ctx,
         element.FindAllElementsInput(
-            selector=".product-card",
-            limit=1,
-            include_html=True,
+            selector=".product-card", limit=1, include_html=True
         ),
     )
-    found_all_payload = found_all_response.get_structured_content()
+    found_all_payload = found_all_response.structured_content()
     found_all_data = dict(found_all_payload["data"])
     found_all_meta = found_all_data.pop("meta")
     assert found_all_meta["approx_tokens"] > 0
@@ -1811,94 +1680,81 @@ async def test_element_tools_success_paths() -> None:
             }
         ],
     }
-
     click_response = await _execute(
         element.click_element,
         ctx,
         element.ClickElementInput(selector="#name", timeout=1),
     )
-    assert click_response.get_structured_content()["data"] == {
+    assert click_response.structured_content()["data"] == {
         **selector_metadata,
         "url": "https://example.test/current",
     }
     assert "Successfully clicked element" in _message(click_response)
-    assert click_response.should_include_snapshot() is True
-
+    assert click_response.include_snapshot is True
     observed_click = await _execute(
         element.click_element,
         ctx,
         element.ClickElementInput(selector="#name", timeout=1, observe=True),
     )
-    observed_click_data = observed_click.get_structured_content()["data"]
+    observed_click_data = observed_click.structured_content()["data"]
     assert observed_click_data["changes"]["appeared_texts"] == ["after"]
-
     type_response = await _execute(
         element.type_text,
         ctx,
         element.TypeTextInput(selector="#name", text="Ada", clear=False),
     )
-    assert type_response.get_structured_content()["data"] == {
+    assert type_response.structured_content()["data"] == {
         **selector_metadata,
         "typed": True,
         "cleared": False,
     }
-    assert "Ada" not in str(type_response.get_structured_content()["data"])
+    assert "Ada" not in str(type_response.structured_content()["data"])
     assert "Successfully typed" in _message(type_response)
-    assert type_response.should_include_snapshot() is True
-
+    assert type_response.include_snapshot is True
     observed_type = await _execute(
         element.type_text,
         ctx,
-        element.TypeTextInput(
-            selector="#name",
-            text="Ada",
-            clear=False,
-            observe=True,
-        ),
+        element.TypeTextInput(selector="#name", text="Ada", clear=False, observe=True),
     )
-    observed_type_data = observed_type.get_structured_content()["data"]
+    observed_type_data = observed_type.structured_content()["data"]
     assert observed_type_data["changes"]["counts_delta"]["buttons"] == 1
-
     text_response = await _execute(
         element.get_text, ctx, element.GetTextInput(selector="#name")
     )
-    assert text_response.get_structured_content()["data"] == {
+    assert text_response.structured_content()["data"] == {
         "text": "element text",
         **selector_metadata,
     }
     page_text_response = await _execute(element.get_text, ctx, element.GetTextInput())
-    assert page_text_response.get_structured_content()["data"] == {
+    assert page_text_response.structured_content()["data"] == {
         "text": "page text",
         "selector": "",
         "locator": "",
         "selector_strategy": "page",
         "selector_normalized": False,
     }
-
     attr_response = await _execute(
         element.get_attribute,
         ctx,
         element.GetAttributeInput(selector="#name", attribute="id"),
     )
-    assert attr_response.get_structured_content()["data"] == {
+    assert attr_response.structured_content()["data"] == {
         **selector_metadata,
         "attribute": "id",
         "value": "attr-value",
     }
-
     missing_attr_response = await _execute(
         element.get_attribute,
         ctx,
         element.GetAttributeInput(selector="#name", attribute="missing"),
     )
-    assert missing_attr_response.get_structured_content()["data"]["value"] is None
-
+    assert missing_attr_response.structured_content()["data"]["value"] is None
     prop_response = await _execute(
         element.get_property,
         ctx,
         element.GetPropertyInput(selector="#name", property="value"),
     )
-    assert prop_response.get_structured_content()["data"] == {
+    assert prop_response.structured_content()["data"] == {
         **selector_metadata,
         "property": "value",
         "value": "prop-value",
@@ -1908,17 +1764,16 @@ async def test_element_tools_success_paths() -> None:
         ctx,
         element.GetPropertyInput(selector="#name", property="missing"),
     )
-    assert missing_prop_response.get_structured_content()["data"]["value"] is None
-
+    assert missing_prop_response.structured_content()["data"]["value"] is None
     html_response = await _execute(
         element.get_html, ctx, element.GetHtmlInput(selector="#name")
     )
-    assert html_response.get_structured_content()["data"] == {
+    assert html_response.structured_content()["data"] == {
         "html": "<input>",
         **selector_metadata,
     }
     page_html_response = await _execute(element.get_html, ctx, element.GetHtmlInput())
-    assert page_html_response.get_structured_content()["data"] == {
+    assert page_html_response.structured_content()["data"] == {
         "html": "<html></html>",
         "selector": "",
         "locator": "",
@@ -1928,12 +1783,9 @@ async def test_element_tools_success_paths() -> None:
 
 
 class MissingElementTypeTab(FakeTab):
+
     async def type_text(
-        self,
-        selector: str,
-        text: str,
-        timeout: int = 10,
-        clear: bool = True,
+        self, selector: str, text: str, timeout: int = 10, clear: bool = True
     ) -> None:
         self._record("type_text", selector, text, timeout=timeout, clear=clear)
         raise ElementNotFoundError(f"Element not found: {selector}")
@@ -1943,14 +1795,12 @@ class MissingElementTypeTab(FakeTab):
 async def test_element_type_reports_structured_not_found_error() -> None:
     ctx = FakeContext()
     ctx.tab = MissingElementTypeTab()
-
     response = await _execute(
         element.type_text,
         ctx,
         element.TypeTextInput(selector="#missing", text="Ada", timeout=1),
     )
-
-    payload = response.get_structured_content()
-    assert response.is_error() is True
+    payload = response.structured_content()
+    assert response.is_error is True
     assert payload["error"]["code"] == "ELEMENT_NOT_FOUND"
     assert "#missing" in payload["message"]

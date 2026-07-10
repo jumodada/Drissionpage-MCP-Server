@@ -1,16 +1,12 @@
 """Debugging and observability tools for DrissionPage MCP."""
 
 from typing import TYPE_CHECKING, Literal
-
 from pydantic import Field
-
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..tool_outputs import ConsoleLogsData
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
-    from ..response import ToolResponse
-
-
 ConsoleLevel = Literal["all", "error", "warning", "warn", "info", "log"]
 
 
@@ -37,35 +33,25 @@ class ConsoleLogsInput(ToolInput):
 @define_tool(
     name="page_console_logs",
     title="Console Logs",
-    description=(
-        "Read bounded browser console messages from the current tab. Supports "
-        "level filtering, cursor pagination, and a maximum result limit."
-    ),
+    description="Read bounded browser console messages from the current tab. Supports level filtering, cursor pagination, and a maximum result limit.",
     input_schema=ConsoleLogsInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=ConsoleLogsData,
+    failure_message=lambda args, exc: "Failed to read console logs: " + str(exc),
 )
 async def page_console_logs(
-    context: "DrissionPageContext",
-    args: ConsoleLogsInput,
-    response: "ToolResponse",
-) -> None:
+    context: "DrissionPageContext", args: ConsoleLogsInput
+) -> "ToolOutcome":
     """Return current-tab console logs."""
-
-    async with tool_errors(response, "Failed to read console logs"):
-        tab = context.current_tab_or_die()
-        result = await tab.console_logs(
-            level=args.level,
-            since=args.since,
-            limit=args.limit,
-        )
-
-        response.add_code("page.console.messages")
-        response.add_result(
-            f"Read {result['count']} console log"
-            f"{'' if result['count'] == 1 else 's'}",
-            **result,
-        )
-
-
-tools = [page_console_logs]
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.observation.console_logs(
+        level=args.level, since=args.since, limit=args.limit
+    )
+    outcome.add_code("page.console.messages")
+    outcome.add_result(
+        f"Read {result['count']} console log{('' if result['count'] == 1 else 's')}",
+        **result,
+    )
+    return outcome

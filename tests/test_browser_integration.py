@@ -1,23 +1,18 @@
 """Browser integration tests using the deterministic local HTTP fixture."""
 
 from __future__ import annotations
-
 import base64
 import json
 import os
 from typing import Any, Dict, List, Tuple
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 from urllib.request import urlopen
-
 import pytest
-
-from drissionpage_mcp.response import ToolResponse
+from drissionpage_mcp.tools.base import ToolOutcome
 from drissionpage_mcp.server import DrissionPageMCPServer
 from tests.fixtures.http_fixture import local_http_fixture
 
 SHARED_TEST_SITE_URL_ENV = "DP_TEST_SITE_URL"
-
-
 _BROWSER_UNAVAILABLE_MARKERS = (
     "browser",
     "chrome",
@@ -31,7 +26,6 @@ _BROWSER_UNAVAILABLE_MARKERS = (
 
 def test_local_http_fixture_serves_required_routes() -> None:
     """serves all deterministic fixture routes without external network access."""
-
     with local_http_fixture() as base_url:
         assert _read(base_url + "/")[0] == 200
         assert "DrissionMCP Fixture" in _read(base_url + "/")[1]
@@ -58,39 +52,28 @@ def test_local_http_fixture_serves_required_routes() -> None:
 
 def test_shared_drissionpage_test_site_contract_when_configured() -> None:
     """verifies the external shared SSR test-site contract before MCP smoke."""
-
     base_url = _shared_test_site_url_or_skip()
-
     health = _json(_site_url(base_url, "/api/health.json"))
     assert health["ok"] is True
     assert health["service"] == "drissionpage-ssr-test-site"
-
     manifest = _json(_site_url(base_url, "/api/manifest.json"))
     assert manifest["ok"] is True
     case_ids = {item["id"] for item in manifest["cases"]}
-    assert {
-        "forms",
-        "locators",
-        "marketplace-flow",
-        "social-notes-mobile",
-    } <= case_ids
+    assert {"forms", "locators", "marketplace-flow", "social-notes-mobile"} <= case_ids
 
 
 def test_shared_drissionpage_test_site_url_preserves_private_query() -> None:
     """keeps secret query tokens when building shared fixture case URLs."""
-
     base_url = "https://fixture.example.test/base?x-vercel-protection-bypass=secret"
-
-    assert _site_url(base_url, "/cases/forms") == (
-        "https://fixture.example.test/base/cases/forms"
-        "?x-vercel-protection-bypass=secret"
+    assert (
+        _site_url(base_url, "/cases/forms")
+        == "https://fixture.example.test/base/cases/forms?x-vercel-protection-bypass=secret"
     )
 
 
 @pytest.mark.asyncio
 async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
     """runs MCP browser tools against the shared Astro SSR test-site."""
-
     base_url = _shared_test_site_url_or_skip()
     server = DrissionPageMCPServer()
     try:
@@ -99,7 +82,6 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
         )
         _skip_if_browser_unavailable(navigate)
         assert "Successfully navigated" in navigate
-
         _content, forms_payload = await _execute_tool(
             server,
             "form_inspect",
@@ -115,7 +97,6 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
         assert fields["#name"]["value"] == "initial"
         assert fields["#mode"]["tag"] == "select"
         assert fields["#agree"]["type"] == "checkbox"
-
         navigate = await _execute_tool_text(
             server, "page_navigate", {"url": _site_url(base_url, "/cases/locators")}
         )
@@ -127,7 +108,6 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
         target = target_payload["data"]["element"]
         assert target["text"] == "target div"
         assert 'data-testid="xpath-target"' in target["html"]
-
         navigate = await _execute_tool_text(
             server,
             "page_navigate",
@@ -141,7 +121,6 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
         snapshot = snapshot_payload["data"]
         assert snapshot["title"] == "Marketplace full flow"
         assert "橙市集" in snapshot["text_excerpt"]
-
         _content, cards_payload = await _execute_tool(
             server,
             "element_find_all",
@@ -157,7 +136,6 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
 @pytest.mark.asyncio
 async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
     """navigates to a local fixture page and reads page text through MCP tools."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -166,13 +144,11 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             text = await _execute_tool_text(
                 server, "element_get_text", {"selector": "#app"}
             )
             _skip_if_browser_unavailable(text)
             assert "DrissionMCP Fixture" in text
-
             frame = await _execute_tool_text(
                 server,
                 "element_get_attribute",
@@ -180,13 +156,11 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             )
             _skip_if_browser_unavailable(frame)
             assert "/iframe" in frame
-
             form_nav = await _execute_tool_text(
                 server, "page_navigate", {"url": base_url + "/form"}
             )
             _skip_if_browser_unavailable(form_nav)
             assert "Successfully navigated" in form_nav
-
             typed = await _execute_tool_text(
                 server,
                 "element_type",
@@ -194,7 +168,6 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             )
             _skip_if_browser_unavailable(typed)
             assert "Successfully typed" in typed
-
             value = await _execute_tool_text(
                 server,
                 "element_get_property",
@@ -202,12 +175,11 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             )
             _skip_if_browser_unavailable(value)
             assert "Ada" in value
-
             screenshot, screenshot_payload = await _execute_tool(
                 server, "page_screenshot", {}
             )
             text_content = "\n".join(
-                item.text for item in screenshot if item.type == "text"
+                (item.text for item in screenshot if item.type == "text")
             )
             _skip_if_browser_unavailable(text_content)
             images = [item for item in screenshot if item.type == "image"]
@@ -221,7 +193,6 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             assert metadata["bytes"] > 0
             assert metadata["width"] > 0
             assert metadata["height"] > 0
-
             closed = await _execute_tool_text(server, "page_close", {})
             assert "Successfully closed browser" in closed
     finally:
@@ -231,7 +202,6 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
 @pytest.mark.asyncio
 async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
     """discovers, switches, and closes a tab opened by target=_blank."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -240,17 +210,14 @@ async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, initial_tabs = await _execute_tool(server, "tab_list", {})
             assert initial_tabs["ok"] is True
             initial_count = initial_tabs["data"]["count"]
             active_id = initial_tabs["data"]["active_tab_id"]
-
             _content, click_payload = await _execute_tool(
                 server, "element_click", {"selector": "#new-tab-link", "timeout": 2}
             )
             assert click_payload["ok"] is True
-
             _content, tabs_payload = await _execute_tool(server, "tab_list", {})
             assert tabs_payload["ok"] is True
             tabs_data = tabs_payload["data"]
@@ -260,20 +227,16 @@ async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
             ]
             assert target_tabs
             new_tab_id = target_tabs[0]["id"]
-
             _content, switch_payload = await _execute_tool(
                 server, "tab_switch", {"tab_id": new_tab_id}
             )
             assert switch_payload["ok"] is True
-
             _content, url_payload = await _execute_tool(server, "page_get_url", {})
             assert url_payload["data"]["url"].endswith("/new-tab")
-
             _content, close_payload = await _execute_tool(
                 server, "tab_close", {"tab_id": new_tab_id}
             )
             assert close_payload["ok"] is True
-
             _content, switch_back = await _execute_tool(
                 server, "tab_switch", {"tab_id": active_id}
             )
@@ -285,7 +248,6 @@ async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
 @pytest.mark.asyncio
 async def test_mcp_form_inspect_extracts_form_controls() -> None:
     """inspects forms with labels and safe default value handling."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -294,7 +256,6 @@ async def test_mcp_form_inspect_extracts_form_controls() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, payload = await _execute_tool(server, "form_inspect", {})
             assert payload["ok"] is True
             data = payload["data"]
@@ -314,9 +275,10 @@ async def test_mcp_form_inspect_extracts_form_controls() -> None:
             assert fields["#secret"]["value"] is None
             assert fields["#submit"]["tag"] == "button"
             assert fields["#submit"]["type"] == "submit"
-
             _content, values_payload = await _execute_tool(
-                server, "form_inspect", {"selector": "#fixture-form", "include_values": True}
+                server,
+                "form_inspect",
+                {"selector": "#fixture-form", "include_values": True},
             )
             value_fields = {
                 field["selector"]: field
@@ -332,7 +294,6 @@ async def test_mcp_form_inspect_extracts_form_controls() -> None:
 @pytest.mark.asyncio
 async def test_mcp_browser_tools_normalize_llm_friendly_selectors() -> None:
     """treats bare selectors as CSS and preserves explicit DrissionPage locators."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -341,7 +302,6 @@ async def test_mcp_browser_tools_normalize_llm_friendly_selectors() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, h1_payload = await _execute_tool(
                 server, "element_find", {"selector": "h1", "timeout": 2}
             )
@@ -351,7 +311,6 @@ async def test_mcp_browser_tools_normalize_llm_friendly_selectors() -> None:
             assert h1["locator"] == "css:h1"
             assert h1["selector_strategy"] == "css"
             assert h1["selector_normalized"] is True
-
             _content, input_payload = await _execute_tool(
                 server,
                 "element_find",
@@ -361,7 +320,6 @@ async def test_mcp_browser_tools_normalize_llm_friendly_selectors() -> None:
             input_element = input_payload["data"]["element"]
             assert input_element["tag"] == "input"
             assert input_element["locator"] == "css:input[name='custname']"
-
             _content, explicit_payload = await _execute_tool(
                 server, "element_find", {"selector": "tag:h1", "timeout": 2}
             )
@@ -377,7 +335,6 @@ async def test_mcp_browser_tools_normalize_llm_friendly_selectors() -> None:
 @pytest.mark.asyncio
 async def test_mcp_browser_tools_complete_form_submission_flow() -> None:
     """fills and submits a local form through public MCP tools."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -386,7 +343,6 @@ async def test_mcp_browser_tools_complete_form_submission_flow() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, field_payload = await _execute_tool(
                 server, "element_find", {"selector": "#name", "timeout": 2}
             )
@@ -395,7 +351,6 @@ async def test_mcp_browser_tools_complete_form_submission_flow() -> None:
             assert field["tag"] == "input"
             assert field["locator"] == "css:#name"
             assert field["selector_normalized"] is True
-
             _content, typed_payload = await _execute_tool(
                 server,
                 "element_type",
@@ -409,7 +364,6 @@ async def test_mcp_browser_tools_complete_form_submission_flow() -> None:
             assert typed_payload["ok"] is True
             assert typed_payload["data"]["typed"] is True
             assert typed_payload["data"]["cleared"] is True
-
             _content, value_payload = await _execute_tool(
                 server,
                 "element_get_property",
@@ -417,19 +371,16 @@ async def test_mcp_browser_tools_complete_form_submission_flow() -> None:
             )
             assert value_payload["ok"] is True
             assert value_payload["data"]["value"] == "Ada Lovelace"
-
             _content, click_payload = await _execute_tool(
                 server, "element_click", {"selector": "#submit", "timeout": 2}
             )
             assert click_payload["ok"] is True
             assert click_payload["data"]["locator"] == "css:#submit"
-
             _content, url_payload = await _execute_tool(
                 server, "wait_for_url", {"url_pattern": "name=Ada", "timeout": 3}
             )
             assert url_payload["ok"] is True
             assert "name=Ada" in url_payload["data"]["url"]
-
             _content, submitted_payload = await _execute_tool(
                 server, "element_get_text", {"selector": "#submitted"}
             )
@@ -442,7 +393,6 @@ async def test_mcp_browser_tools_complete_form_submission_flow() -> None:
 @pytest.mark.asyncio
 async def test_mcp_browser_tools_wait_for_dynamic_dom_content() -> None:
     """waits for deterministic JavaScript-rendered content before reading it."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -451,7 +401,6 @@ async def test_mcp_browser_tools_wait_for_dynamic_dom_content() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, wait_payload = await _execute_tool(
                 server, "wait_for_element", {"selector": "#dynamic-ready", "timeout": 3}
             )
@@ -464,7 +413,6 @@ async def test_mcp_browser_tools_wait_for_dynamic_dom_content() -> None:
                 "found": True,
                 "timeout": 3,
             }
-
             _content, text_payload = await _execute_tool(
                 server, "element_get_text", {"selector": "#dynamic-ready"}
             )
@@ -477,7 +425,6 @@ async def test_mcp_browser_tools_wait_for_dynamic_dom_content() -> None:
 @pytest.mark.asyncio
 async def test_mcp_observable_actions_cover_dynamic_business_flow() -> None:
     """uses observable tools to wait for and verify a delayed UI action."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -486,7 +433,6 @@ async def test_mcp_observable_actions_cover_dynamic_business_flow() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, clickable_payload = await _execute_tool(
                 server,
                 "wait_until",
@@ -494,20 +440,17 @@ async def test_mcp_observable_actions_cover_dynamic_business_flow() -> None:
             )
             assert clickable_payload["ok"] is True
             assert clickable_payload["data"]["state"]["disabled"] is False
-
             _content, hidden_payload = await _execute_tool(
                 server,
                 "wait_until",
                 {"condition": "hidden", "selector": "#spinner", "timeout": 3},
             )
             assert hidden_payload["ok"] is True
-
             _content, observe_payload = await _execute_tool(
                 server, "page_observe", {"max_texts": 5}
             )
             assert observe_payload["ok"] is True
             assert "ready" in observe_payload["data"]["text_samples"]
-
             _content, evaluate_payload = await _execute_tool(
                 server,
                 "page_evaluate",
@@ -515,7 +458,6 @@ async def test_mcp_observable_actions_cover_dynamic_business_flow() -> None:
             )
             assert evaluate_payload["ok"] is True
             assert evaluate_payload["data"]["result"] == "ready"
-
             _content, click_payload = await _execute_tool(
                 server,
                 "element_click",
@@ -533,7 +475,6 @@ async def test_mcp_observable_actions_cover_dynamic_business_flow() -> None:
 @pytest.mark.asyncio
 async def test_mcp_console_logs_and_observe_changes_cover_action_errors() -> None:
     """reads console output and reports new action-time console errors."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -542,26 +483,21 @@ async def test_mcp_console_logs_and_observe_changes_cover_action_errors() -> Non
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, logs_payload = await _execute_tool(
-                server,
-                "page_console_logs",
-                {"level": "all", "limit": 20},
+                server, "page_console_logs", {"level": "all", "limit": 20}
             )
             assert logs_payload["ok"] is True
             logs = logs_payload["data"]["logs"]
             assert {"log", "warning", "error"} <= {item["level"] for item in logs}
-            assert any(item["text"] == "fixture console error" for item in logs)
-
+            assert any((item["text"] == "fixture console error" for item in logs))
             _content, error_payload = await _execute_tool(
-                server,
-                "page_console_logs",
-                {"level": "error", "limit": 20},
+                server, "page_console_logs", {"level": "error", "limit": 20}
             )
             assert error_payload["ok"] is True
             assert error_payload["data"]["logs"]
-            assert {item["level"] for item in error_payload["data"]["logs"]} == {"error"}
-
+            assert {item["level"] for item in error_payload["data"]["logs"]} == {
+                "error"
+            }
             cursor = logs_payload["data"]["next_cursor"]
             _content, click_payload = await _execute_tool(
                 server,
@@ -572,10 +508,11 @@ async def test_mcp_console_logs_and_observe_changes_cover_action_errors() -> Non
             changes = click_payload["data"]["changes"]
             assert changes["console_errors_added"] >= 1
             assert any(
-                item["text"] == "fixture action failed"
-                for item in changes["new_console_messages"]
+                (
+                    item["text"] == "fixture action failed"
+                    for item in changes["new_console_messages"]
+                )
             )
-
             _content, since_payload = await _execute_tool(
                 server,
                 "page_console_logs",
@@ -592,7 +529,6 @@ async def test_mcp_console_logs_and_observe_changes_cover_action_errors() -> Non
 @pytest.mark.asyncio
 async def test_mcp_page_understanding_tools_extract_catalog_outline() -> None:
     """uses 0.4.9 preview tools to inspect repeated cards and page controls."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -601,25 +537,22 @@ async def test_mcp_page_understanding_tools_extract_catalog_outline() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, snapshot_payload = await _execute_tool(
-                server,
-                "page_snapshot",
-                {"max_elements": 30, "max_text_chars": 1000},
+                server, "page_snapshot", {"max_elements": 30, "max_text_chars": 1000}
             )
             assert snapshot_payload["ok"] is True
             snapshot = snapshot_payload["data"]
             assert snapshot["title"] == "Fixture Catalog"
             assert "Automation Catalog" in snapshot["text_excerpt"]
             assert snapshot["headings"][0]["selector"] == "#catalog-title"
-            assert {link["text"] for link in snapshot["links"]} >= {
-                "Docs",
-                "Pricing",
-            }
-            assert any(button["text"] == "Choose Alpha" for button in snapshot["buttons"])
-            assert any(input_["selector"] == "#query" for input_ in snapshot["inputs"])
+            assert {link["text"] for link in snapshot["links"]} >= {"Docs", "Pricing"}
+            assert any(
+                (button["text"] == "Choose Alpha" for button in snapshot["buttons"])
+            )
+            assert any(
+                (input_["selector"] == "#query" for input_ in snapshot["inputs"])
+            )
             assert snapshot["limits"] == {"max_elements": 30, "max_text_chars": 1000}
-
             _content, cards_payload = await _execute_tool(
                 server,
                 "element_find_all",
@@ -637,11 +570,8 @@ async def test_mcp_page_understanding_tools_extract_catalog_outline() -> None:
             ]
             assert cards["elements"][0]["selector"] == "#alpha"
             assert "html" in cards["elements"][0]
-
             _content, rows_payload = await _execute_tool(
-                server,
-                "element_find_all",
-                {"selector": "#people tbody tr", "limit": 5},
+                server, "element_find_all", {"selector": "#people tbody tr", "limit": 5}
             )
             assert rows_payload["ok"] is True
             rows = rows_payload["data"]["elements"]
@@ -657,7 +587,6 @@ async def test_mcp_page_understanding_tools_extract_catalog_outline() -> None:
 @pytest.mark.asyncio
 async def test_mcp_page_snapshot_balances_link_heavy_pages() -> None:
     """keeps high-value controls visible when a page has many links."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -666,19 +595,17 @@ async def test_mcp_page_snapshot_balances_link_heavy_pages() -> None:
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             _content, snapshot_payload = await _execute_tool(
-                server,
-                "page_snapshot",
-                {"max_elements": 20, "max_text_chars": 1000},
+                server, "page_snapshot", {"max_elements": 20, "max_text_chars": 1000}
             )
             assert snapshot_payload["ok"] is True
             snapshot = snapshot_payload["data"]
             returned = sum(
-                len(snapshot[name])
-                for name in ("headings", "links", "buttons", "inputs", "forms")
+                (
+                    len(snapshot[name])
+                    for name in ("headings", "links", "buttons", "inputs", "forms")
+                )
             )
-
             assert snapshot["counts"]["links"] == 75
             assert snapshot["counts"]["inputs"] == 1
             assert snapshot["counts"]["forms"] == 1
@@ -686,17 +613,27 @@ async def test_mcp_page_snapshot_balances_link_heavy_pages() -> None:
             assert snapshot["truncated"]["elements"] is True
             assert snapshot["truncated"]["returned_elements"] == returned <= 20
             assert len(snapshot["links"]) < 20
-            assert any(button["selector"] == "#search-button" for button in snapshot["buttons"])
-            assert any(input_["selector"] == "#search-input" for input_ in snapshot["inputs"])
-            assert any(form["selector"] == "#search-form" for form in snapshot["forms"])
+            assert any(
+                (
+                    button["selector"] == "#search-button"
+                    for button in snapshot["buttons"]
+                )
+            )
+            assert any(
+                (input_["selector"] == "#search-input" for input_ in snapshot["inputs"])
+            )
+            assert any(
+                (form["selector"] == "#search-form" for form in snapshot["forms"])
+            )
     finally:
         await server.cleanup()
 
 
 @pytest.mark.asyncio
-async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions() -> None:
+async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions() -> (
+    None
+):
     """returns machine-readable errors for common LLM recovery paths."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -705,11 +642,8 @@ async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions()
             )
             _skip_if_browser_unavailable(navigate)
             assert "Successfully navigated" in navigate
-
             missing_content, missing_payload = await _execute_tool(
-                server,
-                "element_find",
-                {"selector": "#never-appears", "timeout": 1},
+                server, "element_find", {"selector": "#never-appears", "timeout": 1}
             )
             assert missing_payload["ok"] is False
             assert missing_payload["error"]["code"] == "ELEMENT_NOT_FOUND"
@@ -721,7 +655,6 @@ async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions()
                 "wait_for_element",
             }
             assert missing_content[0].text.startswith("### JSON_RESULT")
-
             _content, wait_payload = await _execute_tool(
                 server,
                 "wait_for_url",
@@ -730,24 +663,21 @@ async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions()
             assert wait_payload["ok"] is False
             assert wait_payload["error"]["code"] == "TIMEOUT"
             wait_hints = wait_payload["error"]["details"]["hints"]
-            assert any(hint["action"] == "increase_timeout" for hint in wait_hints)
+            assert any((hint["action"] == "increase_timeout" for hint in wait_hints))
     finally:
         await server.cleanup()
 
 
 @pytest.mark.asyncio
 async def test_mcp_0_5_5_interaction_and_upload_tools_use_local_fixture(
-    monkeypatch: pytest.MonkeyPatch,
-    tmp_path,
+    monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
     """exercises 0.5.5 interaction and upload tools in a real browser."""
-
     upload_root = tmp_path / "uploads"
     upload_root.mkdir()
     upload_file = upload_root / "fixture-upload.txt"
     upload_file.write_text("fixture upload", encoding="utf-8")
     monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(upload_root))
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -755,7 +685,6 @@ async def test_mcp_0_5_5_interaction_and_upload_tools_use_local_fixture(
                 server, "page_navigate", {"url": base_url + "/upload"}
             )
             _skip_if_browser_unavailable(navigate)
-
             _content, upload_payload = await _execute_tool(
                 server,
                 "element_upload_file",
@@ -764,76 +693,55 @@ async def test_mcp_0_5_5_interaction_and_upload_tools_use_local_fixture(
             assert upload_payload["ok"] is True
             assert upload_payload["data"]["filenames"] == ["fixture-upload.txt"]
             assert str(upload_file) not in json.dumps(upload_payload["data"])
-
             _content, upload_state = await _execute_tool(
                 server,
                 "page_evaluate",
-                {
-                    "script": "return document.querySelector('#upload').files[0].name;",
-                },
+                {"script": "return document.querySelector('#upload').files[0].name;"},
             )
             assert upload_state["data"]["result"] == "fixture-upload.txt"
-
             navigate = await _execute_tool_text(
                 server, "page_navigate", {"url": base_url + "/interactions"}
             )
             _skip_if_browser_unavailable(navigate)
-
             _content, scroll_payload = await _execute_tool(
                 server, "page_scroll", {"direction": "bottom"}
             )
             assert scroll_payload["ok"] is True
-
             _content, into_view_payload = await _execute_tool(
                 server,
                 "element_scroll_into_view",
                 {"selector": "#deep-target", "center": True, "timeout": 2},
             )
             assert into_view_payload["ok"] is True
-
             _content, hover_payload = await _execute_tool(
-                server,
-                "element_hover",
-                {"selector": "#hover-target", "timeout": 2},
+                server, "element_hover", {"selector": "#hover-target", "timeout": 2}
             )
             assert hover_payload["ok"] is True
-
             _content, select_payload = await _execute_tool(
                 server,
                 "element_select",
                 {"selector": "#mode", "value": "advanced", "by": "value"},
             )
             assert select_payload["data"]["selected"] is True
-
             _content, check_payload = await _execute_tool(
                 server,
                 "element_check",
                 {"selector": "#agree", "checked": True, "by_js": True},
             )
             assert check_payload["data"]["checked"] is True
-
             _content, click_payload = await _execute_tool(
                 server, "element_click", {"selector": "#keyboard-input", "timeout": 2}
             )
             assert click_payload["ok"] is True
-
             _content, key_payload = await _execute_tool(
                 server, "keyboard_press", {"keys": "XYZ", "interval": 0}
             )
             assert key_payload["ok"] is True
-
             _content, state_payload = await _execute_tool(
                 server,
                 "page_evaluate",
                 {
-                    "script": (
-                        "return {"
-                        "mode: document.querySelector('#mode').value,"
-                        "checked: document.querySelector('#agree').checked,"
-                        "keys: document.querySelector('#keyboard-input').value,"
-                        "hovered: document.querySelector('#hover-status').textContent"
-                        "};"
-                    )
+                    "script": "return {mode: document.querySelector('#mode').value,checked: document.querySelector('#agree').checked,keys: document.querySelector('#keyboard-input').value,hovered: document.querySelector('#hover-status').textContent};"
                 },
             )
             state = state_payload["data"]["result"]
@@ -848,7 +756,6 @@ async def test_mcp_0_5_5_interaction_and_upload_tools_use_local_fixture(
 @pytest.mark.asyncio
 async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> None:
     """exercises iframe, shadow DOM, cookies, and storage in a real browser."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -856,62 +763,57 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
                 server, "page_navigate", {"url": base_url + "/"}
             )
             _skip_if_browser_unavailable(navigate)
-
             _content, frames_payload = await _execute_tool(server, "frame_list", {})
             assert frames_payload["ok"] is True
             assert frames_payload["data"]["count"] >= 1
-
             _content, frame_find_payload = await _execute_tool(
                 server,
                 "frame_find",
                 {"frame_selector": "#fixture-frame", "selector": "#frame-text"},
             )
             assert frame_find_payload["data"]["element"]["text"] == "frame ready"
-
             _content, frame_snapshot_payload = await _execute_tool(
                 server,
                 "frame_snapshot",
                 {"frame_selector": "#fixture-frame", "max_elements": 10},
             )
             assert "Iframe Content" in frame_snapshot_payload["data"]["text_excerpt"]
-
             navigate = await _execute_tool_text(
                 server, "page_navigate", {"url": base_url + "/shadow"}
             )
             _skip_if_browser_unavailable(navigate)
-
             _content, shadow_payload = await _execute_tool(
                 server,
                 "shadow_find",
                 {"host_selector": "#shadow-host", "selector": "#shadow-button"},
             )
             assert shadow_payload["data"]["element"]["text"] == "Shadow Action"
-
             _content, shadow_all_payload = await _execute_tool(
                 server,
                 "shadow_find_all",
                 {"host_selector": "#shadow-host", "selector": ".shadow-item"},
             )
             assert shadow_all_payload["data"]["count"] == 2
-
             navigate = await _execute_tool_text(
                 server, "page_navigate", {"url": base_url + "/storage"}
             )
             _skip_if_browser_unavailable(navigate)
-
             _content, cookies_payload = await _execute_tool(
                 server, "browser_cookies_get", {"include_values": False}
             )
             assert cookies_payload["ok"] is True
             assert any(
-                item["name"] == "fixture_cookie"
-                for item in cookies_payload["data"]["cookies"]
+                (
+                    item["name"] == "fixture_cookie"
+                    for item in cookies_payload["data"]["cookies"]
+                )
             )
             assert all(
-                item["value"] in {"", "<redacted>"}
-                for item in cookies_payload["data"]["cookies"]
+                (
+                    item["value"] in {"", "<redacted>"}
+                    for item in cookies_payload["data"]["cookies"]
+                )
             )
-
             _content, set_payload = await _execute_tool(
                 server,
                 "storage_set",
@@ -922,19 +824,16 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
                 "key": "mcp-mode",
                 "set": True,
             }
-
             _content, get_payload = await _execute_tool(
                 server,
                 "storage_get",
                 {"area": "local", "key": "mcp-mode", "include_values": True},
             )
             assert get_payload["data"]["items"] == {"mcp-mode": "green"}
-
             _content, clear_payload = await _execute_tool(
                 server, "storage_clear", {"area": "local", "key": "mcp-mode"}
             )
             assert clear_payload["data"]["cleared"] is True
-
             _content, state_payload = await _execute_tool(
                 server, "storage_get", {"area": "local", "key": "mcp-mode"}
             )
@@ -946,7 +845,6 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
 @pytest.mark.asyncio
 async def test_mcp_0_5_6_open_and_snapshot_workflow_uses_local_fixture() -> None:
     """opens a page and returns snapshot/forms/console in one workflow call."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -963,7 +861,9 @@ async def test_mcp_0_5_6_open_and_snapshot_workflow_uses_local_fixture() -> None
                     "max_text_chars": 1000,
                 },
             )
-            text_content = "\n".join(item.text for item in content if item.type == "text")
+            text_content = "\n".join(
+                (item.text for item in content if item.type == "text")
+            )
             _skip_if_browser_unavailable(text_content)
             assert payload["ok"] is True
             data = payload["data"]
@@ -980,7 +880,6 @@ async def test_mcp_0_5_6_open_and_snapshot_workflow_uses_local_fixture() -> None
 @pytest.mark.asyncio
 async def test_mcp_0_5_6_extract_links_returns_bounded_absolute_urls() -> None:
     """extracts bounded, normalized links from a local page."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -988,11 +887,8 @@ async def test_mcp_0_5_6_extract_links_returns_bounded_absolute_urls() -> None:
                 server, "page_navigate", {"url": base_url + "/links"}
             )
             _skip_if_browser_unavailable(navigate)
-
             _content, payload = await _execute_tool(
-                server,
-                "browser_extract_links",
-                {"limit": 3, "absolute_urls": True},
+                server, "browser_extract_links", {"limit": 3, "absolute_urls": True}
             )
             assert payload["ok"] is True
             data = payload["data"]
@@ -1001,14 +897,13 @@ async def test_mcp_0_5_6_extract_links_returns_bounded_absolute_urls() -> None:
             assert data["truncated"] is True
             assert data["links"][0]["url"] == base_url + "/docs"
             assert data["links"][2]["target"] == "_blank"
-
             _content, same_origin = await _execute_tool(
-                server,
-                "browser_extract_links",
-                {"same_origin_only": True, "limit": 10},
+                server, "browser_extract_links", {"same_origin_only": True, "limit": 10}
             )
             assert same_origin["data"]["count"] == 3
-            assert all(base_url in item["url"] for item in same_origin["data"]["links"])
+            assert all(
+                (base_url in item["url"] for item in same_origin["data"]["links"])
+            )
     finally:
         await server.cleanup()
 
@@ -1016,7 +911,6 @@ async def test_mcp_0_5_6_extract_links_returns_bounded_absolute_urls() -> None:
 @pytest.mark.asyncio
 async def test_mcp_0_5_6_form_fill_preview_does_not_submit_or_echo_secrets() -> None:
     """prefills fields without submitting and keeps sensitive values redacted."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -1024,7 +918,6 @@ async def test_mcp_0_5_6_form_fill_preview_does_not_submit_or_echo_secrets() -> 
                 server, "page_navigate", {"url": base_url + "/workflow-form"}
             )
             _skip_if_browser_unavailable(navigate)
-
             _content, payload = await _execute_tool(
                 server,
                 "form_fill_preview",
@@ -1045,20 +938,11 @@ async def test_mcp_0_5_6_form_fill_preview_does_not_submit_or_echo_secrets() -> 
             assert data["filled_count"] == 4
             assert "Ada Lovelace" not in json.dumps(data)
             assert "super-secret" not in json.dumps(data)
-
             _content, state_payload = await _execute_tool(
                 server,
                 "page_evaluate",
                 {
-                    "script": (
-                        "return {"
-                        "name: document.querySelector('#wf-name').value,"
-                        "secret: document.querySelector('#wf-secret').value,"
-                        "mode: document.querySelector('#wf-mode').value,"
-                        "agree: document.querySelector('#wf-agree').checked,"
-                        "url: location.href"
-                        "};"
-                    )
+                    "script": "return {name: document.querySelector('#wf-name').value,secret: document.querySelector('#wf-secret').value,mode: document.querySelector('#wf-mode').value,agree: document.querySelector('#wf-agree').checked,url: location.href};"
                 },
             )
             state = state_payload["data"]["result"]
@@ -1074,7 +958,6 @@ async def test_mcp_0_5_6_form_fill_preview_does_not_submit_or_echo_secrets() -> 
 @pytest.mark.asyncio
 async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
     """observes local fetch/XHR packets without interception."""
-
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -1082,23 +965,18 @@ async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
                 server, "page_navigate", {"url": base_url + "/network"}
             )
             _skip_if_browser_unavailable(navigate)
-
             _content, start_payload = await _execute_tool(
-                server,
-                "network_listen_start",
-                {"targets": ["/api"], "clear": True},
+                server, "network_listen_start", {"targets": ["/api"], "clear": True}
             )
             if not start_payload["ok"]:
                 if start_payload["error"]["code"] == "UNSUPPORTED_OPERATION":
                     pytest.skip(start_payload["message"])
                 pytest.fail(start_payload["message"])
             assert start_payload["data"]["listening"] is True
-
             _content, click_payload = await _execute_tool(
                 server, "element_click", {"selector": "#network-action", "timeout": 2}
             )
             assert click_payload["ok"] is True
-
             _content, wait_payload = await _execute_tool(
                 server,
                 "network_listen_wait",
@@ -1112,10 +990,9 @@ async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
             )
             assert wait_payload["ok"] is True
             urls = {packet["url"] for packet in wait_payload["data"]["packets"]}
-            assert any("/api/data.json" in url for url in urls)
-            assert any("/api/echo.json" in url for url in urls)
+            assert any(("/api/data.json" in url for url in urls))
+            assert any(("/api/echo.json" in url for url in urls))
             assert "fixture-secret" not in json.dumps(wait_payload["data"])
-
             _content, stop_payload = await _execute_tool(
                 server, "network_listen_stop", {"clear": True}
             )
@@ -1129,7 +1006,7 @@ async def _execute_tool_text(
     server: DrissionPageMCPServer, name: str, arguments: Dict[str, Any]
 ) -> str:
     content = await _execute_tool_content(server, name, arguments)
-    return "\n".join(item.text for item in content if item.type == "text")
+    return "\n".join((item.text for item in content if item.type == "text"))
 
 
 async def _execute_tool_content(
@@ -1147,10 +1024,10 @@ async def _execute_tool(
         from drissionpage_mcp.context import DrissionPageContext
 
         server.context = DrissionPageContext()
-    response = ToolResponse()
+    response = ToolOutcome()
     validated = tool.input_schema.model_validate(arguments)
-    await tool.execute(server.context, validated, response)
-    return list(response.get_content()), response.get_structured_content()
+    response = await tool.execute(server.context, validated)
+    return (list(response.content()), response.structured_content())
 
 
 def _shared_test_site_url_or_skip() -> str:
@@ -1165,9 +1042,7 @@ def _site_url(base_url: str, path: str = "") -> str:
         return base_url
     parsed = urlsplit(base_url)
     base_path = parsed.path.rstrip("/") + "/"
-    base_without_query = urlunsplit(
-        (parsed.scheme, parsed.netloc, base_path, "", "")
-    )
+    base_without_query = urlunsplit((parsed.scheme, parsed.netloc, base_path, "", ""))
     target = urljoin(base_without_query, path.lstrip("/"))
     return _merge_base_query(target, parsed.query)
 
@@ -1179,13 +1054,7 @@ def _merge_base_query(url: str, base_query: str) -> str:
     query = parse_qsl(parsed.query, keep_blank_values=True)
     query.extend(parse_qsl(base_query, keep_blank_values=True))
     return urlunsplit(
-        (
-            parsed.scheme,
-            parsed.netloc,
-            parsed.path,
-            urlencode(query),
-            parsed.fragment,
-        )
+        (parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment)
     )
 
 
@@ -1195,8 +1064,8 @@ def _json(url: str) -> Dict[str, Any]:
 
 def _read(url: str) -> Tuple[int, str]:
     try:
-        response = urlopen(url, timeout=5)  # noqa: S310 - local fixture URL only
-        return response.status, response.read().decode("utf-8")
+        response = urlopen(url, timeout=5)
+        return (response.status, response.read().decode("utf-8"))
     except Exception as exc:
         status = getattr(getattr(exc, "fp", None), "status", None) or getattr(
             exc, "code", None
@@ -1205,7 +1074,7 @@ def _read(url: str) -> Tuple[int, str]:
         if getattr(exc, "fp", None) is not None:
             body = exc.fp.read().decode("utf-8")
         if status is not None:
-            return int(status), body
+            return (int(status), body)
         raise
 
 
@@ -1213,14 +1082,14 @@ def test_browser_unavailable_helper_skips_by_default(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.delenv("DP_MCP_REQUIRE_BROWSER", raising=False)
-
     with pytest.raises(pytest.skip.Exception):
         _skip_if_browser_unavailable("### Error\nChrome failed to initialize")
 
 
-def test_browser_unavailable_helper_fails_when_required(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_browser_unavailable_helper_fails_when_required(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setenv("DP_MCP_REQUIRE_BROWSER", "1")
-
     with pytest.raises(pytest.fail.Exception):
         _skip_if_browser_unavailable("### Error\nChrome failed to initialize")
 
@@ -1228,16 +1097,13 @@ def test_browser_unavailable_helper_fails_when_required(monkeypatch: pytest.Monk
 def _skip_if_browser_unavailable(text: str) -> None:
     lowered = text.lower()
     if "### Error" in text and any(
-        marker in lowered for marker in _BROWSER_UNAVAILABLE_MARKERS
+        (marker in lowered for marker in _BROWSER_UNAVAILABLE_MARKERS)
     ):
-        if os.environ.get("DP_MCP_REQUIRE_BROWSER", "").lower() in {
-            "1",
-            "true",
-            "yes",
-        }:
+        if os.environ.get("DP_MCP_REQUIRE_BROWSER", "").lower() in {"1", "true", "yes"}:
             pytest.fail(
-                "Chrome/Chromium browser is required but unavailable for "
-                "DrissionPage integration: {0}".format(text[:300])
+                "Chrome/Chromium browser is required but unavailable for DrissionPage integration: {0}".format(
+                    text[:300]
+                )
             )
         pytest.skip(
             "Chrome/Chromium browser unavailable for DrissionPage integration: {0}".format(

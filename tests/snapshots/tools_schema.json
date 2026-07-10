@@ -46,159 +46,32 @@
               "additionalProperties": false,
               "properties": {
                 "changes": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "active_element": {
-                      "anyOf": [
-                        {
-                          "additionalProperties": true,
-                          "properties": {
-                            "selector": {
-                              "type": "string"
-                            },
-                            "tag": {
-                              "type": "string"
-                            },
-                            "text": {
-                              "type": "string"
-                            }
-                          },
-                          "type": "object"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "appeared_texts": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "console_errors_added": {
-                      "type": "integer"
-                    },
-                    "console_warnings_added": {
-                      "type": "integer"
-                    },
-                    "counts_after": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
                       "type": "object"
                     },
-                    "counts_before": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
-                      "type": "object"
-                    },
-                    "counts_delta": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
-                      "type": "object"
-                    },
-                    "new_console_messages": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "column": {
-                            "type": "integer"
-                          },
-                          "index": {
-                            "type": "integer"
-                          },
-                          "level": {
-                            "type": "string"
-                          },
-                          "line": {
-                            "type": "integer"
-                          },
-                          "source": {
-                            "type": "string"
-                          },
-                          "text": {
-                            "type": "string"
-                          },
-                          "url": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "index",
-                          "level",
-                          "text",
-                          "url",
-                          "line",
-                          "column",
-                          "source"
-                        ],
-                        "title": "ConsoleLog",
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "ready_state": {
-                      "type": "string"
-                    },
-                    "removed_texts": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "title_after": {
-                      "type": "string"
-                    },
-                    "title_before": {
-                      "type": "string"
-                    },
-                    "title_changed": {
-                      "type": "boolean"
-                    },
-                    "url_after": {
-                      "type": "string"
-                    },
-                    "url_before": {
-                      "type": "string"
-                    },
-                    "url_changed": {
-                      "type": "boolean"
+                    {
+                      "type": "null"
                     }
-                  },
-                  "required": [
-                    "url_before",
-                    "url_after",
-                    "url_changed",
-                    "title_before",
-                    "title_after",
-                    "title_changed",
-                    "ready_state",
-                    "counts_before",
-                    "counts_after",
-                    "counts_delta",
-                    "appeared_texts",
-                    "removed_texts",
-                    "active_element",
-                    "console_errors_added",
-                    "console_warnings_added",
-                    "new_console_messages"
                   ],
-                  "title": "PageObservationChanges",
-                  "type": "object"
+                  "default": null,
+                  "title": "Changes"
                 },
                 "final_url": {
+                  "title": "Final Url",
                   "type": "string"
                 },
                 "new_tab": {
+                  "title": "New Tab",
                   "type": "boolean"
                 },
                 "tab_id": {
+                  "title": "Tab Id",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -297,6 +170,7 @@
               "additionalProperties": false,
               "properties": {
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -392,6 +266,7 @@
               "additionalProperties": false,
               "properties": {
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -487,6 +362,7 @@
               "additionalProperties": false,
               "properties": {
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -582,45 +458,19 @@
               "additionalProperties": false,
               "properties": {
                 "active_tab_id": {
+                  "title": "Active Tab Id",
                   "type": "string"
                 },
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "tabs": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "active": {
-                        "type": "boolean"
-                      },
-                      "connected": {
-                        "type": "boolean"
-                      },
-                      "id": {
-                        "type": "string"
-                      },
-                      "native_id": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "native_id",
-                      "url",
-                      "title",
-                      "active",
-                      "connected"
-                    ],
-                    "title": "TabSummary",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Tabs",
                   "type": "array"
                 }
               },
@@ -727,42 +577,16 @@
               "additionalProperties": false,
               "properties": {
                 "tab": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "active": {
-                      "type": "boolean"
-                    },
-                    "connected": {
-                      "type": "boolean"
-                    },
-                    "id": {
-                      "type": "string"
-                    },
-                    "native_id": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "url": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "native_id",
-                    "url",
-                    "title",
-                    "active",
-                    "connected"
-                  ],
-                  "title": "TabSummary",
+                  "additionalProperties": true,
+                  "title": "Tab",
                   "type": "object"
                 },
                 "tab_id": {
+                  "title": "Tab Id",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -869,15 +693,20 @@
               "additionalProperties": false,
               "properties": {
                 "active_tab_id": {
+                  "title": "Active Tab Id",
                   "type": "string"
                 },
                 "closed": {
-                  "const": true
+                  "const": true,
+                  "title": "Closed",
+                  "type": "boolean"
                 },
                 "remaining_count": {
+                  "title": "Remaining Count",
                   "type": "integer"
                 },
                 "tab_id": {
+                  "title": "Tab Id",
                   "type": "string"
                 }
               },
@@ -991,9 +820,11 @@
               "additionalProperties": false,
               "properties": {
                 "height": {
+                  "title": "Height",
                   "type": "integer"
                 },
                 "width": {
+                  "title": "Width",
                   "type": "integer"
                 }
               },
@@ -1097,37 +928,8 @@
               "additionalProperties": false,
               "properties": {
                 "screenshot": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "bytes": {
-                      "type": "integer"
-                    },
-                    "encoding": {
-                      "type": "string"
-                    },
-                    "full_page": {
-                      "type": "boolean"
-                    },
-                    "height": {
-                      "type": "integer"
-                    },
-                    "inline": {
-                      "type": "boolean"
-                    },
-                    "mime_type": {
-                      "type": "string"
-                    },
-                    "path": {
-                      "type": "string"
-                    },
-                    "width": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "mime_type"
-                  ],
-                  "title": "ScreenshotMetadata",
+                  "additionalProperties": true,
+                  "title": "Screenshot",
                   "type": "object"
                 }
               },
@@ -1238,37 +1040,8 @@
               "additionalProperties": false,
               "properties": {
                 "screenshot": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "bytes": {
-                      "type": "integer"
-                    },
-                    "encoding": {
-                      "type": "string"
-                    },
-                    "full_page": {
-                      "type": "boolean"
-                    },
-                    "height": {
-                      "type": "integer"
-                    },
-                    "inline": {
-                      "type": "boolean"
-                    },
-                    "mime_type": {
-                      "type": "string"
-                    },
-                    "path": {
-                      "type": "string"
-                    },
-                    "width": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "mime_type"
-                  ],
-                  "title": "ScreenshotMetadata",
+                  "additionalProperties": true,
+                  "title": "Screenshot",
                   "type": "object"
                 }
               },
@@ -1388,326 +1161,76 @@
               "properties": {
                 "buttons": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Buttons",
                   "type": "array"
                 },
                 "counts": {
                   "additionalProperties": {
                     "type": "integer"
                   },
+                  "title": "Counts",
                   "type": "object"
                 },
                 "forms": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Forms",
                   "type": "array"
                 },
                 "headings": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Headings",
                   "type": "array"
                 },
                 "inputs": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Inputs",
                   "type": "array"
                 },
                 "limits": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "max_elements": {
-                      "type": "integer"
-                    },
-                    "max_text_chars": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "max_elements",
-                    "max_text_chars"
-                  ],
-                  "title": "PageSnapshotLimits",
+                  "additionalProperties": true,
+                  "title": "Limits",
                   "type": "object"
                 },
                 "links": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Links",
                   "type": "array"
                 },
                 "meta": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approx_tokens": {
-                      "type": "integer"
-                    },
-                    "json_chars": {
-                      "type": "integer"
-                    },
-                    "truncated": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "approx_tokens",
-                    "json_chars",
-                    "truncated"
-                  ],
-                  "title": "ResponseMeta",
+                  "additionalProperties": true,
+                  "title": "Meta",
                   "type": "object"
                 },
                 "text_excerpt": {
+                  "title": "Text Excerpt",
                   "type": "string"
                 },
                 "title": {
+                  "title": "Title",
                   "type": "string"
                 },
                 "truncated": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "elements": {
-                      "type": "boolean"
-                    },
-                    "returned_elements": {
-                      "type": "integer"
-                    },
-                    "text": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "text",
-                    "elements",
-                    "returned_elements"
-                  ],
-                  "title": "PageSnapshotTruncation",
+                  "additionalProperties": true,
+                  "title": "Truncated",
                   "type": "object"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -1831,141 +1354,42 @@
               "additionalProperties": false,
               "properties": {
                 "active_element": {
-                  "anyOf": [
-                    {
-                      "additionalProperties": true,
-                      "properties": {
-                        "selector": {
-                          "type": "string"
-                        },
-                        "tag": {
-                          "type": "string"
-                        },
-                        "text": {
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "title": "Active Element"
                 },
                 "console": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "available": {
-                      "type": "boolean"
-                    },
-                    "count": {
-                      "type": "integer"
-                    },
-                    "error_count": {
-                      "type": "integer"
-                    },
-                    "listening": {
-                      "type": "boolean"
-                    },
-                    "next_cursor": {
-                      "type": "integer"
-                    },
-                    "recent": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "column": {
-                            "type": "integer"
-                          },
-                          "index": {
-                            "type": "integer"
-                          },
-                          "level": {
-                            "type": "string"
-                          },
-                          "line": {
-                            "type": "integer"
-                          },
-                          "source": {
-                            "type": "string"
-                          },
-                          "text": {
-                            "type": "string"
-                          },
-                          "url": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "index",
-                          "level",
-                          "text",
-                          "url",
-                          "line",
-                          "column",
-                          "source"
-                        ],
-                        "title": "ConsoleLog",
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "total": {
-                      "type": "integer"
-                    },
-                    "warning_count": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "available",
-                    "listening",
-                    "count",
-                    "total",
-                    "next_cursor",
-                    "error_count",
-                    "warning_count",
-                    "recent"
-                  ],
-                  "title": "ConsoleSummary",
+                  "additionalProperties": true,
+                  "title": "Console",
                   "type": "object"
                 },
                 "counts": {
                   "additionalProperties": {
                     "type": "integer"
                   },
+                  "title": "Counts",
                   "type": "object"
                 },
                 "limits": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "max_text_chars": {
-                      "type": "integer"
-                    },
-                    "max_texts": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "max_texts",
-                    "max_text_chars"
-                  ],
-                  "title": "ObservationLimits",
+                  "additionalProperties": true,
+                  "title": "Limits",
                   "type": "object"
                 },
                 "ready_state": {
+                  "title": "Ready State",
                   "type": "string"
                 },
                 "text_samples": {
                   "items": {
                     "type": "string"
                   },
+                  "title": "Text Samples",
                   "type": "array"
                 },
                 "title": {
+                  "title": "Title",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -2091,16 +1515,22 @@
               "additionalProperties": false,
               "properties": {
                 "max_chars": {
+                  "title": "Max Chars",
                   "type": "integer"
                 },
                 "original_json_chars": {
+                  "title": "Original Json Chars",
                   "type": "integer"
                 },
-                "result": {},
+                "result": {
+                  "title": "Result"
+                },
                 "result_type": {
+                  "title": "Result Type",
                   "type": "string"
                 },
                 "truncated": {
+                  "title": "Truncated",
                   "type": "boolean"
                 }
               },
@@ -2221,15 +1651,19 @@
               "additionalProperties": false,
               "properties": {
                 "element": {
+                  "title": "Element",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 },
                 "x": {
+                  "title": "X",
                   "type": "integer"
                 },
                 "y": {
+                  "title": "Y",
                   "type": "integer"
                 }
               },
@@ -2328,7 +1762,9 @@
               "additionalProperties": false,
               "properties": {
                 "closed": {
-                  "const": true
+                  "const": true,
+                  "title": "Closed",
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -2423,6 +1859,7 @@
               "additionalProperties": false,
               "properties": {
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -2548,58 +1985,31 @@
               "additionalProperties": false,
               "properties": {
                 "available": {
+                  "title": "Available",
                   "type": "boolean"
                 },
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "listening": {
+                  "title": "Listening",
                   "type": "boolean"
                 },
                 "logs": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "column": {
-                        "type": "integer"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "level": {
-                        "type": "string"
-                      },
-                      "line": {
-                        "type": "integer"
-                      },
-                      "source": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "level",
-                      "text",
-                      "url",
-                      "line",
-                      "column",
-                      "source"
-                    ],
-                    "title": "ConsoleLog",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Logs",
                   "type": "array"
                 },
                 "next_cursor": {
+                  "title": "Next Cursor",
                   "type": "integer"
                 },
                 "total": {
+                  "title": "Total",
                   "type": "integer"
                 }
               },
@@ -2717,45 +2127,8 @@
               "additionalProperties": false,
               "properties": {
                 "element": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "found": {
-                      "const": true
-                    },
-                    "html": {
-                      "type": "string"
-                    },
-                    "locator": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "selector_normalized": {
-                      "type": "boolean"
-                    },
-                    "selector_strategy": {
-                      "type": "string"
-                    },
-                    "tag": {
-                      "type": "string"
-                    },
-                    "text": {
-                      "type": "string"
-                    },
-                    "visible": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "found",
-                    "selector",
-                    "locator",
-                    "selector_strategy",
-                    "selector_normalized",
-                    "text"
-                  ],
-                  "title": "ElementInfo",
+                  "additionalProperties": true,
+                  "title": "Element",
                   "type": "object"
                 }
               },
@@ -2874,98 +2247,48 @@
               "additionalProperties": false,
               "properties": {
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "elements": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Elements",
                   "type": "array"
                 },
                 "limit": {
+                  "title": "Limit",
                   "type": "integer"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "meta": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approx_tokens": {
-                      "type": "integer"
-                    },
-                    "json_chars": {
-                      "type": "integer"
-                    },
-                    "truncated": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "approx_tokens",
-                    "json_chars",
-                    "truncated"
-                  ],
-                  "title": "ResponseMeta",
+                  "additionalProperties": true,
+                  "title": "Meta",
                   "type": "object"
                 },
                 "returned": {
+                  "title": "Returned",
                   "type": "integer"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "truncated": {
+                  "title": "Truncated",
                   "type": "boolean"
                 }
               },
@@ -3093,162 +2416,36 @@
               "additionalProperties": false,
               "properties": {
                 "changes": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "active_element": {
-                      "anyOf": [
-                        {
-                          "additionalProperties": true,
-                          "properties": {
-                            "selector": {
-                              "type": "string"
-                            },
-                            "tag": {
-                              "type": "string"
-                            },
-                            "text": {
-                              "type": "string"
-                            }
-                          },
-                          "type": "object"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "appeared_texts": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "console_errors_added": {
-                      "type": "integer"
-                    },
-                    "console_warnings_added": {
-                      "type": "integer"
-                    },
-                    "counts_after": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
                       "type": "object"
                     },
-                    "counts_before": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
-                      "type": "object"
-                    },
-                    "counts_delta": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
-                      "type": "object"
-                    },
-                    "new_console_messages": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "column": {
-                            "type": "integer"
-                          },
-                          "index": {
-                            "type": "integer"
-                          },
-                          "level": {
-                            "type": "string"
-                          },
-                          "line": {
-                            "type": "integer"
-                          },
-                          "source": {
-                            "type": "string"
-                          },
-                          "text": {
-                            "type": "string"
-                          },
-                          "url": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "index",
-                          "level",
-                          "text",
-                          "url",
-                          "line",
-                          "column",
-                          "source"
-                        ],
-                        "title": "ConsoleLog",
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "ready_state": {
-                      "type": "string"
-                    },
-                    "removed_texts": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "title_after": {
-                      "type": "string"
-                    },
-                    "title_before": {
-                      "type": "string"
-                    },
-                    "title_changed": {
-                      "type": "boolean"
-                    },
-                    "url_after": {
-                      "type": "string"
-                    },
-                    "url_before": {
-                      "type": "string"
-                    },
-                    "url_changed": {
-                      "type": "boolean"
+                    {
+                      "type": "null"
                     }
-                  },
-                  "required": [
-                    "url_before",
-                    "url_after",
-                    "url_changed",
-                    "title_before",
-                    "title_after",
-                    "title_changed",
-                    "ready_state",
-                    "counts_before",
-                    "counts_after",
-                    "counts_delta",
-                    "appeared_texts",
-                    "removed_texts",
-                    "active_element",
-                    "console_errors_added",
-                    "console_warnings_added",
-                    "new_console_messages"
                   ],
-                  "title": "PageObservationChanges",
-                  "type": "object"
+                  "default": null,
+                  "title": "Changes"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -3383,166 +2580,42 @@
               "additionalProperties": false,
               "properties": {
                 "changes": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "active_element": {
-                      "anyOf": [
-                        {
-                          "additionalProperties": true,
-                          "properties": {
-                            "selector": {
-                              "type": "string"
-                            },
-                            "tag": {
-                              "type": "string"
-                            },
-                            "text": {
-                              "type": "string"
-                            }
-                          },
-                          "type": "object"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "appeared_texts": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "console_errors_added": {
-                      "type": "integer"
-                    },
-                    "console_warnings_added": {
-                      "type": "integer"
-                    },
-                    "counts_after": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
                       "type": "object"
                     },
-                    "counts_before": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
-                      "type": "object"
-                    },
-                    "counts_delta": {
-                      "additionalProperties": {
-                        "type": "integer"
-                      },
-                      "type": "object"
-                    },
-                    "new_console_messages": {
-                      "items": {
-                        "additionalProperties": false,
-                        "properties": {
-                          "column": {
-                            "type": "integer"
-                          },
-                          "index": {
-                            "type": "integer"
-                          },
-                          "level": {
-                            "type": "string"
-                          },
-                          "line": {
-                            "type": "integer"
-                          },
-                          "source": {
-                            "type": "string"
-                          },
-                          "text": {
-                            "type": "string"
-                          },
-                          "url": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "index",
-                          "level",
-                          "text",
-                          "url",
-                          "line",
-                          "column",
-                          "source"
-                        ],
-                        "title": "ConsoleLog",
-                        "type": "object"
-                      },
-                      "type": "array"
-                    },
-                    "ready_state": {
-                      "type": "string"
-                    },
-                    "removed_texts": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "title_after": {
-                      "type": "string"
-                    },
-                    "title_before": {
-                      "type": "string"
-                    },
-                    "title_changed": {
-                      "type": "boolean"
-                    },
-                    "url_after": {
-                      "type": "string"
-                    },
-                    "url_before": {
-                      "type": "string"
-                    },
-                    "url_changed": {
-                      "type": "boolean"
+                    {
+                      "type": "null"
                     }
-                  },
-                  "required": [
-                    "url_before",
-                    "url_after",
-                    "url_changed",
-                    "title_before",
-                    "title_after",
-                    "title_changed",
-                    "ready_state",
-                    "counts_before",
-                    "counts_after",
-                    "counts_delta",
-                    "appeared_texts",
-                    "removed_texts",
-                    "active_element",
-                    "console_errors_added",
-                    "console_warnings_added",
-                    "new_console_messages"
                   ],
-                  "title": "PageObservationChanges",
-                  "type": "object"
+                  "default": null,
+                  "title": "Changes"
                 },
                 "cleared": {
+                  "title": "Cleared",
                   "type": "boolean"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "typed": {
-                  "const": true
+                  "const": true,
+                  "title": "Typed",
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -3649,18 +2722,23 @@
               "additionalProperties": false,
               "properties": {
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "text": {
+                  "title": "Text",
                   "type": "string"
                 }
               },
@@ -3775,25 +2853,35 @@
               "additionalProperties": false,
               "properties": {
                 "attribute": {
+                  "title": "Attribute",
                   "type": "string"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "value": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Value"
                 }
               },
               "required": [
@@ -3908,21 +2996,28 @@
               "additionalProperties": false,
               "properties": {
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "property": {
+                  "title": "Property",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
-                "value": {}
+                "value": {
+                  "title": "Value"
+                }
               },
               "required": [
                 "selector",
@@ -4028,18 +3123,23 @@
               "additionalProperties": false,
               "properties": {
                 "html": {
+                  "title": "Html",
                   "type": "string"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 }
               },
@@ -4166,28 +3266,36 @@
               "additionalProperties": false,
               "properties": {
                 "file_count": {
+                  "title": "File Count",
                   "type": "integer"
                 },
                 "filenames": {
                   "items": {
                     "type": "string"
                   },
+                  "title": "Filenames",
                   "type": "array"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "uploaded": {
-                  "const": true
+                  "const": true,
+                  "title": "Uploaded",
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -4327,18 +3435,23 @@
               "additionalProperties": false,
               "properties": {
                 "direction": {
+                  "title": "Direction",
                   "type": "string"
                 },
                 "pixels": {
+                  "title": "Pixels",
                   "type": "integer"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 },
                 "x": {
+                  "title": "X",
                   "type": "integer"
                 },
                 "y": {
+                  "title": "Y",
                   "type": "integer"
                 }
               },
@@ -4460,21 +3573,27 @@
               "additionalProperties": false,
               "properties": {
                 "center": {
+                  "title": "Center",
                   "type": "boolean"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -4617,30 +3736,45 @@
               "additionalProperties": false,
               "properties": {
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "offset_x": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Offset X"
                 },
                 "offset_y": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Offset Y"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -4759,12 +3893,15 @@
               "additionalProperties": false,
               "properties": {
                 "interval": {
+                  "title": "Interval",
                   "type": "number"
                 },
                 "keys": {
+                  "title": "Keys",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -4895,24 +4032,32 @@
               "additionalProperties": false,
               "properties": {
                 "by": {
+                  "title": "By",
                   "type": "string"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selected": {
-                  "const": true
+                  "const": true,
+                  "title": "Selected",
+                  "type": "boolean"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "value": {
+                  "title": "Value",
                   "type": "string"
                 }
               },
@@ -5042,21 +4187,27 @@
               "additionalProperties": false,
               "properties": {
                 "by_js": {
+                  "title": "By Js",
                   "type": "boolean"
                 },
                 "checked": {
+                  "title": "Checked",
                   "type": "boolean"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 }
               },
@@ -5186,209 +4337,42 @@
               "additionalProperties": false,
               "properties": {
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "forms": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "fields": {
-                        "items": {
-                          "additionalProperties": false,
-                          "properties": {
-                            "attributes": {
-                              "additionalProperties": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "type": "object"
-                            },
-                            "checked": {
-                              "type": "boolean"
-                            },
-                            "disabled": {
-                              "type": "boolean"
-                            },
-                            "index": {
-                              "type": "integer"
-                            },
-                            "label": {
-                              "type": "string"
-                            },
-                            "name": {
-                              "type": "string"
-                            },
-                            "options": {
-                              "items": {
-                                "additionalProperties": false,
-                                "properties": {
-                                  "selected": {
-                                    "type": "boolean"
-                                  },
-                                  "text": {
-                                    "type": "string"
-                                  },
-                                  "value": {
-                                    "type": "string"
-                                  }
-                                },
-                                "required": [
-                                  "text",
-                                  "value",
-                                  "selected"
-                                ],
-                                "title": "FormFieldOption",
-                                "type": "object"
-                              },
-                              "type": "array"
-                            },
-                            "placeholder": {
-                              "type": "string"
-                            },
-                            "readonly": {
-                              "type": "boolean"
-                            },
-                            "required": {
-                              "type": "boolean"
-                            },
-                            "selector": {
-                              "type": "string"
-                            },
-                            "tag": {
-                              "type": "string"
-                            },
-                            "type": {
-                              "type": "string"
-                            },
-                            "value": {
-                              "type": [
-                                "string",
-                                "null"
-                              ]
-                            }
-                          },
-                          "required": [
-                            "index",
-                            "tag",
-                            "type",
-                            "name",
-                            "label",
-                            "selector",
-                            "placeholder",
-                            "required",
-                            "disabled",
-                            "readonly",
-                            "checked",
-                            "value",
-                            "attributes",
-                            "options"
-                          ],
-                          "title": "FormField",
-                          "type": "object"
-                        },
-                        "type": "array"
-                      },
-                      "id": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "selector",
-                      "id",
-                      "name",
-                      "method",
-                      "action",
-                      "text",
-                      "fields"
-                    ],
-                    "title": "FormSummary",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Forms",
                   "type": "array"
                 },
                 "include_values": {
+                  "title": "Include Values",
                   "type": "boolean"
                 },
                 "limits": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "max_fields_per_form": {
-                      "type": "integer"
-                    },
-                    "max_forms": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "max_forms",
-                    "max_fields_per_form"
-                  ],
-                  "title": "FormInspectLimits",
+                  "additionalProperties": true,
+                  "title": "Limits",
                   "type": "object"
                 },
                 "meta": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approx_tokens": {
-                      "type": "integer"
-                    },
-                    "json_chars": {
-                      "type": "integer"
-                    },
-                    "truncated": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "approx_tokens",
-                    "json_chars",
-                    "truncated"
-                  ],
-                  "title": "ResponseMeta",
+                  "additionalProperties": true,
+                  "title": "Meta",
                   "type": "object"
                 },
                 "returned": {
+                  "title": "Returned",
                   "type": "integer"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "truncated": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "fields": {
-                      "type": "boolean"
-                    },
-                    "forms": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "forms",
-                    "fields"
-                  ],
-                  "title": "FormInspectTruncation",
+                  "additionalProperties": true,
+                  "title": "Truncated",
                   "type": "object"
                 }
               },
@@ -5499,48 +4483,23 @@
               "additionalProperties": false,
               "properties": {
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "frames": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "title": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "selector",
-                      "id",
-                      "name",
-                      "title",
-                      "url"
-                    ],
-                    "title": "FrameSummary",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Frames",
                   "type": "array"
                 },
                 "limit": {
+                  "title": "Limit",
                   "type": "integer"
                 },
                 "returned": {
+                  "title": "Returned",
                   "type": "integer"
                 }
               },
@@ -5680,359 +4639,81 @@
               "properties": {
                 "buttons": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Buttons",
                   "type": "array"
                 },
                 "counts": {
                   "additionalProperties": {
                     "type": "integer"
                   },
+                  "title": "Counts",
                   "type": "object"
                 },
                 "forms": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Forms",
                   "type": "array"
                 },
                 "frame": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "index": {
-                      "type": "integer"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "url": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "index",
-                    "selector",
-                    "id",
-                    "name",
-                    "title",
-                    "url"
-                  ],
-                  "title": "FrameSummary",
+                  "additionalProperties": true,
+                  "title": "Frame",
                   "type": "object"
                 },
                 "headings": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Headings",
                   "type": "array"
                 },
                 "inputs": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Inputs",
                   "type": "array"
                 },
                 "limits": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "max_elements": {
-                      "type": "integer"
-                    },
-                    "max_text_chars": {
-                      "type": "integer"
-                    }
-                  },
-                  "required": [
-                    "max_elements",
-                    "max_text_chars"
-                  ],
-                  "title": "PageSnapshotLimits",
+                  "additionalProperties": true,
+                  "title": "Limits",
                   "type": "object"
                 },
                 "links": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Links",
                   "type": "array"
                 },
                 "meta": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approx_tokens": {
-                      "type": "integer"
-                    },
-                    "json_chars": {
-                      "type": "integer"
-                    },
-                    "truncated": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "approx_tokens",
-                    "json_chars",
-                    "truncated"
-                  ],
-                  "title": "ResponseMeta",
+                  "additionalProperties": true,
+                  "title": "Meta",
                   "type": "object"
                 },
                 "text_excerpt": {
+                  "title": "Text Excerpt",
                   "type": "string"
                 },
                 "title": {
+                  "title": "Title",
                   "type": "string"
                 },
                 "truncated": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "elements": {
-                      "type": "boolean"
-                    },
-                    "returned_elements": {
-                      "type": "integer"
-                    },
-                    "text": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "text",
-                    "elements",
-                    "returned_elements"
-                  ],
-                  "title": "PageSnapshotTruncation",
+                  "additionalProperties": true,
+                  "title": "Truncated",
                   "type": "object"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 }
               },
@@ -6167,78 +4848,13 @@
               "additionalProperties": false,
               "properties": {
                 "element": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "found": {
-                      "const": true
-                    },
-                    "html": {
-                      "type": "string"
-                    },
-                    "locator": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "selector_normalized": {
-                      "type": "boolean"
-                    },
-                    "selector_strategy": {
-                      "type": "string"
-                    },
-                    "tag": {
-                      "type": "string"
-                    },
-                    "text": {
-                      "type": "string"
-                    },
-                    "visible": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "found",
-                    "selector",
-                    "locator",
-                    "selector_strategy",
-                    "selector_normalized",
-                    "text"
-                  ],
-                  "title": "ElementInfo",
+                  "additionalProperties": true,
+                  "title": "Element",
                   "type": "object"
                 },
                 "frame": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "index": {
-                      "type": "integer"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "title": {
-                      "type": "string"
-                    },
-                    "url": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "index",
-                    "selector",
-                    "id",
-                    "name",
-                    "title",
-                    "url"
-                  ],
-                  "title": "FrameSummary",
+                  "additionalProperties": true,
+                  "title": "Frame",
                   "type": "object"
                 }
               },
@@ -6357,70 +4973,13 @@
               "additionalProperties": false,
               "properties": {
                 "element": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "found": {
-                      "const": true
-                    },
-                    "html": {
-                      "type": "string"
-                    },
-                    "locator": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "selector_normalized": {
-                      "type": "boolean"
-                    },
-                    "selector_strategy": {
-                      "type": "string"
-                    },
-                    "tag": {
-                      "type": "string"
-                    },
-                    "text": {
-                      "type": "string"
-                    },
-                    "visible": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "found",
-                    "selector",
-                    "locator",
-                    "selector_strategy",
-                    "selector_normalized",
-                    "text"
-                  ],
-                  "title": "ElementInfo",
+                  "additionalProperties": true,
+                  "title": "Element",
                   "type": "object"
                 },
                 "host": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "locator": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "selector_normalized": {
-                      "type": "boolean"
-                    },
-                    "selector_strategy": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "selector",
-                    "locator",
-                    "selector_strategy",
-                    "selector_normalized"
-                  ],
-                  "title": "SelectorMetadata",
+                  "additionalProperties": true,
+                  "title": "Host",
                   "type": "object"
                 }
               },
@@ -6544,136 +5103,42 @@
               "additionalProperties": false,
               "properties": {
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "elements": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "action": {
-                        "type": "string"
-                      },
-                      "attributes": {
-                        "additionalProperties": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "type": "object"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "html": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "tag",
-                      "text",
-                      "selector",
-                      "attributes"
-                    ],
-                    "title": "OutlineElement",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Elements",
                   "type": "array"
                 },
                 "host": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "locator": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "selector_normalized": {
-                      "type": "boolean"
-                    },
-                    "selector_strategy": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "selector",
-                    "locator",
-                    "selector_strategy",
-                    "selector_normalized"
-                  ],
-                  "title": "SelectorMetadata",
+                  "additionalProperties": true,
+                  "title": "Host",
                   "type": "object"
                 },
                 "limit": {
+                  "title": "Limit",
                   "type": "integer"
                 },
                 "meta": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approx_tokens": {
-                      "type": "integer"
-                    },
-                    "json_chars": {
-                      "type": "integer"
-                    },
-                    "truncated": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "approx_tokens",
-                    "json_chars",
-                    "truncated"
-                  ],
-                  "title": "ResponseMeta",
+                  "additionalProperties": true,
+                  "title": "Meta",
                   "type": "object"
                 },
                 "returned": {
+                  "title": "Returned",
                   "type": "integer"
                 },
                 "target": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "locator": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "selector_normalized": {
-                      "type": "boolean"
-                    },
-                    "selector_strategy": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "selector",
-                    "locator",
-                    "selector_strategy",
-                    "selector_normalized"
-                  ],
-                  "title": "SelectorMetadata",
+                  "additionalProperties": true,
+                  "title": "Target",
                   "type": "object"
                 },
                 "truncated": {
+                  "title": "Truncated",
                   "type": "boolean"
                 }
               },
@@ -6793,50 +5258,23 @@
               "additionalProperties": false,
               "properties": {
                 "all_domains": {
+                  "title": "All Domains",
                   "type": "boolean"
                 },
                 "cookies": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "domain": {
-                        "type": "string"
-                      },
-                      "expires": {},
-                      "http_only": {
-                        "type": "boolean"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "path": {
-                        "type": "string"
-                      },
-                      "secure": {
-                        "type": "boolean"
-                      },
-                      "value": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "name",
-                      "value",
-                      "domain",
-                      "path",
-                      "expires",
-                      "secure",
-                      "http_only"
-                    ],
-                    "title": "CookieSummary",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Cookies",
                   "type": "array"
                 },
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "include_values": {
+                  "title": "Include Values",
                   "type": "boolean"
                 }
               },
@@ -6956,21 +5394,26 @@
               "additionalProperties": false,
               "properties": {
                 "area": {
+                  "title": "Area",
                   "type": "string"
                 },
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "include_values": {
+                  "title": "Include Values",
                   "type": "boolean"
                 },
                 "items": {
                   "additionalProperties": {
                     "type": "string"
                   },
+                  "title": "Items",
                   "type": "object"
                 },
                 "key": {
+                  "title": "Key",
                   "type": "string"
                 }
               },
@@ -7094,13 +5537,17 @@
               "additionalProperties": false,
               "properties": {
                 "area": {
+                  "title": "Area",
                   "type": "string"
                 },
                 "key": {
+                  "title": "Key",
                   "type": "string"
                 },
                 "set": {
-                  "const": true
+                  "const": true,
+                  "title": "Set",
+                  "type": "boolean"
                 }
               },
               "required": [
@@ -7213,12 +5660,16 @@
               "additionalProperties": false,
               "properties": {
                 "area": {
+                  "title": "Area",
                   "type": "string"
                 },
                 "cleared": {
-                  "const": true
+                  "const": true,
+                  "title": "Cleared",
+                  "type": "boolean"
                 },
                 "key": {
+                  "title": "Key",
                   "type": "string"
                 }
               },
@@ -7333,21 +5784,28 @@
               "additionalProperties": false,
               "properties": {
                 "found": {
-                  "const": true
+                  "const": true,
+                  "title": "Found",
+                  "type": "boolean"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "timeout": {
+                  "title": "Timeout",
                   "type": "number"
                 }
               },
@@ -7465,15 +5923,20 @@
               "additionalProperties": false,
               "properties": {
                 "matched": {
-                  "const": true
+                  "const": true,
+                  "title": "Matched",
+                  "type": "boolean"
                 },
                 "timeout": {
+                  "title": "Timeout",
                   "type": "number"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 },
                 "url_pattern": {
+                  "title": "Url Pattern",
                   "type": "string"
                 }
               },
@@ -7583,6 +6046,7 @@
               "additionalProperties": false,
               "properties": {
                 "waited_seconds": {
+                  "title": "Waited Seconds",
                   "type": "number"
                 }
               },
@@ -7735,25 +6199,33 @@
               "additionalProperties": false,
               "properties": {
                 "condition": {
+                  "title": "Condition",
                   "type": "string"
                 },
                 "elapsed_ms": {
+                  "title": "Elapsed Ms",
                   "type": "integer"
                 },
                 "matched": {
-                  "const": true
+                  "const": true,
+                  "title": "Matched",
+                  "type": "boolean"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "state": {
                   "additionalProperties": true,
+                  "title": "State",
                   "type": "object"
                 },
                 "timeout": {
+                  "title": "Timeout",
                   "type": "number"
                 },
                 "value": {
+                  "title": "Value",
                   "type": "string"
                 }
               },
@@ -7937,81 +6409,56 @@
               "additionalProperties": false,
               "properties": {
                 "console": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Console"
                 },
                 "final_url": {
+                  "title": "Final Url",
                   "type": "string"
                 },
                 "forms": {
-                  "additionalProperties": true,
-                  "type": "object"
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Forms"
                 },
                 "meta": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approx_tokens": {
-                      "type": "integer"
-                    },
-                    "json_chars": {
-                      "type": "integer"
-                    },
-                    "truncated": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "approx_tokens",
-                    "json_chars",
-                    "truncated"
-                  ],
-                  "title": "ResponseMeta",
+                  "additionalProperties": true,
+                  "title": "Meta",
                   "type": "object"
                 },
                 "snapshot": {
                   "additionalProperties": true,
+                  "title": "Snapshot",
                   "type": "object"
                 },
                 "title": {
+                  "title": "Title",
                   "type": "string"
                 },
                 "url": {
+                  "title": "Url",
                   "type": "string"
                 },
                 "wait": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "condition": {
-                      "type": "string"
-                    },
-                    "elapsed_ms": {
-                      "type": "integer"
-                    },
-                    "matched": {
-                      "type": "boolean"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "state": {
-                      "additionalProperties": true,
-                      "type": "object"
-                    },
-                    "timeout": {
-                      "type": "number"
-                    },
-                    "value": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "condition",
-                    "selector",
-                    "value",
-                    "matched",
-                    "timeout"
-                  ],
-                  "title": "WorkflowWaitResult",
+                  "additionalProperties": true,
+                  "title": "Wait",
                   "type": "object"
                 }
               },
@@ -8145,100 +6592,60 @@
               "additionalProperties": false,
               "properties": {
                 "absolute_urls": {
+                  "title": "Absolute Urls",
                   "type": "boolean"
                 },
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "include_text": {
+                  "title": "Include Text",
                   "type": "boolean"
                 },
                 "limit": {
+                  "title": "Limit",
                   "type": "integer"
                 },
                 "links": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "absolute_url": {
-                        "type": "string"
-                      },
-                      "href": {
-                        "type": "string"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "rel": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "target": {
-                        "type": "string"
-                      },
-                      "text": {
-                        "type": "string"
-                      },
-                      "url": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "text",
-                      "href",
-                      "url",
-                      "selector",
-                      "rel",
-                      "target"
-                    ],
-                    "title": "LinkSummary",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Links",
                   "type": "array"
                 },
                 "locator": {
+                  "title": "Locator",
                   "type": "string"
                 },
                 "meta": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approx_tokens": {
-                      "type": "integer"
-                    },
-                    "json_chars": {
-                      "type": "integer"
-                    },
-                    "truncated": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "approx_tokens",
-                    "json_chars",
-                    "truncated"
-                  ],
-                  "title": "ResponseMeta",
+                  "additionalProperties": true,
+                  "title": "Meta",
                   "type": "object"
                 },
                 "returned": {
+                  "title": "Returned",
                   "type": "integer"
                 },
                 "same_origin_only": {
+                  "title": "Same Origin Only",
                   "type": "boolean"
                 },
                 "selector": {
+                  "title": "Selector",
                   "type": "string"
                 },
                 "selector_normalized": {
+                  "title": "Selector Normalized",
                   "type": "boolean"
                 },
                 "selector_strategy": {
+                  "title": "Selector Strategy",
                   "type": "string"
                 },
                 "truncated": {
+                  "title": "Truncated",
                   "type": "boolean"
                 }
               },
@@ -8375,144 +6782,55 @@
               "additionalProperties": false,
               "properties": {
                 "field_count": {
+                  "title": "Field Count",
                   "type": "integer"
                 },
                 "filled": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "key": {
-                        "type": "string"
-                      },
-                      "matched_by": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      },
-                      "tag": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "type": "string"
-                      },
-                      "value": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "key",
-                      "selector",
-                      "matched_by",
-                      "tag",
-                      "type",
-                      "value"
-                    ],
-                    "title": "FormFillField",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Filled",
                   "type": "array"
                 },
                 "filled_count": {
+                  "title": "Filled Count",
                   "type": "integer"
                 },
                 "form": {
-                  "anyOf": [
-                    {
-                      "additionalProperties": false,
-                      "properties": {
-                        "action": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "method": {
-                          "type": "string"
-                        },
-                        "name": {
-                          "type": "string"
-                        },
-                        "selector": {
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "selector",
-                        "id",
-                        "name",
-                        "method",
-                        "action"
-                      ],
-                      "title": "FormFillForm",
-                      "type": "object"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+                  "title": "Form"
                 },
                 "form_found": {
+                  "title": "Form Found",
                   "type": "boolean"
                 },
                 "form_selector": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "locator": {
-                      "type": "string"
-                    },
-                    "selector": {
-                      "type": "string"
-                    },
-                    "selector_normalized": {
-                      "type": "boolean"
-                    },
-                    "selector_strategy": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "selector",
-                    "locator",
-                    "selector_strategy",
-                    "selector_normalized"
-                  ],
-                  "title": "SelectorMetadata",
+                  "additionalProperties": true,
+                  "title": "Form Selector",
                   "type": "object"
                 },
                 "redacted": {
+                  "title": "Redacted",
                   "type": "boolean"
                 },
                 "requires_confirmation": {
+                  "title": "Requires Confirmation",
                   "type": "boolean"
                 },
                 "skipped": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "key": {
-                        "type": "string"
-                      },
-                      "reason": {
-                        "type": "string"
-                      },
-                      "selector": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "key",
-                      "reason"
-                    ],
-                    "title": "FormFillSkippedField",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Skipped",
                   "type": "array"
                 },
                 "skipped_count": {
+                  "title": "Skipped Count",
                   "type": "integer"
                 },
                 "submitted": {
+                  "title": "Submitted",
                   "type": "boolean"
                 }
               },
@@ -8651,43 +6969,24 @@
               "additionalProperties": false,
               "properties": {
                 "cleared": {
+                  "title": "Cleared",
                   "type": "boolean"
                 },
                 "filters": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "is_regex": {
-                      "type": "boolean"
-                    },
-                    "method": {
-                      "type": "string"
-                    },
-                    "resource_type": {
-                      "type": "string"
-                    },
-                    "targets": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "required": [
-                    "targets",
-                    "is_regex",
-                    "method",
-                    "resource_type"
-                  ],
-                  "title": "NetworkListenerFilters",
+                  "additionalProperties": true,
+                  "title": "Filters",
                   "type": "object"
                 },
                 "listening": {
+                  "title": "Listening",
                   "type": "boolean"
                 },
                 "started_at": {
+                  "title": "Started At",
                   "type": "string"
                 },
                 "tab_id": {
+                  "title": "Tab Id",
                   "type": "string"
                 }
               },
@@ -8824,113 +7123,32 @@
               "additionalProperties": false,
               "properties": {
                 "count": {
+                  "title": "Count",
                   "type": "integer"
                 },
                 "limit": {
+                  "title": "Limit",
                   "type": "integer"
                 },
                 "listening": {
+                  "title": "Listening",
                   "type": "boolean"
                 },
                 "meta": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approx_tokens": {
-                      "type": "integer"
-                    },
-                    "json_chars": {
-                      "type": "integer"
-                    },
-                    "truncated": {
-                      "type": "boolean"
-                    }
-                  },
-                  "required": [
-                    "approx_tokens",
-                    "json_chars",
-                    "truncated"
-                  ],
-                  "title": "ResponseMeta",
+                  "additionalProperties": true,
+                  "title": "Meta",
                   "type": "object"
                 },
                 "packets": {
                   "items": {
-                    "additionalProperties": false,
-                    "properties": {
-                      "body_excerpt": {
-                        "type": "string"
-                      },
-                      "body_truncated": {
-                        "type": "boolean"
-                      },
-                      "body_type": {
-                        "type": "string"
-                      },
-                      "fail_error": {
-                        "type": "string"
-                      },
-                      "failed": {
-                        "type": "boolean"
-                      },
-                      "index": {
-                        "type": "integer"
-                      },
-                      "method": {
-                        "type": "string"
-                      },
-                      "mime_type": {
-                        "type": "string"
-                      },
-                      "request_body_excerpt": {
-                        "type": "string"
-                      },
-                      "request_body_truncated": {
-                        "type": "boolean"
-                      },
-                      "request_body_type": {
-                        "type": "string"
-                      },
-                      "request_headers": {
-                        "additionalProperties": {
-                          "type": "string"
-                        },
-                        "type": "object"
-                      },
-                      "resource_type": {
-                        "type": "string"
-                      },
-                      "response_headers": {
-                        "additionalProperties": {
-                          "type": "string"
-                        },
-                        "type": "object"
-                      },
-                      "status": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ]
-                      },
-                      "url": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "index",
-                      "url",
-                      "method",
-                      "resource_type",
-                      "status",
-                      "mime_type",
-                      "failed",
-                      "fail_error"
-                    ],
-                    "title": "NetworkPacket",
+                    "additionalProperties": true,
                     "type": "object"
                   },
+                  "title": "Packets",
                   "type": "array"
                 },
                 "timed_out": {
+                  "title": "Timed Out",
                   "type": "boolean"
                 }
               },
@@ -9038,12 +7256,15 @@
               "additionalProperties": false,
               "properties": {
                 "cleared": {
+                  "title": "Cleared",
                   "type": "boolean"
                 },
                 "listening": {
+                  "title": "Listening",
                   "type": "boolean"
                 },
                 "was_listening": {
+                  "title": "Was Listening",
                   "type": "boolean"
                 }
               },

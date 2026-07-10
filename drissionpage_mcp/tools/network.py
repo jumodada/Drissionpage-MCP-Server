@@ -1,18 +1,19 @@
 """Network listener beta tools for DrissionPage 4.x tabs."""
 
 from __future__ import annotations
-
 from typing import TYPE_CHECKING
-
 from pydantic import Field
-
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..tool_outputs import (
+    NetworkListenStartData,
+    NetworkListenWaitData,
+    NetworkListenStopData,
+)
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
-    from ..response import ToolResponse
 
 
 class NetworkListenStartInput(ToolInput):
@@ -27,16 +28,14 @@ class NetworkListenStartInput(ToolInput):
         description="Treat targets as regular expressions when targets are provided.",
     )
     method: str = Field(
-        default="",
-        description="Optional HTTP method filter such as GET or POST.",
+        default="", description="Optional HTTP method filter such as GET or POST."
     )
     resource_type: str = Field(
         default="",
         description="Optional resource type filter such as Fetch, XHR, or Document.",
     )
     clear: bool = Field(
-        default=True,
-        description="Clear any existing listener queue before starting.",
+        default=True, description="Clear any existing listener queue before starting."
     )
 
 
@@ -50,18 +49,14 @@ class NetworkListenWaitInput(ToolInput):
         description="Maximum seconds to wait for packets.",
     )
     limit: int = Field(
-        default=10,
-        ge=1,
-        le=100,
-        description="Maximum packets to return.",
+        default=10, ge=1, le=100, description="Maximum packets to return."
     )
     include_headers: bool = Field(
         default=False,
         description="Include request/response headers with sensitive names redacted.",
     )
     include_body: bool = Field(
-        default=False,
-        description="Include bounded request/response body excerpts.",
+        default=False, description="Include bounded request/response body excerpts."
     )
     max_body_chars: int = Field(
         default=2000,
@@ -75,73 +70,65 @@ class NetworkListenStopInput(ToolInput):
     """Input schema for stopping packet observation."""
 
     clear: bool = Field(
-        default=True,
-        description="Clear the listener queue while stopping.",
+        default=True, description="Clear the listener queue while stopping."
     )
 
 
 @define_tool(
     name="network_listen_start",
     title="Start Network Listener",
-    description=(
-        "Start beta HTTP/XHR/Fetch network observation for the active tab. "
-        "This observes packets only; it does not intercept or modify requests."
-    ),
+    description="Start beta HTTP/XHR/Fetch network observation for the active tab. This observes packets only; it does not intercept or modify requests.",
     input_schema=NetworkListenStartInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=NetworkListenStartData,
+    failure_message=lambda args, exc: "Failed to start network listener: " + str(exc),
 )
 async def network_listen_start(
-    context: "DrissionPageContext",
-    args: NetworkListenStartInput,
-    response: "ToolResponse",
-) -> None:
+    context: "DrissionPageContext", args: NetworkListenStartInput
+) -> "ToolOutcome":
     """Start DrissionPage listener."""
-
-    async with tool_errors(response, "Failed to start network listener"):
-        tab = context.current_tab_or_die()
-        result = await tab.network.start(
-            targets=args.targets,
-            is_regex=args.is_regex,
-            method=args.method,
-            resource_type=args.resource_type,
-            clear=args.clear,
-        )
-        response.add_code("page.listen.start(targets=..., method=..., res_type=...)")
-        response.add_result("Started network listener", **result)
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.network.start(
+        targets=args.targets,
+        is_regex=args.is_regex,
+        method=args.method,
+        resource_type=args.resource_type,
+        clear=args.clear,
+    )
+    outcome.add_code("page.listen.start(targets=..., method=..., res_type=...)")
+    outcome.add_result("Started network listener", **result)
+    return outcome
 
 
 @define_tool(
     name="network_listen_wait",
     title="Wait Network Listener",
-    description=(
-        "Wait for observed HTTP/XHR/Fetch packets and return bounded metadata. "
-        "Bodies and headers are opt-in and sensitive headers are redacted."
-    ),
+    description="Wait for observed HTTP/XHR/Fetch packets and return bounded metadata. Bodies and headers are opt-in and sensitive headers are redacted.",
     input_schema=NetworkListenWaitInput,
     tool_type=ToolType.READ_ONLY,
+    output_model=NetworkListenWaitData,
+    failure_message=lambda args, exc: "Failed to wait for network packets: " + str(exc),
 )
 async def network_listen_wait(
-    context: "DrissionPageContext",
-    args: NetworkListenWaitInput,
-    response: "ToolResponse",
-) -> None:
+    context: "DrissionPageContext", args: NetworkListenWaitInput
+) -> "ToolOutcome":
     """Wait for packets from DrissionPage listener."""
-
-    async with tool_errors(response, "Failed to wait for network packets"):
-        tab = context.current_tab_or_die()
-        result = await tab.network.wait(
-            timeout=args.timeout,
-            limit=args.limit,
-            include_headers=args.include_headers,
-            include_body=args.include_body,
-            max_body_chars=args.max_body_chars,
-        )
-        response.add_code("page.listen.wait(count=..., timeout=..., fit_count=False)")
-        response.add_result(
-            f"Captured {result['count']} network packet"
-            f"{'' if result['count'] == 1 else 's'}",
-            **with_response_meta(result),
-        )
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.network.wait(
+        timeout=args.timeout,
+        limit=args.limit,
+        include_headers=args.include_headers,
+        include_body=args.include_body,
+        max_body_chars=args.max_body_chars,
+    )
+    outcome.add_code("page.listen.wait(count=..., timeout=..., fit_count=False)")
+    outcome.add_result(
+        f"Captured {result['count']} network packet{('' if result['count'] == 1 else 's')}",
+        **with_response_meta(result),
+    )
+    return outcome
 
 
 @define_tool(
@@ -150,19 +137,16 @@ async def network_listen_wait(
     description="Stop beta network observation for the active tab and optionally clear it.",
     input_schema=NetworkListenStopInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=NetworkListenStopData,
+    failure_message=lambda args, exc: "Failed to stop network listener: " + str(exc),
 )
 async def network_listen_stop(
-    context: "DrissionPageContext",
-    args: NetworkListenStopInput,
-    response: "ToolResponse",
-) -> None:
+    context: "DrissionPageContext", args: NetworkListenStopInput
+) -> "ToolOutcome":
     """Stop DrissionPage listener."""
-
-    async with tool_errors(response, "Failed to stop network listener"):
-        tab = context.current_tab_or_die()
-        result = await tab.network.stop(clear=args.clear)
-        response.add_code("page.listen.stop()")
-        response.add_result("Stopped network listener", **result)
-
-
-tools = [network_listen_start, network_listen_wait, network_listen_stop]
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.network.stop(clear=args.clear)
+    outcome.add_code("page.listen.stop()")
+    outcome.add_result("Stopped network listener", **result)
+    return outcome

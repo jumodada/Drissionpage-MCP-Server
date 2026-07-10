@@ -1,18 +1,18 @@
 """Cookies and web storage tools for DrissionPage MCP."""
 
 from __future__ import annotations
-
 from typing import TYPE_CHECKING, Literal
-
 from pydantic import Field
-
-from .base import ToolInput, ToolType, define_tool, tool_errors
+from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..tool_outputs import (
+    BrowserCookiesGetData,
+    StorageGetData,
+    StorageSetData,
+    StorageClearData,
+)
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
-    from ..response import ToolResponse
-
-
 StorageArea = Literal["local", "session"]
 
 
@@ -57,21 +57,22 @@ class StorageClearInput(ToolInput):
     input_schema=BrowserCookiesGetInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=BrowserCookiesGetData,
+    failure_message=lambda args, exc: "Failed to read browser cookies: " + str(exc),
 )
 async def browser_cookies_get(
-    context: "DrissionPageContext",
-    args: BrowserCookiesGetInput,
-    response: "ToolResponse",
-) -> None:
-    async with tool_errors(response, "Failed to read browser cookies"):
-        tab = context.current_tab_or_die()
-        result = await tab.storage.cookies_get(
-            all_domains=args.all_domains,
-            all_info=args.all_info,
-            include_values=args.include_values,
-        )
-        response.add_code("page.cookies()")
-        response.add_result(f"Read {result['count']} cookie(s)", **result)
+    context: "DrissionPageContext", args: BrowserCookiesGetInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.storage.cookies_get(
+        all_domains=args.all_domains,
+        all_info=args.all_info,
+        include_values=args.include_values,
+    )
+    outcome.add_code("page.cookies()")
+    outcome.add_result(f"Read {result['count']} cookie(s)", **result)
+    return outcome
 
 
 @define_tool(
@@ -81,19 +82,20 @@ async def browser_cookies_get(
     input_schema=StorageGetInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
+    output_model=StorageGetData,
+    failure_message=lambda args, exc: f"{f'Failed to read {args.area} storage'}: {exc}",
 )
 async def storage_get(
-    context: "DrissionPageContext", args: StorageGetInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(response, f"Failed to read {args.area} storage"):
-        tab = context.current_tab_or_die()
-        result = await tab.storage.get(
-            area=args.area,
-            key=args.key,
-            include_values=args.include_values,
-        )
-        response.add_code(f"{args.area}Storage")
-        response.add_result(f"Read {args.area} storage", **result)
+    context: "DrissionPageContext", args: StorageGetInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.storage.get(
+        area=args.area, key=args.key, include_values=args.include_values
+    )
+    outcome.add_code(f"{args.area}Storage")
+    outcome.add_result(f"Read {args.area} storage", **result)
+    return outcome
 
 
 @define_tool(
@@ -102,16 +104,19 @@ async def storage_get(
     description="Set one localStorage/sessionStorage item. The value is not echoed.",
     input_schema=StorageSetInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=StorageSetData,
+    failure_message=lambda args, exc: f"{f'Failed to set {args.area} storage'}: {exc}",
 )
 async def storage_set(
-    context: "DrissionPageContext", args: StorageSetInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(response, f"Failed to set {args.area} storage"):
-        tab = context.current_tab_or_die()
-        result = await tab.storage.set(area=args.area, key=args.key, value=args.value)
-        response.add_code(f"{args.area}Storage.setItem({args.key!r}, <redacted>)")
-        response.add_result(f"Set {args.area} storage key: {args.key}", **result)
-        response.set_include_snapshot(True)
+    context: "DrissionPageContext", args: StorageSetInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.storage.set(area=args.area, key=args.key, value=args.value)
+    outcome.add_code(f"{args.area}Storage.setItem({args.key!r}, <redacted>)")
+    outcome.add_result(f"Set {args.area} storage key: {args.key}", **result)
+    outcome.set_include_snapshot(True)
+    return outcome
 
 
 @define_tool(
@@ -120,16 +125,16 @@ async def storage_set(
     description="Clear one key or all items from localStorage/sessionStorage.",
     input_schema=StorageClearInput,
     tool_type=ToolType.DESTRUCTIVE,
+    output_model=StorageClearData,
+    failure_message=lambda args, exc: f"{f'Failed to clear {args.area} storage'}: {exc}",
 )
 async def storage_clear(
-    context: "DrissionPageContext", args: StorageClearInput, response: "ToolResponse"
-) -> None:
-    async with tool_errors(response, f"Failed to clear {args.area} storage"):
-        tab = context.current_tab_or_die()
-        result = await tab.storage.clear(area=args.area, key=args.key)
-        response.add_code(f"{args.area}Storage.removeItem({args.key!r})")
-        response.add_result(f"Cleared {args.area} storage", **result)
-        response.set_include_snapshot(True)
-
-
-tools = [browser_cookies_get, storage_get, storage_set, storage_clear]
+    context: "DrissionPageContext", args: StorageClearInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.storage.clear(area=args.area, key=args.key)
+    outcome.add_code(f"{args.area}Storage.removeItem({args.key!r})")
+    outcome.add_result(f"Cleared {args.area} storage", **result)
+    outcome.set_include_snapshot(True)
+    return outcome

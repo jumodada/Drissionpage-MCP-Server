@@ -1,5 +1,5 @@
-"""Stable DrissionPage MCP error helpers."""
+"""Public error taxonomy exports."""
 
-from .response import ErrorCode, ToolError, classify_error
+from .response_errors import ErrorCode, ToolError, classify_error
 
 __all__ = ["ErrorCode", "ToolError", "classify_error"]

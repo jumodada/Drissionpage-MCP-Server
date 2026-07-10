@@ -289,7 +289,7 @@ class DrissionPageContext:
     def _wrap_page(self, page: Any) -> PageTab:
         tab = PageTab(page, self, mcp_tab_id=f"t{self._next_tab_index}")
         self._next_tab_index += 1
-        tab.ensure_console_capture()
+        tab.observation.ensure_console_capture()
         return tab
 
     def _browser_tabs(self) -> list[Any]:
@@ -317,7 +317,9 @@ class DrissionPageContext:
                     try:
                         pages.append(browser.get_tab(tab_id))
                     except Exception:
-                        logger.debug("browser.get_tab(%s) failed", tab_id, exc_info=True)
+                        logger.debug(
+                            "browser.get_tab(%s) failed", tab_id, exc_info=True
+                        )
 
         latest = get_latest_tab(browser)
         latest_key = self._tab_key(latest)
@@ -426,6 +428,8 @@ def _summarize_result(result: Mapping[str, Any]) -> dict[str, Any]:
                 ],
             }
     return payload
+
+
 def _summarize_console_message(message: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "level": str(message.get("level") or ""),
