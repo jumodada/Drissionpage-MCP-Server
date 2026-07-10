@@ -100,7 +100,7 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert config_payload["environment"]["browser_path"]["value"] == ""
     assert config_payload["policy"]["profile"] == "restricted"
     assert guide_payload["available"] is True
-    assert guide_payload["version"] == "0.5.7"
+    assert guide_payload["version"] == "0.5.8"
     assert "DrissionPage>=4.1.1.4,<5" in guide_payload["instructions"]
     assert "form_fill_preview" in guide_payload["instructions"]
     assert "network_listen_start" in guide_payload["instructions"]

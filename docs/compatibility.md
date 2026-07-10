@@ -18,13 +18,23 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.5.7. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.5.8. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
   MCP workflows to use the documented snake_case field names exactly.
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
+
+## 0.5.7 to 0.5.8 Migration
+
+0.5.8 intentionally upgrades the existing `page_click_xy` contract without a legacy wrapper:
+
+- Coordinate inputs now accept viewport CSS-pixel floats and reject negative values.
+- `profile` defaults to `natural`; `precise` and `direct` are explicit alternatives.
+- Optional `start_x` and `start_y` must be supplied together.
+- Successful output now includes typed `motion` metadata.
+- The former direct interaction-level coordinate-click implementation is removed; saved clients should call the same `page_click_xy` tool with `profile="direct"` only when immediate movement is explicitly desired.
 
 ## 0.5.4 to 0.5.7 Migration
 

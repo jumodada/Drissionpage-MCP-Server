@@ -4,6 +4,13 @@
 
 [![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/)
 [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
+
+<p align="center">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif" width="662" alt="AI 视觉识别驱动的自然指针交互演示">
+  <br>
+  <sub><strong>为多模态 AI 增加全新交互层</strong> — 输入视觉坐标，执行完整自然指针动作链。</sub>
+</p>
+
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml)
@@ -14,8 +21,52 @@
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
+## 🖱️ 视觉驱动的人机交互
+
+**DrissionPage MCP 0.5.8 为多模态 AI 增加了一层很强的新交互能力：** 它可以把视觉模型识别出的 viewport 坐标转换为完整、符合物理节奏的指针动作链，而不是把鼠标瞬移到坐标后直接点击。
+
+> **一次 MCP 调用即可连接视觉理解与真实浏览器交互。** 模型负责判断“在哪里操作”，DrissionPage MCP 负责决定“鼠标如何移动过去并完成点击”。
+
+```text
+截图 / 页面观察
+        ↓
+多模态模型识别 viewport 坐标
+        ↓
+page_click_xy(profile="natural")
+        ↓
+三次贝塞尔移动 → 反应停顿 → 按下 → 保持 → 释放
+        ↓
+观察并验证页面状态变化
+```
+
+### 这层人机交互能力有什么不同？
+
+- **自然指针动力学**：使用 20–35 个三次贝塞尔移动点，不再是坐标瞬移。
+- **符合人手节奏的时间模型**：8–25ms 点间隔、smoothstep 先加速后减速，到位后停顿 100–300ms。
+- **真实点击语义**：按下后保持 50–120ms，并为左键、右键和中键提供正确的 Chromium CDP 按键状态。
+- **有界微运动**：中间点加入 ±0.5 CSS 像素微抖，最终点仍精确落在目标坐标。
+- **失败安全**：动作链被中断时也会保证释放已经按下的鼠标按钮。
+- **模型可读的执行证据**：结果会返回 profile、起点、目标点、移动步数、反应延迟、按键时长和计划总时长。
+
+这让 AI 可以操作 canvas 控件、可视化编辑器、地图、图表、缺少语义信息的组件、响应式界面，以及 selector 或 accessibility metadata 不完整的交互表面。存在可靠 selector 时仍优先使用结构化 DOM 自动化；视觉人机交互层的价值，是扩展 MCP agent 在结构化信息不足时仍然可以操作的范围。
+
+```json
+{
+  "x": 442,
+  "y": 369,
+  "start_x": 100,
+  "start_y": 100,
+  "profile": "natural",
+  "button": "left",
+  "element": "视觉识别出的控件"
+}
+```
+
+该能力用于合法的普通 UI 自动化、测试、无障碍工作流和技术研究；安全验证或反自动化挑战的完成不作为保证支持的产品能力。
+
 ## 🧭 客户端安装导航
 
+- [视觉驱动的人机交互](#视觉驱动的人机交互)
 - [安装与截图指引](#-首次成功路径)
 - [Codex CLI/IDE 快速配置](#-在-codex-cliide-中配置30-秒)
 - [Codex CLI/IDE 集成示例](#codex-cli--ide)
@@ -30,12 +81,13 @@
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-与基于截图的方法不同，它通过 52 个强大工具和 MCP Resources/Prompts 提供**结构化、确定性的网页自动化**，利用高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 的效率。
+项目仍以 52 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径；当 selector 或 accessibility metadata 不足时，0.5.8 还提供可选的**视觉驱动人机交互层**，把 viewport 坐标转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
-- **LLM 优化**：使用结构化数据而不需要视觉模型
+- **结构化优先、视觉就绪**：有可靠 DOM 时使用结构化信息，需要视觉操作时接收多模态模型坐标
 - **确定性**：通过 CSS/XPath 归一化实现适合 LLM 的可靠元素选择
+- **视觉交互能力**：把多模态模型输出的坐标转换为自然指针移动和具有真实时长的点击
 - **快速轻量**：基于 DrissionPage 高效引擎构建，开销最小
 - **类型安全**：所有工具都具有完整的类型提示和 Pydantic 验证
 - **开源友好**：包含兼容性说明、故障排除和 CI 检查，便于维护和贡献
@@ -370,7 +422,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.5.7`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.5.8`。
 
 ### 浏览器问题？
 ```bash
@@ -399,13 +451,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.5.7 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.5.8 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.5.7)
+### 当前版本 (v0.5.8)
 - [x] 52 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -418,6 +470,7 @@ which chromium         # macOS
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
 - [x] Workflow helper：`browser_open_and_snapshot`、`browser_extract_links`、`form_fill_preview`
 - [x] Network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，用于 HTTP/XHR/Fetch 观察
+- [x] `page_click_xy` 自然指针动作链：三次贝塞尔轨迹、smoothstep 缓动、有界抖动、反应延迟和真实按键停留
 - [x] 文件上传、滚动、hover、select/check、键盘、iframe、shadow DOM、cookie 和 storage 工具，面向 DrissionPage 4.x
 - [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
 - [x] 脱敏 session history resource，以及有界输出的响应大小 metadata
@@ -564,10 +617,14 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.5.7
+## 🆕 最新版本：v0.5.8
 
-发布日期：2026-07-08。这是在 0.5.6 workflow/network 基础上的小幅 AI/client 易用性补丁；继续面向 DrissionPage 4.x，不新增公开工具：
+发布日期：2026-07-10。本版本升级现有 `page_click_xy`，用于视觉模型驱动的普通 UI 操作，同时保持 52 个公开工具和 DrissionPage 4.x 支持：
 
+- `page_click_xy` 默认使用 `natural` 指针配置：20–35 个三次贝塞尔移动点、8–25ms 点间隔、±0.5 CSS 像素中间点微抖，并精确落在目标坐标。
+- 自然轨迹使用 `t*t*(3-2*t)` smoothstep ease-in-out 采样；到位后停顿 100–300ms，再按住所选鼠标键 50–120ms 后释放。
+- `natural`、`precise`、`direct` 三种配置共用独立 pointer capability；可选成对起点坐标，不新增兼容 wrapper 或公开工具。
+- 指针执行通过 Chromium CDP 发送 move/press/release 事件，同步 DrissionPage 光标状态，并在异常清理时保证释放已按下的按钮。
 - 面向模型的指引改为 workflow-first：新会话的“打开并检查页面”优先使用 `browser_open_and_snapshot`，链接发现使用 `browser_extract_links`，只有纯导航重试才使用 `page_navigate`。
 - `drissionpage_mcp_usage_playbook`、结构化抽取、安全表单填写和页面调试等 MCP prompts 会先引导客户端使用 workflow helper、有界 `page_snapshot` / `page_observe`，再考虑底层原子工具。
 - `drissionpage://guide/model-usage` 暴露 `workflow_routes`，让 agent 可直接选择总结/检查、链接发现、安全表单填写和网络观察调用链。
@@ -576,4 +633,4 @@ codex mcp list
 - 0.5.6 的 helper 仍是稳定基础：`browser_open_and_snapshot`、`browser_extract_links`、`form_fill_preview`、`network_listen_start`、`network_listen_wait` 和 `drissionpage://session/config` 均保持不变。
 - 既有页面理解、可观察动作、console、标签页、表单、上传、iframe/shadow、cookie/storage 和恢复建议工具保持兼容；可观察变化继续包含 `console_errors_added`；有界输出继续保留 `meta.approx_tokens`。
 - `drissionpage-mcp doctor` 仍会标记 DrissionPage 5.x 为不支持，`drissionpage-mcp doctor --launch-browser` 仍是浏览器启动检查；默认保持 Chrome sandbox 开启，`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境。
-- 顶层 JSON_RESULT envelope、严格输入 schema、`structuredContent` 和 typed `outputSchema` 合同保持不变；公开工具数仍为 52 个。
+- 顶层 JSON_RESULT envelope、严格校验、`structuredContent` 和 typed `outputSchema` 合同继续保留；`page_click_xy` 新增 typed motion metadata，公开工具数仍为 52 个。

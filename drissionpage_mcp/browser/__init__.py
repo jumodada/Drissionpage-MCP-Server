@@ -7,6 +7,7 @@ from .navigation import NavigationOperations
 from .network import NetworkOperations
 from .observation import ObservationOperations
 from .page import PageOperations
+from .pointer import PointerOperations
 from .storage import StorageOperations
 from .waits import WaitOperations
 from .workflows import WorkflowOperations
@@ -19,6 +20,7 @@ __all__ = [
     "NetworkOperations",
     "ObservationOperations",
     "PageOperations",
+    "PointerOperations",
     "StorageOperations",
     "WaitOperations",
     "WorkflowOperations",

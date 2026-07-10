@@ -92,11 +92,12 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current 0.5.7 tool registry should load 52 tools.
+The current 0.5.8 tool registry should load 52 tools.
 
 
-## Workflow / Network 0.5.7 Checks
+## Pointer / Workflow / Network 0.5.8 Checks
 
+- For vision-directed coordinate actions, use `page_click_xy` with the default `natural` profile; supply `start_x` and `start_y` together when the model knows the pointer origin. Use `direct` only when natural movement is not desired.
 - Use `browser_open_and_snapshot` when a client would otherwise call navigate, wait, snapshot, form inspection, and console logs separately.
 - Use `form_fill_preview` only for no-submit prefill; submit with an explicit click after reviewing `requires_confirmation=true`.
 - Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.

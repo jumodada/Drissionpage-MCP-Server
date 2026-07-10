@@ -97,6 +97,40 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
         assert fields["#name"]["value"] == "initial"
         assert fields["#mode"]["tag"] == "select"
         assert fields["#agree"]["type"] == "checkbox"
+
+        _content, center_payload = await _execute_tool(
+            server,
+            "page_evaluate",
+            {
+                "script": "const rect = document.querySelector('#agree').getBoundingClientRect(); return {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2};"
+            },
+        )
+        center = center_payload["data"]["result"]
+        _content, pointer_payload = await _execute_tool(
+            server,
+            "page_click_xy",
+            {
+                "x": center["x"],
+                "y": center["y"],
+                "start_x": max(0, center["x"] - 100),
+                "start_y": max(0, center["y"] - 80),
+                "profile": "natural",
+                "element": "agree checkbox",
+            },
+        )
+        assert pointer_payload["ok"] is True
+        motion = pointer_payload["data"]["motion"]
+        assert motion["profile"] == "natural"
+        assert 20 <= motion["steps"] <= 35
+        assert 100 <= motion["reaction_delay_ms"] <= 300
+        assert 50 <= motion["hold_duration_ms"] <= 120
+        _content, checked_payload = await _execute_tool(
+            server,
+            "page_evaluate",
+            {"script": "return document.querySelector('#agree').checked;"},
+        )
+        assert checked_payload["data"]["result"] is True
+
         navigate = await _execute_tool_text(
             server, "page_navigate", {"url": _site_url(base_url, "/cases/locators")}
         )

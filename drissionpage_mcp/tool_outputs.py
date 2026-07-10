@@ -99,11 +99,25 @@ class PageEvaluateData(ToolData):
     max_chars: int
 
 
+class PointerMotionData(ToolData):
+    profile: Literal["natural", "precise", "direct"]
+    button: Literal["left", "right", "middle"]
+    start_x: float
+    start_y: float
+    target_x: float
+    target_y: float
+    steps: int
+    reaction_delay_ms: int
+    hold_duration_ms: int
+    planned_duration_ms: int
+
+
 class PageClickXYData(ToolData):
-    x: int
-    y: int
+    x: float
+    y: float
     element: str
     url: str
+    motion: PointerMotionData
 
 
 class PageCloseData(ToolData):

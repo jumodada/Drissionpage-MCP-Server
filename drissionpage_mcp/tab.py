@@ -14,6 +14,7 @@ from .browser import (
     NetworkOperations,
     ObservationOperations,
     PageOperations,
+    PointerOperations,
     StorageOperations,
     WorkflowOperations,
     WaitOperations,
@@ -49,6 +50,7 @@ class PageTab:
         self.network = NetworkOperations(self)
         self.observation = ObservationOperations(self)
         self.page_ops = PageOperations(self)
+        self.pointer = PointerOperations(self)
         self.storage = StorageOperations(self)
         self.waits = WaitOperations(self)
         self.workflows = WorkflowOperations(self)

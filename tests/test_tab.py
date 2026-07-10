@@ -19,11 +19,15 @@ def no_real_sleep(monkeypatch):
         return None
 
     monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", _sleep)
+    monkeypatch.setattr("drissionpage_mcp.browser.pointer.asyncio.sleep", _sleep)
 
 
 class FakeActions:
     def __init__(self) -> None:
         self.clicked = None
+        self.curr_x = 0.0
+        self.curr_y = 0.0
+        self.modifier = 0
 
     def click(self, point):
         self.clicked = point
@@ -172,6 +176,10 @@ class FakePage:
         self.url = url
         return SimpleNamespace(url=url, ok=True)
 
+    def run_cdp(self, method: str, **params):
+        self.calls.append((method, params))
+        return {}
+
     def back(self) -> None:
         self.calls.append(("back",))
 
@@ -272,7 +280,7 @@ async def test_navigation_coordinates_and_resize_paths() -> None:
     await tab.navigation.back()
     await tab.navigation.forward()
     await tab.navigation.refresh()
-    await tab.interaction.click_coordinates(3, 4)
+    await tab.pointer.click_at(3, 4)
     await tab.page_ops.resize(800, 600)
 
     assert tab.url == "https://example.test"
@@ -280,7 +288,14 @@ async def test_navigation_coordinates_and_resize_paths() -> None:
     assert ("back",) in page.calls
     assert ("forward",) in page.calls
     assert ("refresh",) in page.calls
-    assert page.actions.clicked == (3, 4)
+    pointer_events = [
+        call[1]["type"]
+        for call in page.calls
+        if len(call) == 2 and call[0] == "Input.dispatchMouseEvent"
+    ]
+    assert pointer_events[-2:] == ["mousePressed", "mouseReleased"]
+    assert page.actions.curr_x == 3
+    assert page.actions.curr_y == 4
     assert page.set.window.size_args == (800, 600)
 
 
@@ -899,11 +914,16 @@ async def test_page_action_failures_are_reraised() -> None:
                 raise RuntimeError("refresh failed")
             super().refresh()
 
+        def run_cdp(self, method: str, **params):
+            if self.broken_action == "click":
+                raise RuntimeError("click failed")
+            return super().run_cdp(method, **params)
+
     for action, call in (
         ("back", lambda tab: tab.navigation.back()),
         ("forward", lambda tab: tab.navigation.forward()),
         ("refresh", lambda tab: tab.navigation.refresh()),
-        ("click", lambda tab: tab.interaction.click_coordinates(1, 2)),
+        ("click", lambda tab: tab.pointer.click_at(1, 2)),
         ("resize", lambda tab: tab.page_ops.resize(800, 600)),
     ):
         tab = PageTab(BrokenPage(action), FakeContext())
@@ -927,7 +947,7 @@ async def test_post_action_stabilization_prefers_doc_loaded() -> None:
     tab = PageTab(page, FakeContext())
 
     await tab.navigation.navigate("https://example.test")
-    await tab.interaction.click_coordinates(1, 2)
+    await tab.pointer.click_at(1, 2)
 
     assert page.wait.doc_loaded_calls[0] == {"timeout": 5.0, "raise_err": False}
     assert page.wait.doc_loaded_calls[1] == {"timeout": 1.0, "raise_err": False}
@@ -974,12 +994,12 @@ async def test_post_action_stabilization_falls_back_when_doc_loaded_fails(
     async def fake_sleep(seconds: float) -> None:
         sleeps.append(seconds)
 
-    monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", fake_sleep)
     page = FakePage()
     page.wait = WaitWithFailingDocLoaded()
     tab = PageTab(page, FakeContext())
+    monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", fake_sleep)
 
-    await tab.interaction.click_coordinates(1, 2)
+    await tab.pointer.click_at(1, 2, profile="direct")
 
     assert sleeps == [0.02]
 
@@ -1726,6 +1746,7 @@ def test_page_tab_exposes_capabilities_without_legacy_domain_methods() -> None:
     assert tab.network is not None
     assert tab.observation is not None
     assert tab.page_ops is not None
+    assert tab.pointer is not None
     assert tab.storage is not None
     assert tab.waits is not None
     assert tab.workflows is not None

@@ -165,7 +165,7 @@ The server marks tools with MCP annotations:
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
 | `page_scroll` | Destructive | none | Scroll the page by direction or to a position. Optional: `direction`, `pixels`, `x`, `y`. |
 | `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Optional: `interval`. |
-| `page_click_xy` | Destructive | `x`, `y` | Click page coordinates. Optional: `element` description. |
+| `page_click_xy` | Destructive | `x`, `y` | Move and click at viewport CSS coordinates. Defaults to a natural cubic Bézier pointer profile; optional: `start_x` + `start_y`, `element`, `profile`, and `button`. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |
 

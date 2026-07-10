@@ -62,7 +62,6 @@ class FakeTab:
             shadow_find_all=self.shadow_find_all,
         )
         self.interaction = SimpleNamespace(
-            click_coordinates=self.click,
             scroll_page=self.scroll_page,
             scroll_element_into_view=self.scroll_element_into_view,
             hover_element=self.hover_element,
@@ -92,6 +91,7 @@ class FakeTab:
             evaluate=self.evaluate_script,
         )
         self.page_ops = SimpleNamespace(resize=self.resize, screenshot=self.screenshot)
+        self.pointer = SimpleNamespace(click_at=self.click)
         self.workflows = SimpleNamespace(
             inspect_forms=self.inspect_forms,
             open_and_snapshot=self.open_and_snapshot,
@@ -531,8 +531,22 @@ class FakeTab:
         self._record("network_listen_stop", clear=clear)
         return {"listening": False, "was_listening": True, "cleared": clear}
 
-    async def click(self, x: int, y: int) -> None:
-        self._record("click", x, y)
+    async def click(self, x: float, y: float, **kwargs: Any):
+        self._record("click", x, y, **kwargs)
+        return SimpleNamespace(
+            to_dict=lambda: {
+                "profile": kwargs.get("profile", "natural"),
+                "button": kwargs.get("button", "left"),
+                "start_x": kwargs.get("start_x") or 0.0,
+                "start_y": kwargs.get("start_y") or 0.0,
+                "target_x": x,
+                "target_y": y,
+                "steps": 24,
+                "reaction_delay_ms": 180,
+                "hold_duration_ms": 75,
+                "planned_duration_ms": 620,
+            }
+        )
 
     async def navigate(self, url: str) -> None:
         self._record("navigate", url)
@@ -1135,10 +1149,22 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         common.click_coordinates, ctx, common.ClickCoordinatesInput(x=7, y=9)
     )
     assert click_response.structured_content()["data"] == {
-        "x": 7,
-        "y": 9,
+        "x": 7.0,
+        "y": 9.0,
         "element": "",
         "url": "https://example.test/current",
+        "motion": {
+            "profile": "natural",
+            "button": "left",
+            "start_x": 0.0,
+            "start_y": 0.0,
+            "target_x": 7.0,
+            "target_y": 9.0,
+            "steps": 24,
+            "reaction_delay_ms": 180,
+            "hold_duration_ms": 75,
+            "planned_duration_ms": 620,
+        },
     }
     assert "(7, 9)" in _message(click_response)
     assert click_response.include_snapshot is True

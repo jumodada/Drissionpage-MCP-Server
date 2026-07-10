@@ -23,18 +23,6 @@ class InteractionOperations:
     def _page(self) -> Any:
         return self._tab.page
 
-    async def click_coordinates(self, x: int, y: int) -> None:
-        """Click at viewport coordinates."""
-
-        try:
-            self._page.actions.click((x, y))
-            await self._tab._stabilize(
-                "coordinate_click", timeout=1.0, fallback_sleep=0.02
-            )
-        except Exception as exc:
-            logger.error("Failed to click at (%s, %s): %s", x, y, exc)
-            raise
-
     async def scroll_page(
         self,
         *,

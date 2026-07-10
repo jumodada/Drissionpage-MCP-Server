@@ -1,7 +1,7 @@
 """Common tools for DrissionPage MCP."""
 
-from typing import TYPE_CHECKING, Any
-from pydantic import Field
+from typing import TYPE_CHECKING, Any, Literal
+from pydantic import Field, model_validator
 from ..metadata import with_response_meta
 from ..policy import PolicyDeniedError, validate_screenshot_path
 from ..response_errors import ErrorCode
@@ -103,13 +103,36 @@ class PageEvaluateInput(ToolInput):
 
 
 class ClickCoordinatesInput(ToolInput):
-    """Input schema for clicking at coordinates."""
+    """Input schema for a vision-directed viewport click."""
 
-    x: int = Field(..., description="X coordinate to click")
-    y: int = Field(..., description="Y coordinate to click")
+    x: float = Field(..., ge=0, description="Viewport X coordinate in CSS pixels")
+    y: float = Field(..., ge=0, description="Viewport Y coordinate in CSS pixels")
+    start_x: float | None = Field(
+        default=None, ge=0, description="Optional known pointer start X coordinate"
+    )
+    start_y: float | None = Field(
+        default=None, ge=0, description="Optional known pointer start Y coordinate"
+    )
     element: str = Field(
         "", description="Human-readable element description for permission"
     )
+    profile: Literal["natural", "precise", "direct"] = Field(
+        default="natural",
+        description=(
+            "Pointer movement profile; natural uses 20–35 cubic Bézier steps, "
+            "8–25ms intervals, ±0.5px jitter, 100–300ms reaction delay, and "
+            "50–120ms button hold"
+        ),
+    )
+    button: Literal["left", "right", "middle"] = Field(
+        default="left", description="Mouse button to press and release"
+    )
+
+    @model_validator(mode="after")
+    def _paired_start(self) -> "ClickCoordinatesInput":
+        if (self.start_x is None) != (self.start_y is None):
+            raise ValueError("start_x and start_y must be provided together")
+        return self
 
 
 @define_tool(
@@ -272,7 +295,11 @@ async def page_evaluate(
 @define_tool(
     name="page_click_xy",
     title="Click Coordinates",
-    description="Click at specific coordinates on the page",
+    description=(
+        "Move the viewport pointer to coordinates and click. The natural profile uses "
+        "a cubic Bézier path, smoothstep easing, bounded jitter, reaction delay, and "
+        "realistic button hold time."
+    ),
     input_schema=ClickCoordinatesInput,
     tool_type=ToolType.DESTRUCTIVE,
     output_model=PageClickXYData,
@@ -286,14 +313,22 @@ async def click_coordinates(
     """Click at coordinates."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
-    await tab.interaction.click_coordinates(args.x, args.y)
-    outcome.add_code(f"page.actions.click(({args.x}, {args.y}))")
+    result = await tab.pointer.click_at(
+        args.x,
+        args.y,
+        start_x=args.start_x,
+        start_y=args.start_y,
+        profile=args.profile,
+        button=args.button,
+    )
+    outcome.add_code("page.run_cdp(<pointer move/press/release sequence>)")
     outcome.add_result(
-        f"Successfully clicked at coordinates ({args.x}, {args.y})",
+        f"Successfully clicked at coordinates ({args.x:g}, {args.y:g})",
         x=args.x,
         y=args.y,
         element=args.element,
         url=tab.url,
+        motion=result.to_dict(),
     )
     outcome.set_include_snapshot(True)
     return outcome

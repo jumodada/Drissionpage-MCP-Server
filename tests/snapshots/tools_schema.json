@@ -1612,26 +1612,78 @@
       "readOnlyHint": false,
       "title": "Click Coordinates"
     },
-    "description": "Click at specific coordinates on the page",
+    "description": "Move the viewport pointer to coordinates and click. The natural profile uses a cubic Bézier path, smoothstep easing, bounded jitter, reaction delay, and realistic button hold time.",
     "inputSchema": {
       "additionalProperties": false,
-      "description": "Input schema for clicking at coordinates.",
+      "description": "Input schema for a vision-directed viewport click.",
       "properties": {
+        "button": {
+          "default": "left",
+          "description": "Mouse button to press and release",
+          "enum": [
+            "left",
+            "right",
+            "middle"
+          ],
+          "title": "Button",
+          "type": "string"
+        },
         "element": {
           "default": "",
           "description": "Human-readable element description for permission",
           "title": "Element",
           "type": "string"
         },
+        "profile": {
+          "default": "natural",
+          "description": "Pointer movement profile; natural uses 20–35 cubic Bézier steps, 8–25ms intervals, ±0.5px jitter, 100–300ms reaction delay, and 50–120ms button hold",
+          "enum": [
+            "natural",
+            "precise",
+            "direct"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "start_x": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional known pointer start X coordinate",
+          "title": "Start X"
+        },
+        "start_y": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional known pointer start Y coordinate",
+          "title": "Start Y"
+        },
         "x": {
-          "description": "X coordinate to click",
+          "description": "Viewport X coordinate in CSS pixels",
+          "minimum": 0,
           "title": "X",
-          "type": "integer"
+          "type": "number"
         },
         "y": {
-          "description": "Y coordinate to click",
+          "description": "Viewport Y coordinate in CSS pixels",
+          "minimum": 0,
           "title": "Y",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -1648,11 +1700,85 @@
           "additionalProperties": false,
           "properties": {
             "data": {
+              "$defs": {
+                "PointerMotionData": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "button": {
+                      "enum": [
+                        "left",
+                        "right",
+                        "middle"
+                      ],
+                      "title": "Button",
+                      "type": "string"
+                    },
+                    "hold_duration_ms": {
+                      "title": "Hold Duration Ms",
+                      "type": "integer"
+                    },
+                    "planned_duration_ms": {
+                      "title": "Planned Duration Ms",
+                      "type": "integer"
+                    },
+                    "profile": {
+                      "enum": [
+                        "natural",
+                        "precise",
+                        "direct"
+                      ],
+                      "title": "Profile",
+                      "type": "string"
+                    },
+                    "reaction_delay_ms": {
+                      "title": "Reaction Delay Ms",
+                      "type": "integer"
+                    },
+                    "start_x": {
+                      "title": "Start X",
+                      "type": "number"
+                    },
+                    "start_y": {
+                      "title": "Start Y",
+                      "type": "number"
+                    },
+                    "steps": {
+                      "title": "Steps",
+                      "type": "integer"
+                    },
+                    "target_x": {
+                      "title": "Target X",
+                      "type": "number"
+                    },
+                    "target_y": {
+                      "title": "Target Y",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "profile",
+                    "button",
+                    "start_x",
+                    "start_y",
+                    "target_x",
+                    "target_y",
+                    "steps",
+                    "reaction_delay_ms",
+                    "hold_duration_ms",
+                    "planned_duration_ms"
+                  ],
+                  "title": "PointerMotionData",
+                  "type": "object"
+                }
+              },
               "additionalProperties": false,
               "properties": {
                 "element": {
                   "title": "Element",
                   "type": "string"
+                },
+                "motion": {
+                  "$ref": "#/$defs/PointerMotionData"
                 },
                 "url": {
                   "title": "Url",
@@ -1660,18 +1786,19 @@
                 },
                 "x": {
                   "title": "X",
-                  "type": "integer"
+                  "type": "number"
                 },
                 "y": {
                   "title": "Y",
-                  "type": "integer"
+                  "type": "number"
                 }
               },
               "required": [
                 "x",
                 "y",
                 "element",
-                "url"
+                "url",
+                "motion"
               ],
               "title": "PageClickXYData",
               "type": "object"

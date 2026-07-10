@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-07-10
+
+### Added
+- Natural vision-directed pointer movement for `page_click_xy` with 20–35 cubic Bézier steps, 8–25 ms randomized point intervals, ±0.5 CSS-pixel intermediate jitter, and exact target arrival.
+- Smoothstep ease-in-out sampling (`t*t*(3-2*t)`), 100–300 ms post-arrival reaction delay, and 50–120 ms mouse-button hold timing.
+- `natural`, `precise`, and `direct` pointer profiles.
+- Typed pointer motion metadata in `page_click_xy` results for step count, start/target coordinates, reaction delay, hold duration, and planned duration.
+
+### Changed
+- `page_click_xy` now executes an explicit Chromium CDP pointer move/press/release action chain instead of the former direct coordinate click.
+- Pointer motion is owned by a dedicated per-tab capability; the old interaction-level coordinate-click method was removed without a compatibility wrapper.
+
 ## [0.5.7] - 2026-07-08
 
 ### Changed
@@ -294,7 +306,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.7...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...HEAD
+[0.5.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.7...v0.5.8
 [0.5.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.5...v0.5.6
 [0.5.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.4...v0.5.5
