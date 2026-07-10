@@ -26,6 +26,8 @@ class TestDrissionPageMCPServer:
         assert "page_snapshot" in server.server.instructions
         assert "form_fill_preview" in server.server.instructions
         assert "network_listen_start" in server.server.instructions
+        assert "page_click_xy" in server.server.instructions
+        assert "viewport CSS coordinates" in server.server.instructions
         assert "element_input_text" not in server.server.instructions
 
     def test_server_custom_name_version(self):

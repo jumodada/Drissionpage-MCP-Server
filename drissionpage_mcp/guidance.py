@@ -19,6 +19,7 @@ Compatibility: use {SUPPORTED_DRISSIONPAGE_RANGE}; do not assume DrissionPage 5 
 Default flow: choose the highest-level workflow that matches the task before low-level primitives. Use browser_open_and_snapshot for navigate+inspect, browser_extract_links for link discovery, page_snapshot for more selectors/content, and page_navigate only when you need navigation without an immediate snapshot.
 Forms: use form_inspect, then form_fill_preview; treat requires_confirmation=true as a hard stop before submit and never echo field secrets.
 Network: use network_listen_start before the triggering action, network_listen_wait for bounded HTTP/XHR/Fetch metadata, then network_listen_stop; this is observation only, not interception or request mutation.
+Vision interaction: prefer selectors when reliable; otherwise use a viewport screenshot or page observation, identify viewport CSS coordinates, call page_click_xy with profile=natural, then verify with page_observe, page_screenshot, or element state.
 Safety: respect error.details.hints, navigation policy errors, DP_MCP_SCREENSHOT_ROOT for saved screenshots, and DP_MCP_UPLOAD_ROOT for uploads.
 Responses: prefer structuredContent; otherwise parse the first text block under ### JSON_RESULT. Legacy alias tools are not public."""
 
@@ -37,6 +38,7 @@ def usage_playbook_text(*, task: str = "", version: str = __version__) -> str:
 - For forms, call form_inspect then form_fill_preview. Do not submit until explicit user confirmation; do not echo secrets.
 - For links, use browser_extract_links with bounded limit and same_origin_only when useful.
 - For network observation, call network_listen_start, trigger the page action, call network_listen_wait, then network_listen_stop. This is observation only.
+- For visual controls without reliable selectors, use a viewport page_screenshot or page_observe, identify viewport CSS coordinates, call page_click_xy with profile=natural, then verify the resulting page state. Supply start_x and start_y together only when the pointer origin is known.
 - Prefer structuredContent; otherwise parse ### JSON_RESULT. Follow error.details.hints when tools fail.
 """
 
@@ -78,6 +80,16 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
                 "use_when": "Need to prefill controls without submitting or leaking field values.",
             },
             {
+                "task": "vision_guided_interaction",
+                "preferred_sequence": [
+                    "page_screenshot or page_observe",
+                    "identify viewport CSS coordinates",
+                    "page_click_xy profile=natural",
+                    "page_observe/page_screenshot or element-state verification",
+                ],
+                "use_when": "Need to operate a canvas, chart, map, visual editor, responsive control, or other UI surface without a reliable selector.",
+            },
+            {
                 "task": "network_observation",
                 "preferred_sequence": [
                     "network_listen_start",
@@ -95,12 +107,32 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
             "element_click/element_type or specialized tools",
             "page_observe/page_console_logs for verification",
         ],
+        "vision_interaction": {
+            "flow": [
+                "page_screenshot or page_observe",
+                "identify viewport CSS coordinates",
+                "page_click_xy with profile=natural",
+                "verify resulting page state",
+            ],
+            "coordinate_space": "viewport CSS pixels; account for client-side screenshot scaling before clicking",
+            "boundary": "Prefer reliable selectors when available; use visual coordinates for legitimate UI automation and testing, not as a guaranteed security-challenge completion mechanism.",
+        },
         "forms": {
-            "flow": ["form_inspect", "form_fill_preview", "explicit confirmation", "element_click"],
+            "flow": [
+                "form_inspect",
+                "form_fill_preview",
+                "explicit confirmation",
+                "element_click",
+            ],
             "boundary": "form_fill_preview fills controls but never submits; values are redacted by default.",
         },
         "network": {
-            "flow": ["network_listen_start", "trigger action", "network_listen_wait", "network_listen_stop"],
+            "flow": [
+                "network_listen_start",
+                "trigger action",
+                "network_listen_wait",
+                "network_listen_stop",
+            ],
             "boundary": "observation only for HTTP/XHR/Fetch metadata; no interception, mocking, or request mutation.",
         },
         "response_handling": [
@@ -115,6 +147,7 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
                 "browser_extract_links local fixture",
                 "form_fill_preview no-submit redaction fixture",
                 "network listener local Fetch/XHR fixture",
+                "vision-guided natural pointer click on shared browser fixture",
                 "drissionpage-mcp doctor --launch-browser",
                 "ruff, mypy, full pytest, browser integration, 95% coverage gate",
             ],

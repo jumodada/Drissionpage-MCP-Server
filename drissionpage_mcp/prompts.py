@@ -5,7 +5,13 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from mcp.types import GetPromptResult, Prompt, PromptArgument, PromptMessage, TextContent
+from mcp.types import (
+    GetPromptResult,
+    Prompt,
+    PromptArgument,
+    PromptMessage,
+    TextContent,
+)
 
 from .guidance import MODEL_USAGE_PROMPT_NAME, usage_playbook_text
 
@@ -89,7 +95,9 @@ def _usage_playbook(values: dict[str, str]) -> str:
 
 def _extract_structured_data(values: dict[str, str]) -> str:
     selector_hint = values.get("selector_hint", "")
-    hint_line = f"Selector hint: {selector_hint}" if selector_hint else "Selector hint: none"
+    hint_line = (
+        f"Selector hint: {selector_hint}" if selector_hint else "Selector hint: none"
+    )
     return f"""Extract structured data with DrissionMCP.
 
 Target URL: {values["url"]}
@@ -121,6 +129,24 @@ Steps:
 4. Do not submit, click final confirmation buttons, or trigger destructive actions until
    explicit user confirmation is received.
 5. After filling, summarize what was entered and ask for confirmation before submit.
+"""
+
+
+def _vision_guided_interaction(values: dict[str, str]) -> str:
+    url = values.get("url", "")
+    url_line = f"Target URL: {url}" if url else "Target URL: use the current page"
+    return f"""Operate a visual browser control with DrissionMCP.
+
+{url_line}
+Interaction goal: {values["interaction_goal"]}
+
+Steps:
+1. If a URL is provided, call `browser_open_and_snapshot`; otherwise inspect the current page.
+2. Prefer a reliable selector and `element_click` when semantic DOM or accessibility data is available.
+3. When the target is visual-only, call `page_screenshot` with `full_page=false` or use `page_observe`. Identify the target in viewport CSS coordinates. If the MCP client resized the screenshot, convert image coordinates back to the original viewport coordinate space; use `page_evaluate` to read viewport dimensions when needed.
+4. Call `page_click_xy` with `profile="natural"`, the target `x` and `y`, and a concise `element` description. Supply `start_x` and `start_y` together only when the pointer origin is known.
+5. Verify the result with `page_observe`, a new `page_screenshot`, `element_get_property`, or another bounded state check. Use `wait_until` for dynamic transitions and do not repeat clicks blindly.
+6. Use this workflow for legitimate UI automation, testing, accessibility, and technical research; do not claim guaranteed completion of security or anti-automation challenges.
 """
 
 
@@ -168,7 +194,9 @@ PROMPTS: tuple[PromptSpec, ...] = (
         arguments=(
             _arg("url", "Absolute URL to navigate to.", required=True),
             _arg("schema_description", "Desired JSON schema in prose.", required=True),
-            _arg("selector_hint", "Optional selector to inspect first.", required=False),
+            _arg(
+                "selector_hint", "Optional selector to inspect first.", required=False
+            ),
         ),
         render=_extract_structured_data,
     ),
@@ -179,9 +207,29 @@ PROMPTS: tuple[PromptSpec, ...] = (
         arguments=(
             _arg("url", "Absolute URL containing the form.", required=True),
             _arg("form_goal", "What the form should accomplish.", required=True),
-            _arg("fields_json", "Optional JSON object of field values.", required=False),
+            _arg(
+                "fields_json", "Optional JSON object of field values.", required=False
+            ),
         ),
         render=_fill_form_safely,
+    ),
+    PromptSpec(
+        name="browser_vision_guided_interaction",
+        title="Vision-Guided Interaction",
+        description="Use viewport visual evidence and a natural pointer action chain to operate a control without a reliable selector.",
+        arguments=(
+            _arg(
+                "interaction_goal",
+                "What visual control should be operated and why.",
+                required=True,
+            ),
+            _arg(
+                "url",
+                "Optional absolute URL; omit to use the current page.",
+                required=False,
+            ),
+        ),
+        render=_vision_guided_interaction,
     ),
     PromptSpec(
         name="browser_debug_page_issue",
@@ -189,7 +237,11 @@ PROMPTS: tuple[PromptSpec, ...] = (
         description="Gather page evidence for a browser automation issue.",
         arguments=(
             _arg("url", "Absolute URL to inspect.", required=True),
-            _arg("issue_description", "Observed issue or failing selector.", required=True),
+            _arg(
+                "issue_description",
+                "Observed issue or failing selector.",
+                required=True,
+            ),
         ),
         render=_debug_page_issue,
     ),

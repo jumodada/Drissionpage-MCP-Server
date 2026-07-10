@@ -6,7 +6,11 @@ import json
 from typing import Any
 
 import pytest
-from mcp.types import ListResourcesRequest, ReadResourceRequest, ReadResourceRequestParams
+from mcp.types import (
+    ListResourcesRequest,
+    ReadResourceRequest,
+    ReadResourceRequestParams,
+)
 
 from drissionpage_mcp.resources import (
     PAGE_HTML_EXCERPT_CHARS,
@@ -104,6 +108,8 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert "DrissionPage>=4.1.1.4,<5" in guide_payload["instructions"]
     assert "form_fill_preview" in guide_payload["instructions"]
     assert "network_listen_start" in guide_payload["instructions"]
+    assert "page_click_xy" in guide_payload["instructions"]
+    assert "viewport CSS coordinates" in guide_payload["instructions"]
     assert "observation only" in guide_payload["network"]["boundary"]
     assert guide_payload["tested"]["browser_backed"] is True
     assert "element_input_text" not in json.dumps(guide_payload)
@@ -229,15 +235,19 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert schema_by_name["browser_extract_links"] == "BrowserExtractLinksData"
     assert schema_by_name["form_fill_preview"] == "FormFillPreviewData"
     assert schema_by_name["network_listen_wait"] == "NetworkListenWaitData"
+    assert schema_by_name["page_click_xy"] == "PageClickXYData"
     navigate_tool = payload["tools"][0]
-    assert navigate_tool.items() >= {
-        "name": "page_navigate",
-        "title": "Navigate to URL",
-        "readOnlyHint": False,
-        "destructiveHint": True,
-        "idempotentHint": False,
-        "output_schema": "PageNavigateData",
-    }.items()
+    assert (
+        navigate_tool.items()
+        >= {
+            "name": "page_navigate",
+            "title": "Navigate to URL",
+            "readOnlyHint": False,
+            "destructiveHint": True,
+            "idempotentHint": False,
+            "output_schema": "PageNavigateData",
+        }.items()
+    )
     assert navigate_tool["description"] == "Navigate to a specific URL in the browser"
 
 
@@ -252,13 +262,22 @@ async def test_model_usage_guide_exposes_workflow_first_routes() -> None:
         "browser_open_and_snapshot",
         "page_snapshot",
     ]
-    assert routes["link_discovery"]["preferred_sequence"] == [
-        "browser_extract_links"
-    ]
+    assert routes["link_discovery"]["preferred_sequence"] == ["browser_extract_links"]
     assert routes["safe_form_fill"]["preferred_sequence"][:2] == [
         "form_inspect",
         "form_fill_preview",
     ]
+    assert routes["vision_guided_interaction"]["preferred_sequence"] == [
+        "page_screenshot or page_observe",
+        "identify viewport CSS coordinates",
+        "page_click_xy profile=natural",
+        "page_observe/page_screenshot or element-state verification",
+    ]
+    assert "canvas" in routes["vision_guided_interaction"]["use_when"]
+    assert payload["vision_interaction"]["coordinate_space"].startswith(
+        "viewport CSS pixels"
+    )
+    assert "Prefer reliable selectors" in payload["vision_interaction"]["boundary"]
     assert routes["network_observation"]["preferred_sequence"] == [
         "network_listen_start",
         "trigger action",
@@ -276,10 +295,12 @@ async def test_tools_catalog_exposes_descriptions_for_ai_tool_choice() -> None:
     by_name = {tool["name"]: tool for tool in payload["tools"]}
     assert "Open a URL" in by_name["browser_open_and_snapshot"]["description"]
     assert "bounded snapshot" in by_name["browser_open_and_snapshot"]["description"]
-    assert "Extract bounded link data" in by_name["browser_extract_links"][
-        "description"
-    ]
+    assert (
+        "Extract bounded link data" in by_name["browser_extract_links"]["description"]
+    )
     assert "without submitting" in by_name["form_fill_preview"]["description"]
+    assert "cubic Bézier path" in by_name["page_click_xy"]["description"]
+    assert "reaction delay" in by_name["page_click_xy"]["description"]
     assert "network observation" in by_name["network_listen_start"]["description"]
     assert "does not intercept" in by_name["network_listen_start"]["description"]
 

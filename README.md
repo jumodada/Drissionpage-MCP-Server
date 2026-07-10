@@ -2,20 +2,13 @@
 
 > Professional browser automation for Codex, Claude Code, and MCP clients powered by DrissionPage
 
-[![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/)
-[![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
+[![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/) [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server/branch/main/graph/badge.svg)](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server) [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif" width="662" alt="AI vision-directed natural pointer interaction demo">
   <br>
   <sub><strong>A new interaction layer for multimodal AI</strong> — vision coordinates in, natural pointer action chains out.</sub>
 </p>
-
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server/branch/main/graph/badge.svg)](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server)
-[![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
 **Official Repositories**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
@@ -175,7 +168,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 46 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 52 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -214,7 +207,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_scroll` - Scroll the page by direction or to a position
 - `keyboard_press` - Send keys to the active element/page
 - `page_resize` - Adjust browser window
-- `page_click_xy` - Click by coordinates
+- `page_click_xy` - Convert vision-model viewport coordinates into natural Bézier pointer movement and physically timed clicks
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
 
@@ -242,7 +235,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ### 🧩 MCP Resources and Prompts
 - Resources: `drissionpage://session/summary`, `drissionpage://session/history`, `drissionpage://session/state`, `drissionpage://session/config`, `drissionpage://guide/model-usage`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
-- Prompts: `drissionpage_mcp_usage_playbook`, `browser_navigate_and_summarize`, `browser_extract_structured_data`, `browser_fill_form_safely`, `browser_debug_page_issue`
+- Prompts: `drissionpage_mcp_usage_playbook`, `browser_navigate_and_summarize`, `browser_extract_structured_data`, `browser_fill_form_safely`, `browser_vision_guided_interaction`, `browser_debug_page_issue`
 
 ---
 

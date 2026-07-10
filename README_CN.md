@@ -2,20 +2,13 @@
 
 > 基于 DrissionPage 为 Codex、Claude Code 和 MCP 客户端提供专业的浏览器自动化能力
 
-[![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/)
-[![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp)
+[![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/) [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server/branch/main/graph/badge.svg)](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server) [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif" width="662" alt="AI 视觉识别驱动的自然指针交互演示">
   <br>
   <sub><strong>为多模态 AI 增加全新交互层</strong> — 输入视觉坐标，执行完整自然指针动作链。</sub>
 </p>
-
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server/branch/main/graph/badge.svg)](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server)
-[![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
 **官方仓库**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
@@ -214,7 +207,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_scroll` - 按方向或坐标滚动页面
 - `keyboard_press` - 向当前焦点元素/页面发送键盘输入
 - `page_resize` - 调整浏览器窗口
-- `page_click_xy` - 通过坐标点击
+- `page_click_xy` - 将视觉模型识别出的 viewport 坐标转换为自然贝塞尔指针移动和真实时长点击
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
 
@@ -242,7 +235,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ### 🧩 MCP Resources 和 Prompts
 - Resources：`drissionpage://session/summary`、`drissionpage://session/history`、`drissionpage://session/state`、`drissionpage://session/config`、`drissionpage://guide/model-usage`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
-- Prompts：`drissionpage_mcp_usage_playbook`、`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_fill_form_safely`、`browser_debug_page_issue`
+- Prompts：`drissionpage_mcp_usage_playbook`、`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_fill_form_safely`、`browser_vision_guided_interaction`、`browser_debug_page_issue`
 
 ---
 

@@ -43,6 +43,7 @@ async def test_eval_agent_can_discover_tools_resources_and_prompts() -> None:
     assert "element_input_text" not in tool_names
     assert "drissionpage://tools/catalog" in resource_uris
     assert "browser_extract_structured_data" in prompt_names
+    assert "browser_vision_guided_interaction" in prompt_names
 
 
 @pytest.mark.asyncio

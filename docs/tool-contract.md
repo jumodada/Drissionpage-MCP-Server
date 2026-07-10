@@ -258,6 +258,7 @@ The server exposes user-controlled workflow prompts:
 | `browser_navigate_and_summarize` | Navigate with `browser_open_and_snapshot`, inspect bounded page context, and summarize with source URL. |
 | `browser_extract_structured_data` | Navigate with workflow helpers, inspect bounded text/HTML only as needed, and return schema-shaped JSON. |
 | `browser_fill_form_safely` | Inspect and prefill forms with confirmation guidance before submission. |
+| `browser_vision_guided_interaction` | Use viewport visual evidence, natural `page_click_xy` motion, and bounded verification when a reliable selector is unavailable. |
 | `browser_debug_page_issue` | Gather workflow-first page evidence for debugging. |
 
 ## Compatibility Notes

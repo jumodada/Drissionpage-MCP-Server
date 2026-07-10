@@ -161,6 +161,9 @@ def test_public_guides_advertise_mcp_model_usage_surfaces() -> None:
     assert "drissionpage_mcp_usage_playbook" in readme
     assert "drissionpage_mcp_usage_playbook" in readme_cn
     assert "drissionpage_mcp_usage_playbook" in contract
+    assert "browser_vision_guided_interaction" in readme
+    assert "browser_vision_guided_interaction" in readme_cn
+    assert "browser_vision_guided_interaction" in contract
     assert "MCP-exposed model usage guide" in changelog
     assert not Path("docs/model-usage-skill.md").exists()
     assert not Path("docs/skills").exists()

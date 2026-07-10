@@ -13,6 +13,7 @@ PROMPT_NAMES = [
     "browser_navigate_and_summarize",
     "browser_extract_structured_data",
     "browser_fill_form_safely",
+    "browser_vision_guided_interaction",
     "browser_debug_page_issue",
 ]
 
@@ -55,8 +56,9 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
             "schema_description": "items: list of names",
             "selector_hint": "#items",
             "form_goal": "fill a contact form",
-            "fields_json": "{\"name\":\"Ada\"}",
+            "fields_json": '{"name":"Ada"}',
             "issue_description": "missing button",
+            "interaction_goal": "click a canvas toolbar control identified visually",
             "task": "inspect a page and fill a form without submitting",
         },
     )
@@ -64,7 +66,7 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
     assert result.root.description
     assert len(result.root.messages) == 1
     text = result.root.messages[0].content.text
-    assert "page_navigate" in text
+    assert "page_navigate" in text or "browser_open_and_snapshot" in text
     assert "element_input_text" not in text
     assert "wait_sleep" not in text
     if prompt_name == "drissionpage_mcp_usage_playbook":
@@ -72,10 +74,19 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
         assert "form_fill_preview" in text
         assert "network_listen_start" in text
         assert "observation only" in text.lower()
+        assert "page_click_xy" in text
+        assert "viewport CSS coordinates" in text
+        assert "profile=natural" in text
     if prompt_name == "browser_fill_form_safely":
         assert "form_fill_preview" in text
         assert "confirmation" in text.lower()
         assert "do not submit" in text.lower()
+    if prompt_name == "browser_vision_guided_interaction":
+        assert "page_screenshot" in text
+        assert "viewport CSS coordinates" in text
+        assert "page_click_xy" in text
+        assert 'profile="natural"' in text
+        assert "Verify the result" in text
 
 
 @pytest.mark.asyncio
@@ -118,6 +129,29 @@ async def test_prompts_prefer_workflow_helpers_for_common_ai_sequences() -> None
     assert "browser_open_and_snapshot" in debug_text
     assert "page_snapshot" in debug_text
     assert "error.details.hints" in debug_text
+
+
+@pytest.mark.asyncio
+async def test_vision_prompt_prefers_selectors_then_natural_pointer_and_verification() -> (
+    None
+):
+    server = DrissionPageMCPServer()
+
+    result = await _get_prompt(
+        server,
+        "browser_vision_guided_interaction",
+        {
+            "url": "https://example.test/editor",
+            "interaction_goal": "activate the visually identified canvas tool",
+        },
+    )
+    text = result.root.messages[0].content.text
+
+    assert text.index("element_click") < text.index("page_screenshot")
+    assert text.index("page_screenshot") < text.index("page_click_xy")
+    assert text.index("page_click_xy") < text.index("Verify the result")
+    assert "start_x" in text and "start_y" in text
+    assert "do not repeat clicks blindly" in text
 
 
 @pytest.mark.asyncio
