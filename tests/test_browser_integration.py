@@ -131,6 +131,48 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
         )
         assert checked_payload["data"]["result"] is True
 
+        _content, drag_fixture = await _execute_tool(
+            server,
+            "page_evaluate",
+            {
+                "script": """
+                const source = document.createElement('div');
+                source.id = 'mcp-drag-source';
+                source.style.cssText = 'position:fixed;left:80px;top:80px;width:40px;height:40px;background:red;z-index:2147483647';
+                document.body.appendChild(source);
+                window.__mcpDragEvents = [];
+                source.addEventListener('mousedown', event => window.__mcpDragEvents.push({type: event.type, x: event.clientX, y: event.clientY}));
+                document.addEventListener('mousemove', event => { if (event.buttons) window.__mcpDragEvents.push({type: event.type, buttons: event.buttons}); });
+                document.addEventListener('mouseup', event => window.__mcpDragEvents.push({type: event.type, x: event.clientX, y: event.clientY}));
+                return true;
+                """
+            },
+        )
+        assert drag_fixture["data"]["result"] is True
+        _content, drag_payload = await _execute_tool(
+            server,
+            "page_pointer_drag",
+            {
+                "start_x": 100,
+                "start_y": 100,
+                "end_x": 260,
+                "end_y": 180,
+                "profile": "direct",
+                "element": "integration drag fixture",
+            },
+        )
+        assert drag_payload["ok"] is True
+        assert drag_payload["data"]["motion"]["drag_steps"] == 1
+        _content, drag_events = await _execute_tool(
+            server,
+            "page_evaluate",
+            {"script": "return window.__mcpDragEvents;"},
+        )
+        event_types = [event["type"] for event in drag_events["data"]["result"]]
+        assert event_types[0] == "mousedown"
+        assert "mousemove" in event_types
+        assert event_types[-1] == "mouseup"
+
         navigate = await _execute_tool_text(
             server, "page_navigate", {"url": _site_url(base_url, "/cases/locators")}
         )

@@ -14,6 +14,8 @@ from ..tool_outputs import (
     PageSnapshotData,
     PageObservation,
     PageEvaluateData,
+    PagePointerMoveData,
+    PagePointerDragData,
     PageClickXYData,
     PageCloseData,
     PageGetUrlData,
@@ -102,8 +104,8 @@ class PageEvaluateInput(ToolInput):
     )
 
 
-class ClickCoordinatesInput(ToolInput):
-    """Input schema for a vision-directed viewport click."""
+class PointerCoordinatesInput(ToolInput):
+    """Shared input schema for vision-directed viewport pointer movement."""
 
     x: float = Field(..., ge=0, description="Viewport X coordinate in CSS pixels")
     y: float = Field(..., ge=0, description="Viewport Y coordinate in CSS pixels")
@@ -124,15 +126,39 @@ class ClickCoordinatesInput(ToolInput):
             "50–120ms button hold"
         ),
     )
-    button: Literal["left", "right", "middle"] = Field(
-        default="left", description="Mouse button to press and release"
-    )
 
     @model_validator(mode="after")
-    def _paired_start(self) -> "ClickCoordinatesInput":
+    def _paired_start(self) -> "PointerCoordinatesInput":
         if (self.start_x is None) != (self.start_y is None):
             raise ValueError("start_x and start_y must be provided together")
         return self
+
+
+class PointerDragInput(ToolInput):
+    """Input schema for one failure-safe viewport drag action."""
+
+    start_x: float = Field(..., ge=0, description="Viewport drag start X in CSS pixels")
+    start_y: float = Field(..., ge=0, description="Viewport drag start Y in CSS pixels")
+    end_x: float = Field(..., ge=0, description="Viewport drag end X in CSS pixels")
+    end_y: float = Field(..., ge=0, description="Viewport drag end Y in CSS pixels")
+    element: str = Field(
+        "", description="Human-readable draggable element or interaction description"
+    )
+    profile: Literal["natural", "precise", "direct"] = Field(
+        default="natural",
+        description="Pointer movement profile applied to approach and held-button drag paths",
+    )
+    button: Literal["left", "right", "middle"] = Field(
+        default="left", description="Mouse button held during the drag"
+    )
+
+
+class ClickCoordinatesInput(PointerCoordinatesInput):
+    """Input schema for a vision-directed viewport click."""
+
+    button: Literal["left", "right", "middle"] = Field(
+        default="left", description="Mouse button to press and release"
+    )
 
 
 @define_tool(
@@ -289,6 +315,90 @@ async def page_evaluate(
     )
     outcome.add_code("page.run_js(<bounded user JavaScript>)")
     outcome.add_result("Evaluated JavaScript", **result)
+    return outcome
+
+
+@define_tool(
+    name="page_pointer_move",
+    title="Move Pointer to Coordinates",
+    description=(
+        "Move the viewport pointer along the selected Bézier/eased profile without "
+        "clicking, for visual hover, reveal, canvas, and inspection workflows."
+    ),
+    input_schema=PointerCoordinatesInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    output_model=PagePointerMoveData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to move pointer to ({args.x}, {args.y}): {e}"
+    )(exc),
+)
+async def pointer_move(
+    context: "DrissionPageContext", args: PointerCoordinatesInput
+) -> "ToolOutcome":
+    """Move the pointer to viewport coordinates without pressing a button."""
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.pointer.move_to(
+        args.x,
+        args.y,
+        start_x=args.start_x,
+        start_y=args.start_y,
+        profile=args.profile,
+    )
+    outcome.add_code("page.run_cdp(<pointer move sequence>)")
+    outcome.add_result(
+        f"Successfully moved pointer to coordinates ({args.x:g}, {args.y:g})",
+        x=args.x,
+        y=args.y,
+        element=args.element,
+        url=tab.url,
+        motion=result.to_dict(),
+    )
+    outcome.set_include_snapshot(True)
+    return outcome
+
+
+@define_tool(
+    name="page_pointer_drag",
+    title="Drag Pointer Between Coordinates",
+    description=(
+        "Perform one failure-safe viewport drag: move naturally to the start, press, "
+        "drag with the button held, pause, and always release at the end."
+    ),
+    input_schema=PointerDragInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    output_model=PagePointerDragData,
+    failure_message=lambda args, exc: (
+        lambda e: f"Failed to drag from ({args.start_x}, {args.start_y}) to "
+        f"({args.end_x}, {args.end_y}): {e}"
+    )(exc),
+)
+async def pointer_drag(
+    context: "DrissionPageContext", args: PointerDragInput
+) -> "ToolOutcome":
+    """Drag between viewport coordinates without exposing persistent button state."""
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.pointer.drag_to(
+        args.start_x,
+        args.start_y,
+        args.end_x,
+        args.end_y,
+        profile=args.profile,
+        button=args.button,
+    )
+    outcome.add_code("page.run_cdp(<pointer move/press/held-move/release sequence>)")
+    outcome.add_result(
+        "Successfully completed pointer drag",
+        start_x=args.start_x,
+        start_y=args.start_y,
+        end_x=args.end_x,
+        end_y=args.end_y,
+        element=args.element,
+        url=tab.url,
+        motion=result.to_dict(),
+    )
+    outcome.set_include_snapshot(True)
     return outcome
 
 

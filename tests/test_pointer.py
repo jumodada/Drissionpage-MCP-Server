@@ -94,6 +94,28 @@ class FakeTab:
 
 
 @pytest.mark.asyncio
+async def test_pointer_move_dispatches_only_natural_motion() -> None:
+    tab = FakeTab()
+    sleeps: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    pointer = PointerOperations(tab, rng=random.Random(7), sleep=fake_sleep)
+    result = await pointer.move_to(442, 369, profile="natural")
+
+    event_types = [params["type"] for _, params in tab.page.events]
+    assert event_types == ["mouseMoved"] * result.steps
+    assert 20 <= result.steps <= 35
+    assert result.profile == "natural"
+    assert result.target == Point(442, 369)
+    assert result.planned_duration_ms == round(sum(sleeps) * 1000)
+    assert tab.page.actions.curr_x == 442
+    assert tab.page.actions.curr_y == 369
+    assert tab.stabilized == ["pointer_move"]
+
+
+@pytest.mark.asyncio
 async def test_pointer_click_dispatches_move_reaction_press_hold_release() -> None:
     tab = FakeTab()
     sleeps: list[float] = []
@@ -237,4 +259,57 @@ async def test_pointer_button_events_expose_cdp_pressed_state(
     await pointer.click_at(150, 160, profile="direct", button=button)
 
     assert tab.page.events[-2][1]["buttons"] == bit
+    assert tab.page.events[-1][1]["buttons"] == 0
+
+
+@pytest.mark.asyncio
+async def test_pointer_drag_moves_to_start_then_drags_with_pressed_button() -> None:
+    tab = FakeTab()
+    sleeps: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    pointer = PointerOperations(tab, rng=random.Random(31), sleep=fake_sleep)
+    result = await pointer.drag_to(180, 190, 420, 360, profile="natural")
+
+    events = [params for _, params in tab.page.events]
+    types = [params["type"] for params in events]
+    press_index = types.index("mousePressed")
+    release_index = types.index("mouseReleased")
+    assert types[:press_index] == ["mouseMoved"] * result.approach_steps
+    assert types[press_index + 1 : release_index] == ["mouseMoved"] * result.drag_steps
+    assert all(params["buttons"] == 0 for params in events[:press_index])
+    assert events[press_index]["buttons"] == 1
+    assert all(
+        params["buttons"] == 1 for params in events[press_index + 1 : release_index]
+    )
+    assert events[release_index]["buttons"] == 0
+    assert events[press_index]["x"] == 180
+    assert events[press_index]["y"] == 190
+    assert events[release_index]["x"] == 420
+    assert events[release_index]["y"] == 360
+    assert result.start == Point(180, 190)
+    assert result.target == Point(420, 360)
+    assert tab.stabilized == ["pointer_drag"]
+    assert result.planned_duration_ms == round(sum(sleeps) * 1000)
+
+
+@pytest.mark.asyncio
+async def test_pointer_drag_releases_button_when_drag_motion_is_interrupted() -> None:
+    tab = FakeTab()
+
+    async def interrupted_sleep(_seconds: float) -> None:
+        if any(params.get("type") == "mousePressed" for _, params in tab.page.events):
+            raise RuntimeError("cancelled during drag")
+
+    pointer = PointerOperations(tab, rng=random.Random(37), sleep=interrupted_sleep)
+
+    with pytest.raises(RuntimeError, match="cancelled during drag"):
+        await pointer.drag_to(180, 190, 420, 360, profile="natural")
+
+    assert [params["type"] for _, params in tab.page.events][-2:] == [
+        "mousePressed",
+        "mouseReleased",
+    ]
     assert tab.page.events[-1][1]["buttons"] == 0

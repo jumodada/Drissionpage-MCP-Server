@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.5.8."""
+"""Release metadata and documentation checks for 0.5.9."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ import drissionpage_mcp
 def test_package_version_metadata_is_0_5_8() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.8"
-    assert drissionpage_mcp.__version__ == "0.5.8"
+    assert pyproject["project"]["version"] == "0.5.9"
+    assert drissionpage_mcp.__version__ == "0.5.9"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -38,111 +38,34 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "browser_navigate_and_summarize" in contract
 
 
-def test_readmes_end_with_latest_0_5_8_feature_summary() -> None:
+def test_readmes_end_with_latest_0_5_9_feature_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
 
-    assert "## 🆕 Latest Version: v0.5.8" in readme
-    assert "Released on 2026-07-10" in readme
     asset_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif"
-    assert asset_url in readme
-    assert asset_url in readme_cn
-    assert "## 🖱️ Vision-Guided Human–Computer Interaction" in readme
-    assert "One MCP call connects visual understanding" in readme
-    assert "20–35 cubic Bézier movement steps" in readme
-    assert "Security or anti-automation challenge completion" in readme
-    assert "## 🖱️ 视觉驱动的人机交互" in readme_cn
-    assert "一次 MCP 调用即可连接视觉理解" in readme_cn
-    assert "20–35 个三次贝塞尔移动点" in readme_cn
-    assert "安全验证或反自动化挑战" in readme_cn
-    assert "20–35 cubic Bézier movement steps" in readme
-    assert "100–300 ms after arrival" in readme
-    assert "50–120 ms" in readme
-    assert "20–35 个三次贝塞尔移动点" in readme_cn
-    assert "到位后停顿 100–300ms" in readme_cn
-    assert "50–120ms" in readme_cn
-    assert "workflow-first" in readme
-    assert "workflow_routes" in readme
-    assert "drissionpage://tools/catalog" in readme
-    assert "structuredContent" in readme
-    assert "public registry stays at 52 tools" in readme
-    assert "tab_list" in readme
-    assert "drissionpage://session/history" in readme
-    assert "meta.approx_tokens" in readme
-    assert "form_inspect" in readme
-    assert "error.details.hints" in readme
-    assert "page_snapshot" in readme
-    assert "element_find_all" in readme
-    assert "52 tools" in readme
-    assert "page_observe" in readme
-    assert "page_console_logs" in readme
-    assert "console_errors_added" in readme
-    assert "page_evaluate" in readme
-    assert "wait_until" in readme
-    assert "element_upload_file" in readme
-    assert "DP_MCP_UPLOAD_ROOT" in readme
-    assert "frame_snapshot" in readme
-    assert "shadow_find_all" in readme
-    assert "browser_cookies_get" in readme
-    assert "storage_set" in readme
-    assert "drissionpage://session/state" in readme
-    assert "DrissionPage 5.x" in readme
-    assert "drissionpage-mcp doctor --launch-browser" in readme
-    assert "browser_open_and_snapshot" in readme
-    assert "browser_extract_links" in readme
-    assert "form_fill_preview" in readme
-    assert "network_listen_start" in readme
-    assert "network_listen_wait" in readme
-    assert "drissionpage://session/config" in readme
-    assert "MCP_ARGUMENT_INVALID" in readme
-    assert "Chrome sandbox remains enabled by default" in readme
-    assert "restricted container/root environments" in readme
-    assert "## 🆕 最新版本：v0.5.8" in readme_cn
-    assert "发布日期：2026-07-10" in readme_cn
-    assert "workflow-first" in readme_cn
-    assert "workflow_routes" in readme_cn
-    assert "drissionpage://tools/catalog" in readme_cn
-    assert "structuredContent" in readme_cn
-    assert "公开工具数仍为 52 个" in readme_cn
-    assert "tab_list" in readme_cn
-    assert "drissionpage://session/history" in readme_cn
-    assert "meta.approx_tokens" in readme_cn
-    assert "form_inspect" in readme_cn
-    assert "error.details.hints" in readme_cn
-    assert "page_snapshot" in readme_cn
-    assert "element_find_all" in readme_cn
-    assert "52 个" in readme_cn
-    assert "page_observe" in readme_cn
-    assert "page_console_logs" in readme_cn
-    assert "console_errors_added" in readme_cn
-    assert "page_evaluate" in readme_cn
-    assert "wait_until" in readme_cn
-    assert "element_upload_file" in readme_cn
-    assert "DP_MCP_UPLOAD_ROOT" in readme_cn
-    assert "frame_snapshot" in readme_cn
-    assert "shadow_find_all" in readme_cn
-    assert "browser_cookies_get" in readme_cn
-    assert "storage_set" in readme_cn
-    assert "drissionpage://session/state" in readme_cn
-    assert "DrissionPage 5.x" in readme_cn
-    assert "drissionpage-mcp doctor --launch-browser" in readme_cn
-    assert "browser_open_and_snapshot" in readme_cn
-    assert "browser_extract_links" in readme_cn
-    assert "form_fill_preview" in readme_cn
-    assert "network_listen_start" in readme_cn
-    assert "network_listen_wait" in readme_cn
-    assert "drissionpage://session/config" in readme_cn
-    assert "MCP_ARGUMENT_INVALID" in readme_cn
-    assert "默认保持 Chrome sandbox 开启" in readme_cn
-    assert "受限容器/root 环境" in readme_cn
-    assert "## [0.5.8] - 2026-07-10" in changelog
+    assert asset_url in readme and asset_url in readme_cn
+    assert "## 🆕 Latest Version: v0.5.9" in readme
+    assert "Released on 2026-07-12" in readme
+    assert "page_pointer_move" in readme
+    assert "page_pointer_drag" in readme
+    assert "failure-safe" in readme
+    assert "public registry now contains 54 tools" in readme
+    assert "## 🆕 最新版本：v0.5.9" in readme_cn
+    assert "发布日期：2026-07-12" in readme_cn
+    assert "page_pointer_move" in readme_cn
+    assert "page_pointer_drag" in readme_cn
+    assert "失败安全" in readme_cn
+    assert "公开工具数增加到 54 个" in readme_cn
+    assert "## [0.5.9] - 2026-07-12" in changelog
+    assert "Added `page_pointer_move`" in changelog
+    assert "Added `page_pointer_drag`" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...HEAD"
         in changelog
     )
     assert (
-        "[0.5.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.7...v0.5.8"
+        "[0.5.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...v0.5.9"
         in changelog
     )
 

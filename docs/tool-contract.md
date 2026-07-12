@@ -165,6 +165,8 @@ The server marks tools with MCP annotations:
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
 | `page_scroll` | Destructive | none | Scroll the page by direction or to a position. Optional: `direction`, `pixels`, `x`, `y`. |
 | `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Optional: `interval`. |
+| `page_pointer_move` | Destructive | `x`, `y` | Move along the selected natural/precise/direct viewport path without pressing a button. Optional: `start_x` + `start_y`, `element`, `profile`. |
+| `page_pointer_drag` | Destructive | `start_x`, `start_y`, `end_x`, `end_y` | Perform one failure-safe natural drag. Optional: `element`, `profile`, `button`. |
 | `page_click_xy` | Destructive | `x`, `y` | Move and click at viewport CSS coordinates. Defaults to a natural cubic Bézier pointer profile; optional: `start_x` + `start_y`, `element`, `profile`, and `button`. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |
@@ -258,7 +260,7 @@ The server exposes user-controlled workflow prompts:
 | `browser_navigate_and_summarize` | Navigate with `browser_open_and_snapshot`, inspect bounded page context, and summarize with source URL. |
 | `browser_extract_structured_data` | Navigate with workflow helpers, inspect bounded text/HTML only as needed, and return schema-shaped JSON. |
 | `browser_fill_form_safely` | Inspect and prefill forms with confirmation guidance before submission. |
-| `browser_vision_guided_interaction` | Use viewport visual evidence, natural `page_click_xy` motion, and bounded verification when a reliable selector is unavailable. |
+| `browser_vision_guided_interaction` | Teach selector-first visual interaction, viewport screenshot coordinate mapping, `natural`/`precise`/`direct` profile choice, bounded verification, and stale-coordinate recovery. |
 | `browser_debug_page_issue` | Gather workflow-first page evidence for debugging. |
 
 ## Compatibility Notes

@@ -99,8 +99,17 @@ class PageEvaluateData(ToolData):
     max_chars: int
 
 
-class PointerMotionData(ToolData):
+class PointerMoveData(ToolData):
     profile: Literal["natural", "precise", "direct"]
+    start_x: float
+    start_y: float
+    target_x: float
+    target_y: float
+    steps: int
+    planned_duration_ms: int
+
+
+class PointerMotionData(PointerMoveData):
     button: Literal["left", "right", "middle"]
     start_x: float
     start_y: float
@@ -110,6 +119,38 @@ class PointerMotionData(ToolData):
     reaction_delay_ms: int
     hold_duration_ms: int
     planned_duration_ms: int
+
+
+class PagePointerMoveData(ToolData):
+    x: float
+    y: float
+    element: str
+    url: str
+    motion: PointerMoveData
+
+
+class PointerDragData(ToolData):
+    profile: Literal["natural", "precise", "direct"]
+    button: Literal["left", "right", "middle"]
+    start_x: float
+    start_y: float
+    target_x: float
+    target_y: float
+    approach_steps: int
+    drag_steps: int
+    press_delay_ms: int
+    release_delay_ms: int
+    planned_duration_ms: int
+
+
+class PagePointerDragData(ToolData):
+    start_x: float
+    start_y: float
+    end_x: float
+    end_y: float
+    element: str
+    url: str
+    motion: PointerDragData
 
 
 class PageClickXYData(ToolData):

@@ -283,7 +283,7 @@ def recovery_hints(
             ),
             _hint(
                 "inspect_tools_catalog",
-                "Read drissionpage://tools/catalog or tools/list before retrying so the next call uses the public tool schema.",
+                "Read drissionpage://tools/catalog for compact required/default field guidance or tools/list for the complete JSON Schema before retrying.",
             ),
         ]
 

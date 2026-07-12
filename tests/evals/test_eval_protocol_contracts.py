@@ -86,3 +86,55 @@ async def test_eval_tools_catalog_and_prompt_help_structured_extraction() -> Non
     )
     assert "element_get_html" in prompt_text
     assert "rows: list of {name, role}" in prompt_text
+
+
+@pytest.mark.asyncio
+async def test_eval_vision_prompt_teaches_selector_first_coordinate_mapping_and_recovery() -> (
+    None
+):
+    server = DrissionPageMCPServer()
+
+    guide_result = await server.server.request_handlers[ReadResourceRequest](
+        ReadResourceRequest(
+            method="resources/read",
+            params=ReadResourceRequestParams(uri="drissionpage://guide/model-usage"),
+        )
+    )
+    prompt_result = await server.server.request_handlers[GetPromptRequest](
+        GetPromptRequest(
+            method="prompts/get",
+            params=GetPromptRequestParams(
+                name="browser_vision_guided_interaction",
+                arguments={
+                    "interaction_goal": "activate a visually identified canvas tool",
+                    "verification_goal": "the tool options panel becomes visible",
+                },
+            ),
+        )
+    )
+
+    guide = json.loads(guide_result.root.contents[0].text)
+    prompt_text = prompt_result.root.messages[0].content.text
+    route = next(
+        route
+        for route in guide["workflow_routes"]
+        if route["task"] == "vision_guided_interaction"
+    )
+
+    assert route["preferred_sequence"][0].startswith("prefer element_find")
+    assert route["preferred_sequence"][1] == "page_screenshot full_page=false"
+    assert guide["vision_interaction"]["coordinate_contract"]["accepted"] == (
+        "viewport CSS pixels"
+    )
+    assert set(guide["vision_interaction"]["profiles"]) == {
+        "natural",
+        "precise",
+        "direct",
+    }
+    assert prompt_text.index("element_click") < prompt_text.index("page_screenshot")
+    assert prompt_text.index("page_screenshot") < prompt_text.index("page_pointer_move")
+    assert prompt_text.index("page_pointer_move") < prompt_text.index("page_click_xy")
+    assert "page_pointer_drag" in prompt_text
+    assert "viewport_x = image_x * viewport_width / image_width" in prompt_text
+    assert "Verify before retrying" in prompt_text
+    assert "Do not repeat stale coordinate actions blindly" in prompt_text

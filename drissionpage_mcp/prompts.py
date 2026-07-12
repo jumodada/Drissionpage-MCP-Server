@@ -109,8 +109,8 @@ Steps:
 2. Inspect with `page_snapshot`; use `element_get_html` only when structure matters.
 3. If a selector is provided, use `element_find` before extraction; use
    `page_navigate` only for a deliberate navigation-only retry.
-4. Return only JSON matching the requested schema and include no unsupported fields.
-5. Do not use destructive tools for this read-only extraction task.
+4. Navigation is the only destructive setup step allowed for this extraction task. After the page is open, use read-only inspection tools and do not click, type, submit, or mutate page state.
+5. Return only JSON matching the requested schema and include no unsupported fields.
 """
 
 
@@ -134,19 +134,34 @@ Steps:
 
 def _vision_guided_interaction(values: dict[str, str]) -> str:
     url = values.get("url", "")
+    verification_goal = values.get("verification_goal", "")
     url_line = f"Target URL: {url}" if url else "Target URL: use the current page"
+    verification_line = (
+        f"Verification goal: {verification_goal}"
+        if verification_goal
+        else "Verification goal: infer the smallest observable state change that proves success"
+    )
     return f"""Operate a visual browser control with DrissionMCP.
 
 {url_line}
 Interaction goal: {values["interaction_goal"]}
+{verification_line}
 
-Steps:
+Decision sequence:
 1. If a URL is provided, call `browser_open_and_snapshot`; otherwise inspect the current page.
-2. Prefer a reliable selector and `element_click` when semantic DOM or accessibility data is available.
-3. When the target is visual-only, call `page_screenshot` with `full_page=false` or use `page_observe`. Identify the target in viewport CSS coordinates. If the MCP client resized the screenshot, convert image coordinates back to the original viewport coordinate space; use `page_evaluate` to read viewport dimensions when needed.
-4. Call `page_click_xy` with `profile="natural"`, the target `x` and `y`, and a concise `element` description. Supply `start_x` and `start_y` together only when the pointer origin is known.
-5. Verify the result with `page_observe`, a new `page_screenshot`, `element_get_property`, or another bounded state check. Use `wait_until` for dynamic transitions and do not repeat clicks blindly.
-6. Use this workflow for legitimate UI automation, testing, accessibility, and technical research; do not claim guaranteed completion of security or anti-automation challenges.
+2. Prefer semantic interaction: if `page_snapshot`, `element_find`, or accessibility-backed data exposes a reliable target, use `element_click` and skip coordinate interaction.
+3. Use vision only when no reliable selector exists. Call `page_screenshot` with `full_page=false`; pointer coordinate tools accept viewport CSS pixels, not full-page document coordinates, device pixels, or coordinates copied from a resized image without conversion.
+4. If the MCP host resized the screenshot, call `page_evaluate` to read `window.innerWidth` and `window.innerHeight`, then map image coordinates back to the original viewport:
+   `viewport_x = image_x * viewport_width / image_width`
+   `viewport_y = image_y * viewport_height / image_height`.
+5. Choose the pointer profile:
+   - `natural`: default for ordinary vision-guided UI clicks.
+   - `precise`: small or tightly packed ordinary controls where reduced jitter is preferable.
+   - `direct`: only when immediate deterministic movement is explicitly required.
+6. Choose the action by intent: call `page_pointer_move` to hover or reveal content without activation; call `page_click_xy` when activation requires a click; call `page_pointer_drag` for one visually identified start-to-end drag. Keep drag press/move/release in that single failure-safe call instead of emulating persistent button state. Pass viewport coordinates, chosen `profile`, and a concise `element` description. Supply `start_x` and `start_y` together only when the pointer origin is known; otherwise omit both.
+7. Verify before retrying. Prefer `element_get_property`/`element_get_text` when a selector becomes available, `wait_until` for dynamic conditions, `page_observe` for bounded state changes, or a fresh `page_screenshot` for visual-only confirmation.
+8. If verification fails, re-observe the page. For a moved target, take a fresh viewport screenshot and compute new coordinates. For an offset action, check screenshot scaling, viewport dimensions, zoom, and `full_page`. Do not repeat stale coordinate actions blindly.
+9. Use this workflow for legitimate UI automation, testing, accessibility, and technical research; do not claim guaranteed completion of security or anti-automation challenges.
 """
 
 
@@ -222,6 +237,11 @@ PROMPTS: tuple[PromptSpec, ...] = (
                 "interaction_goal",
                 "What visual control should be operated and why.",
                 required=True,
+            ),
+            _arg(
+                "verification_goal",
+                "Optional observable state that proves the interaction succeeded.",
+                required=False,
             ),
             _arg(
                 "url",

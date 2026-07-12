@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.9] - 2026-07-12
+
+### Added
+- Added `page_pointer_move` for natural viewport movement without clicking.
+- Added `page_pointer_drag` for one failure-safe natural drag with held-button CDP movement and guaranteed release cleanup.
+- Added compact tool input guidance for required/optional fields, defaults, enums, bounds, types, and descriptions.
+
+### Changed
+- Model-facing MCP instructions, resources, and prompts now teach selector-first move/click/drag selection, viewport coordinate mapping, bounded verification, and stale-coordinate recovery.
+- Pointer move, click, and drag share the same motion planner and immutable action sequence; the public registry now exposes 54 tools.
+- Structured extraction guidance now allows navigation as the sole destructive setup step and keeps extraction read-only afterward.
+
 ## [0.5.8] - 2026-07-10
 
 ### Added
@@ -306,7 +318,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...HEAD
+[0.5.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...v0.5.9
 [0.5.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.7...v0.5.8
 [0.5.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.6...v0.5.7
 [0.5.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.5...v0.5.6

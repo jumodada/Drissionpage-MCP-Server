@@ -104,12 +104,15 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert config_payload["environment"]["browser_path"]["value"] == ""
     assert config_payload["policy"]["profile"] == "restricted"
     assert guide_payload["available"] is True
-    assert guide_payload["version"] == "0.5.8"
+    assert guide_payload["version"] == "0.5.9"
     assert "DrissionPage>=4.1.1.4,<5" in guide_payload["instructions"]
     assert "form_fill_preview" in guide_payload["instructions"]
     assert "network_listen_start" in guide_payload["instructions"]
     assert "page_click_xy" in guide_payload["instructions"]
     assert "viewport CSS coordinates" in guide_payload["instructions"]
+    assert "full_page=false" in guide_payload["instructions"]
+    assert "precise" in guide_payload["instructions"]
+    assert "stale coordinate actions" in guide_payload["instructions"]
     assert "observation only" in guide_payload["network"]["boundary"]
     assert guide_payload["tested"]["browser_backed"] is True
     assert "element_input_text" not in json.dumps(guide_payload)
@@ -195,8 +198,9 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
 
     payload = await _read_json(server, "drissionpage://tools/catalog")
 
+    assert "tools/list" in payload["schema_source"]
     names = [tool["name"] for tool in payload["tools"]]
-    assert len(names) == 52
+    assert len(names) == 54
     assert names == list(server.tools.keys())
     assert "page_snapshot" in names
     assert "page_observe" in names
@@ -235,6 +239,8 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert schema_by_name["browser_extract_links"] == "BrowserExtractLinksData"
     assert schema_by_name["form_fill_preview"] == "FormFillPreviewData"
     assert schema_by_name["network_listen_wait"] == "NetworkListenWaitData"
+    assert schema_by_name["page_pointer_move"] == "PagePointerMoveData"
+    assert schema_by_name["page_pointer_drag"] == "PagePointerDragData"
     assert schema_by_name["page_click_xy"] == "PageClickXYData"
     navigate_tool = payload["tools"][0]
     assert (
@@ -268,16 +274,38 @@ async def test_model_usage_guide_exposes_workflow_first_routes() -> None:
         "form_fill_preview",
     ]
     assert routes["vision_guided_interaction"]["preferred_sequence"] == [
-        "page_screenshot or page_observe",
-        "identify viewport CSS coordinates",
-        "page_click_xy profile=natural",
-        "page_observe/page_screenshot or element-state verification",
+        "prefer element_find/element_click when reliable",
+        "page_screenshot full_page=false",
+        "identify and map viewport CSS coordinates",
+        "page_pointer_move, page_click_xy, or page_pointer_drag by interaction intent",
+        "bounded state verification",
     ]
     assert "canvas" in routes["vision_guided_interaction"]["use_when"]
-    assert payload["vision_interaction"]["coordinate_space"].startswith(
-        "viewport CSS pixels"
+    vision = payload["vision_interaction"]
+    assert vision["coordinate_contract"]["accepted"] == "viewport CSS pixels"
+    assert (
+        "full-page document coordinates"
+        in vision["coordinate_contract"]["not_accepted_directly"]
     )
-    assert "Prefer reliable selectors" in payload["vision_interaction"]["boundary"]
+    assert "window.innerWidth" in vision["coordinate_contract"]["mapping_hint"]
+    assert set(vision["profiles"]) == {"natural", "precise", "direct"}
+    assert "must be supplied together" in vision["start_coordinate_rule"]
+    assert any("do not repeat" in rule for rule in vision["decision_rules"])
+    assert any("stale coordinates" in rule for rule in vision["recovery"])
+    assert "security or anti-automation" in vision["boundary"]
+    assert payload["discovery"]["workflow_guide"] == (
+        "drissionpage://guide/model-usage"
+    )
+    assert payload["discovery"]["compact_tool_contracts"] == (
+        "drissionpage://tools/catalog"
+    )
+    assert payload["discovery"]["complete_tool_schemas"] == "tools/list"
+    assert payload["recovery_loop"] == [
+        "Inspect structuredContent.error.",
+        "Follow the first actionable error.details.hints entry.",
+        "Retry only after corrected input or changed page evidence.",
+        "Stop and report the blocker when the same failure repeats.",
+    ]
     assert routes["network_observation"]["preferred_sequence"] == [
         "network_listen_start",
         "trigger action",
@@ -299,10 +327,29 @@ async def test_tools_catalog_exposes_descriptions_for_ai_tool_choice() -> None:
         "Extract bounded link data" in by_name["browser_extract_links"]["description"]
     )
     assert "without submitting" in by_name["form_fill_preview"]["description"]
+    assert "without clicking" in by_name["page_pointer_move"]["description"]
+    assert "drag" in by_name["page_pointer_drag"]["description"].lower()
     assert "cubic Bézier path" in by_name["page_click_xy"]["description"]
     assert "reaction delay" in by_name["page_click_xy"]["description"]
     assert "network observation" in by_name["network_listen_start"]["description"]
     assert "does not intercept" in by_name["network_listen_start"]["description"]
+
+    click = by_name["page_click_xy"]
+    assert click["required_input"] == ["x", "y"]
+    assert {"start_x", "start_y", "profile", "button", "element"} <= set(
+        click["optional_input"]
+    )
+    assert click["input_fields"]["profile"]["default"] == "natural"
+    assert click["input_fields"]["profile"]["enum"] == [
+        "natural",
+        "precise",
+        "direct",
+    ]
+    assert "viewport" in click["input_fields"]["x"]["description"].lower()
+
+    assert by_name["browser_open_and_snapshot"]["required_input"] == ["url"]
+    assert by_name["form_fill_preview"]["required_input"] == ["fields"]
+    assert by_name["network_listen_start"]["required_input"] == []
 
 
 @pytest.mark.asyncio

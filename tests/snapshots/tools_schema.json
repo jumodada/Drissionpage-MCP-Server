@@ -1610,6 +1610,494 @@
       "idempotentHint": false,
       "openWorldHint": true,
       "readOnlyHint": false,
+      "title": "Move Pointer to Coordinates"
+    },
+    "description": "Move the viewport pointer along the selected Bézier/eased profile without clicking, for visual hover, reveal, canvas, and inspection workflows.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Shared input schema for vision-directed viewport pointer movement.",
+      "properties": {
+        "element": {
+          "default": "",
+          "description": "Human-readable element description for permission",
+          "title": "Element",
+          "type": "string"
+        },
+        "profile": {
+          "default": "natural",
+          "description": "Pointer movement profile; natural uses 20–35 cubic Bézier steps, 8–25ms intervals, ±0.5px jitter, 100–300ms reaction delay, and 50–120ms button hold",
+          "enum": [
+            "natural",
+            "precise",
+            "direct"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "start_x": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional known pointer start X coordinate",
+          "title": "Start X"
+        },
+        "start_y": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional known pointer start Y coordinate",
+          "title": "Start Y"
+        },
+        "x": {
+          "description": "Viewport X coordinate in CSS pixels",
+          "minimum": 0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "description": "Viewport Y coordinate in CSS pixels",
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y"
+      ],
+      "title": "PointerCoordinatesInput",
+      "type": "object"
+    },
+    "name": "page_pointer_move",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "$defs": {
+                "PointerMoveData": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "planned_duration_ms": {
+                      "title": "Planned Duration Ms",
+                      "type": "integer"
+                    },
+                    "profile": {
+                      "enum": [
+                        "natural",
+                        "precise",
+                        "direct"
+                      ],
+                      "title": "Profile",
+                      "type": "string"
+                    },
+                    "start_x": {
+                      "title": "Start X",
+                      "type": "number"
+                    },
+                    "start_y": {
+                      "title": "Start Y",
+                      "type": "number"
+                    },
+                    "steps": {
+                      "title": "Steps",
+                      "type": "integer"
+                    },
+                    "target_x": {
+                      "title": "Target X",
+                      "type": "number"
+                    },
+                    "target_y": {
+                      "title": "Target Y",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "profile",
+                    "start_x",
+                    "start_y",
+                    "target_x",
+                    "target_y",
+                    "steps",
+                    "planned_duration_ms"
+                  ],
+                  "title": "PointerMoveData",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "element": {
+                  "title": "Element",
+                  "type": "string"
+                },
+                "motion": {
+                  "$ref": "#/$defs/PointerMoveData"
+                },
+                "url": {
+                  "title": "Url",
+                  "type": "string"
+                },
+                "x": {
+                  "title": "X",
+                  "type": "number"
+                },
+                "y": {
+                  "title": "Y",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "element",
+                "url",
+                "motion"
+              ],
+              "title": "PagePointerMoveData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Move Pointer to Coordinates"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Drag Pointer Between Coordinates"
+    },
+    "description": "Perform one failure-safe viewport drag: move naturally to the start, press, drag with the button held, pause, and always release at the end.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for one failure-safe viewport drag action.",
+      "properties": {
+        "button": {
+          "default": "left",
+          "description": "Mouse button held during the drag",
+          "enum": [
+            "left",
+            "right",
+            "middle"
+          ],
+          "title": "Button",
+          "type": "string"
+        },
+        "element": {
+          "default": "",
+          "description": "Human-readable draggable element or interaction description",
+          "title": "Element",
+          "type": "string"
+        },
+        "end_x": {
+          "description": "Viewport drag end X in CSS pixels",
+          "minimum": 0,
+          "title": "End X",
+          "type": "number"
+        },
+        "end_y": {
+          "description": "Viewport drag end Y in CSS pixels",
+          "minimum": 0,
+          "title": "End Y",
+          "type": "number"
+        },
+        "profile": {
+          "default": "natural",
+          "description": "Pointer movement profile applied to approach and held-button drag paths",
+          "enum": [
+            "natural",
+            "precise",
+            "direct"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "start_x": {
+          "description": "Viewport drag start X in CSS pixels",
+          "minimum": 0,
+          "title": "Start X",
+          "type": "number"
+        },
+        "start_y": {
+          "description": "Viewport drag start Y in CSS pixels",
+          "minimum": 0,
+          "title": "Start Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start_x",
+        "start_y",
+        "end_x",
+        "end_y"
+      ],
+      "title": "PointerDragInput",
+      "type": "object"
+    },
+    "name": "page_pointer_drag",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "$defs": {
+                "PointerDragData": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "approach_steps": {
+                      "title": "Approach Steps",
+                      "type": "integer"
+                    },
+                    "button": {
+                      "enum": [
+                        "left",
+                        "right",
+                        "middle"
+                      ],
+                      "title": "Button",
+                      "type": "string"
+                    },
+                    "drag_steps": {
+                      "title": "Drag Steps",
+                      "type": "integer"
+                    },
+                    "planned_duration_ms": {
+                      "title": "Planned Duration Ms",
+                      "type": "integer"
+                    },
+                    "press_delay_ms": {
+                      "title": "Press Delay Ms",
+                      "type": "integer"
+                    },
+                    "profile": {
+                      "enum": [
+                        "natural",
+                        "precise",
+                        "direct"
+                      ],
+                      "title": "Profile",
+                      "type": "string"
+                    },
+                    "release_delay_ms": {
+                      "title": "Release Delay Ms",
+                      "type": "integer"
+                    },
+                    "start_x": {
+                      "title": "Start X",
+                      "type": "number"
+                    },
+                    "start_y": {
+                      "title": "Start Y",
+                      "type": "number"
+                    },
+                    "target_x": {
+                      "title": "Target X",
+                      "type": "number"
+                    },
+                    "target_y": {
+                      "title": "Target Y",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "profile",
+                    "button",
+                    "start_x",
+                    "start_y",
+                    "target_x",
+                    "target_y",
+                    "approach_steps",
+                    "drag_steps",
+                    "press_delay_ms",
+                    "release_delay_ms",
+                    "planned_duration_ms"
+                  ],
+                  "title": "PointerDragData",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "element": {
+                  "title": "Element",
+                  "type": "string"
+                },
+                "end_x": {
+                  "title": "End X",
+                  "type": "number"
+                },
+                "end_y": {
+                  "title": "End Y",
+                  "type": "number"
+                },
+                "motion": {
+                  "$ref": "#/$defs/PointerDragData"
+                },
+                "start_x": {
+                  "title": "Start X",
+                  "type": "number"
+                },
+                "start_y": {
+                  "title": "Start Y",
+                  "type": "number"
+                },
+                "url": {
+                  "title": "Url",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "start_x",
+                "start_y",
+                "end_x",
+                "end_y",
+                "element",
+                "url",
+                "motion"
+              ],
+              "title": "PagePointerDragData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Drag Pointer Between Coordinates"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
       "title": "Click Coordinates"
     },
     "description": "Move the viewport pointer to coordinates and click. The natural profile uses a cubic Bézier path, smoothstep easing, bounded jitter, reaction delay, and realistic button hold time.",
@@ -1757,15 +2245,15 @@
                   },
                   "required": [
                     "profile",
-                    "button",
                     "start_x",
                     "start_y",
                     "target_x",
                     "target_y",
                     "steps",
+                    "planned_duration_ms",
+                    "button",
                     "reaction_delay_ms",
-                    "hold_duration_ms",
-                    "planned_duration_ms"
+                    "hold_duration_ms"
                   ],
                   "title": "PointerMotionData",
                   "type": "object"

@@ -273,10 +273,14 @@ def _empty_session_state(
 
 
 def tools_catalog(tools: Mapping[str, ToolSpec]) -> dict[str, Any]:
-    """Return public tools with annotations and schema names."""
+    """Return public tools with annotations and compact input contracts."""
 
-    return {
-        "tools": [
+    catalog: list[dict[str, Any]] = []
+    for tool in tools.values():
+        schema = tool.input_schema.model_json_schema()
+        required = set(schema.get("required", []))
+        properties = schema.get("properties", {})
+        catalog.append(
             {
                 "name": tool.name,
                 "title": tool.title,
@@ -284,11 +288,35 @@ def tools_catalog(tools: Mapping[str, ToolSpec]) -> dict[str, Any]:
                 "readOnlyHint": tool.tool_type == ToolType.READ_ONLY,
                 "destructiveHint": tool.tool_type == ToolType.DESTRUCTIVE,
                 "idempotentHint": tool.idempotent,
+                "required_input": sorted(required),
+                "optional_input": sorted(set(properties) - required),
+                "input_fields": {
+                    name: _compact_input_field(field)
+                    for name, field in properties.items()
+                },
                 "output_schema": tool.output_model.__name__,
             }
-            for tool in tools.values()
-        ]
+        )
+    return {
+        "schema_source": "Use tools/list for the complete JSON Schema; this catalog provides compact required/default/description guidance for recovery and tool choice.",
+        "tools": catalog,
     }
+
+
+def _compact_input_field(field: Any) -> dict[str, Any]:
+    """Keep model-facing catalog fields useful without duplicating full schemas."""
+
+    if not isinstance(field, dict):
+        return {}
+    compact: dict[str, Any] = {}
+    for key in ("description", "default", "enum", "minimum", "maximum"):
+        if key in field:
+            compact[key] = field[key]
+    if "type" in field:
+        compact["type"] = field["type"]
+    elif "anyOf" in field:
+        compact["type"] = [item.get("type", "object") for item in field["anyOf"]]
+    return compact
 
 
 def _json_resource(payload: dict[str, Any]) -> str:

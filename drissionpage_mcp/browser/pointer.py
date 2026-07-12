@@ -8,7 +8,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Literal
 
-from .motion import MotionConfig, MotionPlanner, Point
+from .motion import MotionConfig, MotionPlan, MotionPlanner, Point
 
 if TYPE_CHECKING:
     from ..tab import PageTab
@@ -50,8 +50,60 @@ class PointerSequence:
 
 
 @dataclass(frozen=True, slots=True)
+class PointerMoveResult:
+    """Observable movement metadata returned to MCP tools."""
+
+    profile: PointerProfile
+    start: Point
+    target: Point
+    steps: int
+    planned_duration_ms: int
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "profile": self.profile,
+            "start_x": self.start.x,
+            "start_y": self.start.y,
+            "target_x": self.target.x,
+            "target_y": self.target.y,
+            "steps": self.steps,
+            "planned_duration_ms": self.planned_duration_ms,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class PointerDragResult:
+    """Observable drag metadata returned to the MCP tool."""
+
+    profile: PointerProfile
+    button: PointerButton
+    start: Point
+    target: Point
+    approach_steps: int
+    drag_steps: int
+    press_delay_ms: int
+    release_delay_ms: int
+    planned_duration_ms: int
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "profile": self.profile,
+            "button": self.button,
+            "start_x": self.start.x,
+            "start_y": self.start.y,
+            "target_x": self.target.x,
+            "target_y": self.target.y,
+            "approach_steps": self.approach_steps,
+            "drag_steps": self.drag_steps,
+            "press_delay_ms": self.press_delay_ms,
+            "release_delay_ms": self.release_delay_ms,
+            "planned_duration_ms": self.planned_duration_ms,
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class PointerClickResult:
-    """Observable execution metadata returned to the MCP tool."""
+    """Observable click metadata returned to the MCP tool."""
 
     profile: PointerProfile
     button: PointerButton
@@ -132,6 +184,79 @@ class PointerOperations:
         self._sleep = sleep or asyncio.sleep
         self._planner = MotionPlanner(self._rng)
 
+    async def move_to(
+        self,
+        x: float,
+        y: float,
+        *,
+        start_x: float | None = None,
+        start_y: float | None = None,
+        profile: PointerProfile = "natural",
+    ) -> PointerMoveResult:
+        start, target, plan = self._plan_move(
+            x, y, start_x=start_x, start_y=start_y, profile=profile
+        )
+        await self.execute(
+            PointerSequence(
+                actions=tuple(MoveAction(step.point, step.delay) for step in plan.steps)
+            )
+        )
+        await self._tab._stabilize("pointer_move", timeout=1.0, fallback_sleep=0.02)
+        return PointerMoveResult(
+            profile=profile,
+            start=start,
+            target=target,
+            steps=len(plan.steps),
+            planned_duration_ms=round(sum(step.delay for step in plan.steps) * 1000),
+        )
+
+    async def drag_to(
+        self,
+        start_x: float,
+        start_y: float,
+        end_x: float,
+        end_y: float,
+        *,
+        profile: PointerProfile = "natural",
+        button: PointerButton = "left",
+    ) -> PointerDragResult:
+        current, start, approach = self._plan_move(
+            start_x, start_y, start_x=None, start_y=None, profile=profile
+        )
+        if end_x < 0 or end_y < 0:
+            raise ValueError("target coordinates cannot be negative")
+        target = Point(float(end_x), float(end_y))
+        config, reaction, hold = _PROFILES[profile]
+        drag = self._planner.plan(start, target, config)
+        press_delay = self._rng.uniform(*reaction)
+        release_delay = self._rng.uniform(*hold)
+        sequence = PointerSequence(
+            actions=(
+                *(MoveAction(step.point, step.delay) for step in approach.steps),
+                PauseAction(press_delay),
+                PressAction(button),
+                *(MoveAction(step.point, step.delay) for step in drag.steps),
+                PauseAction(release_delay),
+                ReleaseAction(button),
+            )
+        )
+        await self.execute(sequence)
+        await self._tab._stabilize("pointer_drag", timeout=1.0, fallback_sleep=0.02)
+        planned_duration = sum(step.delay for step in approach.steps)
+        planned_duration += sum(step.delay for step in drag.steps)
+        planned_duration += press_delay + release_delay
+        return PointerDragResult(
+            profile=profile,
+            button=button,
+            start=start,
+            target=target,
+            approach_steps=len(approach.steps),
+            drag_steps=len(drag.steps),
+            press_delay_ms=round(press_delay * 1000),
+            release_delay_ms=round(release_delay * 1000),
+            planned_duration_ms=round(planned_duration * 1000),
+        )
+
     async def click_at(
         self,
         x: float,
@@ -142,25 +267,10 @@ class PointerOperations:
         profile: PointerProfile = "natural",
         button: PointerButton = "left",
     ) -> PointerClickResult:
-        if (start_x is None) != (start_y is None):
-            raise ValueError("start_x and start_y must be provided together")
-        if x < 0 or y < 0:
-            raise ValueError("target coordinates cannot be negative")
-
-        actions = self._page.actions
-        current = Point(float(actions.curr_x), float(actions.curr_y))
-        start = (
-            Point(float(start_x), float(start_y))
-            if start_x is not None and start_y is not None
-            else current
+        start, target, plan = self._plan_move(
+            x, y, start_x=start_x, start_y=start_y, profile=profile
         )
-        target = Point(float(x), float(y))
-        config, reaction, hold = _PROFILES[profile]
-
-        if start != current:
-            self._dispatch_move(start)
-
-        plan = self._planner.plan(start, target, config)
+        _, reaction, hold = _PROFILES[profile]
         reaction_seconds = self._rng.uniform(*reaction)
         hold_seconds = self._rng.uniform(*hold)
         sequence = PointerSequence(
@@ -187,6 +297,33 @@ class PointerOperations:
             planned_duration_ms=round(planned_duration * 1000),
         )
 
+    def _plan_move(
+        self,
+        x: float,
+        y: float,
+        *,
+        start_x: float | None,
+        start_y: float | None,
+        profile: PointerProfile,
+    ) -> tuple[Point, Point, MotionPlan]:
+        if (start_x is None) != (start_y is None):
+            raise ValueError("start_x and start_y must be provided together")
+        if x < 0 or y < 0:
+            raise ValueError("target coordinates cannot be negative")
+
+        actions = self._page.actions
+        current = Point(float(actions.curr_x), float(actions.curr_y))
+        start = (
+            Point(float(start_x), float(start_y))
+            if start_x is not None and start_y is not None
+            else current
+        )
+        target = Point(float(x), float(y))
+        config, _, _ = _PROFILES[profile]
+        if start != current:
+            self._dispatch_move(start)
+        return start, target, self._planner.plan(start, target, config)
+
     async def execute(self, sequence: PointerSequence) -> None:
         pressed: PointerButton | None = None
         try:
@@ -194,7 +331,7 @@ class PointerOperations:
                 if isinstance(action, MoveAction):
                     if action.delay:
                         await self._sleep(action.delay)
-                    self._dispatch_move(action.point)
+                    self._dispatch_move(action.point, pressed)
                 elif isinstance(action, PauseAction):
                     if action.duration:
                         await self._sleep(action.duration)
@@ -212,13 +349,15 @@ class PointerOperations:
     def _page(self):
         return self._tab.page
 
-    def _dispatch_move(self, point: Point) -> None:
+    def _dispatch_move(
+        self, point: Point, pressed: PointerButton | None = None
+    ) -> None:
         actions = self._page.actions
         self._page.run_cdp(
             "Input.dispatchMouseEvent",
             type="mouseMoved",
-            button="none",
-            buttons=0,
+            button=pressed or "none",
+            buttons=_BUTTON_BITS[pressed] if pressed is not None else 0,
             x=point.x,
             y=point.y,
             modifiers=int(getattr(actions, "modifier", 0)),

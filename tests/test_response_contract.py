@@ -133,7 +133,12 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
         "tool": "browser_open_and_snapshot",
     }
     assert argument_hints[0]["action"] == "check_input_schema"
-    assert any((hint["action"] == "inspect_tools_catalog" for hint in argument_hints))
+    catalog_hint = next(
+        hint for hint in argument_hints if hint["action"] == "inspect_tools_catalog"
+    )
+    assert "compact required/default field guidance" in catalog_hint["message"]
+    assert "tools/list" in catalog_hint["message"]
+    assert "complete JSON Schema" in catalog_hint["message"]
     assert not_found_hints[0]["action"] == "list_available_tools"
     assert any((hint["action"] == "read_model_usage_guide" for hint in not_found_hints))
     assert any(

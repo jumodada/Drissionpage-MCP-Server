@@ -33,6 +33,8 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     common.page_snapshot,
     common.page_observe,
     common.page_evaluate,
+    common.pointer_move,
+    common.pointer_drag,
     common.click_coordinates,
     common.close,
     common.get_url,
