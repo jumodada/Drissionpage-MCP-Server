@@ -173,6 +173,14 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/slider":
+            self._send_html(_slider_host_html())
+            return
+
+        if path == "/slider-frame":
+            self._send_html(_slider_frame_html())
+            return
+
         if path == "/storage":
             self._send_html(
                 """
@@ -369,7 +377,6 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
-
         if path == "/link-heavy":
             links = "\n".join(
                 f'<a class="story" href="/story/{index}">Story {index}</a>'
@@ -488,7 +495,9 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/echo.json":
-            self._send_json({"ok": True, "method": "GET", "query": parse_qs(parsed.query)})
+            self._send_json(
+                {"ok": True, "method": "GET", "query": parse_qs(parsed.query)}
+            )
             return
 
         if path == "/redirect":
@@ -541,7 +550,9 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
 
     def _send_json(self, payload: dict, status: int = 200) -> None:
         body = json.dumps(payload).encode("utf-8")
-        self._send_bytes(body, status=status, content_type="application/json; charset=utf-8")
+        self._send_bytes(
+            body, status=status, content_type="application/json; charset=utf-8"
+        )
 
     def _send_text(self, text: str, status: int = 200) -> None:
         self._send_bytes(
@@ -580,6 +591,221 @@ def _dedent_html(html: str) -> str:
     indents = [len(line) - len(line.lstrip()) for line in lines if line.strip()]
     prefix = min(indents) if indents else 0
     return "\n".join(line[prefix:] for line in lines) + "\n"
+
+
+def _slider_host_html() -> str:
+    """Return a deterministic slider page spanning iframe and nested open Shadow DOM."""
+
+    return """
+    <!doctype html>
+    <html>
+      <head>
+        <title>Fixture Slider</title>
+        <style>
+          html, body { margin: 0; padding: 0; }
+          body { min-height: 700px; font-family: sans-serif; }
+          iframe { position: fixed; left: 40px; top: 40px; width: 440px; height: 180px; border: 0; }
+          #shadow-slider-host { position: fixed; left: 40px; top: 280px; width: 440px; height: 180px; }
+        </style>
+      </head>
+      <body>
+        <iframe id="slider-frame" src="/slider-frame" title="Slider iframe"></iframe>
+        <div id="shadow-slider-host"></div>
+        <script>
+          const outerHost = document.getElementById('shadow-slider-host');
+          const outerRoot = outerHost.attachShadow({mode: 'open'});
+          outerRoot.innerHTML = '<div id="nested-slider-host"></div>';
+          const nestedHost = outerRoot.querySelector('#nested-slider-host');
+          const root = nestedHost.attachShadow({mode: 'open'});
+          root.innerHTML = `
+            <style>
+              :host { display: block; width: 440px; height: 180px; }
+              .challenge { width: 400px; padding: 20px; background: #f6f7f9; }
+              .track { position: relative; width: 320px; height: 18px; margin-top: 24px; background: #d8dde6; border-radius: 9px; }
+              .knob { position: absolute; left: 0; top: -9px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: #2563eb; cursor: grab; }
+              .knob:active { cursor: grabbing; }
+            </style>
+            <section class="challenge" data-slider-context="shadow">
+              <strong>Nested Shadow DOM slider verification fixture</strong>
+              <div class="track" id="shadow-track"><button class="knob" id="shadow-knob" aria-label="Drag slider"></button></div>
+              <output id="shadow-status">pending</output>
+            </section>`;
+          window.__shadowSlider = installSlider(root, 'shadow');
+
+          function installSlider(root, label) {
+            const track = root.querySelector('.track');
+            const knob = root.querySelector('.knob');
+            const status = root.querySelector('output');
+            const state = {label, dragging: false, grabOffset: 0, samples: [], accepted: false};
+            const record = event => state.samples.push({
+              type: event.type,
+              x: event.clientX,
+              y: event.clientY,
+              buttons: event.buttons,
+              time: performance.now(),
+              trusted: event.isTrusted,
+              path: event.composedPath().map(node => node.id || node.tagName || '').filter(Boolean).slice(0, 10)
+            });
+            knob.addEventListener('mousedown', event => {
+              record(event);
+              state.dragging = true;
+              state.grabOffset = event.clientX - knob.getBoundingClientRect().left;
+            });
+            window.addEventListener('mousemove', event => {
+              if (!state.dragging) return;
+              record(event);
+              const rect = track.getBoundingClientRect();
+              const max = rect.width - knob.offsetWidth;
+              const left = Math.max(0, Math.min(max, event.clientX - rect.left - state.grabOffset));
+              knob.style.left = `${left}px`;
+            });
+            window.addEventListener('mouseup', event => {
+              if (!state.dragging) return;
+              record(event);
+              state.dragging = false;
+              state.metrics = classify(state.samples, track, knob);
+              state.accepted = state.metrics.accepted;
+              status.textContent = state.accepted ? 'passed' : 'rejected';
+            });
+            return state;
+          }
+
+          function classify(samples, track, knob) {
+            const down = samples.filter(item => item.type === 'mousedown');
+            const allMoves = samples.filter(item => item.type === 'mousemove');
+            const moves = allMoves.filter(item => item.buttons === 1);
+            const up = samples.filter(item => item.type === 'mouseup');
+            const deltas = moves.slice(1).map((item, index) => ({
+              dx: Math.abs(item.x - moves[index].x),
+              dt: item.time - moves[index].time
+            }));
+            const third = Math.max(2, Math.floor(deltas.length / 3));
+            const mean = values => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+            const spatial = deltas.map(item => item.dx);
+            const intervals = deltas.map(item => item.dt);
+            const firstMean = mean(spatial.slice(0, Math.min(3, spatial.length)));
+            const middleMean = mean(spatial.slice(third, third * 2));
+            const lastMean = mean(spatial.slice(-Math.min(3, spatial.length)));
+            const rollingMeans = spatial.slice(0, -2).map((_, index) => mean(spatial.slice(index, index + 3)));
+            const peakMean = rollingMeans.length ? Math.max(...rollingMeans) : 0;
+            const trackRect = track.getBoundingClientRect();
+            const knobRect = knob.getBoundingClientRect();
+            const maxTravel = trackRect.width - knobRect.width;
+            const finalProgress = maxTravel ? (knobRect.left - trackRect.left) / maxTravel : 0;
+            const yValues = moves.map(item => item.y);
+            const durationMs = down.length && up.length ? up[0].time - down[0].time : 0;
+            const intervalSpreadMs = intervals.length ? Math.max(...intervals) - Math.min(...intervals) : 0;
+            const maxStepPx = spatial.length ? Math.max(...spatial) : Infinity;
+            const eased = peakMean > firstMean * 1.20 && peakMean > lastMean * 1.20;
+            const accepted = down.length === 1 && up.length === 1 && moves.length >= 20 &&
+              samples.every(item => item.trusted) && moves.every(item => item.buttons === 1) &&
+              finalProgress >= 0.985 && durationMs >= 180 && durationMs <= 2500 &&
+              intervalSpreadMs >= 3 && maxStepPx <= 40 && eased;
+            return {
+              accepted, downCount: down.length, moveCount: moves.length, unheldMoveCount: allMoves.length - moves.length, upCount: up.length,
+              allTrusted: samples.every(item => item.trusted), heldMoves: moves.every(item => item.buttons === 1),
+              finalProgress, durationMs, intervalSpreadMs, maxStepPx, firstMean, middleMean, lastMean, peakMean,
+              eased, yRange: yValues.length ? Math.max(...yValues) - Math.min(...yValues) : 0
+            };
+          }
+        </script>
+      </body>
+    </html>
+    """
+
+
+def _slider_frame_html() -> str:
+    """Return the same-origin iframe half of the deterministic slider fixture."""
+
+    return """
+    <!doctype html>
+    <html>
+      <head>
+        <title>Fixture Slider Frame</title>
+        <style>
+          html, body { margin: 0; padding: 0; font-family: sans-serif; }
+          .challenge { width: 400px; padding: 20px; background: #f6f7f9; }
+          .track { position: relative; width: 320px; height: 18px; margin-top: 24px; background: #d8dde6; border-radius: 9px; }
+          .knob { position: absolute; left: 0; top: -9px; width: 36px; height: 36px; border: 0; border-radius: 50%; background: #16a34a; cursor: grab; }
+          .knob:active { cursor: grabbing; }
+        </style>
+      </head>
+      <body>
+        <section class="challenge" data-slider-context="iframe">
+          <strong>Same-origin iframe slider verification fixture</strong>
+          <div class="track" id="frame-track"><button class="knob" id="frame-knob" aria-label="Drag slider"></button></div>
+          <output id="frame-status">pending</output>
+        </section>
+        <script>
+          const track = document.getElementById('frame-track');
+          const knob = document.getElementById('frame-knob');
+          const status = document.getElementById('frame-status');
+          const state = window.__frameSlider = {dragging: false, grabOffset: 0, samples: [], accepted: false};
+          const record = event => state.samples.push({
+            type: event.type, x: event.clientX, y: event.clientY, buttons: event.buttons,
+            time: performance.now(), trusted: event.isTrusted,
+            path: event.composedPath().map(node => node.id || node.tagName || '').filter(Boolean).slice(0, 10)
+          });
+          knob.addEventListener('mousedown', event => {
+            record(event);
+            state.dragging = true;
+            state.grabOffset = event.clientX - knob.getBoundingClientRect().left;
+          });
+          window.addEventListener('mousemove', event => {
+            if (!state.dragging) return;
+            record(event);
+            const rect = track.getBoundingClientRect();
+            const max = rect.width - knob.offsetWidth;
+            const left = Math.max(0, Math.min(max, event.clientX - rect.left - state.grabOffset));
+            knob.style.left = `${left}px`;
+          });
+          window.addEventListener('mouseup', event => {
+            if (!state.dragging) return;
+            record(event);
+            state.dragging = false;
+            state.metrics = classify(state.samples);
+            state.accepted = state.metrics.accepted;
+            status.textContent = state.accepted ? 'passed' : 'rejected';
+          });
+          function classify(samples) {
+            const down = samples.filter(item => item.type === 'mousedown');
+            const allMoves = samples.filter(item => item.type === 'mousemove');
+            const moves = allMoves.filter(item => item.buttons === 1);
+            const up = samples.filter(item => item.type === 'mouseup');
+            const deltas = moves.slice(1).map((item, index) => ({dx: Math.abs(item.x - moves[index].x), dt: item.time - moves[index].time}));
+            const third = Math.max(2, Math.floor(deltas.length / 3));
+            const mean = values => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+            const spatial = deltas.map(item => item.dx);
+            const intervals = deltas.map(item => item.dt);
+            const firstMean = mean(spatial.slice(0, Math.min(3, spatial.length)));
+            const middleMean = mean(spatial.slice(third, third * 2));
+            const lastMean = mean(spatial.slice(-Math.min(3, spatial.length)));
+            const rollingMeans = spatial.slice(0, -2).map((_, index) => mean(spatial.slice(index, index + 3)));
+            const peakMean = rollingMeans.length ? Math.max(...rollingMeans) : 0;
+            const trackRect = track.getBoundingClientRect();
+            const knobRect = knob.getBoundingClientRect();
+            const maxTravel = trackRect.width - knobRect.width;
+            const finalProgress = maxTravel ? (knobRect.left - trackRect.left) / maxTravel : 0;
+            const yValues = moves.map(item => item.y);
+            const durationMs = down.length && up.length ? up[0].time - down[0].time : 0;
+            const intervalSpreadMs = intervals.length ? Math.max(...intervals) - Math.min(...intervals) : 0;
+            const maxStepPx = spatial.length ? Math.max(...spatial) : Infinity;
+            const eased = peakMean > firstMean * 1.20 && peakMean > lastMean * 1.20;
+            const accepted = down.length === 1 && up.length === 1 && moves.length >= 20 &&
+              samples.every(item => item.trusted) && moves.every(item => item.buttons === 1) &&
+              finalProgress >= 0.985 && durationMs >= 180 && durationMs <= 2500 &&
+              intervalSpreadMs >= 3 && maxStepPx <= 40 && eased;
+            return {
+              accepted, downCount: down.length, moveCount: moves.length, unheldMoveCount: allMoves.length - moves.length, upCount: up.length,
+              allTrusted: samples.every(item => item.trusted), heldMoves: moves.every(item => item.buttons === 1),
+              finalProgress, durationMs, intervalSpreadMs, maxStepPx, firstMean, middleMean, lastMean, peakMean,
+              eased, yRange: yValues.length ? Math.max(...yValues) - Math.min(...yValues) : 0
+            };
+          }
+        </script>
+      </body>
+    </html>
+    """
 
 
 def _escape_html(value: str) -> str:

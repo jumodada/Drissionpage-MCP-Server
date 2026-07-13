@@ -43,6 +43,8 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "Upload Workflow" in _read(base_url + "/upload")[1]
         assert "Interaction Workflow" in _read(base_url + "/interactions")[1]
         assert "shadow-host" in _read(base_url + "/shadow")[1]
+        assert "Slider iframe" in _read(base_url + "/slider")[1]
+        assert "Same-origin iframe slider" in _read(base_url + "/slider-frame")[1]
         assert "Storage Workflow" in _read(base_url + "/storage")[1]
         assert "Links Workflow" in _read(base_url + "/links")[1]
         assert "Workflow Form" in _read(base_url + "/workflow-form")[1]
@@ -271,6 +273,164 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             assert metadata["height"] > 0
             closed = await _execute_tool_text(server, "page_close", {})
             assert "Successfully closed browser" in closed
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("context", ["iframe", "shadow"])
+async def test_natural_drag_passes_strict_slider_fixture_in_embedded_context(
+    context: str,
+) -> None:
+    """passes a trajectory-sensitive slider inside iframe and nested open Shadow DOM."""
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/slider"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            assert "Successfully navigated" in navigate
+            await _execute_tool(server, "page_resize", {"width": 800, "height": 700})
+
+            if context == "iframe":
+                coordinate_script = """
+                    const frame = document.querySelector('#slider-frame');
+                    const frameRect = frame.getBoundingClientRect();
+                    const doc = frame.contentDocument;
+                    const knob = doc.querySelector('#frame-knob').getBoundingClientRect();
+                    const track = doc.querySelector('#frame-track').getBoundingClientRect();
+                    return {
+                      start_x: frameRect.left + knob.left + knob.width / 2,
+                      start_y: frameRect.top + knob.top + knob.height / 2,
+                      end_x: frameRect.left + track.right - knob.width / 2,
+                      end_y: frameRect.top + knob.top + knob.height / 2
+                    };
+                """
+                result_script = """
+                    const state = document.querySelector('#slider-frame').contentWindow.__frameSlider;
+                    return {accepted: state.accepted, dragging: state.dragging, metrics: state.metrics, samples: state.samples};
+                """
+            else:
+                coordinate_script = """
+                    const outer = document.querySelector('#shadow-slider-host').shadowRoot;
+                    const root = outer.querySelector('#nested-slider-host').shadowRoot;
+                    const knob = root.querySelector('#shadow-knob').getBoundingClientRect();
+                    const track = root.querySelector('#shadow-track').getBoundingClientRect();
+                    return {
+                      start_x: knob.left + knob.width / 2,
+                      start_y: knob.top + knob.height / 2,
+                      end_x: track.right - knob.width / 2,
+                      end_y: knob.top + knob.height / 2
+                    };
+                """
+                result_script = """
+                    const state = window.__shadowSlider;
+                    return {accepted: state.accepted, dragging: state.dragging, metrics: state.metrics, samples: state.samples};
+                """
+
+            _content, coordinate_payload = await _execute_tool(
+                server, "page_evaluate", {"script": coordinate_script}
+            )
+            coordinates = coordinate_payload["data"]["result"]
+            _content, drag_payload = await _execute_tool(
+                server,
+                "page_pointer_drag",
+                {
+                    **coordinates,
+                    "profile": "natural",
+                    "element": f"strict {context} slider fixture",
+                },
+            )
+            assert drag_payload["ok"] is True
+            motion = drag_payload["data"]["motion"]
+            assert 20 <= motion["drag_steps"] <= 35
+            assert 100 <= motion["press_delay_ms"] <= 300
+            assert 50 <= motion["release_delay_ms"] <= 120
+
+            _content, result_payload = await _execute_tool(
+                server, "page_evaluate", {"script": result_script, "max_chars": 20000}
+            )
+            result = result_payload["data"]["result"]
+            metrics = result["metrics"]
+            assert result["accepted"] is True, metrics
+            assert result["dragging"] is False
+            assert metrics["downCount"] == 1
+            assert metrics["upCount"] == 1
+            assert metrics["moveCount"] == motion["drag_steps"]
+            assert metrics["allTrusted"] is True
+            assert metrics["heldMoves"] is True
+            assert metrics["finalProgress"] >= 0.985
+            assert 180 <= metrics["durationMs"] <= 2500
+            assert metrics["intervalSpreadMs"] >= 3
+            assert metrics["maxStepPx"] <= 40
+            assert metrics["eased"] is True
+            assert metrics["peakMean"] > metrics["firstMean"] * 1.20
+            assert metrics["peakMean"] > metrics["lastMean"] * 1.20
+            samples = result["samples"]
+            assert samples[0]["type"] == "mousedown"
+            assert samples[-1]["type"] == "mouseup"
+            if context == "shadow":
+                assert "shadow-knob" in samples[0]["path"]
+                assert "nested-slider-host" in samples[0]["path"]
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_direct_drag_is_rejected_by_strict_slider_trajectory_gate() -> None:
+    """proves the fixture rejects teleport-like one-step dragging."""
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/slider"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            _content, coordinate_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": """
+                    const frame = document.querySelector('#slider-frame');
+                    const frameRect = frame.getBoundingClientRect();
+                    const doc = frame.contentDocument;
+                    const knob = doc.querySelector('#frame-knob').getBoundingClientRect();
+                    const track = doc.querySelector('#frame-track').getBoundingClientRect();
+                    return {
+                      start_x: frameRect.left + knob.left + knob.width / 2,
+                      start_y: frameRect.top + knob.top + knob.height / 2,
+                      end_x: frameRect.left + track.right - knob.width / 2,
+                      end_y: frameRect.top + knob.top + knob.height / 2
+                    };
+                    """
+                },
+            )
+            _content, drag_payload = await _execute_tool(
+                server,
+                "page_pointer_drag",
+                {
+                    **coordinate_payload["data"]["result"],
+                    "profile": "direct",
+                    "element": "strict iframe slider negative control",
+                },
+            )
+            assert drag_payload["ok"] is True
+            assert drag_payload["data"]["motion"]["drag_steps"] == 1
+            _content, result_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": "return document.querySelector('#slider-frame').contentWindow.__frameSlider;",
+                    "max_chars": 20000,
+                },
+            )
+            state = result_payload["data"]["result"]
+            assert state["accepted"] is False
+            assert state["dragging"] is False
+            assert state["metrics"]["moveCount"] < 20
+            assert state["metrics"]["eased"] is False
+            assert state["metrics"]["upCount"] == 1
     finally:
         await server.cleanup()
 
