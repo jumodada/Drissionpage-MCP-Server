@@ -25,7 +25,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 54
+    assert len(tools) == 57
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -129,9 +129,7 @@ async def test_call_tool_handler_reports_unknown_tool_without_browser_startup() 
     assert payload["ok"] is False
     assert payload["error"]["code"] == "TOOL_NOT_FOUND"
     assert payload["message"] == "Tool 'not_a_tool' not found"
-    assert (
-        payload["error"]["details"]["hints"][0]["action"] == "list_available_tools"
-    )
+    assert payload["error"]["details"]["hints"][0]["action"] == "list_available_tools"
 
 
 @pytest.mark.asyncio
@@ -171,7 +169,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 54
+            assert len(tools.tools) == 57
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -236,54 +234,58 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     assert schemas["page_navigate"]["oneOf"][0]["properties"]["data"]["title"] == (
         "PageNavigateData"
     )
-    assert "final_url" in schemas["page_navigate"]["oneOf"][0]["properties"]["data"][
-        "properties"
-    ]
+    assert (
+        "final_url"
+        in schemas["page_navigate"]["oneOf"][0]["properties"]["data"]["properties"]
+    )
     assert schemas["element_find"]["oneOf"][0]["properties"]["data"]["title"] == (
         "ElementFindData"
     )
-    assert "element" in schemas["element_find"]["oneOf"][0]["properties"]["data"][
-        "required"
-    ]
+    assert (
+        "element"
+        in schemas["element_find"]["oneOf"][0]["properties"]["data"]["required"]
+    )
     assert schemas["wait_time"]["oneOf"][0]["properties"]["data"]["title"] == (
         "WaitTimeData"
     )
     assert schemas["page_snapshot"]["oneOf"][0]["properties"]["data"]["title"] == (
         "PageSnapshotData"
     )
-    assert "links" in schemas["page_snapshot"]["oneOf"][0]["properties"]["data"][
-        "properties"
-    ]
+    assert (
+        "links"
+        in schemas["page_snapshot"]["oneOf"][0]["properties"]["data"]["properties"]
+    )
     assert schemas["element_find_all"]["oneOf"][0]["properties"]["data"]["title"] == (
         "ElementFindAllData"
     )
-    assert "elements" in schemas["element_find_all"]["oneOf"][0]["properties"]["data"][
-        "required"
-    ]
+    assert (
+        "elements"
+        in schemas["element_find_all"]["oneOf"][0]["properties"]["data"]["required"]
+    )
     assert schemas["form_inspect"]["oneOf"][0]["properties"]["data"]["title"] == (
         "FormInspectData"
     )
-    assert "forms" in schemas["form_inspect"]["oneOf"][0]["properties"]["data"][
-        "required"
-    ]
-    assert schemas["element_upload_file"]["oneOf"][0]["properties"]["data"]["title"] == (
-        "ElementUploadFileData"
+    assert (
+        "forms" in schemas["form_inspect"]["oneOf"][0]["properties"]["data"]["required"]
     )
+    assert schemas["element_upload_file"]["oneOf"][0]["properties"]["data"][
+        "title"
+    ] == ("ElementUploadFileData")
     assert schemas["frame_snapshot"]["oneOf"][0]["properties"]["data"]["title"] == (
         "FrameSnapshotData"
     )
     assert schemas["storage_get"]["oneOf"][0]["properties"]["data"]["title"] == (
         "StorageGetData"
     )
-    assert schemas["browser_open_and_snapshot"]["oneOf"][0]["properties"]["data"]["title"] == (
-        "BrowserOpenAndSnapshotData"
-    )
-    assert schemas["browser_extract_links"]["oneOf"][0]["properties"]["data"]["title"] == (
-        "BrowserExtractLinksData"
-    )
+    assert schemas["browser_open_and_snapshot"]["oneOf"][0]["properties"]["data"][
+        "title"
+    ] == ("BrowserOpenAndSnapshotData")
+    assert schemas["browser_extract_links"]["oneOf"][0]["properties"]["data"][
+        "title"
+    ] == ("BrowserExtractLinksData")
     assert schemas["form_fill_preview"]["oneOf"][0]["properties"]["data"]["title"] == (
         "FormFillPreviewData"
     )
-    assert schemas["network_listen_wait"]["oneOf"][0]["properties"]["data"]["title"] == (
-        "NetworkListenWaitData"
-    )
+    assert schemas["network_listen_wait"]["oneOf"][0]["properties"]["data"][
+        "title"
+    ] == ("NetworkListenWaitData")

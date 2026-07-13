@@ -117,6 +117,7 @@ class PointerMotionData(PointerMoveData):
     target_y: float
     steps: int
     reaction_delay_ms: int
+    delay_before_press_ms: int
     hold_duration_ms: int
     planned_duration_ms: int
 
@@ -416,6 +417,7 @@ class WaitUntilData(ToolData):
     condition: str
     selector: str
     value: str
+    name: str
     matched: Literal[True]
     timeout: float
     elapsed_ms: int
@@ -524,3 +526,54 @@ def tool_outcome_schema(output_model: type[ToolData]) -> dict[str, Any]:
             },
         ],
     }
+
+
+class ChallengeSignalData(ToolData):
+    source: str
+    provider_hint: str
+    matched_signal: str
+    frame_index: int | None
+
+
+class DetectChallengesData(ToolData):
+    detected: bool
+    challenge_types: list[str]
+    signals: list[dict[str, Any]]
+    iframes: list[dict[str, Any]]
+    page_state: dict[str, str]
+    suggestions: list[str]
+    screenshot_attached: bool
+
+
+class BatchClickResultData(ToolData):
+    index: int
+    x: float
+    y: float
+    label: str
+    success: bool
+    error: str | None
+    motion: PointerMotionData | None
+
+
+class BatchClickData(ToolData):
+    total_targets: int
+    clicks_completed: int
+    results: list[BatchClickResultData]
+    aborted: bool
+    abort_index: int | None
+    initial_url: str
+    final_url: str
+
+
+class WaitChallengeData(ToolData):
+    status: Literal[
+        "passed", "needs_retry", "new_challenge", "pending", "timeout", "indeterminate"
+    ]
+    passed: bool
+    needs_retry: bool
+    new_challenge: bool
+    token_present: bool
+    token_length: int
+    matched_selector: str
+    elapsed_ms: int
+    observations: int

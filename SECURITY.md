@@ -34,6 +34,7 @@ Include:
 - Avoid saving screenshots or page content to shared paths unless needed.
 - Keep Chrome sandboxing enabled for normal desktop use; use `DP_NO_SANDBOX=1` only when Chromium cannot start inside a restricted container or root environment.
 - Respect website terms of service, robots.txt, and rate limits.
+- DrissionPage MCP is a fully autonomous general browser automation tool. Its detection, visual action, batch action, and observable polling primitives may be composed by users in authorized environments and technical research. The project does not recommend using them to bypass human-verification or anti-automation systems and does not guarantee that such systems can be completed.
 
 ## Optional Runtime Guardrails
 

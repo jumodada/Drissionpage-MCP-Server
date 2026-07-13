@@ -10,6 +10,7 @@ from .page import PageOperations
 from .pointer import PointerOperations
 from .storage import StorageOperations
 from .waits import WaitOperations
+from .vision import VisionOperations
 from .workflows import WorkflowOperations
 
 __all__ = [
@@ -23,5 +24,6 @@ __all__ = [
     "PointerOperations",
     "StorageOperations",
     "WaitOperations",
+    "VisionOperations",
     "WorkflowOperations",
 ]

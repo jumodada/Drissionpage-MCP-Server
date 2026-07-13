@@ -93,6 +93,9 @@ class TestToolsIntegration:
         assert "page_evaluate" in tool_names
         assert "page_pointer_move" in tool_names
         assert "page_pointer_drag" in tool_names
+        assert "page_detect_challenges" in tool_names
+        assert "page_click_xy_batch" in tool_names
+        assert "page_wait_challenge_result" in tool_names
         assert "page_click_xy" in tool_names
         assert "page_close" in tool_names
         assert "page_get_url" in tool_names
@@ -133,7 +136,7 @@ class TestToolsIntegration:
         assert "wait_time" in tool_names
         assert "wait_until" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 54
+        assert len(tool_names) == 57
 
 
 if __name__ == "__main__":

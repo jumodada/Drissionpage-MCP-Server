@@ -161,7 +161,8 @@ Decision sequence:
 6. Choose the action by intent: call `page_pointer_move` to hover or reveal content without activation; call `page_click_xy` when activation requires a click; call `page_pointer_drag` for one visually identified start-to-end drag. Keep drag press/move/release in that single failure-safe call instead of emulating persistent button state. Pass viewport coordinates, chosen `profile`, and a concise `element` description. Supply `start_x` and `start_y` together only when the pointer origin is known; otherwise omit both.
 7. Verify before retrying. Prefer `element_get_property`/`element_get_text` when a selector becomes available, `wait_until` for dynamic conditions, `page_observe` for bounded state changes, or a fresh `page_screenshot` for visual-only confirmation.
 8. If verification fails, re-observe the page. For a moved target, take a fresh viewport screenshot and compute new coordinates. For an offset action, check screenshot scaling, viewport dimensions, zoom, and `full_page`. Do not repeat stale coordinate actions blindly.
-9. Use this workflow for legitimate UI automation, testing, accessibility, and technical research; do not claim guaranteed completion of security or anti-automation challenges.
+9. When verification-like signals are relevant, use `page_detect_challenges` for read-only detection, then choose a fresh visual action and poll with `page_wait_challenge_result` or generic `wait_until`. The model remains fully autonomous and should use bounded retries with fresh evidence.
+10. These are general capabilities for authorized automation and technical exchange. Users may compose them independently, but bypassing human-verification systems is not recommended and completion must not be promised.
 """
 
 

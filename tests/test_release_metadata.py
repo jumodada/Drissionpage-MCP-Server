@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.5.9."""
+"""Release metadata and documentation checks for 0.6.0."""
 
 from __future__ import annotations
 
@@ -16,8 +16,8 @@ import drissionpage_mcp
 def test_package_version_metadata_is_0_5_8() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.5.9"
-    assert drissionpage_mcp.__version__ == "0.5.9"
+    assert pyproject["project"]["version"] == "0.6.0"
+    assert drissionpage_mcp.__version__ == "0.6.0"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -45,27 +45,27 @@ def test_readmes_end_with_latest_0_5_9_feature_summary() -> None:
 
     asset_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif"
     assert asset_url in readme and asset_url in readme_cn
-    assert "## 🆕 Latest Version: v0.5.9" in readme
-    assert "Released on 2026-07-12" in readme
+    assert "## 🆕 Latest Version: v0.6.0" in readme
+    assert "Released on 2026-07-13" in readme
     assert "page_pointer_move" in readme
     assert "page_pointer_drag" in readme
     assert "failure-safe" in readme
-    assert "public registry now contains 54 tools" in readme
-    assert "## 🆕 最新版本：v0.5.9" in readme_cn
-    assert "发布日期：2026-07-12" in readme_cn
+    assert "public registry now contains 57 tools" in readme
+    assert "## 🆕 最新版本：v0.6.0" in readme_cn
+    assert "发布日期：2026-07-13" in readme_cn
     assert "page_pointer_move" in readme_cn
     assert "page_pointer_drag" in readme_cn
     assert "失败安全" in readme_cn
-    assert "公开工具数增加到 54 个" in readme_cn
-    assert "## [0.5.9] - 2026-07-12" in changelog
+    assert "公开工具数增加到 57 个" in readme_cn
+    assert "## [0.6.0] - 2026-07-13" in changelog
     assert "Added `page_pointer_move`" in changelog
     assert "Added `page_pointer_drag`" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.0...HEAD"
         in changelog
     )
     assert (
-        "[0.5.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...v0.5.9"
+        "[0.6.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...v0.6.0"
         in changelog
     )
 

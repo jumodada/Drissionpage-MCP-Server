@@ -33,6 +33,7 @@ class WaitOperations:
         condition: str,
         selector: str = "",
         value: str = "",
+        name: str = "",
         timeout: float = 10,
         interval: float = 0.1,
         stable_ms: int = 300,
@@ -45,6 +46,7 @@ class WaitOperations:
                 condition=condition,
                 selector=selector,
                 value=value,
+                name=name,
                 stable_ms=stable_ms,
             )
             if matched:
@@ -52,6 +54,7 @@ class WaitOperations:
                     "condition": condition,
                     "selector": selector,
                     "value": value,
+                    "name": name,
                     "matched": True,
                     "timeout": timeout,
                     "elapsed_ms": int((time.monotonic() - start) * 1000),
@@ -107,6 +110,7 @@ class WaitOperations:
         condition: str,
         selector: str,
         value: str,
+        name: str,
         stable_ms: int,
     ) -> tuple[bool, dict[str, Any]]:
         if condition in {"url_contains", "url_matches"}:
@@ -129,6 +133,27 @@ class WaitOperations:
 
         if not selector:
             raise ValueError(f"selector is required for {condition!r}")
+
+        if condition in {
+            "attribute_equals",
+            "attribute_nonempty",
+            "property_equals",
+            "property_nonempty",
+        }:
+            if not name:
+                raise ValueError(f"name is required for {condition!r}")
+            if condition.startswith("attribute_"):
+                observed = await self._tab.elements.attribute(selector, name)
+            else:
+                observed = await self._tab.elements.property(selector, name)
+            text = "" if observed is None else str(observed)
+            matched = bool(text) if condition.endswith("_nonempty") else text == value
+            return matched, {
+                "exists": observed is not None,
+                "name": name,
+                "value_length": len(text),
+                "nonempty": bool(text),
+            }
 
         state = self._selector_state(selector)
         if condition == "present":

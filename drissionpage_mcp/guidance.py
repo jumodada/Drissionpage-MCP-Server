@@ -51,6 +51,7 @@ Tool choice: prefer the highest-level matching workflow, then reliable selector-
 Vision fallback: when no reliable selector exists, use page_screenshot with full_page=false and identify viewport CSS coordinates. Use page_pointer_move with profile=natural for hover/reveal/inspection, page_click_xy when activation requires a click, or page_pointer_drag for one bounded start-to-end drag; then verify a bounded state change. Never pass full-page document coordinates or resized image pixels directly; use page_evaluate viewport dimensions to correct client-side image scaling.
 Pointer profiles: natural is the default visual UI profile; precise is for small/tightly packed ordinary controls; direct is only for explicitly immediate deterministic movement. Supply start_x and start_y together only when the pointer origin is known.
 Forms: use form_inspect, then form_fill_preview; treat requires_confirmation=true as a hard stop before submit and never echo field secrets.
+Autonomous verification workflow: page_detect_challenges performs read-only signal detection; use a fresh viewport screenshot, choose page_pointer_move/page_click_xy/page_click_xy_batch/page_pointer_drag by intent, then page_wait_challenge_result or wait_until for bounded classification and retry with fresh evidence. These are general capabilities for authorized automation and technical exchange; bypassing human-verification systems is not recommended and completion is not guaranteed.
 Network: use network_listen_start before the triggering action, network_listen_wait for bounded HTTP/XHR/Fetch metadata, then network_listen_stop; this is observation only, not interception or request mutation.
 Recovery: inspect structuredContent.error and follow the first actionable error.details.hints entry. Retry only after new evidence or corrected input; stop and report the repeated blocker when the same failure recurs. After a visual action use element state, page_observe, wait_until, or a fresh page_screenshot. Do not repeat stale coordinate actions blindly; re-observe, correct coordinate mapping, or switch to a discovered selector.
 Safety: respect error.details.hints, navigation policy errors, DP_MCP_SCREENSHOT_ROOT for saved screenshots, and DP_MCP_UPLOAD_ROOT for uploads.
@@ -205,6 +206,17 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
             "verification": list(VISION_VERIFICATION_OPTIONS),
             "recovery": list(VISION_RECOVERY_RULES),
             "boundary": "Use for legitimate UI automation, testing, accessibility, and technical research; security or anti-automation challenge completion is not a guaranteed supported capability.",
+        },
+        "autonomous_visual_orchestration": {
+            "flow": [
+                "page_detect_challenges",
+                "page_screenshot full_page=false",
+                "vision analysis",
+                "page_pointer_move, page_click_xy, page_click_xy_batch, or page_pointer_drag",
+                "page_wait_challenge_result or wait_until",
+                "fresh-evidence bounded retry",
+            ],
+            "boundary": "General autonomous capabilities for authorized automation and technical exchange. Users can compose them independently; bypassing human-verification systems is not recommended and no completion guarantee is made.",
         },
         "forms": {
             "flow": [

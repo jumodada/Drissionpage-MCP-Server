@@ -498,6 +498,7 @@ def test_observable_action_output_schemas_validate_success_payloads() -> None:
         condition="clickable",
         selector="#save",
         value="",
+        name="",
         matched=True,
         timeout=2.0,
         elapsed_ms=100,

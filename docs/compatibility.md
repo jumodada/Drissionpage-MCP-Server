@@ -18,13 +18,22 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.5.9. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.6.0. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
   MCP workflows to use the documented snake_case field names exactly.
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
+
+## 0.5.9 to 0.6.0 Migration
+
+0.6.0 adds three autonomous visual orchestration tools and extends existing schemas additively:
+
+- `page_detect_challenges`, `page_click_xy_batch`, and `page_wait_challenge_result` are new.
+- `page_click_xy.delay_before_press_ms` defaults to zero.
+- `wait_until` adds attribute/property equals and non-empty conditions plus optional `name`.
+- The public registry grows to 57 tools.
 
 ## 0.5.8 to 0.5.9 Migration
 

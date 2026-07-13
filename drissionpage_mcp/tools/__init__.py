@@ -14,6 +14,7 @@ from . import (
     storage,
     tabs,
     wait,
+    vision,
     workflow,
 )
 from .base import ToolSpec, ToolType, define_tool
@@ -36,6 +37,9 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     common.pointer_move,
     common.pointer_drag,
     common.click_coordinates,
+    vision.detect_challenges,
+    vision.click_xy_batch,
+    vision.wait_challenge_result,
     common.close,
     common.get_url,
     debug.page_console_logs,

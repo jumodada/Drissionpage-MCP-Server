@@ -111,6 +111,7 @@ class PointerClickResult:
     target: Point
     steps: int
     reaction_delay_ms: int
+    delay_before_press_ms: int
     hold_duration_ms: int
     planned_duration_ms: int
 
@@ -124,6 +125,7 @@ class PointerClickResult:
             "target_y": self.target.y,
             "steps": self.steps,
             "reaction_delay_ms": self.reaction_delay_ms,
+            "delay_before_press_ms": self.delay_before_press_ms,
             "hold_duration_ms": self.hold_duration_ms,
             "planned_duration_ms": self.planned_duration_ms,
         }
@@ -266,17 +268,20 @@ class PointerOperations:
         start_y: float | None = None,
         profile: PointerProfile = "natural",
         button: PointerButton = "left",
+        delay_before_press_ms: int = 0,
     ) -> PointerClickResult:
         start, target, plan = self._plan_move(
             x, y, start_x=start_x, start_y=start_y, profile=profile
         )
         _, reaction, hold = _PROFILES[profile]
         reaction_seconds = self._rng.uniform(*reaction)
+        configured_delay_seconds = delay_before_press_ms / 1000
         hold_seconds = self._rng.uniform(*hold)
         sequence = PointerSequence(
             actions=(
                 *(MoveAction(step.point, step.delay) for step in plan.steps),
                 PauseAction(reaction_seconds),
+                PauseAction(configured_delay_seconds),
                 PressAction(button),
                 PauseAction(hold_seconds),
                 ReleaseAction(button),
@@ -285,7 +290,7 @@ class PointerOperations:
         await self.execute(sequence)
         await self._tab._stabilize("pointer_click", timeout=1.0, fallback_sleep=0.02)
         planned_duration = sum(step.delay for step in plan.steps)
-        planned_duration += reaction_seconds + hold_seconds
+        planned_duration += reaction_seconds + configured_delay_seconds + hold_seconds
         return PointerClickResult(
             profile=profile,
             button=button,
@@ -293,6 +298,7 @@ class PointerOperations:
             target=target,
             steps=len(plan.steps),
             reaction_delay_ms=round(reaction_seconds * 1000),
+            delay_before_press_ms=delay_before_press_ms,
             hold_duration_ms=round(hold_seconds * 1000),
             planned_duration_ms=round(planned_duration * 1000),
         )
@@ -323,6 +329,10 @@ class PointerOperations:
         if start != current:
             self._dispatch_move(start)
         return start, target, self._planner.plan(start, target, config)
+
+    def random_delay(self, minimum_ms: int, maximum_ms: int) -> float:
+        """Return a profile-independent bounded delay in seconds."""
+        return self._rng.uniform(minimum_ms, maximum_ms) / 1000
 
     async def execute(self, sequence: PointerSequence) -> None:
         pressed: PointerButton | None = None

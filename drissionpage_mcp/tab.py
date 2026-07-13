@@ -18,6 +18,7 @@ from .browser import (
     StorageOperations,
     WorkflowOperations,
     WaitOperations,
+    VisionOperations,
 )
 from .selector import SelectorPlan
 
@@ -53,6 +54,7 @@ class PageTab:
         self.pointer = PointerOperations(self)
         self.storage = StorageOperations(self)
         self.waits = WaitOperations(self)
+        self.vision = VisionOperations(self)
         self.workflows = WorkflowOperations(self)
 
     @property

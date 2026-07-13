@@ -276,6 +276,110 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
 
 
 @pytest.mark.asyncio
+async def test_autonomous_shadow_dom_challenge_loop_detects_clicks_and_polls() -> None:
+    """proves detect -> vision coordinate click -> poll -> verify in open Shadow DOM."""
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, injected = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": """
+                    const host = document.createElement('div');
+                    host.id = 'autonomous-challenge-host';
+                    host.style.cssText = 'position:fixed;left:120px;top:120px;width:220px;height:90px;z-index:2147483647';
+                    document.body.appendChild(host);
+                    const root = host.attachShadow({mode:'open'});
+                    root.innerHTML = `
+                      <style>label{display:flex;gap:10px;align-items:center;width:200px;height:70px;background:white;border:1px solid #999;padding:8px}input{width:24px;height:24px}</style>
+                      <div class="cf-turnstile" data-sitekey="fixture-site-key">
+                        <label><input id="shadow-check" type="checkbox"> Verify fixture</label>
+                        <input name="cf-turnstile-response" type="hidden" value="">
+                        <div id="challenge-success" hidden>passed</div>
+                      </div>`;
+                    const checkbox = root.querySelector('#shadow-check');
+                    checkbox.addEventListener('click', () => {
+                      if (!checkbox.checked) return;
+                      setTimeout(() => {
+                        root.querySelector('input[name="cf-turnstile-response"]').value = 'fixture-token-value-not-returned';
+                        root.querySelector('#challenge-success').hidden = false;
+                      }, 150);
+                    });
+                    const rect = checkbox.getBoundingClientRect();
+                    return {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2};
+                    """
+                },
+            )
+            center = injected["data"]["result"]
+
+            detect_content, detected = await _execute_tool(
+                server,
+                "page_detect_challenges",
+                {"include_screenshot": True},
+            )
+            assert detected["ok"] is True
+            assert detected["data"]["detected"] is True
+            assert "turnstile" in detected["data"]["challenge_types"]
+            assert any(
+                signal["source"] == "shadow-dom"
+                for signal in detected["data"]["signals"]
+            )
+            assert detected["data"]["screenshot_attached"] is True
+            assert any(item.type == "image" for item in detect_content)
+
+            _content, clicked = await _execute_tool(
+                server,
+                "page_click_xy",
+                {
+                    "x": center["x"],
+                    "y": center["y"],
+                    "profile": "precise",
+                    "element": "shadow DOM verification checkbox fixture",
+                },
+            )
+            assert clicked["ok"] is True
+
+            _content, waited = await _execute_tool(
+                server,
+                "page_wait_challenge_result",
+                {
+                    "timeout_s": 3,
+                    "poll_interval_s": 0.1,
+                    "success_selectors": ["#challenge-success:not([hidden])"],
+                },
+            )
+            result = waited["data"]
+            assert result["status"] == "passed"
+            assert result["passed"] is True
+            assert result["token_present"] is True
+            assert result["token_length"] == len("fixture-token-value-not-returned")
+            assert "fixture-token-value-not-returned" not in json.dumps(waited)
+
+            _content, verified = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": """
+                    const root = document.querySelector('#autonomous-challenge-host').shadowRoot;
+                    return {checked: root.querySelector('#shadow-check').checked, success: !root.querySelector('#challenge-success').hidden};
+                    """
+                },
+            )
+            assert verified["data"]["result"] == {
+                "checked": True,
+                "success": True,
+            }
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
 async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
     """discovers, switches, and closes a tab opened by target=_blank."""
     server = DrissionPageMCPServer()

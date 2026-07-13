@@ -2116,6 +2116,14 @@
           "title": "Button",
           "type": "string"
         },
+        "delay_before_press_ms": {
+          "default": 0,
+          "description": "Optional additional delay after natural arrival and before mousePressed. This is timing control, not target-stability detection; moving targets require a fresh screenshot.",
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Delay Before Press Ms",
+          "type": "integer"
+        },
         "element": {
           "default": "",
           "description": "Human-readable element description for permission",
@@ -2201,6 +2209,10 @@
                       "title": "Button",
                       "type": "string"
                     },
+                    "delay_before_press_ms": {
+                      "title": "Delay Before Press Ms",
+                      "type": "integer"
+                    },
                     "hold_duration_ms": {
                       "title": "Hold Duration Ms",
                       "type": "integer"
@@ -2253,6 +2265,7 @@
                     "planned_duration_ms",
                     "button",
                     "reaction_delay_ms",
+                    "delay_before_press_ms",
                     "hold_duration_ms"
                   ],
                   "title": "PointerMotionData",
@@ -2350,6 +2363,714 @@
       "type": "object"
     },
     "title": "Click Coordinates"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Detect Interactive Challenges"
+    },
+    "description": "Read-only detection of verification-widget signals in frames, scripts, DOM containers, and hidden fields. Provides autonomous next-step suggestions but performs no interaction. General capability for authorized testing and technical research.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "include_screenshot": {
+          "default": false,
+          "description": "Attach an inline viewport screenshot for multimodal analysis.",
+          "title": "Include Screenshot",
+          "type": "boolean"
+        },
+        "keywords": {
+          "description": "Iframe, script, and DOM signal keywords used for read-only verification-widget detection.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "title": "Keywords",
+          "type": "array"
+        }
+      },
+      "title": "DetectChallengesInput",
+      "type": "object"
+    },
+    "name": "page_detect_challenges",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "challenge_types": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Challenge Types",
+                  "type": "array"
+                },
+                "detected": {
+                  "title": "Detected",
+                  "type": "boolean"
+                },
+                "iframes": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Iframes",
+                  "type": "array"
+                },
+                "page_state": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Page State",
+                  "type": "object"
+                },
+                "screenshot_attached": {
+                  "title": "Screenshot Attached",
+                  "type": "boolean"
+                },
+                "signals": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Signals",
+                  "type": "array"
+                },
+                "suggestions": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Suggestions",
+                  "type": "array"
+                }
+              },
+              "required": [
+                "detected",
+                "challenge_types",
+                "signals",
+                "iframes",
+                "page_state",
+                "suggestions",
+                "screenshot_attached"
+              ],
+              "title": "DetectChallengesData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Detect Interactive Challenges"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Batch Click Coordinates"
+    },
+    "description": "Click an ordered set of viewport CSS coordinates in one autonomous call using natural pointer motion between targets. Intended as a general visual UI primitive; all coordinates must come from one stable page state.",
+    "inputSchema": {
+      "$defs": {
+        "ClickTarget": {
+          "properties": {
+            "label": {
+              "default": "",
+              "description": "Optional target label",
+              "maxLength": 200,
+              "title": "Label",
+              "type": "string"
+            },
+            "x": {
+              "description": "Viewport X coordinate in CSS pixels",
+              "minimum": 0,
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "description": "Viewport Y coordinate in CSS pixels",
+              "minimum": 0,
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "title": "ClickTarget",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "button": {
+          "default": "left",
+          "enum": [
+            "left",
+            "right",
+            "middle"
+          ],
+          "title": "Button",
+          "type": "string"
+        },
+        "continue_on_error": {
+          "default": false,
+          "description": "Continue after a failed target; false avoids unsafe partial-state continuation.",
+          "title": "Continue On Error",
+          "type": "boolean"
+        },
+        "inter_click_delay_max_ms": {
+          "default": 500,
+          "maximum": 5000,
+          "minimum": 0,
+          "title": "Inter Click Delay Max Ms",
+          "type": "integer"
+        },
+        "inter_click_delay_min_ms": {
+          "default": 200,
+          "maximum": 5000,
+          "minimum": 0,
+          "title": "Inter Click Delay Min Ms",
+          "type": "integer"
+        },
+        "profile": {
+          "default": "natural",
+          "enum": [
+            "natural",
+            "precise",
+            "direct"
+          ],
+          "title": "Profile",
+          "type": "string"
+        },
+        "stop_on_url_change": {
+          "default": true,
+          "description": "Abort remaining coordinates if a click changes the page URL.",
+          "title": "Stop On Url Change",
+          "type": "boolean"
+        },
+        "targets": {
+          "description": "Ordered viewport targets derived from one stable visual state.",
+          "items": {
+            "$ref": "#/$defs/ClickTarget"
+          },
+          "maxItems": 25,
+          "minItems": 1,
+          "title": "Targets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "targets"
+      ],
+      "title": "BatchClickInput",
+      "type": "object"
+    },
+    "name": "page_click_xy_batch",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "$defs": {
+                "BatchClickResultData": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "error": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Error"
+                    },
+                    "index": {
+                      "title": "Index",
+                      "type": "integer"
+                    },
+                    "label": {
+                      "title": "Label",
+                      "type": "string"
+                    },
+                    "motion": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/PointerMotionData"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "success": {
+                      "title": "Success",
+                      "type": "boolean"
+                    },
+                    "x": {
+                      "title": "X",
+                      "type": "number"
+                    },
+                    "y": {
+                      "title": "Y",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "index",
+                    "x",
+                    "y",
+                    "label",
+                    "success",
+                    "error",
+                    "motion"
+                  ],
+                  "title": "BatchClickResultData",
+                  "type": "object"
+                },
+                "PointerMotionData": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "button": {
+                      "enum": [
+                        "left",
+                        "right",
+                        "middle"
+                      ],
+                      "title": "Button",
+                      "type": "string"
+                    },
+                    "delay_before_press_ms": {
+                      "title": "Delay Before Press Ms",
+                      "type": "integer"
+                    },
+                    "hold_duration_ms": {
+                      "title": "Hold Duration Ms",
+                      "type": "integer"
+                    },
+                    "planned_duration_ms": {
+                      "title": "Planned Duration Ms",
+                      "type": "integer"
+                    },
+                    "profile": {
+                      "enum": [
+                        "natural",
+                        "precise",
+                        "direct"
+                      ],
+                      "title": "Profile",
+                      "type": "string"
+                    },
+                    "reaction_delay_ms": {
+                      "title": "Reaction Delay Ms",
+                      "type": "integer"
+                    },
+                    "start_x": {
+                      "title": "Start X",
+                      "type": "number"
+                    },
+                    "start_y": {
+                      "title": "Start Y",
+                      "type": "number"
+                    },
+                    "steps": {
+                      "title": "Steps",
+                      "type": "integer"
+                    },
+                    "target_x": {
+                      "title": "Target X",
+                      "type": "number"
+                    },
+                    "target_y": {
+                      "title": "Target Y",
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "profile",
+                    "start_x",
+                    "start_y",
+                    "target_x",
+                    "target_y",
+                    "steps",
+                    "planned_duration_ms",
+                    "button",
+                    "reaction_delay_ms",
+                    "delay_before_press_ms",
+                    "hold_duration_ms"
+                  ],
+                  "title": "PointerMotionData",
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false,
+              "properties": {
+                "abort_index": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Abort Index"
+                },
+                "aborted": {
+                  "title": "Aborted",
+                  "type": "boolean"
+                },
+                "clicks_completed": {
+                  "title": "Clicks Completed",
+                  "type": "integer"
+                },
+                "final_url": {
+                  "title": "Final Url",
+                  "type": "string"
+                },
+                "initial_url": {
+                  "title": "Initial Url",
+                  "type": "string"
+                },
+                "results": {
+                  "items": {
+                    "$ref": "#/$defs/BatchClickResultData"
+                  },
+                  "title": "Results",
+                  "type": "array"
+                },
+                "total_targets": {
+                  "title": "Total Targets",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "total_targets",
+                "clicks_completed",
+                "results",
+                "aborted",
+                "abort_index",
+                "initial_url",
+                "final_url"
+              ],
+              "title": "BatchClickData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Batch Click Coordinates"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Wait For Challenge Result"
+    },
+    "description": "Autonomously poll bounded observable token, success, retry, and challenge-state signals. Returns status without exposing token values or promising verification completion.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "properties": {
+        "challenge_selectors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Challenge Selectors",
+          "type": "array"
+        },
+        "poll_interval_s": {
+          "default": 0.5,
+          "maximum": 5,
+          "minimum": 0.1,
+          "title": "Poll Interval S",
+          "type": "number"
+        },
+        "retry_selectors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Retry Selectors",
+          "type": "array"
+        },
+        "success_selectors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Success Selectors",
+          "type": "array"
+        },
+        "timeout_s": {
+          "default": 10,
+          "maximum": 60,
+          "minimum": 0.1,
+          "title": "Timeout S",
+          "type": "number"
+        },
+        "token_selectors": {
+          "description": "Token fields; only non-empty length is returned, never the token value.",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Token Selectors",
+          "type": "array"
+        }
+      },
+      "title": "WaitChallengeInput",
+      "type": "object"
+    },
+    "name": "page_wait_challenge_result",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "elapsed_ms": {
+                  "title": "Elapsed Ms",
+                  "type": "integer"
+                },
+                "matched_selector": {
+                  "title": "Matched Selector",
+                  "type": "string"
+                },
+                "needs_retry": {
+                  "title": "Needs Retry",
+                  "type": "boolean"
+                },
+                "new_challenge": {
+                  "title": "New Challenge",
+                  "type": "boolean"
+                },
+                "observations": {
+                  "title": "Observations",
+                  "type": "integer"
+                },
+                "passed": {
+                  "title": "Passed",
+                  "type": "boolean"
+                },
+                "status": {
+                  "enum": [
+                    "passed",
+                    "needs_retry",
+                    "new_challenge",
+                    "pending",
+                    "timeout",
+                    "indeterminate"
+                  ],
+                  "title": "Status",
+                  "type": "string"
+                },
+                "token_length": {
+                  "title": "Token Length",
+                  "type": "integer"
+                },
+                "token_present": {
+                  "title": "Token Present",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "status",
+                "passed",
+                "needs_retry",
+                "new_challenge",
+                "token_present",
+                "token_length",
+                "matched_selector",
+                "elapsed_ms",
+                "observations"
+              ],
+              "title": "WaitChallengeData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Wait For Challenge Result"
   },
   {
     "annotations": {
@@ -6756,7 +7477,11 @@
             "text_contains",
             "text_matches",
             "url_contains",
-            "url_matches"
+            "url_matches",
+            "attribute_equals",
+            "attribute_nonempty",
+            "property_equals",
+            "property_nonempty"
           ],
           "title": "Condition",
           "type": "string"
@@ -6768,6 +7493,12 @@
           "minimum": 0.01,
           "title": "Interval",
           "type": "number"
+        },
+        "name": {
+          "default": "",
+          "description": "Attribute or property name for attribute/property conditions",
+          "title": "Name",
+          "type": "string"
         },
         "selector": {
           "default": "",
@@ -6793,7 +7524,7 @@
         },
         "value": {
           "default": "",
-          "description": "Expected substring or regular expression for text/URL conditions",
+          "description": "Expected value or substring/regular expression, depending on condition",
           "title": "Value",
           "type": "string"
         }
@@ -6826,6 +7557,10 @@
                   "title": "Matched",
                   "type": "boolean"
                 },
+                "name": {
+                  "title": "Name",
+                  "type": "string"
+                },
                 "selector": {
                   "title": "Selector",
                   "type": "string"
@@ -6848,6 +7583,7 @@
                 "condition",
                 "selector",
                 "value",
+                "name",
                 "matched",
                 "timeout",
                 "elapsed_ms",

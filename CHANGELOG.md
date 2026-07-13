@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-07-13
+
+### Added
+- Added `page_detect_challenges`, `page_click_xy_batch`, and `page_wait_challenge_result` as general autonomous visual orchestration tools.
+- Added generic attribute/property equals and non-empty conditions to `wait_until`.
+- Added optional `page_click_xy.delay_before_press_ms` timing control.
+
+### Changed
+- Model guidance now teaches an autonomous detect, observe, visual-action, poll, classify, and bounded-retry workflow.
+- Verification-related descriptions explicitly position the server as a fully autonomous general tool for authorized automation and technical exchange while not recommending bypass of human-verification systems or promising completion.
+- Public registry now exposes 57 tools.
+
 ## [0.5.9] - 2026-07-12
 
 ### Added
@@ -318,7 +330,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...v0.6.0
 [0.5.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...v0.5.9
 [0.5.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.7...v0.5.8
 [0.5.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.6...v0.5.7

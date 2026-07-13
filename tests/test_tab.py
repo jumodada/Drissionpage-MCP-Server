@@ -616,7 +616,9 @@ async def test_observable_helpers_raise_on_invalid_page_results() -> None:
 
 @pytest.mark.asyncio
 async def test_wait_until_conditions_cover_fallback_and_timeout_edges() -> None:
-    page = FakePage(FakeElement(tag="button", text="Save"))
+    page = FakePage(
+        FakeElement(tag="button", text="Save", attrs={"data-state": "ready"})
+    )
     tab = PageTab(page, FakeContext())
 
     present = await tab.waits.until(
@@ -640,6 +642,22 @@ async def test_wait_until_conditions_cover_fallback_and_timeout_edges() -> None:
     assert visible["state"]["visible"] is True
     assert hidden["matched"] is True
     assert detached["matched"] is True
+
+    property_wait = await tab.waits.until(
+        condition="property_nonempty",
+        selector="tag:button",
+        name="value",
+        timeout=0,
+    )
+    attribute_wait = await tab.waits.until(
+        condition="attribute_equals",
+        selector="tag:button",
+        name="data-state",
+        value="ready",
+        timeout=0,
+    )
+    assert property_wait["state"]["nonempty"] is True
+    assert attribute_wait["state"]["value_length"] == 5
 
     class SelectorJsFailPage(FakePage):
         def run_js(self, script: str, **kwargs):

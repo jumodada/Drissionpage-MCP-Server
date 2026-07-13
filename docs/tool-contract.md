@@ -167,6 +167,9 @@ The server marks tools with MCP annotations:
 | `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Optional: `interval`. |
 | `page_pointer_move` | Destructive | `x`, `y` | Move along the selected natural/precise/direct viewport path without pressing a button. Optional: `start_x` + `start_y`, `element`, `profile`. |
 | `page_pointer_drag` | Destructive | `start_x`, `start_y`, `end_x`, `end_y` | Perform one failure-safe natural drag. Optional: `element`, `profile`, `button`. |
+| `page_detect_challenges` | Read-only | none | Detect verification-widget signals; optional: `keywords`, `include_screenshot`. |
+| `page_click_xy_batch` | Destructive | `targets` | Execute ordered viewport clicks from one stable visual state with fail-fast and URL-change controls. |
+| `page_wait_challenge_result` | Read-only | none | Poll configurable token-length and result selectors without returning token values. |
 | `page_click_xy` | Destructive | `x`, `y` | Move and click at viewport CSS coordinates. Defaults to a natural cubic Bézier pointer profile; optional: `start_x` + `start_y`, `element`, `profile`, and `button`. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |

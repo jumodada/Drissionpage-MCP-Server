@@ -159,6 +159,15 @@ class ClickCoordinatesInput(PointerCoordinatesInput):
     button: Literal["left", "right", "middle"] = Field(
         default="left", description="Mouse button to press and release"
     )
+    delay_before_press_ms: int = Field(
+        default=0,
+        ge=0,
+        le=10000,
+        description=(
+            "Optional additional delay after natural arrival and before mousePressed. "
+            "This is timing control, not target-stability detection; moving targets require a fresh screenshot."
+        ),
+    )
 
 
 @define_tool(
@@ -430,6 +439,7 @@ async def click_coordinates(
         start_y=args.start_y,
         profile=args.profile,
         button=args.button,
+        delay_before_press_ms=args.delay_before_press_ms,
     )
     outcome.add_code("page.run_cdp(<pointer move/press/release sequence>)")
     outcome.add_result(

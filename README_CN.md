@@ -16,7 +16,7 @@
 
 ## 🖱️ 视觉驱动的人机交互
 
-**DrissionPage MCP 0.5.9 为多模态 AI 提供完整的第一阶段交互能力：** 它可以把视觉模型识别出的 viewport 坐标转换为完整、符合物理节奏的指针动作链，而不是把鼠标瞬移到坐标后直接点击。
+**DrissionPage MCP 0.6.0 为多模态 AI 提供完整的第一阶段交互能力：** 它可以把视觉模型识别出的 viewport 坐标转换为完整、符合物理节奏的指针动作链，而不是把鼠标瞬移到坐标后直接点击。
 
 > **一次 MCP 调用即可连接视觉理解与真实浏览器交互。** 模型负责判断“在哪里操作”，DrissionPage MCP 负责决定“鼠标如何移动过去并完成点击”。
 
@@ -74,7 +74,7 @@ page_click_xy(profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-项目仍以 54 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径；当 selector 或 accessibility metadata 不足时，0.5.9 还提供可选的**视觉驱动人机交互层**，把 viewport 坐标转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
+项目仍以 57 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径；当 selector 或 accessibility metadata 不足时，0.6.0 还提供可选的**视觉驱动人机交互层**，把 viewport 坐标转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -168,7 +168,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 54 个强大工具 + MCP Resources/Prompts
+## 🛠️ 57 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
@@ -198,7 +198,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 ### 🧾 表单工具（1 个）
 - `form_inspect` - 检查表单和控件，返回 label、selector、必填/禁用状态、选项和安全的可选 value
 
-### 📸 页面操作（13 个）
+### 📸 页面操作（16 个）
 - `page_screenshot` - 捕获完整页面或视口
 - `page_screenshot_save` - 保存截图到 `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - 返回有界页面 outline，包括标题、链接、按钮、输入框、表单和 selector 推荐
@@ -209,6 +209,9 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_resize` - 调整浏览器窗口
 - `page_pointer_move` - 沿自然贝塞尔轨迹移动到视觉模型识别出的 viewport 坐标，但不点击
 - `page_pointer_drag` - 在两个 viewport 坐标之间执行一次失败安全的自然拖拽
+- `page_detect_challenges` - 只读检测验证组件信号，供模型自主路由
+- `page_click_xy_batch` - 在一次有界自主调用内执行多个视觉坐标点击
+- `page_wait_challenge_result` - 轮询 token 长度和可配置成功/重试/挑战信号，不返回 token 内容
 - `page_click_xy` - 将视觉模型识别出的 viewport 坐标转换为自然贝塞尔指针移动和真实时长点击
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
@@ -265,7 +268,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 54 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
+│   └── tools/              # 57 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -417,7 +420,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.5.9`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.6.0`。
 
 ### 浏览器问题？
 ```bash
@@ -446,14 +449,14 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.5.9 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.6.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.5.9)
-- [x] 54 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
+### 当前版本 (v0.6.0)
+- [x] 57 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -612,14 +615,15 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.5.9
+## 🆕 最新版本：v0.6.0
 
-发布日期：2026-07-12。本版本完成第一阶段视觉指针动作面，并优化 Claude/GPT 对 MCP 工具的选择、执行、验证和恢复方式：
+发布日期：2026-07-13。本版本在现有指针动作层之上增加全自动视觉编排能力：
 
-- 新增 `page_pointer_move`，用于不点击的自然悬停、内容显现、Canvas 定位和视觉检查。
-- 新增 `page_pointer_drag`，以单次失败安全调用完成起点到终点拖拽：自然移动到起点、按下、按键保持状态下的贝塞尔拖动、释放延迟，以及异常时保证释放。
-- `page_click_xy`、移动和拖拽共用同一个轨迹规划器、smoothstep 缓动、有界抖动、指针状态、不可变动作序列，以及 `natural` / `precise` / `direct` profiles；自然点击继续保持到位后停顿 100–300ms 和 50–120ms 按键时长。
-- MCP 初始化提示、`drissionpage://guide/model-usage`、`drissionpage://tools/catalog` 和 `browser_vision_guided_interaction` 现在会教 Claude/GPT 使用 selector-first、viewport 坐标换算、move/click/drag 意图选择、有界验证和陈旧坐标恢复。
-- 紧凑工具目录现在公开 required/optional inputs、默认值、枚举、边界、类型和字段说明；完整 JSON Schema 仍由 `tools/list` 提供。
-- 指针移动、点击和拖拽均返回 typed motion evidence；拖拽不会把持久化 `mouse_down` / `mouse_up` 状态暴露到多个 MCP 调用之间。
-- 公开工具数增加到 54 个，同时保持严格 `JSON_RESULT`、`structuredContent`、typed `outputSchema`、DrissionPage 4.x 和 Chrome sandbox 合同。
+- 新增 `page_detect_challenges`，只读检测 iframe、script、DOM 容器和隐藏字段信号，并可附加 viewport 截图。
+- 新增 `page_click_xy_batch`，可对同一稳定视觉状态中的最多 25 个 viewport 目标执行批量点击，包含自然指针轨迹、有界点击间隔、默认 fail-fast、URL 变化保护和逐目标结构化结果。
+- 新增 `page_wait_challenge_result`，进行有界自主轮询，并分类为 `passed`、`needs_retry`、`new_challenge`、`timeout` 或 `indeterminate`；永不返回 token 内容。
+- `wait_until` 新增通用 attribute/property equals 和 non-empty 条件。
+- `page_click_xy` 新增 `delay_before_press_ms` 显式时序参数；对于移动的视觉目标仍必须重新获取 viewport 截图并计算坐标。
+- Claude/GPT 指导现在包含全自动循环：detect → viewport screenshot → vision analysis → move/click/batch/drag → poll → classify → 基于新证据的有界重试。
+- DrissionPage MCP 仍是全自动通用浏览器工具。用户可在授权自动化和技术交流中自主组合这些能力；项目不建议将其用于绕过人机验证系统，也不对完成结果作出保证。
+- 公开工具数增加到 57 个，同时保持严格 schema、typed results、DrissionPage 4.x 支持和既有运行时安全策略。

@@ -104,7 +104,7 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert config_payload["environment"]["browser_path"]["value"] == ""
     assert config_payload["policy"]["profile"] == "restricted"
     assert guide_payload["available"] is True
-    assert guide_payload["version"] == "0.5.9"
+    assert guide_payload["version"] == "0.6.0"
     assert "DrissionPage>=4.1.1.4,<5" in guide_payload["instructions"]
     assert "form_fill_preview" in guide_payload["instructions"]
     assert "network_listen_start" in guide_payload["instructions"]
@@ -200,7 +200,7 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
 
     assert "tools/list" in payload["schema_source"]
     names = [tool["name"] for tool in payload["tools"]]
-    assert len(names) == 54
+    assert len(names) == 57
     assert names == list(server.tools.keys())
     assert "page_snapshot" in names
     assert "page_observe" in names
@@ -241,6 +241,9 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert schema_by_name["network_listen_wait"] == "NetworkListenWaitData"
     assert schema_by_name["page_pointer_move"] == "PagePointerMoveData"
     assert schema_by_name["page_pointer_drag"] == "PagePointerDragData"
+    assert schema_by_name["page_detect_challenges"] == "DetectChallengesData"
+    assert schema_by_name["page_click_xy_batch"] == "BatchClickData"
+    assert schema_by_name["page_wait_challenge_result"] == "WaitChallengeData"
     assert schema_by_name["page_click_xy"] == "PageClickXYData"
     navigate_tool = payload["tools"][0]
     assert (

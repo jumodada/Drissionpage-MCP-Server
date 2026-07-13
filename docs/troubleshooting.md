@@ -92,10 +92,10 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current tool registry should load 54 tools.
+The current tool registry should load 57 tools.
 
 
-## Pointer / Workflow / Network 0.5.9 Checks
+## Pointer / Workflow / Network 0.6.0 Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a bounded visual drag, use `page_pointer_drag`. Both default to the `natural` profile; supply `start_x` and `start_y` together when the model knows the pointer origin. Use `direct` only when natural movement is not desired.
 - Use `browser_open_and_snapshot` when a client would otherwise call navigate, wait, snapshot, form inspection, and console logs separately.

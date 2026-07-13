@@ -16,7 +16,7 @@
 
 ## 🖱️ Vision-Guided Human–Computer Interaction
 
-**DrissionPage MCP 0.5.9 provides a complete first-stage interaction layer for multimodal AI:** it can turn a vision model's viewport coordinate into a complete, physically plausible pointer action chain—not just a raw teleport-and-click.
+**DrissionPage MCP 0.6.0 provides a complete first-stage interaction layer for multimodal AI:** it can turn a vision model's viewport coordinate into a complete, physically plausible pointer action chain—not just a raw teleport-and-click.
 
 > **One MCP call connects visual understanding to real browser interaction.** The model identifies where to act; DrissionPage MCP handles how the pointer gets there and performs the click.
 
@@ -74,7 +74,7 @@ Designed for legitimate UI automation, testing, accessibility workflows, and tec
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Structured, deterministic automation remains the default through 54 tools plus MCP Resources/Prompts. When selectors or accessibility metadata are insufficient, 0.5.9 also provides an optional **vision-guided human–computer interaction layer** that converts viewport coordinates into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+Structured, deterministic automation remains the default through 57 tools plus MCP Resources/Prompts. When selectors or accessibility metadata are insufficient, 0.6.0 also provides an optional **vision-guided human–computer interaction layer** that converts viewport coordinates into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -168,7 +168,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 54 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 57 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -198,7 +198,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 ### 🧾 Form Operations (1 tool)
 - `form_inspect` - Inspect forms and controls with labels, selectors, requirements, options, and safe optional values
 
-### 📸 Page Operations (13 tools)
+### 📸 Page Operations (16 tools)
 - `page_screenshot` - Capture an inline full-page or viewport screenshot
 - `page_screenshot_save` - Save a screenshot under `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
@@ -209,6 +209,9 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_resize` - Adjust browser window
 - `page_pointer_move` - Move to vision-model viewport coordinates with a natural Bézier path without clicking
 - `page_pointer_drag` - Perform one failure-safe natural drag between viewport coordinates
+- `page_detect_challenges` - Read-only detection of verification-widget signals for autonomous model routing
+- `page_click_xy_batch` - Execute multiple visual coordinate clicks in one bounded autonomous call
+- `page_wait_challenge_result` - Poll token length and configurable success/retry/challenge signals without exposing token values
 - `page_click_xy` - Convert vision-model viewport coordinates into natural Bézier pointer movement and physically timed clicks
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
@@ -417,7 +420,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.5.9`.
+Should output the installed package version, for example `drissionpage-mcp 0.6.0`.
 
 ### Browser Issues?
 ```bash
@@ -446,13 +449,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.5.9 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.6.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.5.9)
+### Current (v0.6.0)
 - [x] 52 core automation, tab/frame/shadow, page-understanding, form-inspection, workflow, network-listener, session-state, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -612,14 +615,15 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.5.9
+## 🆕 Latest Version: v0.6.0
 
-Released on 2026-07-12. This release completes the first vision-guided pointer action surface and improves how Claude/GPT select, execute, verify, and recover MCP interactions:
+Released on 2026-07-13. This release adds autonomous visual orchestration on top of the existing pointer action layer:
 
-- Added `page_pointer_move` for natural hover, reveal, canvas positioning, and visual inspection without clicking.
-- Added `page_pointer_drag` as one failure-safe start-to-end drag call: natural approach, button press, held-button Bézier movement, release delay, and guaranteed cleanup release on failure.
-- `page_click_xy`, move, and drag share one motion planner, smoothstep easing, bounded jitter, pointer state, immutable action sequence, and `natural` / `precise` / `direct` profiles; natural clicks retain the 100–300 ms after arrival reaction delay and 50–120 ms button hold.
-- MCP initialization, `drissionpage://guide/model-usage`, `drissionpage://tools/catalog`, and `browser_vision_guided_interaction` now teach selector-first routing, viewport coordinate conversion, move-vs-click-vs-drag intent selection, bounded verification, and stale-coordinate recovery.
-- The compact tool catalog now exposes required inputs, optional inputs, defaults, enums, bounds, types, and field descriptions; `tools/list` remains the complete JSON Schema source.
-- Pointer move, click, and drag return typed motion evidence, and drag never exposes persistent `mouse_down` / `mouse_up` state across MCP calls.
-- The public registry now contains 54 tools while preserving the strict `JSON_RESULT`, `structuredContent`, typed `outputSchema`, DrissionPage 4.x, and Chrome sandbox contracts.
+- Added `page_detect_challenges` for read-only iframe, script, DOM-container, and hidden-field signal detection with optional viewport screenshot attachment.
+- Added `page_click_xy_batch` for up to 25 ordered viewport clicks from one stable visual state, with natural pointer motion, bounded inter-click delays, fail-fast defaults, URL-change protection, and structured per-target results.
+- Added `page_wait_challenge_result` for bounded autonomous polling and classification as `passed`, `needs_retry`, `new_challenge`, `timeout`, or `indeterminate`; token values are never returned.
+- Extended `wait_until` with generic attribute/property equals and non-empty conditions.
+- Added `page_click_xy.delay_before_press_ms` as explicit timing control; moving visual targets still require a fresh viewport screenshot and coordinate recomputation.
+- Claude/GPT guidance now teaches the autonomous loop: detect → viewport screenshot → visual analysis → move/click/batch/drag → poll → classify → fresh-evidence bounded retry.
+- DrissionPage MCP remains a fully autonomous general browser automation tool. Users can compose these primitives independently for authorized automation and technical exchange; the project does not recommend bypassing human-verification systems and makes no completion guarantee.
+- The public registry now contains 57 tools while preserving strict schemas, typed results, DrissionPage 4.x support, and existing runtime safety policies.

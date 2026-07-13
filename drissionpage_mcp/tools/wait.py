@@ -61,6 +61,10 @@ class WaitUntilInput(ToolInput):
         "text_matches",
         "url_contains",
         "url_matches",
+        "attribute_equals",
+        "attribute_nonempty",
+        "property_equals",
+        "property_nonempty",
     ] = Field(..., description="Condition to wait for")
     selector: str = Field(
         default="",
@@ -68,7 +72,11 @@ class WaitUntilInput(ToolInput):
     )
     value: str = Field(
         default="",
-        description="Expected substring or regular expression for text/URL conditions",
+        description="Expected value or substring/regular expression, depending on condition",
+    )
+    name: str = Field(
+        default="",
+        description="Attribute or property name for attribute/property conditions",
     )
     timeout: float = Field(
         default=10, ge=0, le=MAX_WAIT_SECONDS, description="Timeout in seconds"
@@ -195,6 +203,7 @@ async def wait_until(
         condition=args.condition,
         selector=args.selector,
         value=args.value,
+        name=args.name,
         timeout=args.timeout,
         interval=args.interval,
         stable_ms=args.stable_ms,

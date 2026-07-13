@@ -313,3 +313,31 @@ async def test_pointer_drag_releases_button_when_drag_motion_is_interrupted() ->
         "mouseReleased",
     ]
     assert tab.page.events[-1][1]["buttons"] == 0
+
+
+@pytest.mark.asyncio
+async def test_click_delay_before_press_runs_after_reaction_and_before_press() -> None:
+    tab = FakeTab()
+    observations: list[tuple[float, list[str]]] = []
+
+    async def observe_sleep(seconds: float) -> None:
+        observations.append(
+            (seconds, [params["type"] for _, params in tab.page.events])
+        )
+
+    pointer = PointerOperations(tab, rng=random.Random(41), sleep=observe_sleep)
+    result = await pointer.click_at(
+        150,
+        160,
+        profile="direct",
+        delay_before_press_ms=500,
+    )
+
+    assert result.delay_before_press_ms == 500
+    assert observations[0][0] == 0.5
+    assert observations[0][1] == ["mouseMoved"]
+    assert [params["type"] for _, params in tab.page.events] == [
+        "mouseMoved",
+        "mousePressed",
+        "mouseReleased",
+    ]
