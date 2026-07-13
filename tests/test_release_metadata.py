@@ -13,7 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_5_8() -> None:
+def test_package_version_metadata_is_0_6_0() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
     assert pyproject["project"]["version"] == "0.6.0"
@@ -38,7 +38,7 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "browser_navigate_and_summarize" in contract
 
 
-def test_readmes_end_with_latest_0_5_9_feature_summary() -> None:
+def test_readmes_end_with_latest_0_6_0_feature_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
@@ -58,8 +58,9 @@ def test_readmes_end_with_latest_0_5_9_feature_summary() -> None:
     assert "失败安全" in readme_cn
     assert "公开工具数增加到 57 个" in readme_cn
     assert "## [0.6.0] - 2026-07-13" in changelog
-    assert "Added `page_pointer_move`" in changelog
-    assert "Added `page_pointer_drag`" in changelog
+    assert "Added `page_detect_challenges`" in changelog
+    assert "page_click_xy_batch" in changelog
+    assert "page_wait_challenge_result" in changelog
     assert (
         "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.0...HEAD"
         in changelog

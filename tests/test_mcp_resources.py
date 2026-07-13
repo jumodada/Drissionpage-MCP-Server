@@ -109,6 +109,13 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert "form_fill_preview" in guide_payload["instructions"]
     assert "network_listen_start" in guide_payload["instructions"]
     assert "page_click_xy" in guide_payload["instructions"]
+    assert "page_detect_challenges" in guide_payload["instructions"]
+    assert "page_click_xy_batch" in guide_payload["instructions"]
+    assert "page_wait_challenge_result" in guide_payload["instructions"]
+    assert (
+        "fully autonomous" not in guide_payload["instructions"].lower()
+        or "autonomous" in guide_payload["instructions"].lower()
+    )
     assert "viewport CSS coordinates" in guide_payload["instructions"]
     assert "full_page=false" in guide_payload["instructions"]
     assert "precise" in guide_payload["instructions"]

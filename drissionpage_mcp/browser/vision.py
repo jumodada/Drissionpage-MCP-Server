@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -165,7 +166,10 @@ class VisionOperations:
             if status in {"passed", "needs_retry", "new_challenge", "indeterminate"}:
                 return _challenge_wait_payload(status, result, start, observations)
             if time.monotonic() >= deadline:
-                return _challenge_wait_payload("timeout", last, start, observations)
+                terminal = (
+                    "timeout" if last.get("observable_signals") else "indeterminate"
+                )
+                return _challenge_wait_payload(terminal, last, start, observations)
             await asyncio.sleep(poll_interval_s)
 
 
@@ -191,8 +195,6 @@ def _classify_challenge_result(result: dict[str, Any], initial: str) -> str:
     fingerprint = str(result.get("challenge_fingerprint", ""))
     if initial and fingerprint and fingerprint != initial:
         return "new_challenge"
-    if not result.get("challenge_present") and not result.get("observable_signals"):
-        return "indeterminate"
     return "pending"
 
 
@@ -219,7 +221,7 @@ def _challenge_wait_payload(
 
 def _challenge_detection_script(keywords: list[str]) -> str:
     return f"""(() => {{
-      const keywords = {keywords!r};
+      const keywords = {json.dumps(keywords)};
       const lower = value => String(value || '').toLowerCase();
       const roots = [];
       const visit = root => {{
@@ -282,14 +284,14 @@ def _challenge_result_script(
       }};
       const first = selectors => selectors.find(selector => queryOne(selector)) || '';
       let tokenLength = 0;
-      for (const selector of {token_selectors!r}) {{
+      for (const selector of {json.dumps(token_selectors)}) {{
         const element = queryOne(selector);
         const value = element ? String(element.value || element.textContent || '') : '';
         tokenLength = Math.max(tokenLength, value.length);
       }}
-      const successSelector = first({success_selectors!r});
-      const retrySelector = first({retry_selectors!r});
-      const challengeSelector = first({challenge_selectors!r});
+      const successSelector = first({json.dumps(success_selectors)});
+      const retrySelector = first({json.dumps(retry_selectors)});
+      const challengeSelector = first({json.dumps(challenge_selectors)});
       const frames = roots.flatMap(root => Array.from(root.querySelectorAll('iframe'))).map(frame => String(frame.src || '')).sort();
       return {{
         token_length: tokenLength,

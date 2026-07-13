@@ -477,7 +477,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] PyPI distribution
 
 ### Future (v0.6+)
-- [ ] Promote workflow/network beta contracts toward 0.6.0 after field testing
+- [ ] Promote workflow/network beta contracts toward 0.7.0 after field testing
 - [ ] Optional session persistence beyond redacted state summaries
 - [ ] Proxy support
 - [ ] Network interception

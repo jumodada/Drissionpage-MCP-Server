@@ -477,7 +477,7 @@ which chromium         # macOS
 - [x] PyPI 发布
 
 ### 未来版本 (v0.6+)
-- [ ] 将 workflow/network beta 合同经过实测后推进到 0.6.0
+- [ ] 将 workflow/network beta 合同经过实测后推进到 0.7.0
 - [ ] 在脱敏 state summary 之外提供可选会话持久化
 - [ ] 代理支持
 - [ ] 网络拦截

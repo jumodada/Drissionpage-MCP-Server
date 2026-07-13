@@ -213,18 +213,6 @@ async def test_batch_click_stops_when_url_changes_between_targets() -> None:
             },
             "needs_retry",
         ),
-        (
-            {
-                "token_length": 0,
-                "success_selector": "",
-                "retry_selector": "",
-                "challenge_selector": "",
-                "challenge_present": False,
-                "challenge_fingerprint": "",
-                "observable_signals": False,
-            },
-            "indeterminate",
-        ),
     ],
 )
 async def test_wait_challenge_result_classifies_terminal_signals(
@@ -240,6 +228,31 @@ async def test_wait_challenge_result_classifies_terminal_signals(
         challenge_selectors=[],
     )
     assert result["status"] == status
+
+
+@pytest.mark.asyncio
+async def test_wait_challenge_result_returns_indeterminate_only_after_no_signal_timeout() -> (
+    None
+):
+    no_signal = {
+        "token_length": 0,
+        "success_selector": "",
+        "retry_selector": "",
+        "challenge_selector": "",
+        "challenge_present": False,
+        "challenge_fingerprint": "",
+        "observable_signals": False,
+    }
+    tab = FakeTab([no_signal])
+    result = await VisionOperations(tab).wait_challenge_result(
+        timeout_s=0,
+        poll_interval_s=0,
+        token_selectors=[],
+        success_selectors=[],
+        retry_selectors=[],
+        challenge_selectors=[],
+    )
+    assert result["status"] == "indeterminate"
 
 
 @pytest.mark.asyncio
