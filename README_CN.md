@@ -172,7 +172,8 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
-- `page_go_back` / `page_go_forward` - 浏览器历史记录
+- `page_go_back` - 返回浏览器历史上一页
+- `page_go_forward` - 前进到浏览器历史下一页
 - `page_refresh` - 重新加载当前页面
 
 ### 🗂️ 标签页工具（3 个）
@@ -198,7 +199,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 ### 🧾 表单工具（1 个）
 - `form_inspect` - 检查表单和控件，返回 label、selector、必填/禁用状态、选项和安全的可选 value
 
-### 📸 页面操作（16 个）
+### 📸 页面操作（17 个）
 - `page_screenshot` - 捕获完整页面或视口
 - `page_screenshot_save` - 保存截图到 `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - 返回有界页面 outline，包括标题、链接、按钮、输入框、表单和 selector 推荐
@@ -209,7 +210,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_resize` - 调整浏览器窗口
 - `page_pointer_move` - 沿自然贝塞尔轨迹移动到视觉模型识别出的 viewport 坐标，但不点击
 - `page_pointer_drag` - 在两个 viewport 坐标之间执行失败安全的拖拽，包含距离驱动时长、加减速、相关间隔、可选微停顿和精确终点修正
-- `page_pointer_drag_element` - 在动作前即时解析 CSS/XPath source 和 element、offset 或 track-ratio 目标，支持一个同源 iframe 或嵌套 open Shadow DOM 路径
+- `page_pointer_drag_element` - 在动作前即时解析 source 与目标几何；支持顶层文档或一个同源 iframe 中的 CSS/XPath，以及嵌套 open Shadow DOM 中的 CSS 路径
 - `page_detect_challenges` - 只读检测验证组件信号，供模型自主路由
 - `page_click_xy_batch` - 在一次有界自主调用内执行多个视觉坐标点击
 - `page_wait_challenge_result` - 轮询 token 长度和可配置成功/重试/挑战信号，不返回 token 内容
@@ -618,7 +619,7 @@ codex mcp list
 
 ## 🆕 最新版本：v0.6.1
 
-发布日期：2026-07-13。本版本将拖拽升级为 selector-first 原子动作，并为按住移动建立显式时间域速度学模型：
+发布日期：2026-07-14。本版本将拖拽升级为 selector-first 原子动作，并为按住移动建立显式时间域速度学模型：
 
 - 新增 `page_pointer_drag_element`，使用一个结构化工具覆盖元素到元素、相对偏移和滑块 thumb-to-track-ratio 拖拽。
 - source 与 destination 的坐标在拖拽执行前即时解析，存在可靠 selector 时不再经过模型读取坐标再发起第二次调用的漂移窗口。

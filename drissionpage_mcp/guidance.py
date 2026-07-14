@@ -14,7 +14,7 @@ VISION_DECISION_RULES: tuple[str, ...] = (
     "Use element_find/element_click when a reliable selector or accessibility-backed element is available.",
     "Use page_pointer_move when the target is visually identifiable and the goal is hover, reveal, canvas positioning, or inspection without clicking.",
     "Use page_click_xy when the target is visually identifiable and activation requires a click but selector-based interaction is unavailable or unreliable.",
-    "Use page_pointer_drag_element when stable source and destination selectors exist; track_ratio resolves a thumb and track immediately before dragging, including one same-origin iframe or nested open Shadow DOM path.",
+    "Use page_pointer_drag_element when stable source and destination selectors exist; track_ratio resolves a thumb and track immediately before dragging, using CSS/XPath in the top document or one same-origin iframe and CSS paths through nested open Shadow DOM hosts.",
     "Use page_pointer_drag only for a visually identified drag from one viewport point to another; keep press/move/release in this single failure-safe call.",
     "Use a non-full-page page_screenshot for visual coordinates; pointer coordinate tools expect viewport CSS pixels, not full-page document coordinates or resized image pixels.",
     "If the MCP host resized the screenshot, map image coordinates back to the original viewport using page_evaluate to read window.innerWidth and window.innerHeight.",

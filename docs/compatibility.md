@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.6.0. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.6.1. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -35,7 +35,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Use `page_pointer_drag_element` for stable CSS/XPath source and destination paths.
 - Use destination `track_ratio` for a known thumb and track.
 - Use `page_pointer_drag` only when coordinates come from fresh visual evidence.
-- One same-origin iframe and nested open Shadow DOM hosts are supported; closed Shadow DOM and cross-origin iframe internals are not promised.
+- CSS/XPath is supported in the top document or one same-origin iframe; nested open Shadow DOM hosts require CSS paths. Closed Shadow DOM and cross-origin iframe internals are not promised.
 
 ## 0.5.9 to 0.6.0 Migration
 

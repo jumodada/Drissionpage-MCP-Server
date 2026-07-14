@@ -381,6 +381,18 @@ class MotionPlanner:
             raw.append(current)
         scale = total / sum(raw)
         scaled = [min(maximum, max(minimum, value * scale)) for value in raw]
+        required_spread = min(0.004, maximum - minimum)
+        if count >= 3 and max(scaled) - min(scaled) < required_spread:
+            center = min(maximum, max(minimum, total / count))
+            half_spread = required_spread / 2
+            if center - half_spread < minimum:
+                low, high = minimum, minimum + required_spread
+            elif center + half_spread > maximum:
+                low, high = maximum - required_spread, maximum
+            else:
+                low, high = center - half_spread, center + half_spread
+            scaled[0] = low
+            scaled[count // 2] = high
         return tuple(scaled)
 
     def _step_count(self, config: MotionConfig) -> int:

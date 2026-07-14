@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.1] - 2026-07-13
+## [0.6.1] - 2026-07-14
 
 ### Added
 - Added `page_pointer_drag_element` for atomically resolved element-to-element, relative-offset, and track-ratio dragging through the top document or one same-origin iframe, plus CSS paths through nested open Shadow DOM hosts.

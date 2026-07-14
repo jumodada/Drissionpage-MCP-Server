@@ -250,8 +250,9 @@ async def pointer_drag(
     title="Drag Element to Structured Destination",
     description=(
         "Resolve a source element and element, offset, or track-ratio destination "
-        "immediately before one failure-safe drag. Supports one same-origin iframe "
-        "and nested open Shadow DOM hosts; use coordinate drag for visual-only targets."
+        "immediately before one failure-safe drag. Supports CSS/XPath in the top "
+        "document or one same-origin iframe, plus CSS paths through nested open "
+        "Shadow DOM hosts; use coordinate drag for visual-only targets."
     ),
     input_schema=PointerDragElementInput,
     tool_type=ToolType.DESTRUCTIVE,

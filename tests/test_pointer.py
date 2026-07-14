@@ -387,6 +387,7 @@ def test_drag_plan_uses_correlated_timing_and_exact_correction() -> None:
     assert all(abs(step.point.y - 100) <= 0.8 for step in plan.steps)
     movement_delays = [step.delay for step in plan.steps[: plan.main_steps]]
     assert all(0.008 <= delay <= 0.025 for delay in movement_delays)
+    assert max(movement_delays) - min(movement_delays) >= 0.004
     assert (
         max(
             abs(right - left)
@@ -394,6 +395,29 @@ def test_drag_plan_uses_correlated_timing_and_exact_correction() -> None:
         )
         < 0.012
     )
+
+
+def test_natural_drag_guarantees_meaningful_interval_spread() -> None:
+    from drissionpage_mcp.browser.motion import DragKinematics
+
+    planner = MotionPlanner(random.Random(11))
+    plan = planner.plan_drag(
+        Point(100, 100),
+        Point(200, 100),
+        MotionConfig(
+            steps_min=24,
+            steps_max=40,
+            interval_min=0.008,
+            interval_max=0.025,
+            jitter_px=0.8,
+            curve_min_ratio=0.005,
+            curve_max_ratio=0.020,
+        ),
+        DragKinematics(),
+    )
+
+    movement_delays = [step.delay for step in plan.steps[: plan.main_steps]]
+    assert max(movement_delays) - min(movement_delays) >= 0.004
 
 
 def test_drag_kinematics_rejects_invalid_ranges() -> None:

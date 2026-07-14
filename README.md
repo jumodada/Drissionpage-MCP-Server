@@ -172,7 +172,8 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
-- `page_go_back` / `page_go_forward` - Browser history
+- `page_go_back` - Navigate backward in browser history
+- `page_go_forward` - Navigate forward in browser history
 - `page_refresh` - Reload current page
 
 ### 🗂️ Tab Operations (3 tools)
@@ -198,7 +199,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 ### 🧾 Form Operations (1 tool)
 - `form_inspect` - Inspect forms and controls with labels, selectors, requirements, options, and safe optional values
 
-### 📸 Page Operations (16 tools)
+### 📸 Page Operations (17 tools)
 - `page_screenshot` - Capture an inline full-page or viewport screenshot
 - `page_screenshot_save` - Save a screenshot under `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
@@ -209,7 +210,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_resize` - Adjust browser window
 - `page_pointer_move` - Move to vision-model viewport coordinates with a natural Bézier path without clicking
 - `page_pointer_drag` - Perform one failure-safe coordinate drag with distance-aware timing, acceleration/deceleration, correlated intervals, optional micro-pause, and exact-target correction
-- `page_pointer_drag_element` - Resolve CSS/XPath source and element, offset, or track-ratio destination geometry immediately before dragging, including one same-origin iframe or nested open Shadow DOM path
+- `page_pointer_drag_element` - Resolve source and destination geometry immediately before dragging; supports CSS/XPath in the top document or one same-origin iframe, plus CSS paths through nested open Shadow DOM hosts
 - `page_detect_challenges` - Read-only detection of verification-widget signals for autonomous model routing
 - `page_click_xy_batch` - Execute multiple visual coordinate clicks in one bounded autonomous call
 - `page_wait_challenge_result` - Poll token length and configurable success/retry/challenge signals without exposing token values
@@ -618,7 +619,7 @@ If you find this project useful, please consider:
 
 ## 🆕 Latest Version: v0.6.1
 
-Released on 2026-07-13. This release makes drag automation selector-first and gives held movement an explicit time-domain kinematics model:
+Released on 2026-07-14. This release makes drag automation selector-first and gives held movement an explicit time-domain kinematics model:
 
 - Added `page_pointer_drag_element`, a single structured tool for element-to-element, relative-offset, and thumb-to-track-ratio dragging.
 - Source and destination geometry are resolved immediately before the drag, removing the model round-trip and stale-coordinate window when selectors exist.

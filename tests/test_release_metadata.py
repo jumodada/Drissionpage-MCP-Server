@@ -46,18 +46,24 @@ def test_readmes_end_with_latest_0_6_1_feature_summary() -> None:
     asset_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif"
     assert asset_url in readme and asset_url in readme_cn
     assert "## 🆕 Latest Version: v0.6.1" in readme
-    assert "Released on 2026-07-13" in readme
+    assert "Released on 2026-07-14" in readme
     assert "page_pointer_move" in readme
     assert "page_pointer_drag" in readme
     assert "failure-safe" in readme
     assert "public registry now contains 58 tools" in readme
+    assert "### 🌐 Navigation (4 tools)" in readme
+    assert "### 📸 Page Operations (17 tools)" in readme
+    assert "CSS paths through nested open Shadow DOM hosts" in readme
     assert "## 🆕 最新版本：v0.6.1" in readme_cn
-    assert "发布日期：2026-07-13" in readme_cn
+    assert "发布日期：2026-07-14" in readme_cn
     assert "page_pointer_move" in readme_cn
     assert "page_pointer_drag" in readme_cn
     assert "失败安全" in readme_cn
     assert "公开工具数增加到 58 个" in readme_cn
-    assert "## [0.6.1] - 2026-07-13" in changelog
+    assert "### 🌐 导航工具（4 个）" in readme_cn
+    assert "### 📸 页面操作（17 个）" in readme_cn
+    assert "嵌套 open Shadow DOM 中的 CSS 路径" in readme_cn
+    assert "## [0.6.1] - 2026-07-14" in changelog
     assert "Added `page_pointer_drag_element`" in changelog
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
