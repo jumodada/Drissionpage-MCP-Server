@@ -169,6 +169,8 @@ async def test_vision_prompt_prefers_selectors_then_natural_pointer_and_verifica
     assert text.index("page_screenshot") < text.index("page_pointer_move")
     assert text.index("page_pointer_move") < text.index("page_click_xy")
     assert "page_pointer_drag" in text
+    assert "page_pointer_drag_element" in text
+    assert "track_ratio" in text
     assert text.index("page_click_xy") < text.index("Verify before retrying")
     assert "the tool options panel becomes visible" in text
     assert "full_page=false" in text

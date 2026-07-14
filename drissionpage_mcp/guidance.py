@@ -14,6 +14,7 @@ VISION_DECISION_RULES: tuple[str, ...] = (
     "Use element_find/element_click when a reliable selector or accessibility-backed element is available.",
     "Use page_pointer_move when the target is visually identifiable and the goal is hover, reveal, canvas positioning, or inspection without clicking.",
     "Use page_click_xy when the target is visually identifiable and activation requires a click but selector-based interaction is unavailable or unreliable.",
+    "Use page_pointer_drag_element when stable source and destination selectors exist; track_ratio resolves a thumb and track immediately before dragging, including one same-origin iframe or nested open Shadow DOM path.",
     "Use page_pointer_drag only for a visually identified drag from one viewport point to another; keep press/move/release in this single failure-safe call.",
     "Use a non-full-page page_screenshot for visual coordinates; pointer coordinate tools expect viewport CSS pixels, not full-page document coordinates or resized image pixels.",
     "If the MCP host resized the screenshot, map image coordinates back to the original viewport using page_evaluate to read window.innerWidth and window.innerHeight.",
@@ -48,10 +49,11 @@ def server_instructions(version: str = __version__) -> str:
 Compatibility: use {SUPPORTED_DRISSIONPAGE_RANGE}; do not assume DrissionPage 5 beta/internal builds are supported.
 Discovery: when tool choice or arguments are uncertain, read drissionpage://guide/model-usage for workflow decisions and drissionpage://tools/catalog for compact input guidance; use tools/list for complete JSON Schemas.
 Tool choice: prefer the highest-level matching workflow, then reliable selector-based element tools. Use browser_open_and_snapshot for navigate+inspect, browser_extract_links for link discovery, page_snapshot for more selectors/content, and page_navigate only for navigation without immediate context.
+Selector-first drag: when the source and destination have stable CSS/XPath selectors, use page_pointer_drag_element. Use destination kind=track_ratio for a known thumb and track; geometry is resolved immediately before the action, with one same-origin iframe supported and CSS paths required inside nested open Shadow DOM. Closed Shadow DOM and cross-origin iframe internals are not promised.
 Vision fallback: when no reliable selector exists, use page_screenshot with full_page=false and identify viewport CSS coordinates. Use page_pointer_move with profile=natural for hover/reveal/inspection, page_click_xy when activation requires a click, or page_pointer_drag for one bounded start-to-end drag; then verify a bounded state change. Never pass full-page document coordinates or resized image pixels directly; use page_evaluate viewport dimensions to correct client-side image scaling.
-Pointer profiles: natural is the default visual UI profile; precise is for small/tightly packed ordinary controls; direct is only for explicitly immediate deterministic movement. Supply start_x and start_y together only when the pointer origin is known.
+Pointer profiles: natural is the default visual UI profile and held drags use distance-aware duration, acceleration/deceleration, correlated event intervals, bounded jitter, reaction/grip/release delays, optional micro-pauses, and exact-target correction; precise reduces jitter and disables overshoot; direct is only for explicitly immediate deterministic movement. Supply start_x and start_y together only when the pointer origin is known.
 Forms: use form_inspect, then form_fill_preview; treat requires_confirmation=true as a hard stop before submit and never echo field secrets.
-Autonomous verification workflow: page_detect_challenges performs read-only signal detection; use a fresh viewport screenshot, choose page_pointer_move/page_click_xy/page_click_xy_batch/page_pointer_drag by intent, then page_wait_challenge_result or wait_until for bounded classification and retry with fresh evidence. These are general capabilities for authorized automation and technical exchange; bypassing human-verification systems is not recommended and completion is not guaranteed.
+Autonomous verification workflow: page_detect_challenges performs read-only signal detection; use a fresh viewport screenshot, choose page_pointer_drag_element for stable selector paths or page_pointer_move/page_click_xy/page_click_xy_batch/page_pointer_drag by visual intent, then page_wait_challenge_result or wait_until for bounded classification and retry with fresh evidence. These are general capabilities for authorized automation and technical exchange; bypassing human-verification systems is not recommended and completion is not guaranteed.
 Network: use network_listen_start before the triggering action, network_listen_wait for bounded HTTP/XHR/Fetch metadata, then network_listen_stop; this is observation only, not interception or request mutation.
 Recovery: inspect structuredContent.error and follow the first actionable error.details.hints entry. Retry only after new evidence or corrected input; stop and report the repeated blocker when the same failure recurs. After a visual action use element state, page_observe, wait_until, or a fresh page_screenshot. Do not repeat stale coordinate actions blindly; re-observe, correct coordinate mapping, or switch to a discovered selector.
 Safety: respect error.details.hints, navigation policy errors, DP_MCP_SCREENSHOT_ROOT for saved screenshots, and DP_MCP_UPLOAD_ROOT for uploads.
@@ -126,6 +128,7 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
         },
         "tool_selection": {
             "default": "workflow helper or reliable selector-based element tool",
+            "selector_drag": "page_pointer_drag_element resolves source and destination geometry immediately before dragging; use track_ratio for a known thumb and track",
             "vision_fallback": "page_pointer_move for visual hover/reveal, page_click_xy for visual activation, or page_pointer_drag for a bounded visual drag when no reliable selector exists",
             "rules": list(VISION_DECISION_RULES),
         },
@@ -160,7 +163,7 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
                     "prefer element_find/element_click when reliable",
                     "page_screenshot full_page=false",
                     "identify and map viewport CSS coordinates",
-                    "page_pointer_move, page_click_xy, or page_pointer_drag by interaction intent",
+                    "page_pointer_drag_element for stable selector paths, otherwise page_pointer_move, page_click_xy, or page_pointer_drag by interaction intent",
                     "bounded state verification",
                 ],
                 "use_when": "Need to operate a canvas, chart, map, visual editor, responsive control, or other visible UI surface without a reliable selector.",
@@ -189,7 +192,7 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
                 "page_screenshot with full_page=false",
                 "identify target in image",
                 "map to viewport CSS pixels if the host resized the image",
-                "page_pointer_move, page_click_xy, or page_pointer_drag by interaction intent, with profile=natural",
+                "page_pointer_drag_element for stable selector paths, otherwise page_pointer_move, page_click_xy, or page_pointer_drag by interaction intent, with profile=natural",
                 "verify resulting page state before any retry",
             ],
             "coordinate_contract": {
@@ -212,7 +215,7 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
                 "page_detect_challenges",
                 "page_screenshot full_page=false",
                 "vision analysis",
-                "page_pointer_move, page_click_xy, page_click_xy_batch, or page_pointer_drag",
+                "page_pointer_drag_element, page_pointer_move, page_click_xy, page_click_xy_batch, or page_pointer_drag",
                 "page_wait_challenge_result or wait_until",
                 "fresh-evidence bounded retry",
             ],

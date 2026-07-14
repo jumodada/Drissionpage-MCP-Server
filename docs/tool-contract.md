@@ -166,7 +166,8 @@ The server marks tools with MCP annotations:
 | `page_scroll` | Destructive | none | Scroll the page by direction or to a position. Optional: `direction`, `pixels`, `x`, `y`. |
 | `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Optional: `interval`. |
 | `page_pointer_move` | Destructive | `x`, `y` | Move along the selected natural/precise/direct viewport path without pressing a button. Optional: `start_x` + `start_y`, `element`, `profile`. |
-| `page_pointer_drag` | Destructive | `start_x`, `start_y`, `end_x`, `end_y` | Perform one failure-safe natural drag. Optional: `element`, `profile`, `button`. |
+| `page_pointer_drag` | Destructive | `start_x`, `start_y`, `end_x`, `end_y` | Perform one failure-safe coordinate drag with distance-aware timing and exact-target correction. Optional: `element`, `profile`, `button`. |
+| `page_pointer_drag_element` | Destructive | `source`, `destination` | Resolve CSS/XPath geometry immediately before an element, offset, or track-ratio drag. Supports one same-origin iframe and CSS paths through nested open Shadow DOM hosts. Optional: `profile`, `button`. |
 | `page_detect_challenges` | Read-only | none | Detect verification-widget signals; optional: `keywords`, `include_screenshot`. |
 | `page_click_xy_batch` | Destructive | `targets` | Execute ordered viewport clicks from one stable visual state with fail-fast and URL-change controls. |
 | `page_wait_challenge_result` | Read-only | none | Poll configurable token-length and result selectors without returning token values. |

@@ -169,7 +169,7 @@ def test_natural_motion_config_matches_public_contract() -> None:
     assert (motion.interval_min, motion.interval_max) == (0.008, 0.025)
     assert motion.jitter_px == 0.5
 
-    from drissionpage_mcp.tools.common import ClickCoordinatesInput
+    from drissionpage_mcp.tools.pointer import ClickCoordinatesInput
 
     profile_description = ClickCoordinatesInput.model_json_schema()["properties"][
         "profile"
@@ -191,7 +191,7 @@ def test_natural_motion_config_matches_public_contract() -> None:
 def test_coordinate_click_rejects_invalid_inputs(payload: dict[str, object]) -> None:
     from pydantic import ValidationError
 
-    from drissionpage_mcp.tools.common import ClickCoordinatesInput
+    from drissionpage_mcp.tools.pointer import ClickCoordinatesInput
 
     with pytest.raises(ValidationError):
         ClickCoordinatesInput.model_validate(payload)
@@ -341,3 +341,92 @@ async def test_click_delay_before_press_runs_after_reaction_and_before_press() -
         "mousePressed",
         "mouseReleased",
     ]
+
+
+def test_drag_plan_uses_correlated_timing_and_exact_correction() -> None:
+    from drissionpage_mcp.browser.motion import DragKinematics
+
+    planner = MotionPlanner(random.Random(101))
+    plan = planner.plan_drag(
+        Point(100, 100),
+        Point(420, 100),
+        MotionConfig(
+            steps_min=28,
+            steps_max=28,
+            interval_min=0.008,
+            interval_max=0.025,
+            jitter_px=0.8,
+            curve_min_ratio=0.005,
+            curve_max_ratio=0.02,
+        ),
+        DragKinematics(
+            duration_min=0.45,
+            duration_max=0.75,
+            duration_base=0.18,
+            distance_factor=0.02,
+            overshoot_min_px=3,
+            overshoot_max_px=3,
+            correction_steps_min=3,
+            correction_steps_max=3,
+            micro_pause_probability=1,
+            micro_pause_min=0.04,
+            micro_pause_max=0.04,
+            axis="x",
+        ),
+    )
+
+    assert plan.steps[-1].point == Point(420, 100)
+    assert plan.main_steps == 28
+    assert plan.overshoot_steps > 0
+    assert plan.correction_steps == 3
+    assert plan.overshoot_px == pytest.approx(3)
+    assert len(plan.pauses) == 1
+    assert plan.pauses[0].duration == pytest.approx(0.04)
+    assert max(step.point.x for step in plan.steps) > 420
+    assert all(abs(step.jitter.y) <= 0.8 for step in plan.steps)
+    assert all(abs(step.point.y - 100) <= 0.8 for step in plan.steps)
+    movement_delays = [step.delay for step in plan.steps[: plan.main_steps]]
+    assert all(0.008 <= delay <= 0.025 for delay in movement_delays)
+    assert (
+        max(
+            abs(right - left)
+            for left, right in zip(movement_delays, movement_delays[1:])
+        )
+        < 0.012
+    )
+
+
+def test_drag_kinematics_rejects_invalid_ranges() -> None:
+    from drissionpage_mcp.browser.motion import DragKinematics
+
+    with pytest.raises(ValueError, match="duration"):
+        DragKinematics(duration_min=0.8, duration_max=0.4)
+    with pytest.raises(ValueError, match="overshoot"):
+        DragKinematics(overshoot_min_px=4, overshoot_max_px=2)
+    with pytest.raises(ValueError, match="micro pause probability"):
+        DragKinematics(micro_pause_probability=1.2)
+
+
+@pytest.mark.asyncio
+async def test_pointer_drag_reports_grip_pause_and_segment_metadata() -> None:
+    tab = FakeTab()
+    sleeps: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    pointer = PointerOperations(tab, rng=random.Random(43), sleep=fake_sleep)
+    result = await pointer.drag_to(180, 190, 420, 190, profile="natural")
+
+    assert 80 <= result.reaction_delay_ms <= 220
+    assert 35 <= result.grip_delay_ms <= 90
+    assert 40 <= result.release_delay_ms <= 110
+    assert result.main_drag_steps >= 24
+    assert result.drag_steps == (
+        result.main_drag_steps + result.overshoot_steps + result.correction_steps
+    )
+    assert result.movement_duration_ms > 0
+    assert result.planned_duration_ms == round(sum(sleeps) * 1000)
+    assert tab.page.events[-1][1]["type"] == "mouseReleased"
+    assert tab.page.events[-1][1]["x"] == 420
+    assert tab.page.events[-1][1]["y"] == 190

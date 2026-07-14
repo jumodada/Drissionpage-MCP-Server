@@ -139,7 +139,15 @@ class PointerDragData(ToolData):
     target_y: float
     approach_steps: int
     drag_steps: int
-    press_delay_ms: int
+    main_drag_steps: int
+    overshoot_steps: int
+    correction_steps: int
+    micro_pause_count: int
+    overshoot_px: float
+    reaction_delay_ms: int
+    grip_delay_ms: int
+    movement_duration_ms: int
+    micro_pause_duration_ms: int
     release_delay_ms: int
     planned_duration_ms: int
 
@@ -150,6 +158,45 @@ class PagePointerDragData(ToolData):
     end_x: float
     end_y: float
     element: str
+    url: str
+    motion: PointerDragData
+
+
+class ResolvedPointerTargetData(ToolData):
+    selector: str
+    locator: str
+    selector_strategy: str
+    selector_normalized: bool
+    frame_selector: str | None
+    shadow_hosts: list[str]
+    anchor: Literal["center", "left", "right", "top", "bottom"]
+    offset_x: float
+    offset_y: float
+    x: float
+    y: float
+    left: float
+    top: float
+    right: float
+    bottom: float
+    width: float
+    height: float
+
+
+class PointerDragElementDestinationData(ToolData):
+    kind: Literal["element", "offset", "track_ratio"]
+    x: float
+    y: float
+    target: ResolvedPointerTargetData | None = None
+    track: ResolvedPointerTargetData | None = None
+    offset_x: float | None = None
+    offset_y: float | None = None
+    ratio: float | None = None
+    axis: Literal["x", "y"] | None = None
+
+
+class PagePointerDragElementData(ToolData):
+    source: ResolvedPointerTargetData
+    destination: PointerDragElementDestinationData
     url: str
     motion: PointerDragData
 

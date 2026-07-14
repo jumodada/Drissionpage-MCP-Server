@@ -344,9 +344,10 @@ async def test_natural_drag_passes_strict_slider_fixture_in_embedded_context(
             )
             assert drag_payload["ok"] is True
             motion = drag_payload["data"]["motion"]
-            assert 20 <= motion["drag_steps"] <= 35
-            assert 100 <= motion["press_delay_ms"] <= 300
-            assert 50 <= motion["release_delay_ms"] <= 120
+            assert 24 <= motion["main_drag_steps"] <= 40
+            assert 80 <= motion["reaction_delay_ms"] <= 220
+            assert 35 <= motion["grip_delay_ms"] <= 90
+            assert 40 <= motion["release_delay_ms"] <= 110
 
             _content, result_payload = await _execute_tool(
                 server, "page_evaluate", {"script": result_script, "max_chars": 20000}
@@ -373,6 +374,147 @@ async def test_natural_drag_passes_strict_slider_fixture_in_embedded_context(
             if context == "shadow":
                 assert "shadow-knob" in samples[0]["path"]
                 assert "nested-slider-host" in samples[0]["path"]
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("context", ["iframe", "shadow"])
+async def test_selector_first_drag_resolves_embedded_slider_atomically(
+    context: str,
+) -> None:
+    """resolves thumb and track immediately before a strict embedded drag."""
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/slider"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            await _execute_tool(server, "page_resize", {"width": 800, "height": 700})
+            if context == "iframe":
+                source = {
+                    "selector": "#frame-knob",
+                    "frame_selector": "#slider-frame",
+                }
+                track = {
+                    "selector": "#frame-track",
+                    "frame_selector": "#slider-frame",
+                }
+                result_script = """
+                    const state = document.querySelector('#slider-frame').contentWindow.__frameSlider;
+                    return {accepted: state.accepted, dragging: state.dragging, metrics: state.metrics};
+                """
+            else:
+                path = ["#shadow-slider-host", "#nested-slider-host"]
+                source = {"selector": "#shadow-knob", "shadow_hosts": path}
+                track = {"selector": "#shadow-track", "shadow_hosts": path}
+                result_script = """
+                    const state = window.__shadowSlider;
+                    return {accepted: state.accepted, dragging: state.dragging, metrics: state.metrics};
+                """
+
+            _content, drag_payload = await _execute_tool(
+                server,
+                "page_pointer_drag_element",
+                {
+                    "source": source,
+                    "destination": {
+                        "kind": "track_ratio",
+                        "track": track,
+                        "ratio": 1.0,
+                        "axis": "x",
+                    },
+                    "profile": "natural",
+                },
+            )
+            assert drag_payload["ok"] is True
+            data = drag_payload["data"]
+            assert data["destination"]["kind"] == "track_ratio"
+            assert data["destination"]["ratio"] == 1.0
+            assert data["destination"]["axis"] == "x"
+            assert data["motion"]["target_x"] == pytest.approx(data["destination"]["x"])
+            if context == "iframe":
+                assert data["source"]["frame_selector"] == "#slider-frame"
+            else:
+                assert data["source"]["shadow_hosts"] == [
+                    "#shadow-slider-host",
+                    "#nested-slider-host",
+                ]
+
+            _content, result_payload = await _execute_tool(
+                server, "page_evaluate", {"script": result_script}
+            )
+            state = result_payload["data"]["result"]
+            assert state["accepted"] is True, state["metrics"]
+            assert state["dragging"] is False
+            assert state["metrics"]["allTrusted"] is True
+            assert state["metrics"]["upCount"] == 1
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_selector_first_drag_uses_layout_after_shadow_host_moves() -> None:
+    """proves selector resolution uses the final layout rather than stale coordinates."""
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/slider"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            await _execute_tool(server, "page_resize", {"width": 1000, "height": 700})
+            _content, before_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": """
+                    const root = document.querySelector('#shadow-slider-host').shadowRoot
+                      .querySelector('#nested-slider-host').shadowRoot;
+                    const rect = root.querySelector('#shadow-knob').getBoundingClientRect();
+                    return {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2};
+                    """
+                },
+            )
+            old = before_payload["data"]["result"]
+            _content, moved_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": """
+                    document.querySelector('#shadow-slider-host').style.left = '240px';
+                    return true;
+                    """
+                },
+            )
+            assert moved_payload["data"]["result"] is True
+            path = ["#shadow-slider-host", "#nested-slider-host"]
+            _content, drag_payload = await _execute_tool(
+                server,
+                "page_pointer_drag_element",
+                {
+                    "source": {"selector": "#shadow-knob", "shadow_hosts": path},
+                    "destination": {
+                        "kind": "track_ratio",
+                        "track": {
+                            "selector": "#shadow-track",
+                            "shadow_hosts": path,
+                        },
+                        "ratio": 1,
+                        "axis": "x",
+                    },
+                    "profile": "natural",
+                },
+            )
+            assert drag_payload["ok"] is True
+            assert drag_payload["data"]["source"]["x"] > old["x"] + 150
+            _content, result_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {"script": "return window.__shadowSlider.accepted;"},
+            )
+            assert result_payload["data"]["result"] is True
     finally:
         await server.cleanup()
 

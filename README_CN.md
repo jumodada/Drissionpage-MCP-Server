@@ -16,7 +16,7 @@
 
 ## 🖱️ 视觉驱动的人机交互
 
-**DrissionPage MCP 0.6.0 为多模态 AI 提供完整的第一阶段交互能力：** 它可以把视觉模型识别出的 viewport 坐标转换为完整、符合物理节奏的指针动作链，而不是把鼠标瞬移到坐标后直接点击。
+**DrissionPage MCP 0.6.1 为多模态 AI 提供完整的第一阶段交互能力：** 它可以把视觉模型识别出的 viewport 坐标转换为完整、符合物理节奏的指针动作链，而不是把鼠标瞬移到坐标后直接点击。
 
 > **一次 MCP 调用即可连接视觉理解与真实浏览器交互。** 模型负责判断“在哪里操作”，DrissionPage MCP 负责决定“鼠标如何移动过去并完成点击”。
 
@@ -74,7 +74,7 @@ page_click_xy(profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-项目仍以 57 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径；当 selector 或 accessibility metadata 不足时，0.6.0 还提供可选的**视觉驱动人机交互层**，把 viewport 坐标转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
+项目仍以 58 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径；当 selector 或 accessibility metadata 不足时，0.6.1 还提供可选的**视觉驱动人机交互层**，把 viewport 坐标转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -168,7 +168,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 57 个强大工具 + MCP Resources/Prompts
+## 🛠️ 58 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
@@ -208,7 +208,8 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `keyboard_press` - 向当前焦点元素/页面发送键盘输入
 - `page_resize` - 调整浏览器窗口
 - `page_pointer_move` - 沿自然贝塞尔轨迹移动到视觉模型识别出的 viewport 坐标，但不点击
-- `page_pointer_drag` - 在两个 viewport 坐标之间执行一次失败安全的自然拖拽
+- `page_pointer_drag` - 在两个 viewport 坐标之间执行失败安全的拖拽，包含距离驱动时长、加减速、相关间隔、可选微停顿和精确终点修正
+- `page_pointer_drag_element` - 在动作前即时解析 CSS/XPath source 和 element、offset 或 track-ratio 目标，支持一个同源 iframe 或嵌套 open Shadow DOM 路径
 - `page_detect_challenges` - 只读检测验证组件信号，供模型自主路由
 - `page_click_xy_batch` - 在一次有界自主调用内执行多个视觉坐标点击
 - `page_wait_challenge_result` - 轮询 token 长度和可配置成功/重试/挑战信号，不返回 token 内容
@@ -268,7 +269,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 57 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
+│   └── tools/              # 58 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -420,7 +421,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.6.0`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.6.1`。
 
 ### 浏览器问题？
 ```bash
@@ -449,14 +450,14 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.6.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.6.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.6.0)
-- [x] 57 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
+### 当前版本 (v0.6.1)
+- [x] 58 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -615,15 +616,16 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.6.0
+## 🆕 最新版本：v0.6.1
 
-发布日期：2026-07-13。本版本在现有指针动作层之上增加全自动视觉编排能力：
+发布日期：2026-07-13。本版本将拖拽升级为 selector-first 原子动作，并为按住移动建立显式时间域速度学模型：
 
-- 新增 `page_detect_challenges`，只读检测 iframe、script、DOM 容器和隐藏字段信号，并可附加 viewport 截图。
-- 新增 `page_click_xy_batch`，可对同一稳定视觉状态中的最多 25 个 viewport 目标执行批量点击，包含自然指针轨迹、有界点击间隔、默认 fail-fast、URL 变化保护和逐目标结构化结果。
-- 新增 `page_wait_challenge_result`，进行有界自主轮询，并分类为 `passed`、`needs_retry`、`new_challenge`、`timeout` 或 `indeterminate`；永不返回 token 内容。
-- `wait_until` 新增通用 attribute/property equals 和 non-empty 条件。
-- `page_click_xy` 新增 `delay_before_press_ms` 显式时序参数；对于移动的视觉目标仍必须重新获取 viewport 截图并计算坐标。
-- Claude/GPT 指导现在包含全自动循环：detect → viewport screenshot → vision analysis → move/click/batch/drag → poll → classify → 基于新证据的有界重试。
-- DrissionPage MCP 仍是全自动通用浏览器工具。用户可在授权自动化和技术交流中自主组合这些能力；项目不建议将其用于绕过人机验证系统，也不对完成结果作出保证。
-- 公开工具数增加到 57 个，同时保持严格 schema、typed results、DrissionPage 4.x 支持和既有运行时安全策略。
+- 新增 `page_pointer_drag_element`，使用一个结构化工具覆盖元素到元素、相对偏移和滑块 thumb-to-track-ratio 拖拽。
+- source 与 destination 的坐标在拖拽执行前即时解析，存在可靠 selector 时不再经过模型读取坐标再发起第二次调用的漂移窗口。
+- selector-first 拖拽支持顶层文档或一个同源 iframe 中的 CSS/XPath 目标，以及嵌套 open Shadow DOM 中的 CSS 路径；不承诺 closed Shadow DOM 和跨域 iframe 内部访问。
+- natural 按住拖拽现在包含距离驱动总时长、加速与减速、相关事件间隔、低幅有界抖动、reaction/grip/release 延迟、可选微停顿、有界过冲和精确终点修正。
+- 拖拽结果返回 main、overshoot、correction、timing、pause 与 release 元数据，并在中断时继续保证释放鼠标按钮。
+- pointer schema 和工具从 `tools/common.py` 移入专用 `tools/pointer.py`，不保留 forwarding wrapper。
+- Claude/GPT 指导现在优先为可靠 selector 选择 `page_pointer_drag_element`，只有纯视觉目标才使用 `page_pointer_drag`，布局变化后必须使用新证据。
+- 严格本地 Chromium 测试覆盖同源 iframe 和嵌套 open Shadow DOM 内的轨迹敏感滑块，拒绝 direct 瞬移式拖拽，并验证布局漂移后的原子 selector 解析。
+- 公开工具数增加到 58 个，并继续使用严格 schema 和 typed results。

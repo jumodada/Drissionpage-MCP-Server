@@ -104,11 +104,13 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert config_payload["environment"]["browser_path"]["value"] == ""
     assert config_payload["policy"]["profile"] == "restricted"
     assert guide_payload["available"] is True
-    assert guide_payload["version"] == "0.6.0"
+    assert guide_payload["version"] == "0.6.1"
     assert "DrissionPage>=4.1.1.4,<5" in guide_payload["instructions"]
     assert "form_fill_preview" in guide_payload["instructions"]
     assert "network_listen_start" in guide_payload["instructions"]
     assert "page_click_xy" in guide_payload["instructions"]
+    assert "page_pointer_drag_element" in guide_payload["instructions"]
+    assert "track_ratio" in guide_payload["instructions"]
     assert "page_detect_challenges" in guide_payload["instructions"]
     assert "page_click_xy_batch" in guide_payload["instructions"]
     assert "page_wait_challenge_result" in guide_payload["instructions"]
@@ -207,7 +209,7 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
 
     assert "tools/list" in payload["schema_source"]
     names = [tool["name"] for tool in payload["tools"]]
-    assert len(names) == 57
+    assert len(names) == 58
     assert names == list(server.tools.keys())
     assert "page_snapshot" in names
     assert "page_observe" in names
@@ -248,6 +250,7 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert schema_by_name["network_listen_wait"] == "NetworkListenWaitData"
     assert schema_by_name["page_pointer_move"] == "PagePointerMoveData"
     assert schema_by_name["page_pointer_drag"] == "PagePointerDragData"
+    assert schema_by_name["page_pointer_drag_element"] == "PagePointerDragElementData"
     assert schema_by_name["page_detect_challenges"] == "DetectChallengesData"
     assert schema_by_name["page_click_xy_batch"] == "BatchClickData"
     assert schema_by_name["page_wait_challenge_result"] == "WaitChallengeData"
@@ -287,7 +290,7 @@ async def test_model_usage_guide_exposes_workflow_first_routes() -> None:
         "prefer element_find/element_click when reliable",
         "page_screenshot full_page=false",
         "identify and map viewport CSS coordinates",
-        "page_pointer_move, page_click_xy, or page_pointer_drag by interaction intent",
+        "page_pointer_drag_element for stable selector paths, otherwise page_pointer_move, page_click_xy, or page_pointer_drag by interaction intent",
         "bounded state verification",
     ]
     assert "canvas" in routes["vision_guided_interaction"]["use_when"]
@@ -339,6 +342,7 @@ async def test_tools_catalog_exposes_descriptions_for_ai_tool_choice() -> None:
     assert "without submitting" in by_name["form_fill_preview"]["description"]
     assert "without clicking" in by_name["page_pointer_move"]["description"]
     assert "drag" in by_name["page_pointer_drag"]["description"].lower()
+    assert "immediately before" in by_name["page_pointer_drag_element"]["description"]
     assert "cubic Bézier path" in by_name["page_click_xy"]["description"]
     assert "reaction delay" in by_name["page_click_xy"]["description"]
     assert "network observation" in by_name["network_listen_start"]["description"]

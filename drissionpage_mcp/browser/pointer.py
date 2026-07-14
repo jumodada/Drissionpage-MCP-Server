@@ -5,10 +5,10 @@ from __future__ import annotations
 import asyncio
 import random
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Literal
 
-from .motion import MotionConfig, MotionPlan, MotionPlanner, Point
+from .motion import DragKinematics, MotionConfig, MotionPlan, MotionPlanner, Point
 
 if TYPE_CHECKING:
     from ..tab import PageTab
@@ -73,7 +73,7 @@ class PointerMoveResult:
 
 @dataclass(frozen=True, slots=True)
 class PointerDragResult:
-    """Observable drag metadata returned to the MCP tool."""
+    """Observable segmented drag metadata returned to MCP tools."""
 
     profile: PointerProfile
     button: PointerButton
@@ -81,7 +81,15 @@ class PointerDragResult:
     target: Point
     approach_steps: int
     drag_steps: int
-    press_delay_ms: int
+    main_drag_steps: int
+    overshoot_steps: int
+    correction_steps: int
+    micro_pause_count: int
+    overshoot_px: float
+    reaction_delay_ms: int
+    grip_delay_ms: int
+    movement_duration_ms: int
+    micro_pause_duration_ms: int
     release_delay_ms: int
     planned_duration_ms: int
 
@@ -95,7 +103,15 @@ class PointerDragResult:
             "target_y": self.target.y,
             "approach_steps": self.approach_steps,
             "drag_steps": self.drag_steps,
-            "press_delay_ms": self.press_delay_ms,
+            "main_drag_steps": self.main_drag_steps,
+            "overshoot_steps": self.overshoot_steps,
+            "correction_steps": self.correction_steps,
+            "micro_pause_count": self.micro_pause_count,
+            "overshoot_px": round(self.overshoot_px, 3),
+            "reaction_delay_ms": self.reaction_delay_ms,
+            "grip_delay_ms": self.grip_delay_ms,
+            "movement_duration_ms": self.movement_duration_ms,
+            "micro_pause_duration_ms": self.micro_pause_duration_ms,
             "release_delay_ms": self.release_delay_ms,
             "planned_duration_ms": self.planned_duration_ms,
         }
@@ -134,16 +150,41 @@ class PointerClickResult:
 _BUTTON_BITS: dict[PointerButton, int] = {"left": 1, "right": 2, "middle": 4}
 
 
-_PROFILES: dict[
-    PointerProfile, tuple[MotionConfig, tuple[float, float], tuple[float, float]]
-] = {
-    "natural": (
-        MotionConfig(),
-        (0.100, 0.300),
-        (0.050, 0.120),
+@dataclass(frozen=True, slots=True)
+class PointerProfileSpec:
+    """Internal movement, click timing, and held-drag behavior for one profile."""
+
+    move_config: MotionConfig
+    click_reaction: tuple[float, float]
+    click_hold: tuple[float, float]
+    drag_config: MotionConfig
+    drag_kinematics: DragKinematics
+    drag_reaction: tuple[float, float]
+    drag_grip: tuple[float, float]
+    drag_release: tuple[float, float]
+
+
+_PROFILES: dict[PointerProfile, PointerProfileSpec] = {
+    "natural": PointerProfileSpec(
+        move_config=MotionConfig(),
+        click_reaction=(0.100, 0.300),
+        click_hold=(0.050, 0.120),
+        drag_config=MotionConfig(
+            steps_min=24,
+            steps_max=40,
+            interval_min=0.008,
+            interval_max=0.025,
+            jitter_px=0.8,
+            curve_min_ratio=0.005,
+            curve_max_ratio=0.020,
+        ),
+        drag_kinematics=DragKinematics(),
+        drag_reaction=(0.080, 0.220),
+        drag_grip=(0.035, 0.090),
+        drag_release=(0.040, 0.110),
     ),
-    "precise": (
-        MotionConfig(
+    "precise": PointerProfileSpec(
+        move_config=MotionConfig(
             steps_min=18,
             steps_max=28,
             interval_min=0.008,
@@ -152,11 +193,32 @@ _PROFILES: dict[
             curve_min_ratio=0.04,
             curve_max_ratio=0.12,
         ),
-        (0.080, 0.180),
-        (0.050, 0.100),
+        click_reaction=(0.080, 0.180),
+        click_hold=(0.050, 0.100),
+        drag_config=MotionConfig(
+            steps_min=30,
+            steps_max=48,
+            interval_min=0.009,
+            interval_max=0.022,
+            jitter_px=0.3,
+            curve_min_ratio=0.002,
+            curve_max_ratio=0.010,
+        ),
+        drag_kinematics=DragKinematics(
+            duration_min=0.40,
+            duration_max=1.30,
+            duration_base=0.24,
+            distance_factor=0.020,
+            overshoot_min_px=0,
+            overshoot_max_px=0,
+            micro_pause_probability=0.10,
+        ),
+        drag_reaction=(0.100, 0.240),
+        drag_grip=(0.045, 0.100),
+        drag_release=(0.055, 0.120),
     ),
-    "direct": (
-        MotionConfig(
+    "direct": PointerProfileSpec(
+        move_config=MotionConfig(
             steps_min=1,
             steps_max=1,
             interval_min=0,
@@ -165,8 +227,29 @@ _PROFILES: dict[
             curve_min_ratio=0,
             curve_max_ratio=0,
         ),
-        (0, 0),
-        (0.050, 0.050),
+        click_reaction=(0, 0),
+        click_hold=(0.050, 0.050),
+        drag_config=MotionConfig(
+            steps_min=1,
+            steps_max=1,
+            interval_min=0,
+            interval_max=0,
+            jitter_px=0,
+            curve_min_ratio=0,
+            curve_max_ratio=0,
+        ),
+        drag_kinematics=DragKinematics(
+            duration_min=0,
+            duration_max=0,
+            duration_base=0,
+            distance_factor=0,
+            overshoot_min_px=0,
+            overshoot_max_px=0,
+            micro_pause_probability=0,
+        ),
+        drag_reaction=(0, 0),
+        drag_grip=(0, 0),
+        drag_release=(0.050, 0.050),
     ),
 }
 
@@ -221,32 +304,49 @@ class PointerOperations:
         *,
         profile: PointerProfile = "natural",
         button: PointerButton = "left",
+        axis: Literal["x", "y"] | None = None,
     ) -> PointerDragResult:
-        current, start, approach = self._plan_move(
+        _, start, approach = self._plan_move(
             start_x, start_y, start_x=None, start_y=None, profile=profile
         )
         if end_x < 0 or end_y < 0:
             raise ValueError("target coordinates cannot be negative")
         target = Point(float(end_x), float(end_y))
-        config, reaction, hold = _PROFILES[profile]
-        drag = self._planner.plan(start, target, config)
-        press_delay = self._rng.uniform(*reaction)
-        release_delay = self._rng.uniform(*hold)
+        spec = _PROFILES[profile]
+        kinematics = spec.drag_kinematics
+        if axis is not None:
+            kinematics = replace(kinematics, axis=axis)
+        drag = self._planner.plan_drag(start, target, spec.drag_config, kinematics)
+        reaction_delay = self._rng.uniform(*spec.drag_reaction)
+        grip_delay = self._rng.uniform(*spec.drag_grip)
+        release_delay = self._rng.uniform(*spec.drag_release)
+
+        pauses = {pause.after_step: pause.duration for pause in drag.pauses}
+        held_actions: list[PointerAction] = []
+        for index, step in enumerate(drag.steps, start=1):
+            held_actions.append(MoveAction(step.point, step.delay))
+            pause = pauses.get(index)
+            if pause is not None:
+                held_actions.append(PauseAction(pause))
+
         sequence = PointerSequence(
             actions=(
                 *(MoveAction(step.point, step.delay) for step in approach.steps),
-                PauseAction(press_delay),
+                PauseAction(reaction_delay),
                 PressAction(button),
-                *(MoveAction(step.point, step.delay) for step in drag.steps),
+                PauseAction(grip_delay),
+                *held_actions,
                 PauseAction(release_delay),
                 ReleaseAction(button),
             )
         )
         await self.execute(sequence)
         await self._tab._stabilize("pointer_drag", timeout=1.0, fallback_sleep=0.02)
+        movement_duration = drag.movement_duration
+        micro_pause_duration = drag.pause_duration
         planned_duration = sum(step.delay for step in approach.steps)
-        planned_duration += sum(step.delay for step in drag.steps)
-        planned_duration += press_delay + release_delay
+        planned_duration += reaction_delay + grip_delay + movement_duration
+        planned_duration += micro_pause_duration + release_delay
         return PointerDragResult(
             profile=profile,
             button=button,
@@ -254,7 +354,15 @@ class PointerOperations:
             target=target,
             approach_steps=len(approach.steps),
             drag_steps=len(drag.steps),
-            press_delay_ms=round(press_delay * 1000),
+            main_drag_steps=drag.main_steps,
+            overshoot_steps=drag.overshoot_steps,
+            correction_steps=drag.correction_steps,
+            micro_pause_count=len(drag.pauses),
+            overshoot_px=drag.overshoot_px,
+            reaction_delay_ms=round(reaction_delay * 1000),
+            grip_delay_ms=round(grip_delay * 1000),
+            movement_duration_ms=round(movement_duration * 1000),
+            micro_pause_duration_ms=round(micro_pause_duration * 1000),
             release_delay_ms=round(release_delay * 1000),
             planned_duration_ms=round(planned_duration * 1000),
         )
@@ -273,10 +381,10 @@ class PointerOperations:
         start, target, plan = self._plan_move(
             x, y, start_x=start_x, start_y=start_y, profile=profile
         )
-        _, reaction, hold = _PROFILES[profile]
-        reaction_seconds = self._rng.uniform(*reaction)
+        spec = _PROFILES[profile]
+        reaction_seconds = self._rng.uniform(*spec.click_reaction)
         configured_delay_seconds = delay_before_press_ms / 1000
-        hold_seconds = self._rng.uniform(*hold)
+        hold_seconds = self._rng.uniform(*spec.click_hold)
         sequence = PointerSequence(
             actions=(
                 *(MoveAction(step.point, step.delay) for step in plan.steps),
@@ -325,7 +433,7 @@ class PointerOperations:
             else current
         )
         target = Point(float(x), float(y))
-        config, _, _ = _PROFILES[profile]
+        config = _PROFILES[profile].move_config
         if start != current:
             self._dispatch_move(start)
         return start, target, self._planner.plan(start, target, config)

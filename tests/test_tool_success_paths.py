@@ -23,6 +23,7 @@ from drissionpage_mcp.tools import (
     wait,
     workflow,
     network,
+    pointer,
 )
 
 PNG_1X1 = base64.b64decode(
@@ -1150,7 +1151,7 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         {"level": "error", "since": 0, "limit": 10},
     )
     click_response = await _execute(
-        common.click_coordinates, ctx, common.ClickCoordinatesInput(x=7, y=9)
+        pointer.click_coordinates, ctx, pointer.ClickCoordinatesInput(x=7, y=9)
     )
     assert click_response.structured_content()["data"] == {
         "x": 7.0,

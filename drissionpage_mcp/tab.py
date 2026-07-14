@@ -16,6 +16,7 @@ from .browser import (
     PageOperations,
     PointerOperations,
     StorageOperations,
+    TargetResolver,
     WorkflowOperations,
     WaitOperations,
     VisionOperations,
@@ -53,6 +54,7 @@ class PageTab:
         self.page_ops = PageOperations(self)
         self.pointer = PointerOperations(self)
         self.storage = StorageOperations(self)
+        self.targeting = TargetResolver(self)
         self.waits = WaitOperations(self)
         self.vision = VisionOperations(self)
         self.workflows = WorkflowOperations(self)

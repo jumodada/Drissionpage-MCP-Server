@@ -26,6 +26,17 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
 
+
+## 0.6.0 to 0.6.1 Migration
+
+0.6.1 adds `page_pointer_drag_element` and changes `page_pointer_drag` motion metadata to expose reaction, grip, movement, micro-pause, overshoot/correction, and release phases. Pointer tool definitions now live in `tools/pointer.py`; no forwarding imports remain in `tools/common.py`.
+
+- Public registry grows to 58 tools.
+- Use `page_pointer_drag_element` for stable CSS/XPath source and destination paths.
+- Use destination `track_ratio` for a known thumb and track.
+- Use `page_pointer_drag` only when coordinates come from fresh visual evidence.
+- One same-origin iframe and nested open Shadow DOM hosts are supported; closed Shadow DOM and cross-origin iframe internals are not promised.
+
 ## 0.5.9 to 0.6.0 Migration
 
 0.6.0 adds three autonomous visual orchestration tools and extends existing schemas additively:

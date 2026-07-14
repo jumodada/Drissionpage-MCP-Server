@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-07-13
+
+### Added
+- Added `page_pointer_drag_element` for atomically resolved element-to-element, relative-offset, and track-ratio dragging through the top document or one same-origin iframe, plus CSS paths through nested open Shadow DOM hosts.
+- Added drag-specific distance-aware timing, correlated event intervals, reaction/grip/release phases, optional micro-pauses, bounded overshoot, and exact-target correction metadata.
+- Added strict local Chromium slider fixtures and positive/negative tests for same-origin iframe, nested open Shadow DOM, trusted held-button movement, direct-drag rejection, and layout-drift recovery.
+
+### Changed
+- Pointer input schemas and public tools moved from `tools/common.py` to `tools/pointer.py` without compatibility wrappers.
+- `page_pointer_drag` now uses a dedicated held-drag kinematics profile rather than reusing ordinary pointer movement configuration.
+- Model guidance now prefers selector-first `page_pointer_drag_element` and reserves coordinate `page_pointer_drag` for fresh visual evidence.
+- Public registry now exposes 58 tools.
+
 ## [0.6.0] - 2026-07-13
 
 ### Added
@@ -330,7 +343,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...v0.6.0
 [0.5.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...v0.5.9
 [0.5.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.7...v0.5.8

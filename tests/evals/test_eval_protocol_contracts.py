@@ -135,6 +135,7 @@ async def test_eval_vision_prompt_teaches_selector_first_coordinate_mapping_and_
     assert prompt_text.index("page_screenshot") < prompt_text.index("page_pointer_move")
     assert prompt_text.index("page_pointer_move") < prompt_text.index("page_click_xy")
     assert "page_pointer_drag" in prompt_text
+    assert "page_pointer_drag_element" in prompt_text
     assert "viewport_x = image_x * viewport_width / image_width" in prompt_text
     assert "Verify before retrying" in prompt_text
     assert "Do not repeat stale coordinate actions blindly" in prompt_text

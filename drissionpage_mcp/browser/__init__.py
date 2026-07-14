@@ -9,6 +9,7 @@ from .observation import ObservationOperations
 from .page import PageOperations
 from .pointer import PointerOperations
 from .storage import StorageOperations
+from .targeting import TargetResolver
 from .waits import WaitOperations
 from .vision import VisionOperations
 from .workflows import WorkflowOperations
@@ -23,6 +24,7 @@ __all__ = [
     "PageOperations",
     "PointerOperations",
     "StorageOperations",
+    "TargetResolver",
     "WaitOperations",
     "VisionOperations",
     "WorkflowOperations",
