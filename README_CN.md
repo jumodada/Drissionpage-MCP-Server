@@ -8,17 +8,6 @@
 
 **[打开交互式 Browser Lab](https://drissionpage-mcp.vercel.app)**，追踪旋转目标、重放自然点击、拖动滑块并验证可观察状态。
 
-<details>
-<summary>观看原始自然指针演示</summary>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif" width="400" alt="AI 视觉识别驱动的自然指针交互演示">
-  <br>
-  <sub><strong>为多模态 AI 增加全新交互层</strong> — 输入视觉坐标，执行完整自然指针动作链。</sub>
-</p>
-
-</details>
-
 **官方仓库**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
 [English Version](README.md) | [中文版本](README_CN.md)

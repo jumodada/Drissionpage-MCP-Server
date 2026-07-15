@@ -8,17 +8,6 @@
 
 **[Open the interactive Browser Lab](https://drissionpage-mcp.vercel.app)** to track rotating targets, replay natural clicks, drag sliders, and verify observable state.
 
-<details>
-<summary>Watch the original natural pointer demo</summary>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif" width="400" alt="AI vision-directed natural pointer interaction demo">
-  <br>
-  <sub><strong>A new interaction layer for multimodal AI</strong> — vision coordinates in, natural pointer action chains out.</sub>
-</p>
-
-</details>
-
 **Official Repositories**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
 [English Version](README.md) | [中文版本](README_CN.md)

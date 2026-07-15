@@ -43,12 +43,14 @@ def test_readmes_end_with_latest_0_6_2_feature_summary() -> None:
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
 
-    asset_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif"
     browser_lab_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/drissionpage-mcp-browser-lab.gif"
-    assert asset_url in readme and asset_url in readme_cn
     assert browser_lab_url in readme and browser_lab_url in readme_cn
+    assert "vision-natural-pointer-demo.gif" not in readme
+    assert "vision-natural-pointer-demo.gif" not in readme_cn
     assert "website/public/og-browser-lab.png" not in readme
     assert "website/public/og-browser-lab.png" not in readme_cn
+    assert "Watch the original natural pointer demo" not in readme
+    assert "观看原始自然指针演示" not in readme_cn
     assert "## 🆕 Latest Version: v0.6.2" in readme
     assert "Released on 2026-07-15" in readme
     assert "page_pointer_move" in readme
