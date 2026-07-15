@@ -5,10 +5,23 @@
 [![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/) [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server/branch/main/graph/badge.svg)](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server) [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
 <p align="center">
+  <a href="https://drissionpage-mcp.vercel.app">
+    <img src="website/public/og-browser-lab.png" width="760" alt="DrissionPage MCP interactive browser interaction lab">
+  </a>
+  <br>
+  <sub><strong><a href="https://drissionpage-mcp.vercel.app">Open the interactive Browser Lab</a></strong> — track rotating targets, replay natural clicks, drag sliders, and verify observable state.</sub>
+</p>
+
+<details>
+<summary>Watch the original natural pointer demo</summary>
+
+<p align="center">
   <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif" width="662" alt="AI vision-directed natural pointer interaction demo">
   <br>
   <sub><strong>A new interaction layer for multimodal AI</strong> — vision coordinates in, natural pointer action chains out.</sub>
 </p>
+
+</details>
 
 **Official Repositories**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
