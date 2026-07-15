@@ -4,19 +4,15 @@
 
 [![PyPI](https://img.shields.io/pypi/v/drissionpage-mcp.svg?cacheSeconds=3600)](https://pypi.org/project/drissionpage-mcp/) [![Downloads](https://pepy.tech/badge/drissionpage-mcp/month)](https://pepy.tech/project/drissionpage-mcp) [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/) [![CI](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jumodada/Drissionpage-MCP-Server/actions/workflows/ci.yml) [![codecov](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server/branch/main/graph/badge.svg)](https://codecov.io/gh/jumodada/Drissionpage-MCP-Server) [![Status](https://img.shields.io/badge/status-beta-yellow.svg)]()
 
-<p align="center">
-  <a href="https://drissionpage-mcp.vercel.app">
-    <img src="website/public/og-browser-lab.png" width="760" alt="DrissionPage MCP 交互式浏览器实验室">
-  </a>
-  <br>
-  <sub><strong><a href="https://drissionpage-mcp.vercel.app">打开交互式 Browser Lab</a></strong> — 追踪旋转目标、重放自然点击、拖动滑块并验证可观察状态。</sub>
-</p>
+[![DrissionPage MCP 交互式 Browser Lab](https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/drissionpage-mcp-browser-lab.gif)](https://drissionpage-mcp.vercel.app)
+
+**[打开交互式 Browser Lab](https://drissionpage-mcp.vercel.app)**，追踪旋转目标、重放自然点击、拖动滑块并验证可观察状态。
 
 <details>
 <summary>观看原始自然指针演示</summary>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif" width="662" alt="AI 视觉识别驱动的自然指针交互演示">
+  <img src="https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif" width="400" alt="AI 视觉识别驱动的自然指针交互演示">
   <br>
   <sub><strong>为多模态 AI 增加全新交互层</strong> — 输入视觉坐标，执行完整自然指针动作链。</sub>
 </p>
