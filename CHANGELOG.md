@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-07-15
+
+### Added
+- Added up to six optional ordered `waypoints` to `page_pointer_drag` for canvas paths, map gestures, box selection, and visual-editor connections without exposing persistent button state.
+- Added real Chromium coverage proving one press, held movement through every waypoint, exact final arrival, and one release.
+
+### Changed
+- Multi-segment coordinate drags reuse the existing motion planner and failure-safe pointer executor; no new public tool, action DSL, dependency, or output model was added.
+- Public registry remains at 58 tools.
+
 ## [0.6.1] - 2026-07-14
 
 ### Added
@@ -343,7 +353,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...v0.6.0
 [0.5.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.8...v0.5.9

@@ -1840,8 +1840,34 @@
       "readOnlyHint": false,
       "title": "Drag Pointer Between Coordinates"
     },
-    "description": "Perform one failure-safe viewport drag with distance-aware timing, acceleration/deceleration, correlated intervals, bounded jitter, optional micro-pause and exact-target correction. Always releases the button.",
+    "description": "Perform one failure-safe viewport drag through optional ordered waypoints with distance-aware timing, acceleration/deceleration, correlated intervals, bounded jitter, optional micro-pauses and exact final correction. Always releases the button.",
     "inputSchema": {
+      "$defs": {
+        "PointerWaypointInput": {
+          "additionalProperties": false,
+          "description": "One viewport point visited while the mouse button remains pressed.",
+          "properties": {
+            "x": {
+              "description": "Viewport X coordinate in CSS pixels",
+              "minimum": 0,
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "description": "Viewport Y coordinate in CSS pixels",
+              "minimum": 0,
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "title": "PointerWaypointInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for one failure-safe viewport drag action.",
       "properties": {
@@ -1896,6 +1922,15 @@
           "minimum": 0,
           "title": "Start Y",
           "type": "number"
+        },
+        "waypoints": {
+          "description": "Optional ordered viewport points visited while the button remains pressed",
+          "items": {
+            "$ref": "#/$defs/PointerWaypointInput"
+          },
+          "maxItems": 6,
+          "title": "Waypoints",
+          "type": "array"
         }
       },
       "required": [

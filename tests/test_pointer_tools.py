@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
+from pydantic import ValidationError
 
 from drissionpage_mcp.browser.motion import Point
 from drissionpage_mcp.browser.targeting import ResolvedTarget
@@ -141,6 +142,47 @@ async def test_coordinate_pointer_tools_delegate_to_pointer_capability() -> None
     assert drag.structured_content()["data"]["motion"]["main_drag_steps"] == 24
     assert click.structured_content()["data"]["motion"]["hold_duration_ms"] == 50
     assert [call[0] for call in ctx.tab.pointer.calls] == ["move", "drag", "click"]
+
+
+def test_pointer_drag_waypoints_are_bounded_and_strict() -> None:
+    valid = pointer.PointerDragInput.model_validate(
+        {
+            "start_x": 10,
+            "start_y": 20,
+            "end_x": 100,
+            "end_y": 120,
+            "waypoints": [{"x": 40, "y": 20}, {"x": 40, "y": 80}],
+        }
+    )
+
+    assert [(point.x, point.y) for point in valid.waypoints] == [(40, 20), (40, 80)]
+
+    invalid_payloads = [
+        {
+            "start_x": 10,
+            "start_y": 20,
+            "end_x": 100,
+            "end_y": 120,
+            "waypoints": [{"x": -1, "y": 20}],
+        },
+        {
+            "start_x": 10,
+            "start_y": 20,
+            "end_x": 100,
+            "end_y": 120,
+            "waypoints": [{"x": index, "y": 20} for index in range(7)],
+        },
+        {
+            "start_x": 10,
+            "start_y": 20,
+            "end_x": 100,
+            "end_y": 120,
+            "waypoints": [{"x": 40, "y": 20, "pause_ms": 50}],
+        },
+    ]
+    for payload in invalid_payloads:
+        with pytest.raises(ValidationError):
+            pointer.PointerDragInput.model_validate(payload)
 
 
 @pytest.mark.asyncio

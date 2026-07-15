@@ -305,7 +305,10 @@ class PointerOperations:
         profile: PointerProfile = "natural",
         button: PointerButton = "left",
         axis: Literal["x", "y"] | None = None,
+        waypoints: tuple[Point, ...] = (),
     ) -> PointerDragResult:
+        if any(point.x < 0 or point.y < 0 for point in waypoints):
+            raise ValueError("waypoint coordinates cannot be negative")
         _, start, approach = self._plan_move(
             start_x, start_y, start_x=None, start_y=None, profile=profile
         )
@@ -316,18 +319,38 @@ class PointerOperations:
         kinematics = spec.drag_kinematics
         if axis is not None:
             kinematics = replace(kinematics, axis=axis)
-        drag = self._planner.plan_drag(start, target, spec.drag_config, kinematics)
+        targets = (*waypoints, target)
+        segments = []
+        segment_start = start
+        for index, segment_target in enumerate(targets):
+            segment_kinematics = kinematics
+            if index < len(targets) - 1:
+                segment_kinematics = replace(
+                    segment_kinematics,
+                    overshoot_min_px=0,
+                    overshoot_max_px=0,
+                )
+            segments.append(
+                self._planner.plan_drag(
+                    segment_start,
+                    segment_target,
+                    spec.drag_config,
+                    segment_kinematics,
+                )
+            )
+            segment_start = segment_target
         reaction_delay = self._rng.uniform(*spec.drag_reaction)
         grip_delay = self._rng.uniform(*spec.drag_grip)
         release_delay = self._rng.uniform(*spec.drag_release)
 
-        pauses = {pause.after_step: pause.duration for pause in drag.pauses}
         held_actions: list[PointerAction] = []
-        for index, step in enumerate(drag.steps, start=1):
-            held_actions.append(MoveAction(step.point, step.delay))
-            pause = pauses.get(index)
-            if pause is not None:
-                held_actions.append(PauseAction(pause))
+        for segment in segments:
+            pauses = {pause.after_step: pause.duration for pause in segment.pauses}
+            for index, step in enumerate(segment.steps, start=1):
+                held_actions.append(MoveAction(step.point, step.delay))
+                pause = pauses.get(index)
+                if pause is not None:
+                    held_actions.append(PauseAction(pause))
 
         sequence = PointerSequence(
             actions=(
@@ -342,23 +365,24 @@ class PointerOperations:
         )
         await self.execute(sequence)
         await self._tab._stabilize("pointer_drag", timeout=1.0, fallback_sleep=0.02)
-        movement_duration = drag.movement_duration
-        micro_pause_duration = drag.pause_duration
+        movement_duration = sum(segment.movement_duration for segment in segments)
+        micro_pause_duration = sum(segment.pause_duration for segment in segments)
         planned_duration = sum(step.delay for step in approach.steps)
         planned_duration += reaction_delay + grip_delay + movement_duration
         planned_duration += micro_pause_duration + release_delay
+        final_segment = segments[-1]
         return PointerDragResult(
             profile=profile,
             button=button,
             start=start,
             target=target,
             approach_steps=len(approach.steps),
-            drag_steps=len(drag.steps),
-            main_drag_steps=drag.main_steps,
-            overshoot_steps=drag.overshoot_steps,
-            correction_steps=drag.correction_steps,
-            micro_pause_count=len(drag.pauses),
-            overshoot_px=drag.overshoot_px,
+            drag_steps=sum(len(segment.steps) for segment in segments),
+            main_drag_steps=sum(segment.main_steps for segment in segments),
+            overshoot_steps=sum(segment.overshoot_steps for segment in segments),
+            correction_steps=sum(segment.correction_steps for segment in segments),
+            micro_pause_count=sum(len(segment.pauses) for segment in segments),
+            overshoot_px=final_segment.overshoot_px,
             reaction_delay_ms=round(reaction_delay * 1000),
             grip_delay_ms=round(grip_delay * 1000),
             movement_duration_ms=round(movement_duration * 1000),

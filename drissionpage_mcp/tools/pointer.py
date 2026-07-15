@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from ..browser.motion import Point
 from ..browser.targeting import ElementTarget
 from ..tool_outputs import (
     PageClickXYData,
@@ -49,6 +50,15 @@ class PointerCoordinatesInput(ToolInput):
         return self
 
 
+class PointerWaypointInput(BaseModel):
+    """One viewport point visited while the mouse button remains pressed."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    x: float = Field(..., ge=0, description="Viewport X coordinate in CSS pixels")
+    y: float = Field(..., ge=0, description="Viewport Y coordinate in CSS pixels")
+
+
 class PointerDragInput(ToolInput):
     """Input schema for one failure-safe viewport drag action."""
 
@@ -56,6 +66,13 @@ class PointerDragInput(ToolInput):
     start_y: float = Field(..., ge=0, description="Viewport drag start Y in CSS pixels")
     end_x: float = Field(..., ge=0, description="Viewport drag end X in CSS pixels")
     end_y: float = Field(..., ge=0, description="Viewport drag end Y in CSS pixels")
+    waypoints: list[PointerWaypointInput] = Field(
+        default_factory=list,
+        max_length=6,
+        description=(
+            "Optional ordered viewport points visited while the button remains pressed"
+        ),
+    )
     element: str = Field(
         "", description="Human-readable draggable element or interaction description"
     )
@@ -204,9 +221,10 @@ async def pointer_move(
     name="page_pointer_drag",
     title="Drag Pointer Between Coordinates",
     description=(
-        "Perform one failure-safe viewport drag with distance-aware timing, "
-        "acceleration/deceleration, correlated intervals, bounded jitter, optional "
-        "micro-pause and exact-target correction. Always releases the button."
+        "Perform one failure-safe viewport drag through optional ordered waypoints "
+        "with distance-aware timing, acceleration/deceleration, correlated intervals, "
+        "bounded jitter, optional micro-pauses and exact final correction. Always "
+        "releases the button."
     ),
     input_schema=PointerDragInput,
     tool_type=ToolType.DESTRUCTIVE,
@@ -229,6 +247,7 @@ async def pointer_drag(
         args.end_y,
         profile=args.profile,
         button=args.button,
+        waypoints=tuple(Point(point.x, point.y) for point in args.waypoints),
     )
     outcome.add_code("page.run_cdp(<pointer move/press/held-move/release sequence>)")
     outcome.add_result(

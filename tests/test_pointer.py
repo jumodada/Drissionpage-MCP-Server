@@ -296,6 +296,53 @@ async def test_pointer_drag_moves_to_start_then_drags_with_pressed_button() -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("profile", ["direct", "natural"])
+async def test_pointer_drag_follows_waypoints_with_one_button_hold(
+    profile: str,
+) -> None:
+    tab = FakeTab()
+    sleeps: list[float] = []
+
+    async def fake_sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    pointer = PointerOperations(tab, rng=random.Random(33), sleep=fake_sleep)
+    result = await pointer.drag_to(
+        180,
+        190,
+        420,
+        360,
+        profile=profile,
+        waypoints=(Point(260, 190), Point(260, 360)),
+    )
+
+    events = [params for _, params in tab.page.events]
+    types = [params["type"] for params in events]
+    press_index = types.index("mousePressed")
+    release_index = types.index("mouseReleased")
+    held_moves = events[press_index + 1 : release_index]
+
+    assert types.count("mousePressed") == 1
+    assert types.count("mouseReleased") == 1
+    positions = [(event["x"], event["y"]) for event in held_moves]
+    required_positions = [
+        (260, 190),
+        (260, 360),
+        (420, 360),
+    ]
+    position_index = 0
+    for required in required_positions:
+        position_index = positions.index(required, position_index) + 1
+    if profile == "direct":
+        assert positions == required_positions
+    assert all(event["buttons"] == 1 for event in held_moves)
+    assert result.drag_steps == len(held_moves)
+    assert result.main_drag_steps >= 3
+    assert result.target == Point(420, 360)
+    assert result.planned_duration_ms == round(sum(sleeps) * 1000)
+
+
+@pytest.mark.asyncio
 async def test_pointer_drag_releases_button_when_drag_motion_is_interrupted() -> None:
     tab = FakeTab()
 
@@ -313,6 +360,62 @@ async def test_pointer_drag_releases_button_when_drag_motion_is_interrupted() ->
         "mouseReleased",
     ]
     assert tab.page.events[-1][1]["buttons"] == 0
+
+
+@pytest.mark.asyncio
+async def test_pointer_drag_releases_button_when_later_segment_fails() -> None:
+    tab = FakeTab()
+    original_run_cdp = tab.page.run_cdp
+
+    def fail_second_segment(method: str, **params: object) -> dict[str, object]:
+        result = original_run_cdp(method, **params)
+        if (
+            params.get("type") == "mouseMoved"
+            and params.get("buttons") == 1
+            and params.get("x") == 320
+        ):
+            raise RuntimeError("later segment failed")
+        return result
+
+    tab.page.run_cdp = fail_second_segment  # type: ignore[method-assign]
+
+    async def fake_sleep(_seconds: float) -> None:
+        return None
+
+    pointer = PointerOperations(tab, rng=random.Random(39), sleep=fake_sleep)
+
+    with pytest.raises(RuntimeError, match="later segment failed"):
+        await pointer.drag_to(
+            180,
+            190,
+            420,
+            360,
+            profile="direct",
+            waypoints=(Point(260, 190), Point(320, 300)),
+        )
+
+    assert [params["type"] for _, params in tab.page.events][-2:] == [
+        "mouseMoved",
+        "mouseReleased",
+    ]
+    assert tab.page.events[-1][1]["buttons"] == 0
+
+
+@pytest.mark.asyncio
+async def test_pointer_drag_rejects_invalid_waypoint_before_dispatch() -> None:
+    tab = FakeTab()
+    pointer = PointerOperations(tab, rng=random.Random(40))
+
+    with pytest.raises(ValueError, match="waypoint coordinates cannot be negative"):
+        await pointer.drag_to(
+            180,
+            190,
+            420,
+            360,
+            waypoints=(Point(-1, 200),),
+        )
+
+    assert tab.page.events == []
 
 
 @pytest.mark.asyncio

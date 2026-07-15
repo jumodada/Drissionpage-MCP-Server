@@ -578,6 +578,78 @@ async def test_direct_drag_is_rejected_by_strict_slider_trajectory_gate() -> Non
 
 
 @pytest.mark.asyncio
+async def test_pointer_drag_follows_waypoints_in_one_browser_gesture() -> None:
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/interactions"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            _content, setup_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": """
+                    const events = [];
+                    const surface = document.createElement('div');
+                    surface.style.cssText = 'position:fixed;inset:0;z-index:2147483647';
+                    document.body.appendChild(surface);
+                    surface.addEventListener('mousedown', event => {
+                      event.preventDefault();
+                      events.push({type: event.type, x: event.clientX, y: event.clientY});
+                    });
+                    document.addEventListener('mousemove', event => {
+                      if (event.buttons) events.push({type: event.type, x: event.clientX, y: event.clientY, buttons: event.buttons});
+                    });
+                    document.addEventListener('mouseup', event => events.push({type: event.type, x: event.clientX, y: event.clientY}));
+                    window.__waypointDragEvents = events;
+                    return true;
+                    """
+                },
+            )
+            assert setup_payload["data"]["result"] is True
+
+            _content, drag_payload = await _execute_tool(
+                server,
+                "page_pointer_drag",
+                {
+                    "start_x": 100,
+                    "start_y": 100,
+                    "waypoints": [{"x": 240, "y": 100}, {"x": 240, "y": 240}],
+                    "end_x": 100,
+                    "end_y": 240,
+                    "profile": "direct",
+                    "element": "integration waypoint path",
+                },
+            )
+            assert drag_payload["ok"] is True
+            assert drag_payload["data"]["motion"]["drag_steps"] == 3
+
+            _content, events_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {"script": "return window.__waypointDragEvents;"},
+            )
+            events = events_payload["data"]["result"]
+            assert [event["type"] for event in events] == [
+                "mousedown",
+                "mousemove",
+                "mousemove",
+                "mousemove",
+                "mouseup",
+            ]
+            assert [(event["x"], event["y"]) for event in events[1:-1]] == [
+                (240, 100),
+                (240, 240),
+                (100, 240),
+            ]
+            assert all(event["buttons"] == 1 for event in events[1:-1])
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
 async def test_autonomous_shadow_dom_challenge_loop_detects_clicks_and_polls() -> None:
     """proves detect -> vision coordinate click -> poll -> verify in open Shadow DOM."""
     server = DrissionPageMCPServer()

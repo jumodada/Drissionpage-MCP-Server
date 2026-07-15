@@ -95,9 +95,9 @@ Then verify:
 The current tool registry should load 58 tools.
 
 
-## Pointer / Workflow / Network 0.6.1 Checks
+## Pointer / Workflow / Network 0.6.2 Checks
 
-- For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Both default to the `natural` profile; supply `start_x` and `start_y` together when the model knows the pointer origin. Use `direct` only when natural movement is not desired.
+- For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to the `natural` profile; supply `start_x` and `start_y` together when the model knows the pointer origin. Use `direct` only when natural movement is not desired.
 - Use `browser_open_and_snapshot` when a client would otherwise call navigate, wait, snapshot, form inspection, and console logs separately.
 - Use `form_fill_preview` only for no-submit prefill; submit with an explicit click after reviewing `requires_confirmation=true`.
 - Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.

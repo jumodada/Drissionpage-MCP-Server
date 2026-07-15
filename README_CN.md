@@ -16,7 +16,7 @@
 
 ## 🖱️ 视觉驱动的人机交互
 
-**DrissionPage MCP 0.6.1 为多模态 AI 提供完整的第一阶段交互能力：** 它可以把视觉模型识别出的 viewport 坐标转换为完整、符合物理节奏的指针动作链，而不是把鼠标瞬移到坐标后直接点击。
+**DrissionPage MCP 0.6.2 为多模态 AI 提供完整的第一阶段交互能力：** 它可以把视觉模型识别出的 viewport 坐标和有界路径转换为完整、符合物理节奏的指针动作链，而不是把鼠标瞬移到坐标后直接点击。
 
 > **一次 MCP 调用即可连接视觉理解与真实浏览器交互。** 模型负责判断“在哪里操作”，DrissionPage MCP 负责决定“鼠标如何移动过去并完成点击”。
 
@@ -74,7 +74,7 @@ page_click_xy(profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-项目仍以 58 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径；当 selector 或 accessibility metadata 不足时，0.6.1 还提供可选的**视觉驱动人机交互层**，把 viewport 坐标转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
+项目仍以 58 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径；当 selector 或 accessibility metadata 不足时，0.6.2 还提供可选的**视觉驱动人机交互层**，把 viewport 坐标和有界拖拽路径转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -209,7 +209,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `keyboard_press` - 向当前焦点元素/页面发送键盘输入
 - `page_resize` - 调整浏览器窗口
 - `page_pointer_move` - 沿自然贝塞尔轨迹移动到视觉模型识别出的 viewport 坐标，但不点击
-- `page_pointer_drag` - 在两个 viewport 坐标之间执行失败安全的拖拽，包含距离驱动时长、加减速、相关间隔、可选微停顿和精确终点修正
+- `page_pointer_drag` - 执行失败安全的坐标拖拽，可经过最多六个可选有序路径点，并保留距离驱动时长和精确终点修正
 - `page_pointer_drag_element` - 在动作前即时解析 source 与目标几何；支持顶层文档或一个同源 iframe 中的 CSS/XPath，以及嵌套 open Shadow DOM 中的 CSS 路径
 - `page_detect_challenges` - 只读检测验证组件信号，供模型自主路由
 - `page_click_xy_batch` - 在一次有界自主调用内执行多个视觉坐标点击
@@ -422,7 +422,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.6.1`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.6.2`。
 
 ### 浏览器问题？
 ```bash
@@ -451,13 +451,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.6.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.6.2 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.6.1)
+### 当前版本 (v0.6.2)
 - [x] 58 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -471,6 +471,7 @@ which chromium         # macOS
 - [x] Workflow helper：`browser_open_and_snapshot`、`browser_extract_links`、`form_fill_preview`
 - [x] Network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，用于 HTTP/XHR/Fetch 观察
 - [x] `page_pointer_move`、`page_pointer_drag` 与 `page_click_xy` 自然指针动作链：三次贝塞尔轨迹、smoothstep 缓动、有界抖动、反应延迟和真实按键停留
+- [x] 有界的可选 `page_pointer_drag.waypoints`，在一次按住手势中完成画布路径、地图操作、框选或可视化编辑器连线
 - [x] 文件上传、滚动、hover、select/check、键盘、iframe、shadow DOM、cookie 和 storage 工具，面向 DrissionPage 4.x
 - [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
 - [x] 脱敏 session history resource，以及有界输出的响应大小 metadata
@@ -617,16 +618,13 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.6.1
+## 🆕 最新版本：v0.6.2
 
-发布日期：2026-07-14。本版本将拖拽升级为 selector-first 原子动作，并为按住移动建立显式时间域速度学模型：
+发布日期：2026-07-15。本版本扩展现有坐标拖拽，不新增另一套工具或动作语言：
 
-- 新增 `page_pointer_drag_element`，使用一个结构化工具覆盖元素到元素、相对偏移和滑块 thumb-to-track-ratio 拖拽。
-- source 与 destination 的坐标在拖拽执行前即时解析，存在可靠 selector 时不再经过模型读取坐标再发起第二次调用的漂移窗口。
-- selector-first 拖拽支持顶层文档或一个同源 iframe 中的 CSS/XPath 目标，以及嵌套 open Shadow DOM 中的 CSS 路径；不承诺 closed Shadow DOM 和跨域 iframe 内部访问。
-- natural 按住拖拽现在包含距离驱动总时长、加速与减速、相关事件间隔、低幅有界抖动、reaction/grip/release 延迟、可选微停顿、有界过冲和精确终点修正。
-- 拖拽结果返回 main、overshoot、correction、timing、pause 与 release 元数据，并在中断时继续保证释放鼠标按钮。
-- pointer schema 和工具从 `tools/common.py` 移入专用 `tools/pointer.py`，不保留 forwarding wrapper。
-- Claude/GPT 指导现在优先为可靠 selector 选择 `page_pointer_drag_element`，只有纯视觉目标才使用 `page_pointer_drag`，布局变化后必须使用新证据。
-- 严格本地 Chromium 测试覆盖同源 iframe 和嵌套 open Shadow DOM 内的轨迹敏感滑块，拒绝 direct 瞬移式拖拽，并验证布局漂移后的原子 selector 解析。
-- 公开工具数增加到 58 个，并继续使用严格 schema 和 typed results。
+- `page_pointer_drag` 支持最多六个可选有序 `waypoints`，用于画布路径、地图手势、框选和可视化编辑器连线。
+- 整条路径只按下一次鼠标，经过所有路径点时保持按住，精确到达最终目标后只释放一次。
+- 未提供 `waypoints` 的现有调用保持 0.6.1 输入与输出行为。
+- 多段路径继续复用现有运动规划器、pointer profile、typed drag result 和失败安全释放执行器。
+- 严格单元测试和真实 Chromium 测试覆盖路径点顺序、按住状态、精确终点、dispatch 前拒绝无效输入，以及中断后的释放。
+- 公开工具数保持 58 个，并继续使用严格 schema 和 typed results。

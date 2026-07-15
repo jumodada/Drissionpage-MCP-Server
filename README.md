@@ -16,7 +16,7 @@
 
 ## 🖱️ Vision-Guided Human–Computer Interaction
 
-**DrissionPage MCP 0.6.1 provides a complete first-stage interaction layer for multimodal AI:** it can turn a vision model's viewport coordinate into a complete, physically plausible pointer action chain—not just a raw teleport-and-click.
+**DrissionPage MCP 0.6.2 provides a complete first-stage interaction layer for multimodal AI:** it can turn a vision model's viewport coordinates into complete, physically plausible pointer action chains—not just raw teleport-and-click events.
 
 > **One MCP call connects visual understanding to real browser interaction.** The model identifies where to act; DrissionPage MCP handles how the pointer gets there and performs the click.
 
@@ -74,7 +74,7 @@ Designed for legitimate UI automation, testing, accessibility workflows, and tec
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Structured, deterministic automation remains the default through 58 tools plus MCP Resources/Prompts. When selectors or accessibility metadata are insufficient, 0.6.1 also provides an optional **vision-guided human–computer interaction layer** that converts viewport coordinates into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+Structured, deterministic automation remains the default through 58 tools plus MCP Resources/Prompts. When selectors or accessibility metadata are insufficient, 0.6.2 also provides an optional **vision-guided human–computer interaction layer** that converts viewport coordinates and bounded drag paths into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -209,7 +209,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `keyboard_press` - Send keys to the active element/page
 - `page_resize` - Adjust browser window
 - `page_pointer_move` - Move to vision-model viewport coordinates with a natural Bézier path without clicking
-- `page_pointer_drag` - Perform one failure-safe coordinate drag with distance-aware timing, acceleration/deceleration, correlated intervals, optional micro-pause, and exact-target correction
+- `page_pointer_drag` - Perform one failure-safe coordinate drag through up to six optional ordered waypoints with distance-aware timing and exact final correction
 - `page_pointer_drag_element` - Resolve source and destination geometry immediately before dragging; supports CSS/XPath in the top document or one same-origin iframe, plus CSS paths through nested open Shadow DOM hosts
 - `page_detect_challenges` - Read-only detection of verification-widget signals for autonomous model routing
 - `page_click_xy_batch` - Execute multiple visual coordinate clicks in one bounded autonomous call
@@ -422,7 +422,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.6.1`.
+Should output the installed package version, for example `drissionpage-mcp 0.6.2`.
 
 ### Browser Issues?
 ```bash
@@ -451,13 +451,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.6.1 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.6.2 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.6.1)
+### Current (v0.6.2)
 - [x] 52 core automation, tab/frame/shadow, page-understanding, form-inspection, workflow, network-listener, session-state, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -471,6 +471,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Workflow helpers with `browser_open_and_snapshot`, `browser_extract_links`, and `form_fill_preview`
 - [x] Network listener beta with `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation
 - [x] Natural `page_pointer_move`, `page_pointer_drag`, and `page_click_xy` action chains with cubic Bézier motion, smoothstep easing, bounded jitter, reaction delay, and realistic button hold time
+- [x] Optional bounded `page_pointer_drag.waypoints` for one held multi-segment canvas, map, box-selection, or visual-editor gesture
 - [x] File upload, scrolling, hover, select/check, keyboard, iframe, shadow DOM, cookie, and storage tools for DrissionPage 4.x
 - [x] Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` is reserved for restricted container/root environments
 - [x] Redacted session history resource and response size metadata for bounded outputs
@@ -617,16 +618,13 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.6.1
+## 🆕 Latest Version: v0.6.2
 
-Released on 2026-07-14. This release makes drag automation selector-first and gives held movement an explicit time-domain kinematics model:
+Released on 2026-07-15. This release extends the existing coordinate drag without adding another tool or action language:
 
-- Added `page_pointer_drag_element`, a single structured tool for element-to-element, relative-offset, and thumb-to-track-ratio dragging.
-- Source and destination geometry are resolved immediately before the drag, removing the model round-trip and stale-coordinate window when selectors exist.
-- Selector-first drag supports CSS/XPath targets in the top document or one same-origin iframe, plus CSS paths through nested open Shadow DOM hosts. Closed Shadow DOM and cross-origin iframe internals are not promised.
-- Natural held dragging now uses distance-aware duration, acceleration/deceleration, correlated event intervals, bounded low-amplitude jitter, reaction/grip/release delays, optional micro-pauses, bounded overshoot, and exact-target correction.
-- Drag results expose main, overshoot, correction, timing, pause, and release metadata while retaining failure-safe mouse release on interruption.
-- Pointer schemas and tools moved from `tools/common.py` to the dedicated `tools/pointer.py` boundary without forwarding wrappers.
-- Claude/GPT guidance now chooses `page_pointer_drag_element` for stable selectors and `page_pointer_drag` only for visual-coordinate fallback, requiring fresh evidence after layout changes.
-- Strict local Chromium tests cover trajectory-sensitive sliders in a same-origin iframe and nested open Shadow DOM, reject direct teleport-like dragging, and verify layout-drift recovery through atomic selector resolution.
-- The public registry now contains 58 tools with strict schemas and typed results.
+- `page_pointer_drag` accepts up to six optional ordered `waypoints` for canvas paths, map gestures, box selection, and visual-editor connections.
+- The pointer is pressed once, remains held through every waypoint, reaches the exact final target, and is released once.
+- Existing calls without `waypoints` retain the 0.6.1 input and output behavior.
+- Multi-segment paths reuse the existing motion planner, pointer profiles, typed drag result, and failure-safe release executor.
+- Strict unit and real Chromium tests cover ordered waypoint delivery, held-button state, exact arrival, invalid-input rejection before dispatch, and release after interruption.
+- The public registry remains at 58 tools with strict schemas and typed results.

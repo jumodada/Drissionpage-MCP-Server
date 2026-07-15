@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.6.1."""
+"""Release metadata and documentation checks for 0.6.2."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_6_1() -> None:
+def test_package_version_metadata_is_0_6_2() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.6.1"
-    assert drissionpage_mcp.__version__ == "0.6.1"
+    assert pyproject["project"]["version"] == "0.6.2"
+    assert drissionpage_mcp.__version__ == "0.6.2"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -38,37 +38,44 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "browser_navigate_and_summarize" in contract
 
 
-def test_readmes_end_with_latest_0_6_1_feature_summary() -> None:
+def test_readmes_end_with_latest_0_6_2_feature_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
 
     asset_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/vision-natural-pointer-demo.gif"
     assert asset_url in readme and asset_url in readme_cn
-    assert "## 🆕 Latest Version: v0.6.1" in readme
-    assert "Released on 2026-07-14" in readme
+    assert "## 🆕 Latest Version: v0.6.2" in readme
+    assert "Released on 2026-07-15" in readme
     assert "page_pointer_move" in readme
     assert "page_pointer_drag" in readme
     assert "failure-safe" in readme
-    assert "public registry now contains 58 tools" in readme
+    assert "public registry remains at 58 tools" in readme
     assert "### 🌐 Navigation (4 tools)" in readme
     assert "### 📸 Page Operations (17 tools)" in readme
-    assert "CSS paths through nested open Shadow DOM hosts" in readme
-    assert "## 🆕 最新版本：v0.6.1" in readme_cn
-    assert "发布日期：2026-07-14" in readme_cn
+    assert "optional ordered `waypoints`" in readme
+    assert "## 🆕 最新版本：v0.6.2" in readme_cn
+    assert "发布日期：2026-07-15" in readme_cn
     assert "page_pointer_move" in readme_cn
     assert "page_pointer_drag" in readme_cn
     assert "失败安全" in readme_cn
-    assert "公开工具数增加到 58 个" in readme_cn
+    assert "公开工具数保持 58 个" in readme_cn
     assert "### 🌐 导航工具（4 个）" in readme_cn
     assert "### 📸 页面操作（17 个）" in readme_cn
-    assert "嵌套 open Shadow DOM 中的 CSS 路径" in readme_cn
+    assert "可选有序 `waypoints`" in readme_cn
+    assert "## [0.6.2] - 2026-07-15" in changelog
+    assert "optional ordered `waypoints`" in changelog
+    assert "no new public tool" in changelog
     assert "## [0.6.1] - 2026-07-14" in changelog
     assert "Added `page_pointer_drag_element`" in changelog
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.1...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.6.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.1...v0.6.2"
         in changelog
     )
     assert (
