@@ -2,15 +2,301 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from datetime import datetime
+from pathlib import PurePosixPath
+from typing import Annotated, Any, Literal, Union
+from urllib.parse import urlsplit, urlunsplit
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
+
+from .limits import MAX_WAIT_SECONDS
 
 
 class ToolData(BaseModel):
     """Strict base for tool data payloads."""
 
     model_config = ConfigDict(extra="forbid")
+
+
+class ContractData(BaseModel):
+    """Strict immutable base for shared task-runtime contracts."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+ContractId = Annotated[
+    str,
+    StringConstraints(pattern=r"^[a-z][a-z0-9_-]{2,127}$"),
+]
+ShortText = Annotated[str, StringConstraints(min_length=1, max_length=300)]
+Sha256Hex = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
+EvidenceCode = Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{1,99}$")]
+SafeRelativePath = Annotated[
+    str,
+    StringConstraints(
+        min_length=1,
+        max_length=500,
+        pattern=r"^[^/\\:]+(?:/[^/\\:]+)*$",
+    ),
+]
+
+
+class UrlChangedCondition(ContractData):
+    kind: Literal["url_changed"]
+
+
+class UrlContainsCondition(ContractData):
+    kind: Literal["url_contains"]
+    value: ShortText
+
+
+class SelectorVisibleCondition(ContractData):
+    kind: Literal["selector_visible"]
+    selector: ShortText
+
+
+class SelectorHiddenCondition(ContractData):
+    kind: Literal["selector_hidden"]
+    selector: ShortText
+
+
+class TextContainsCondition(ContractData):
+    kind: Literal["text_contains"]
+    value: ShortText
+    selector: ShortText | None = None
+
+
+class PropertyEqualsCondition(ContractData):
+    kind: Literal["property_equals"]
+    selector: ShortText
+    property: Annotated[str, StringConstraints(min_length=1, max_length=100)]
+    value: str | int | float | bool | None
+
+
+ExpectationCondition = Annotated[
+    Union[
+        UrlChangedCondition,
+        UrlContainsCondition,
+        SelectorVisibleCondition,
+        SelectorHiddenCondition,
+        TextContainsCondition,
+        PropertyEqualsCondition,
+    ],
+    Field(discriminator="kind"),
+]
+
+
+class Expectation(ContractData):
+    """Bounded postconditions evaluated under one shared deadline."""
+
+    schema_version: Literal["1"] = "1"
+    mode: Literal["any", "all"] = "any"
+    conditions: Annotated[
+        tuple[ExpectationCondition, ...], Field(min_length=1, max_length=8)
+    ]
+    timeout: Annotated[float, Field(gt=0, le=MAX_WAIT_SECONDS)] = 10.0
+
+
+class ConditionEvaluation(ContractData):
+    """Sanitized evidence for one evaluated expectation condition."""
+
+    condition_index: Annotated[int, Field(ge=0, le=7)]
+    kind: Literal[
+        "url_changed",
+        "url_contains",
+        "selector_visible",
+        "selector_hidden",
+        "text_contains",
+        "property_equals",
+    ]
+    status: Literal["matched", "unmatched", "error"]
+    evidence: Annotated[tuple[EvidenceCode, ...], Field(max_length=4)] = Field(
+        default_factory=tuple
+    )
+
+
+class ActionReceipt(ContractData):
+    """Redacted evidence for one live-task consequential browser invocation."""
+
+    schema_version: Literal["1"] = "1"
+    action_id: ContractId
+    task_id: ContractId
+    operation_key: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    request_fingerprint: Sha256Hex
+    kind: Annotated[str, StringConstraints(min_length=1, max_length=64)]
+    side_effect: Literal[
+        "local_ui_mutation",
+        "external_submission",
+        "external_download",
+        "dialog_response",
+    ]
+    status: Literal[
+        "success",
+        "validation_failed",
+        "pending",
+        "indeterminate",
+        "failed",
+    ]
+    started_at: datetime
+    finished_at: datetime
+    tab_id: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    target_fingerprint: Sha256Hex | None = None
+    preconditions: Annotated[tuple[ConditionEvaluation, ...], Field(max_length=8)] = (
+        Field(default_factory=tuple)
+    )
+    postconditions: Annotated[tuple[ConditionEvaluation, ...], Field(max_length=8)] = (
+        Field(default_factory=tuple)
+    )
+    retry_of: ContractId | None = None
+    artifact_ids: Annotated[tuple[ContractId, ...], Field(max_length=16)] = Field(
+        default_factory=tuple
+    )
+    error_code: (
+        Annotated[str, StringConstraints(min_length=1, max_length=100)] | None
+    ) = None
+    redacted: Literal[True] = True
+
+    @model_validator(mode="after")
+    def validate_timestamps(self) -> "ActionReceipt":
+        if self.finished_at < self.started_at:
+            raise ValueError("finished_at must not precede started_at")
+        return self
+
+
+class ArtifactRef(ContractData):
+    """Safe metadata for one complete artifact produced in the live task."""
+
+    schema_version: Literal["1"] = "1"
+    artifact_id: ContractId
+    task_id: ContractId
+    producing_action_id: ContractId
+    kind: Literal["download"]
+    filename: Annotated[str, StringConstraints(min_length=1, max_length=255)]
+    mime_type: (
+        Annotated[str, StringConstraints(min_length=1, max_length=200)] | None
+    ) = None
+    size_bytes: Annotated[int, Field(ge=0)]
+    sha256: Sha256Hex
+    safe_relative_path: SafeRelativePath
+    source_url: Annotated[str, StringConstraints(max_length=500)] = ""
+    created_at: datetime
+    status: Literal["complete"] = "complete"
+    redacted: bool = False
+
+    @field_validator("filename")
+    @classmethod
+    def validate_filename(cls, value: str) -> str:
+        if value in {".", ".."} or PurePosixPath(value).name != value:
+            raise ValueError("filename must be a basename")
+        return value
+
+    @field_validator("safe_relative_path")
+    @classmethod
+    def validate_safe_relative_path(cls, value: str) -> str:
+        if "\\" in value or ":" in value.split("/", 1)[0]:
+            raise ValueError("safe_relative_path must use relative POSIX syntax")
+        path = PurePosixPath(value)
+        if path.is_absolute() or ".." in path.parts or "." in path.parts:
+            raise ValueError("safe_relative_path must be a normalized relative path")
+        return path.as_posix()
+
+    @field_validator("source_url")
+    @classmethod
+    def sanitize_source_url(cls, value: str) -> str:
+        if not value:
+            return ""
+        parts = urlsplit(value)
+        netloc = parts.netloc.rsplit("@", 1)[-1]
+        return urlunsplit((parts.scheme, netloc, parts.path, "", ""))[:500]
+
+
+class CapabilityProbe(ContractData):
+    """Evidence-backed state for one browser/runtime capability."""
+
+    name: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_.-]{1,63}$")]
+    status: Literal["unprobed", "supported", "unsupported", "degraded"]
+    evidence_source: Literal[
+        "none",
+        "runtime_probe",
+        "browser_event",
+        "integration_probe",
+    ] = "none"
+    reason_code: (
+        Annotated[str, StringConstraints(min_length=1, max_length=100)] | None
+    ) = None
+    checked_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_probe_evidence(self) -> "CapabilityProbe":
+        if self.status == "unprobed":
+            if self.evidence_source != "none" or self.checked_at is not None:
+                raise ValueError("unprobed capabilities cannot include probe evidence")
+        elif self.evidence_source == "none" or self.checked_at is None:
+            raise ValueError(
+                "probed capabilities require evidence_source and checked_at"
+            )
+        if self.status == "supported" and self.evidence_source not in {
+            "browser_event",
+            "integration_probe",
+        }:
+            raise ValueError("supported capabilities require behavioral probe evidence")
+        return self
+
+
+class CapabilitySet(ContractData):
+    """Bounded capability discovery snapshot without implicit probing."""
+
+    schema_version: Literal["1"] = "1"
+    overall_status: Literal["unprobed", "supported", "unsupported", "degraded"] = (
+        "unprobed"
+    )
+    drissionpage_version: Annotated[str, StringConstraints(max_length=100)] = ""
+    browser_product: Annotated[str, StringConstraints(max_length=100)] = ""
+    browser_version: Annotated[str, StringConstraints(max_length=100)] = ""
+    capabilities: Annotated[tuple[CapabilityProbe, ...], Field(max_length=24)] = Field(
+        default_factory=tuple
+    )
+
+
+class PolicyControl(ContractData):
+    """One redacted policy feature flag in a stable public summary."""
+
+    name: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{1,99}$")]
+    enabled: bool
+
+
+class TaskContext(ContractData):
+    """Immutable public summary of the mutable live-process task runtime."""
+
+    schema_version: Literal["1"] = "1"
+    task_id: ContractId
+    state: Literal["active", "closed"] = "active"
+    created_at: datetime
+    autonomy_mode: Literal["fully_autonomous"] = "fully_autonomous"
+    lifetime: Literal["server_process"] = "server_process"
+    policy_profile: Annotated[str, StringConstraints(min_length=1, max_length=100)]
+    policy_controls: Annotated[tuple[PolicyControl, ...], Field(max_length=32)]
+    active_tab_ids: Annotated[tuple[str, ...], Field(max_length=32)] = Field(
+        default_factory=tuple
+    )
+    current_tab_id: Annotated[str, StringConstraints(max_length=128)] = ""
+    action_count: Annotated[int, Field(ge=0)] = 0
+    retry_count: Annotated[int, Field(ge=0)] = 0
+    operation_count: Annotated[int, Field(ge=0)] = 0
+    receipt_count: Annotated[int, Field(ge=0)] = 0
+    artifact_count: Annotated[int, Field(ge=0)] = 0
+    operation_limit: Annotated[int, Field(ge=1)]
+    artifact_limit: Annotated[int, Field(ge=1)]
+    retry_limit: Annotated[int, Field(ge=0)]
+    last_action_id: ContractId | None = None
+    last_verified_action_id: ContractId | None = None
 
 
 class PageNavigateData(ToolData):
@@ -249,7 +535,20 @@ class ElementClickData(ToolData):
     selector_strategy: str
     selector_normalized: bool
     url: str
+    button: Literal["left", "right", "middle"]
+    click_count: Literal[1, 2]
     changes: dict[str, Any] | None = None
+
+
+class ElementClickAndDownloadData(ToolData):
+    status: Literal["success", "failed", "validation_failed", "indeterminate"]
+    operation_key: str
+    selector: str
+    locator: str
+    selector_strategy: str
+    selector_normalized: bool
+    artifact: ArtifactRef | None
+    receipt: ActionReceipt
 
 
 class ElementTypeData(ToolData):
@@ -367,6 +666,92 @@ class FormInspectData(ToolData):
     truncated: dict[str, Any]
     forms: list[dict[str, Any]]
     meta: dict[str, Any]
+
+
+class FormFillFieldResult(ToolData):
+    key: str
+    success: bool
+    reason: str
+    matched_by: str
+    selector: str
+    control_type: str
+    requested_value: str | bool | list[str] | None
+    observed_value: str | bool | list[str] | None
+    redacted: bool
+    verified: bool
+
+
+class FormFillData(ToolData):
+    form_selector: dict[str, Any]
+    form_found: bool
+    form: dict[str, Any] | None
+    field_count: int
+    requested_count: int
+    filled_count: int
+    failed_count: int
+    verified_count: int
+    fields: list[FormFillFieldResult]
+    receipt: ActionReceipt
+
+
+class FormSubmitValidationMessage(ToolData):
+    selector: str
+    name: str
+    message: str
+    code: str
+    source: Literal["client", "server", "document"]
+
+
+class FormSubmitDuplicatePrevention(ToolData):
+    scope: Literal["live_server_task"] = "live_server_task"
+    guarantee: Literal["at_most_once_browser_invocation"] = (
+        "at_most_once_browser_invocation"
+    )
+    replayed: bool
+    browser_invoked: bool
+
+
+class FormSubmitData(ToolData):
+    status: Literal[
+        "success",
+        "validation_failed",
+        "submitted_pending",
+        "indeterminate",
+        "blocked",
+    ]
+    operation_key: str
+    form_selector: dict[str, Any]
+    submitter: dict[str, Any]
+    triggered: bool
+    current_url: str
+    title: str
+    validation_messages: list[FormSubmitValidationMessage]
+    postconditions: list[ConditionEvaluation]
+    duplicate_prevention: FormSubmitDuplicatePrevention
+    recovery: str
+    receipt: ActionReceipt
+
+
+class DialogMessageMetadata(ToolData):
+    present: bool
+    length: Annotated[int, Field(ge=0)]
+    redacted: Literal[True]
+
+
+class DialogPromptMetadata(ToolData):
+    provided: bool
+    length: Annotated[int, Field(ge=0)]
+    redacted: Literal[True]
+
+
+class PageDialogRespondData(ToolData):
+    dialog_type: Literal["alert", "confirm", "prompt"]
+    action: Literal["accept", "dismiss"]
+    handled: Literal[True]
+    dialog_message: DialogMessageMetadata
+    prompt: DialogPromptMetadata
+    final_url: str
+    receipt: ActionReceipt
 
 
 class FrameListData(ToolData):
@@ -538,7 +923,9 @@ class NetworkListenStopData(ToolData):
 def tool_outcome_schema(output_model: type[ToolData]) -> dict[str, Any]:
     """Wrap typed tool data in the stable success/failure envelope."""
 
-    return {
+    data_schema = output_model.model_json_schema()
+    definitions = data_schema.pop("$defs", None)
+    schema: dict[str, Any] = {
         "type": "object",
         "oneOf": [
             {
@@ -548,7 +935,7 @@ def tool_outcome_schema(output_model: type[ToolData]) -> dict[str, Any]:
                 "properties": {
                     "ok": {"const": True},
                     "message": {"type": "string"},
-                    "data": output_model.model_json_schema(),
+                    "data": data_schema,
                 },
             },
             {
@@ -573,6 +960,9 @@ def tool_outcome_schema(output_model: type[ToolData]) -> dict[str, Any]:
             },
         ],
     }
+    if definitions:
+        schema["$defs"] = definitions
+    return schema
 
 
 class ChallengeSignalData(ToolData):

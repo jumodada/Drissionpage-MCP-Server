@@ -652,8 +652,21 @@ class FakeTab:
             "elements": elements,
         }
 
-    async def click_element(self, selector: str, timeout: int = 10) -> None:
-        self._record("click_element", selector, timeout=timeout)
+    async def click_element(
+        self,
+        selector: str,
+        timeout: int = 10,
+        *,
+        button: str = "left",
+        click_count: int = 1,
+    ) -> None:
+        self._record(
+            "click_element",
+            selector,
+            timeout=timeout,
+            button=button,
+            click_count=click_count,
+        )
 
     async def type_text(
         self, selector: str, text: str, timeout: int = 10, clear: bool = True
@@ -1004,7 +1017,6 @@ class FakeTab:
 
 
 class FakeContext:
-
     def __init__(self) -> None:
         self.tab = FakeTab()
         self.created_tab = FakeTab()
@@ -1721,6 +1733,8 @@ async def test_element_tools_success_paths() -> None:
     assert click_response.structured_content()["data"] == {
         **selector_metadata,
         "url": "https://example.test/current",
+        "button": "left",
+        "click_count": 1,
     }
     assert "Successfully clicked element" in _message(click_response)
     assert click_response.include_snapshot is True
@@ -1816,7 +1830,6 @@ async def test_element_tools_success_paths() -> None:
 
 
 class MissingElementTypeTab(FakeTab):
-
     async def type_text(
         self, selector: str, text: str, timeout: int = 10, clear: bool = True
     ) -> None:

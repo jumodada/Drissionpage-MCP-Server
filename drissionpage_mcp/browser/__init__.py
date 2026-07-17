@@ -1,5 +1,7 @@
 """Browser capability components used by the MCP tab wrapper."""
 
+from .dialogs import DialogOperations
+from .downloads import DownloadOperations
 from .elements import ElementOperations
 from .frames import FrameOperations
 from .interaction import InteractionOperations
@@ -15,6 +17,8 @@ from .vision import VisionOperations
 from .workflows import WorkflowOperations
 
 __all__ = [
+    "DialogOperations",
+    "DownloadOperations",
     "ElementOperations",
     "FrameOperations",
     "InteractionOperations",

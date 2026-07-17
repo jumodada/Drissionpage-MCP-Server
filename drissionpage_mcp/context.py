@@ -1,18 +1,81 @@
 """Context management for DrissionPage MCP."""
 
 import asyncio
+import hashlib
+import json
 import logging
+from copy import deepcopy
 from collections import deque
 from datetime import datetime, timezone
+from secrets import token_hex
+from threading import Lock
 from typing import Any, Deque, List, Mapping, Optional
 from urllib.parse import urlsplit, urlunsplit
 
 from .compat import create_browser, get_latest_tab, new_tab, quit_browser
 from .limits import MAX_WAIT_SECONDS
 from .observation import safe_int
+from .response_errors import ErrorCode
 from .tab import PageTab
+from .tool_outputs import (
+    ActionReceipt,
+    ArtifactRef,
+    CapabilityProbe,
+    CapabilitySet,
+    PolicyControl,
+    TaskContext,
+)
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_OPERATION_LIMIT = 80
+DEFAULT_ARTIFACT_LIMIT = 80
+DEFAULT_RETRY_LIMIT = 3
+
+
+class OperationKeyConflictError(ValueError):
+    """Raised when an operation key is reused for a different request."""
+
+    code = ErrorCode.OPERATION_KEY_CONFLICT
+
+
+class TaskLedgerFullError(RuntimeError):
+    """Raised before a side effect when the live task ledger is full."""
+
+    code = ErrorCode.TASK_LEDGER_FULL
+
+
+class OperationInFlightError(RuntimeError):
+    """Raised when a duplicate operation is already executing."""
+
+    code = ErrorCode.OPERATION_IN_FLIGHT
+
+
+class OperationClaim:
+    """Immutable claim result used to guard one consequential invocation."""
+
+    __slots__ = (
+        "operation_key",
+        "request_fingerprint",
+        "cached_receipt",
+        "cached_result",
+    )
+
+    def __init__(
+        self,
+        operation_key: str,
+        request_fingerprint: str,
+        cached_receipt: ActionReceipt | None = None,
+        cached_result: Mapping[str, Any] | None = None,
+    ) -> None:
+        self.operation_key = operation_key
+        self.request_fingerprint = request_fingerprint
+        self.cached_receipt = cached_receipt
+        self.cached_result = deepcopy(dict(cached_result)) if cached_result else None
+
+    @property
+    def should_invoke(self) -> bool:
+        return self.cached_receipt is None
 
 
 SENSITIVE_HISTORY_KEYS = {
@@ -27,6 +90,7 @@ SENSITIVE_HISTORY_KEYS = {
     "cookie",
     "cookies",
     "text",
+    "prompt_text",
     "value",
     "values",
     "fields",
@@ -46,7 +110,20 @@ SENSITIVE_HISTORY_KEYS = {
 class DrissionPageContext:
     """Manages DrissionPage browser context and tabs."""
 
-    def __init__(self, *, history_limit: int = 100):
+    def __init__(
+        self,
+        *,
+        history_limit: int = 100,
+        operation_limit: int = DEFAULT_OPERATION_LIMIT,
+        artifact_limit: int = DEFAULT_ARTIFACT_LIMIT,
+        retry_limit: int = DEFAULT_RETRY_LIMIT,
+    ):
+        if operation_limit < 1:
+            raise ValueError("operation_limit must be at least 1")
+        if artifact_limit < 1:
+            raise ValueError("artifact_limit must be at least 1")
+        if retry_limit < 0:
+            raise ValueError("retry_limit must be non-negative")
         self._browser: Optional[Any] = None
         self._current_tab: Optional[PageTab] = None
         self._tabs: List[PageTab] = []
@@ -54,6 +131,25 @@ class DrissionPageContext:
         self._is_initialized = False
         self._history_limit = history_limit
         self._action_history: Deque[dict[str, Any]] = deque(maxlen=history_limit)
+        self._task_id = f"task-{token_hex(8)}"
+        self._task_created_at = datetime.now(timezone.utc)
+        self._operation_limit = operation_limit
+        self._artifact_limit = artifact_limit
+        self._retry_limit = retry_limit
+        self._task_lock = Lock()
+        self._operation_fingerprints: dict[str, str] = {}
+        self._in_flight_operations: set[str] = set()
+        self._operation_receipts: dict[str, ActionReceipt] = {}
+        self._operation_results: dict[str, dict[str, Any]] = {}
+        self._artifacts: dict[str, ArtifactRef] = {}
+        self._artifact_reservations: set[str] = set()
+        self._action_count = 0
+        self._retry_count = 0
+        self._last_action_id: str | None = None
+        self._last_verified_action_id: str | None = None
+        self._next_action_index = 1
+        self._next_artifact_index = 1
+        self._capability_set = CapabilitySet()
 
     async def initialize(self) -> None:
         """Initialize the browser context."""
@@ -286,6 +382,446 @@ class DrissionPageContext:
             "actions": list(self._action_history),
         }
 
+    def claim_operation(
+        self, operation_key: str, request_fingerprint: str
+    ) -> OperationClaim:
+        """Atomically claim or replay one live-process consequential operation.
+
+        Call this only after policy and capability preflight has passed. Claims
+        are never evicted, so a response loss cannot permit the same key to
+        invoke the browser again in this context.
+        """
+
+        key = str(operation_key).strip()
+        fingerprint = str(request_fingerprint).strip().lower()
+        if not key:
+            raise ValueError("operation_key is required")
+        if len(key) > 128:
+            raise ValueError("operation_key must be at most 128 characters")
+        if len(fingerprint) != 64 or any(
+            char not in "0123456789abcdef" for char in fingerprint
+        ):
+            raise ValueError("request_fingerprint must be a lowercase SHA-256")
+
+        with self._task_lock:
+            existing_fingerprint = self._operation_fingerprints.get(key)
+            if existing_fingerprint is not None:
+                if existing_fingerprint != fingerprint:
+                    raise OperationKeyConflictError(
+                        "operation_key is already bound to a different request"
+                    )
+                cached = self._operation_receipts.get(key)
+                if cached is not None:
+                    return OperationClaim(
+                        key,
+                        fingerprint,
+                        cached,
+                        self._operation_results.get(key),
+                    )
+                raise OperationInFlightError(
+                    "operation_key is already executing in this live task"
+                )
+
+            occupied_keys = (
+                set(self._operation_fingerprints)
+                | self._in_flight_operations
+                | set(self._operation_receipts)
+            )
+            if len(occupied_keys) >= self._operation_limit:
+                raise TaskLedgerFullError(
+                    "operation ledger limit reached; start a new server task"
+                )
+            self._operation_fingerprints[key] = fingerprint
+            self._in_flight_operations.add(key)
+            return OperationClaim(key, fingerprint)
+
+    def preview_operation(
+        self, operation_key: str, request_fingerprint: str
+    ) -> OperationClaim | None:
+        """Read an existing operation state without reserving a new key.
+
+        This lets tools replay or reject existing keys before resolving a DOM
+        target, while genuinely new operations still resolve all preconditions
+        before ``claim_operation()`` reserves the side-effect boundary.
+        """
+
+        key = str(operation_key).strip()
+        fingerprint = str(request_fingerprint).strip().lower()
+        if not key:
+            raise ValueError("operation_key is required")
+        if len(key) > 128:
+            raise ValueError("operation_key must be at most 128 characters")
+        if len(fingerprint) != 64 or any(
+            char not in "0123456789abcdef" for char in fingerprint
+        ):
+            raise ValueError("request_fingerprint must be a lowercase SHA-256")
+
+        with self._task_lock:
+            existing_fingerprint = self._operation_fingerprints.get(key)
+            if existing_fingerprint is None:
+                return None
+            if existing_fingerprint != fingerprint:
+                raise OperationKeyConflictError(
+                    "operation_key is already bound to a different request"
+                )
+            cached = self._operation_receipts.get(key)
+            if cached is None:
+                raise OperationInFlightError(
+                    "operation_key is already executing in this live task"
+                )
+            return OperationClaim(
+                key,
+                fingerprint,
+                cached,
+                self._operation_results.get(key),
+            )
+
+    @staticmethod
+    def request_fingerprint(request: Mapping[str, Any]) -> str:
+        """Return a deterministic SHA-256 for one validated consequential input."""
+
+        encoded = json.dumps(
+            request,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def new_action_id(self) -> str:
+        """Allocate a deterministic context-local action identifier."""
+
+        with self._task_lock:
+            value = f"action-{self._next_action_index:06d}"
+            self._next_action_index += 1
+            return value
+
+    def new_artifact_id(self) -> str:
+        """Allocate a deterministic context-local artifact identifier."""
+
+        with self._task_lock:
+            value = f"artifact-{self._next_artifact_index:06d}"
+            self._next_artifact_index += 1
+            return value
+
+    def complete_operation(
+        self,
+        claim: OperationClaim,
+        receipt: ActionReceipt,
+        *,
+        result: Mapping[str, Any] | None = None,
+    ) -> ActionReceipt:
+        """Atomically bind a frozen receipt to its matching operation claim."""
+
+        if receipt.operation_key != claim.operation_key:
+            raise OperationKeyConflictError(
+                "receipt operation_key does not match the operation claim"
+            )
+        if receipt.request_fingerprint != claim.request_fingerprint:
+            raise OperationKeyConflictError(
+                "receipt request_fingerprint does not match the operation claim"
+            )
+        if receipt.task_id != self._task_id:
+            raise OperationKeyConflictError("receipt task_id does not match context")
+
+        with self._task_lock:
+            existing = self._operation_receipts.get(claim.operation_key)
+            if existing is not None:
+                return existing
+            if claim.operation_key not in self._in_flight_operations:
+                raise OperationKeyConflictError("operation claim is not active")
+            self._operation_receipts[claim.operation_key] = receipt
+            if result is not None:
+                self._operation_results[claim.operation_key] = deepcopy(dict(result))
+            self._in_flight_operations.remove(claim.operation_key)
+            self._action_count += 1
+            if receipt.retry_of is not None:
+                self._retry_count += 1
+            self._last_action_id = receipt.action_id
+            if receipt.status == "success":
+                self._last_verified_action_id = receipt.action_id
+            return receipt
+
+    def operation_result(self, operation_key: str) -> dict[str, Any] | None:
+        """Return a defensive copy of a cached operation result."""
+
+        with self._task_lock:
+            result = self._operation_results.get(operation_key)
+            return deepcopy(result) if result is not None else None
+
+    def operation_receipt(self, operation_key: str) -> ActionReceipt | None:
+        """Return the frozen receipt for an operation key, when completed."""
+
+        with self._task_lock:
+            return self._operation_receipts.get(operation_key)
+
+    def record_local_receipt(self, receipt: ActionReceipt) -> ActionReceipt:
+        """Atomically record or replay one local UI mutation receipt.
+
+        Local mutations share the consequential-operation ledger and its cap,
+        but can be adapted after the browser interaction when no prior claim
+        exists. Existing receipts remain replayable even when the ledger is
+        full.
+        """
+
+        if receipt.task_id != self._task_id:
+            raise OperationKeyConflictError("receipt task_id does not match context")
+        if receipt.side_effect != "local_ui_mutation":
+            raise OperationKeyConflictError(
+                "local receipt side_effect must be local_ui_mutation"
+            )
+
+        key = receipt.operation_key
+        fingerprint = receipt.request_fingerprint
+        with self._task_lock:
+            existing_fingerprint = self._operation_fingerprints.get(key)
+            if existing_fingerprint is not None and existing_fingerprint != fingerprint:
+                raise OperationKeyConflictError(
+                    "operation_key is already bound to a different request"
+                )
+
+            existing = self._operation_receipts.get(key)
+            if existing is not None:
+                if existing.request_fingerprint != fingerprint:
+                    raise OperationKeyConflictError(
+                        "operation_key is already bound to a different request"
+                    )
+                return existing
+
+            if key in self._in_flight_operations:
+                raise OperationInFlightError(
+                    "operation_key is already executing in this live task"
+                )
+
+            occupied_keys = (
+                set(self._operation_fingerprints)
+                | self._in_flight_operations
+                | set(self._operation_receipts)
+            )
+            if key not in occupied_keys and len(occupied_keys) >= self._operation_limit:
+                raise TaskLedgerFullError(
+                    "operation ledger limit reached; start a new server task"
+                )
+
+            self._operation_fingerprints[key] = fingerprint
+            self._operation_receipts[key] = receipt
+            self._action_count += 1
+            if receipt.retry_of is not None:
+                self._retry_count += 1
+            self._last_action_id = receipt.action_id
+            if receipt.status == "success":
+                self._last_verified_action_id = receipt.action_id
+            return receipt
+
+    def record_artifact(self, artifact: ArtifactRef) -> ArtifactRef:
+        """Record one complete artifact without evicting prior task evidence."""
+
+        if artifact.task_id != self._task_id:
+            raise OperationKeyConflictError("artifact task_id does not match context")
+        with self._task_lock:
+            existing = self._artifacts.get(artifact.artifact_id)
+            if existing is not None:
+                if existing != artifact:
+                    raise OperationKeyConflictError(
+                        "artifact_id is already bound to different metadata"
+                    )
+                return existing
+            reserved = artifact.artifact_id in self._artifact_reservations
+            if (
+                not reserved
+                and len(self._artifacts) + len(self._artifact_reservations)
+                >= self._artifact_limit
+            ):
+                raise TaskLedgerFullError(
+                    "artifact ledger limit reached; start a new server task"
+                )
+            if reserved:
+                self._artifact_reservations.remove(artifact.artifact_id)
+            self._artifacts[artifact.artifact_id] = artifact
+            return artifact
+
+    def complete_artifact_operation(
+        self,
+        claim: OperationClaim,
+        receipt: ActionReceipt,
+        artifact: ArtifactRef,
+        *,
+        result: Mapping[str, Any],
+    ) -> ActionReceipt:
+        """Atomically commit one completed artifact with its operation receipt."""
+
+        if receipt.operation_key != claim.operation_key:
+            raise OperationKeyConflictError(
+                "receipt operation_key does not match the operation claim"
+            )
+        if receipt.request_fingerprint != claim.request_fingerprint:
+            raise OperationKeyConflictError(
+                "receipt request_fingerprint does not match the operation claim"
+            )
+        if receipt.task_id != self._task_id or artifact.task_id != self._task_id:
+            raise OperationKeyConflictError("artifact operation task_id mismatch")
+        if artifact.producing_action_id != receipt.action_id:
+            raise OperationKeyConflictError(
+                "artifact producing_action_id does not match receipt action_id"
+            )
+        if artifact.artifact_id not in receipt.artifact_ids:
+            raise OperationKeyConflictError(
+                "receipt does not reference the completed artifact"
+            )
+
+        with self._task_lock:
+            existing_receipt = self._operation_receipts.get(claim.operation_key)
+            if existing_receipt is not None:
+                return existing_receipt
+            if claim.operation_key not in self._in_flight_operations:
+                raise OperationKeyConflictError("operation claim is not active")
+            existing_artifact = self._artifacts.get(artifact.artifact_id)
+            if existing_artifact is not None and existing_artifact != artifact:
+                raise OperationKeyConflictError(
+                    "artifact_id is already bound to different metadata"
+                )
+            reserved = artifact.artifact_id in self._artifact_reservations
+            if (
+                existing_artifact is None
+                and not reserved
+                and len(self._artifacts) + len(self._artifact_reservations)
+                >= self._artifact_limit
+            ):
+                raise TaskLedgerFullError(
+                    "artifact ledger limit reached; start a new server task"
+                )
+
+            self._artifacts[artifact.artifact_id] = artifact
+            self._artifact_reservations.discard(artifact.artifact_id)
+            self._operation_receipts[claim.operation_key] = receipt
+            self._operation_results[claim.operation_key] = deepcopy(dict(result))
+            self._in_flight_operations.remove(claim.operation_key)
+            self._action_count += 1
+            if receipt.retry_of is not None:
+                self._retry_count += 1
+            self._last_action_id = receipt.action_id
+            if receipt.status == "success":
+                self._last_verified_action_id = receipt.action_id
+            return receipt
+
+    def reserve_artifact_slot(self, artifact_id: str) -> None:
+        """Reserve one named artifact slot before a browser download starts."""
+
+        with self._task_lock:
+            if (
+                artifact_id in self._artifacts
+                or artifact_id in self._artifact_reservations
+            ):
+                raise OperationKeyConflictError(
+                    "artifact_id is already reserved in this live task"
+                )
+            if (
+                len(self._artifacts) + len(self._artifact_reservations)
+                >= self._artifact_limit
+            ):
+                raise TaskLedgerFullError(
+                    "artifact ledger limit reached; start a new server task"
+                )
+            self._artifact_reservations.add(artifact_id)
+
+    def release_artifact_slot(self, artifact_id: str) -> None:
+        """Release a named artifact slot after a failed download."""
+
+        with self._task_lock:
+            self._artifact_reservations.discard(artifact_id)
+
+    def task_summary(self) -> TaskContext:
+        """Return an immutable public summary without raw operations or receipts."""
+
+        policy = _task_policy_snapshot()
+        tabs = self.tab_summaries()
+        current_tab = self._current_tab
+        with self._task_lock:
+            return TaskContext(
+                task_id=self._task_id,
+                created_at=self._task_created_at,
+                policy_profile=policy["profile"],
+                policy_controls=tuple(
+                    PolicyControl(name=name, enabled=enabled)
+                    for name, enabled in sorted(policy["controls"].items())
+                ),
+                active_tab_ids=tuple(
+                    str(item.get("tab_id") or "") for item in tabs if item.get("tab_id")
+                ),
+                current_tab_id=(
+                    current_tab.mcp_tab_id if current_tab is not None else ""
+                ),
+                action_count=self._action_count,
+                retry_count=self._retry_count,
+                operation_count=len(
+                    set(self._operation_fingerprints)
+                    | self._in_flight_operations
+                    | set(self._operation_receipts)
+                ),
+                receipt_count=len(self._operation_receipts),
+                artifact_count=len(self._artifacts),
+                operation_limit=self._operation_limit,
+                artifact_limit=self._artifact_limit,
+                retry_limit=self._retry_limit,
+                last_action_id=self._last_action_id,
+                last_verified_action_id=self._last_verified_action_id,
+            )
+
+    def receipt_inventory(self) -> list[ActionReceipt]:
+        """Return receipts in stable insertion order for resource serialization."""
+
+        with self._task_lock:
+            return list(self._operation_receipts.values())
+
+    def artifact_inventory(self) -> list[ArtifactRef]:
+        """Return artifacts in stable insertion order for resource serialization."""
+
+        with self._task_lock:
+            return list(self._artifacts.values())
+
+    def capability_set(self) -> CapabilitySet:
+        """Return the latest explicit capability snapshot without probing."""
+
+        with self._task_lock:
+            return self._capability_set
+
+    def set_capability_set(self, capability_set: CapabilitySet) -> None:
+        """Store explicit probe evidence produced by a later capability adapter."""
+
+        with self._task_lock:
+            self._capability_set = capability_set
+
+    def record_capability_probe(self, probe: CapabilityProbe) -> CapabilitySet:
+        """Replace one named probe while preserving other runtime evidence."""
+
+        with self._task_lock:
+            probes = [
+                item
+                for item in self._capability_set.capabilities
+                if item.name != probe.name
+            ]
+            probes.append(probe)
+            statuses = {item.status for item in probes if item.status != "unprobed"}
+            if not statuses:
+                overall_status = "unprobed"
+            elif statuses == {"supported"}:
+                overall_status = "supported"
+            elif statuses == {"unsupported"}:
+                overall_status = "unsupported"
+            else:
+                overall_status = "degraded"
+            self._capability_set = self._capability_set.model_copy(
+                update={
+                    "overall_status": overall_status,
+                    "capabilities": tuple(probes[-24:]),
+                }
+            )
+            return self._capability_set
+
+    @property
+    def task_id(self) -> str:
+        return self._task_id
+
     def _wrap_page(self, page: Any) -> PageTab:
         tab = PageTab(page, self, mcp_tab_id=f"t{self._next_tab_index}")
         self._next_tab_index += 1
@@ -450,3 +986,16 @@ def _redact_history_url(value: Any) -> str:
 
     netloc = parts.netloc.rsplit("@", 1)[-1]
     return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
+
+
+def _task_policy_snapshot() -> dict[str, Any]:
+    """Build a redacted policy snapshot without retaining path or rule values."""
+
+    from .policy import SafetyPolicy
+
+    policy = SafetyPolicy.from_env()
+    controls = policy.control_flags()
+    return {
+        "profile": policy.profile(),
+        "controls": {str(key): bool(value) for key, value in controls.items()},
+    }

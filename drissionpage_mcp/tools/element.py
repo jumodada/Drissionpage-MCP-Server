@@ -1,14 +1,19 @@
 """Element interaction tools for DrissionPage MCP."""
 
 import json
-from typing import TYPE_CHECKING
-from pydantic import Field
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Annotated, Literal
+
+from pydantic import Field, StrictInt
+
+from ..browser.elements import ClickUnsupportedError
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
 from ..selector import normalize_selector
 from ._observe import maybe_observe, observed_changes
 from .base import ToolInput, ToolType, define_tool, ToolOutcome
 from ..tool_outputs import (
+    CapabilityProbe,
     ElementFindData,
     ElementFindAllData,
     ElementClickData,
@@ -72,6 +77,12 @@ class ClickElementInput(ToolInput):
     )
     observe: bool = Field(
         default=False, description="Return a compact before/after page change summary."
+    )
+    button: Literal["left", "right", "middle"] = Field(
+        default="left", description="Native pointer button to use."
+    )
+    click_count: Annotated[StrictInt, Field(ge=1, le=2)] = Field(
+        default=1, description="Native click count; 2 requests double-click semantics."
     )
 
 
@@ -204,18 +215,96 @@ async def click_element(
 ) -> "ToolOutcome":
     """Click on an element."""
     outcome = ToolOutcome()
+    _validate_click_capability(context, args)
     tab = context.current_tab_or_die()
     plan = normalize_selector(args.selector)
     before = await maybe_observe(tab, args.observe)
-    await tab.elements.click(args.selector, timeout=args.timeout)
+    try:
+        if args.button == "left" and args.click_count == 1:
+            await tab.elements.click(args.selector, timeout=args.timeout)
+        else:
+            await tab.elements.click(
+                args.selector,
+                timeout=args.timeout,
+                button=args.button,
+                click_count=args.click_count,
+            )
+    except ClickUnsupportedError as exc:
+        context.record_capability_probe(
+            _click_capability_probe(
+                name=_click_capability_name(args),
+                status="unsupported",
+                evidence_source="runtime_probe",
+                reason_code=exc.reason_code,
+            )
+        )
+        raise
     changes = await observed_changes(tab, before)
-    outcome.add_code(f"page.ele({plan.locator!r}).click()")
-    data = {**plan.metadata(), "url": tab.url}
+    outcome.add_code(_click_code(plan.locator, args.button, args.click_count))
+    data = {
+        **plan.metadata(),
+        "url": tab.url,
+        "button": args.button,
+        "click_count": args.click_count,
+    }
     if changes is not None:
         data["changes"] = changes
     outcome.add_result(f"Successfully clicked element: {args.selector}", **data)
     outcome.set_include_snapshot(True)
     return outcome
+
+
+def _click_code(locator: str, button: str, click_count: int) -> str:
+    target = f"page.ele({locator!r}).click"
+    if button == "left" and click_count == 1:
+        return target + "()"
+    if button == "right" and click_count == 1:
+        return target + ".right()"
+    if button == "left" and click_count == 2:
+        return target + ".multi(times=2)"
+    return target + f".at(button={button!r}, count={click_count})"
+
+
+def _click_capability_probe(
+    *,
+    name: str,
+    status: Literal["unsupported"],
+    evidence_source: Literal["runtime_probe"],
+    reason_code: str | None = None,
+) -> CapabilityProbe:
+    return CapabilityProbe(
+        name=name,
+        status=status,
+        evidence_source=evidence_source,
+        reason_code=reason_code,
+        checked_at=datetime.now(timezone.utc),
+    )
+
+
+def _validate_click_capability(
+    context: "DrissionPageContext", args: ClickElementInput
+) -> None:
+    """Reject a recorded unsupported variant before tab or DOM access."""
+
+    if args.button == "left" and args.click_count == 1:
+        return
+    capability_name = _click_capability_name(args)
+    for capability in context.capability_set().capabilities:
+        if capability.name == capability_name and capability.status in {
+            "unsupported",
+            "degraded",
+        }:
+            raise ClickUnsupportedError(
+                capability.reason_code or "RECORDED_CAPABILITY_UNAVAILABLE"
+            )
+
+
+def _click_capability_name(args: ClickElementInput) -> str:
+    if args.button == "left" and args.click_count == 2:
+        return "element.click.double"
+    if args.click_count == 1:
+        return f"element.click.{args.button}"
+    return f"element.click.{args.button}_double"
 
 
 @define_tool(
@@ -285,7 +374,9 @@ async def get_text(context: "DrissionPageContext", args: GetTextInput) -> "ToolO
     idempotent=True,
     output_model=ElementGetAttributeData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to get attribute '{args.attribute}' from '{args.selector}': {e}"
+        lambda e: (
+            f"Failed to get attribute '{args.attribute}' from '{args.selector}': {e}"
+        )
     )(exc),
 )
 async def get_attribute(
@@ -315,7 +406,9 @@ async def get_attribute(
     idempotent=True,
     output_model=ElementGetPropertyData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to get property '{args.property}' from '{args.selector}': {e}"
+        lambda e: (
+            f"Failed to get property '{args.property}' from '{args.selector}': {e}"
+        )
     )(exc),
 )
 async def get_property(

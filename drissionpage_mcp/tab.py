@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, Dict
 from DrissionPage.errors import ElementNotFoundError
 
 from .browser import (
+    DialogOperations,
+    DownloadOperations,
     ElementOperations,
     FrameOperations,
     InteractionOperations,
@@ -45,6 +47,8 @@ class PageTab:
         self.context = context
         self.mcp_tab_id = mcp_tab_id
         self._url = ""
+        self.dialogs = DialogOperations(self)
+        self.downloads = DownloadOperations(self)
         self.elements = ElementOperations(self)
         self.frames = FrameOperations(self)
         self.interaction = InteractionOperations(self)

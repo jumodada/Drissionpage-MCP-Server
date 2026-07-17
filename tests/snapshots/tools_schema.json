@@ -1684,62 +1684,62 @@
     },
     "name": "page_pointer_move",
     "outputSchema": {
+      "$defs": {
+        "PointerMoveData": {
+          "additionalProperties": false,
+          "properties": {
+            "planned_duration_ms": {
+              "title": "Planned Duration Ms",
+              "type": "integer"
+            },
+            "profile": {
+              "enum": [
+                "natural",
+                "precise",
+                "direct"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "start_x": {
+              "title": "Start X",
+              "type": "number"
+            },
+            "start_y": {
+              "title": "Start Y",
+              "type": "number"
+            },
+            "steps": {
+              "title": "Steps",
+              "type": "integer"
+            },
+            "target_x": {
+              "title": "Target X",
+              "type": "number"
+            },
+            "target_y": {
+              "title": "Target Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "profile",
+            "start_x",
+            "start_y",
+            "target_x",
+            "target_y",
+            "steps",
+            "planned_duration_ms"
+          ],
+          "title": "PointerMoveData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
           "properties": {
             "data": {
-              "$defs": {
-                "PointerMoveData": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "planned_duration_ms": {
-                      "title": "Planned Duration Ms",
-                      "type": "integer"
-                    },
-                    "profile": {
-                      "enum": [
-                        "natural",
-                        "precise",
-                        "direct"
-                      ],
-                      "title": "Profile",
-                      "type": "string"
-                    },
-                    "start_x": {
-                      "title": "Start X",
-                      "type": "number"
-                    },
-                    "start_y": {
-                      "title": "Start Y",
-                      "type": "number"
-                    },
-                    "steps": {
-                      "title": "Steps",
-                      "type": "integer"
-                    },
-                    "target_x": {
-                      "title": "Target X",
-                      "type": "number"
-                    },
-                    "target_y": {
-                      "title": "Target Y",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "profile",
-                    "start_x",
-                    "start_y",
-                    "target_x",
-                    "target_y",
-                    "steps",
-                    "planned_duration_ms"
-                  ],
-                  "title": "PointerMoveData",
-                  "type": "object"
-                }
-              },
               "additionalProperties": false,
               "properties": {
                 "element": {
@@ -1944,127 +1944,127 @@
     },
     "name": "page_pointer_drag",
     "outputSchema": {
+      "$defs": {
+        "PointerDragData": {
+          "additionalProperties": false,
+          "properties": {
+            "approach_steps": {
+              "title": "Approach Steps",
+              "type": "integer"
+            },
+            "button": {
+              "enum": [
+                "left",
+                "right",
+                "middle"
+              ],
+              "title": "Button",
+              "type": "string"
+            },
+            "correction_steps": {
+              "title": "Correction Steps",
+              "type": "integer"
+            },
+            "drag_steps": {
+              "title": "Drag Steps",
+              "type": "integer"
+            },
+            "grip_delay_ms": {
+              "title": "Grip Delay Ms",
+              "type": "integer"
+            },
+            "main_drag_steps": {
+              "title": "Main Drag Steps",
+              "type": "integer"
+            },
+            "micro_pause_count": {
+              "title": "Micro Pause Count",
+              "type": "integer"
+            },
+            "micro_pause_duration_ms": {
+              "title": "Micro Pause Duration Ms",
+              "type": "integer"
+            },
+            "movement_duration_ms": {
+              "title": "Movement Duration Ms",
+              "type": "integer"
+            },
+            "overshoot_px": {
+              "title": "Overshoot Px",
+              "type": "number"
+            },
+            "overshoot_steps": {
+              "title": "Overshoot Steps",
+              "type": "integer"
+            },
+            "planned_duration_ms": {
+              "title": "Planned Duration Ms",
+              "type": "integer"
+            },
+            "profile": {
+              "enum": [
+                "natural",
+                "precise",
+                "direct"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "reaction_delay_ms": {
+              "title": "Reaction Delay Ms",
+              "type": "integer"
+            },
+            "release_delay_ms": {
+              "title": "Release Delay Ms",
+              "type": "integer"
+            },
+            "start_x": {
+              "title": "Start X",
+              "type": "number"
+            },
+            "start_y": {
+              "title": "Start Y",
+              "type": "number"
+            },
+            "target_x": {
+              "title": "Target X",
+              "type": "number"
+            },
+            "target_y": {
+              "title": "Target Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "profile",
+            "button",
+            "start_x",
+            "start_y",
+            "target_x",
+            "target_y",
+            "approach_steps",
+            "drag_steps",
+            "main_drag_steps",
+            "overshoot_steps",
+            "correction_steps",
+            "micro_pause_count",
+            "overshoot_px",
+            "reaction_delay_ms",
+            "grip_delay_ms",
+            "movement_duration_ms",
+            "micro_pause_duration_ms",
+            "release_delay_ms",
+            "planned_duration_ms"
+          ],
+          "title": "PointerDragData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
           "properties": {
             "data": {
-              "$defs": {
-                "PointerDragData": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approach_steps": {
-                      "title": "Approach Steps",
-                      "type": "integer"
-                    },
-                    "button": {
-                      "enum": [
-                        "left",
-                        "right",
-                        "middle"
-                      ],
-                      "title": "Button",
-                      "type": "string"
-                    },
-                    "correction_steps": {
-                      "title": "Correction Steps",
-                      "type": "integer"
-                    },
-                    "drag_steps": {
-                      "title": "Drag Steps",
-                      "type": "integer"
-                    },
-                    "grip_delay_ms": {
-                      "title": "Grip Delay Ms",
-                      "type": "integer"
-                    },
-                    "main_drag_steps": {
-                      "title": "Main Drag Steps",
-                      "type": "integer"
-                    },
-                    "micro_pause_count": {
-                      "title": "Micro Pause Count",
-                      "type": "integer"
-                    },
-                    "micro_pause_duration_ms": {
-                      "title": "Micro Pause Duration Ms",
-                      "type": "integer"
-                    },
-                    "movement_duration_ms": {
-                      "title": "Movement Duration Ms",
-                      "type": "integer"
-                    },
-                    "overshoot_px": {
-                      "title": "Overshoot Px",
-                      "type": "number"
-                    },
-                    "overshoot_steps": {
-                      "title": "Overshoot Steps",
-                      "type": "integer"
-                    },
-                    "planned_duration_ms": {
-                      "title": "Planned Duration Ms",
-                      "type": "integer"
-                    },
-                    "profile": {
-                      "enum": [
-                        "natural",
-                        "precise",
-                        "direct"
-                      ],
-                      "title": "Profile",
-                      "type": "string"
-                    },
-                    "reaction_delay_ms": {
-                      "title": "Reaction Delay Ms",
-                      "type": "integer"
-                    },
-                    "release_delay_ms": {
-                      "title": "Release Delay Ms",
-                      "type": "integer"
-                    },
-                    "start_x": {
-                      "title": "Start X",
-                      "type": "number"
-                    },
-                    "start_y": {
-                      "title": "Start Y",
-                      "type": "number"
-                    },
-                    "target_x": {
-                      "title": "Target X",
-                      "type": "number"
-                    },
-                    "target_y": {
-                      "title": "Target Y",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "profile",
-                    "button",
-                    "start_x",
-                    "start_y",
-                    "target_x",
-                    "target_y",
-                    "approach_steps",
-                    "drag_steps",
-                    "main_drag_steps",
-                    "overshoot_steps",
-                    "correction_steps",
-                    "micro_pause_count",
-                    "overshoot_px",
-                    "reaction_delay_ms",
-                    "grip_delay_ms",
-                    "movement_duration_ms",
-                    "micro_pause_duration_ms",
-                    "release_delay_ms",
-                    "planned_duration_ms"
-                  ],
-                  "title": "PointerDragData",
-                  "type": "object"
-                }
-              },
               "additionalProperties": false,
               "properties": {
                 "element": {
@@ -2388,341 +2388,341 @@
     },
     "name": "page_pointer_drag_element",
     "outputSchema": {
+      "$defs": {
+        "PointerDragData": {
+          "additionalProperties": false,
+          "properties": {
+            "approach_steps": {
+              "title": "Approach Steps",
+              "type": "integer"
+            },
+            "button": {
+              "enum": [
+                "left",
+                "right",
+                "middle"
+              ],
+              "title": "Button",
+              "type": "string"
+            },
+            "correction_steps": {
+              "title": "Correction Steps",
+              "type": "integer"
+            },
+            "drag_steps": {
+              "title": "Drag Steps",
+              "type": "integer"
+            },
+            "grip_delay_ms": {
+              "title": "Grip Delay Ms",
+              "type": "integer"
+            },
+            "main_drag_steps": {
+              "title": "Main Drag Steps",
+              "type": "integer"
+            },
+            "micro_pause_count": {
+              "title": "Micro Pause Count",
+              "type": "integer"
+            },
+            "micro_pause_duration_ms": {
+              "title": "Micro Pause Duration Ms",
+              "type": "integer"
+            },
+            "movement_duration_ms": {
+              "title": "Movement Duration Ms",
+              "type": "integer"
+            },
+            "overshoot_px": {
+              "title": "Overshoot Px",
+              "type": "number"
+            },
+            "overshoot_steps": {
+              "title": "Overshoot Steps",
+              "type": "integer"
+            },
+            "planned_duration_ms": {
+              "title": "Planned Duration Ms",
+              "type": "integer"
+            },
+            "profile": {
+              "enum": [
+                "natural",
+                "precise",
+                "direct"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "reaction_delay_ms": {
+              "title": "Reaction Delay Ms",
+              "type": "integer"
+            },
+            "release_delay_ms": {
+              "title": "Release Delay Ms",
+              "type": "integer"
+            },
+            "start_x": {
+              "title": "Start X",
+              "type": "number"
+            },
+            "start_y": {
+              "title": "Start Y",
+              "type": "number"
+            },
+            "target_x": {
+              "title": "Target X",
+              "type": "number"
+            },
+            "target_y": {
+              "title": "Target Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "profile",
+            "button",
+            "start_x",
+            "start_y",
+            "target_x",
+            "target_y",
+            "approach_steps",
+            "drag_steps",
+            "main_drag_steps",
+            "overshoot_steps",
+            "correction_steps",
+            "micro_pause_count",
+            "overshoot_px",
+            "reaction_delay_ms",
+            "grip_delay_ms",
+            "movement_duration_ms",
+            "micro_pause_duration_ms",
+            "release_delay_ms",
+            "planned_duration_ms"
+          ],
+          "title": "PointerDragData",
+          "type": "object"
+        },
+        "PointerDragElementDestinationData": {
+          "additionalProperties": false,
+          "properties": {
+            "axis": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "x",
+                    "y"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Axis"
+            },
+            "kind": {
+              "enum": [
+                "element",
+                "offset",
+                "track_ratio"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "offset_x": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Offset X"
+            },
+            "offset_y": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Offset Y"
+            },
+            "ratio": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Ratio"
+            },
+            "target": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ResolvedPointerTargetData"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "track": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/ResolvedPointerTargetData"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "x",
+            "y"
+          ],
+          "title": "PointerDragElementDestinationData",
+          "type": "object"
+        },
+        "ResolvedPointerTargetData": {
+          "additionalProperties": false,
+          "properties": {
+            "anchor": {
+              "enum": [
+                "center",
+                "left",
+                "right",
+                "top",
+                "bottom"
+              ],
+              "title": "Anchor",
+              "type": "string"
+            },
+            "bottom": {
+              "title": "Bottom",
+              "type": "number"
+            },
+            "frame_selector": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Frame Selector"
+            },
+            "height": {
+              "title": "Height",
+              "type": "number"
+            },
+            "left": {
+              "title": "Left",
+              "type": "number"
+            },
+            "locator": {
+              "title": "Locator",
+              "type": "string"
+            },
+            "offset_x": {
+              "title": "Offset X",
+              "type": "number"
+            },
+            "offset_y": {
+              "title": "Offset Y",
+              "type": "number"
+            },
+            "right": {
+              "title": "Right",
+              "type": "number"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "selector_normalized": {
+              "title": "Selector Normalized",
+              "type": "boolean"
+            },
+            "selector_strategy": {
+              "title": "Selector Strategy",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Shadow Hosts",
+              "type": "array"
+            },
+            "top": {
+              "title": "Top",
+              "type": "number"
+            },
+            "width": {
+              "title": "Width",
+              "type": "number"
+            },
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "selector",
+            "locator",
+            "selector_strategy",
+            "selector_normalized",
+            "frame_selector",
+            "shadow_hosts",
+            "anchor",
+            "offset_x",
+            "offset_y",
+            "x",
+            "y",
+            "left",
+            "top",
+            "right",
+            "bottom",
+            "width",
+            "height"
+          ],
+          "title": "ResolvedPointerTargetData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
           "properties": {
             "data": {
-              "$defs": {
-                "PointerDragData": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "approach_steps": {
-                      "title": "Approach Steps",
-                      "type": "integer"
-                    },
-                    "button": {
-                      "enum": [
-                        "left",
-                        "right",
-                        "middle"
-                      ],
-                      "title": "Button",
-                      "type": "string"
-                    },
-                    "correction_steps": {
-                      "title": "Correction Steps",
-                      "type": "integer"
-                    },
-                    "drag_steps": {
-                      "title": "Drag Steps",
-                      "type": "integer"
-                    },
-                    "grip_delay_ms": {
-                      "title": "Grip Delay Ms",
-                      "type": "integer"
-                    },
-                    "main_drag_steps": {
-                      "title": "Main Drag Steps",
-                      "type": "integer"
-                    },
-                    "micro_pause_count": {
-                      "title": "Micro Pause Count",
-                      "type": "integer"
-                    },
-                    "micro_pause_duration_ms": {
-                      "title": "Micro Pause Duration Ms",
-                      "type": "integer"
-                    },
-                    "movement_duration_ms": {
-                      "title": "Movement Duration Ms",
-                      "type": "integer"
-                    },
-                    "overshoot_px": {
-                      "title": "Overshoot Px",
-                      "type": "number"
-                    },
-                    "overshoot_steps": {
-                      "title": "Overshoot Steps",
-                      "type": "integer"
-                    },
-                    "planned_duration_ms": {
-                      "title": "Planned Duration Ms",
-                      "type": "integer"
-                    },
-                    "profile": {
-                      "enum": [
-                        "natural",
-                        "precise",
-                        "direct"
-                      ],
-                      "title": "Profile",
-                      "type": "string"
-                    },
-                    "reaction_delay_ms": {
-                      "title": "Reaction Delay Ms",
-                      "type": "integer"
-                    },
-                    "release_delay_ms": {
-                      "title": "Release Delay Ms",
-                      "type": "integer"
-                    },
-                    "start_x": {
-                      "title": "Start X",
-                      "type": "number"
-                    },
-                    "start_y": {
-                      "title": "Start Y",
-                      "type": "number"
-                    },
-                    "target_x": {
-                      "title": "Target X",
-                      "type": "number"
-                    },
-                    "target_y": {
-                      "title": "Target Y",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "profile",
-                    "button",
-                    "start_x",
-                    "start_y",
-                    "target_x",
-                    "target_y",
-                    "approach_steps",
-                    "drag_steps",
-                    "main_drag_steps",
-                    "overshoot_steps",
-                    "correction_steps",
-                    "micro_pause_count",
-                    "overshoot_px",
-                    "reaction_delay_ms",
-                    "grip_delay_ms",
-                    "movement_duration_ms",
-                    "micro_pause_duration_ms",
-                    "release_delay_ms",
-                    "planned_duration_ms"
-                  ],
-                  "title": "PointerDragData",
-                  "type": "object"
-                },
-                "PointerDragElementDestinationData": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "axis": {
-                      "anyOf": [
-                        {
-                          "enum": [
-                            "x",
-                            "y"
-                          ],
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "default": null,
-                      "title": "Axis"
-                    },
-                    "kind": {
-                      "enum": [
-                        "element",
-                        "offset",
-                        "track_ratio"
-                      ],
-                      "title": "Kind",
-                      "type": "string"
-                    },
-                    "offset_x": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "default": null,
-                      "title": "Offset X"
-                    },
-                    "offset_y": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "default": null,
-                      "title": "Offset Y"
-                    },
-                    "ratio": {
-                      "anyOf": [
-                        {
-                          "type": "number"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "default": null,
-                      "title": "Ratio"
-                    },
-                    "target": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/$defs/ResolvedPointerTargetData"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "default": null
-                    },
-                    "track": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/$defs/ResolvedPointerTargetData"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "default": null
-                    },
-                    "x": {
-                      "title": "X",
-                      "type": "number"
-                    },
-                    "y": {
-                      "title": "Y",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "kind",
-                    "x",
-                    "y"
-                  ],
-                  "title": "PointerDragElementDestinationData",
-                  "type": "object"
-                },
-                "ResolvedPointerTargetData": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "anchor": {
-                      "enum": [
-                        "center",
-                        "left",
-                        "right",
-                        "top",
-                        "bottom"
-                      ],
-                      "title": "Anchor",
-                      "type": "string"
-                    },
-                    "bottom": {
-                      "title": "Bottom",
-                      "type": "number"
-                    },
-                    "frame_selector": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "title": "Frame Selector"
-                    },
-                    "height": {
-                      "title": "Height",
-                      "type": "number"
-                    },
-                    "left": {
-                      "title": "Left",
-                      "type": "number"
-                    },
-                    "locator": {
-                      "title": "Locator",
-                      "type": "string"
-                    },
-                    "offset_x": {
-                      "title": "Offset X",
-                      "type": "number"
-                    },
-                    "offset_y": {
-                      "title": "Offset Y",
-                      "type": "number"
-                    },
-                    "right": {
-                      "title": "Right",
-                      "type": "number"
-                    },
-                    "selector": {
-                      "title": "Selector",
-                      "type": "string"
-                    },
-                    "selector_normalized": {
-                      "title": "Selector Normalized",
-                      "type": "boolean"
-                    },
-                    "selector_strategy": {
-                      "title": "Selector Strategy",
-                      "type": "string"
-                    },
-                    "shadow_hosts": {
-                      "items": {
-                        "type": "string"
-                      },
-                      "title": "Shadow Hosts",
-                      "type": "array"
-                    },
-                    "top": {
-                      "title": "Top",
-                      "type": "number"
-                    },
-                    "width": {
-                      "title": "Width",
-                      "type": "number"
-                    },
-                    "x": {
-                      "title": "X",
-                      "type": "number"
-                    },
-                    "y": {
-                      "title": "Y",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "selector",
-                    "locator",
-                    "selector_strategy",
-                    "selector_normalized",
-                    "frame_selector",
-                    "shadow_hosts",
-                    "anchor",
-                    "offset_x",
-                    "offset_y",
-                    "x",
-                    "y",
-                    "left",
-                    "top",
-                    "right",
-                    "bottom",
-                    "width",
-                    "height"
-                  ],
-                  "title": "ResolvedPointerTargetData",
-                  "type": "object"
-                }
-              },
               "additionalProperties": false,
               "properties": {
                 "destination": {
@@ -2907,87 +2907,87 @@
     },
     "name": "page_click_xy",
     "outputSchema": {
+      "$defs": {
+        "PointerMotionData": {
+          "additionalProperties": false,
+          "properties": {
+            "button": {
+              "enum": [
+                "left",
+                "right",
+                "middle"
+              ],
+              "title": "Button",
+              "type": "string"
+            },
+            "delay_before_press_ms": {
+              "title": "Delay Before Press Ms",
+              "type": "integer"
+            },
+            "hold_duration_ms": {
+              "title": "Hold Duration Ms",
+              "type": "integer"
+            },
+            "planned_duration_ms": {
+              "title": "Planned Duration Ms",
+              "type": "integer"
+            },
+            "profile": {
+              "enum": [
+                "natural",
+                "precise",
+                "direct"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "reaction_delay_ms": {
+              "title": "Reaction Delay Ms",
+              "type": "integer"
+            },
+            "start_x": {
+              "title": "Start X",
+              "type": "number"
+            },
+            "start_y": {
+              "title": "Start Y",
+              "type": "number"
+            },
+            "steps": {
+              "title": "Steps",
+              "type": "integer"
+            },
+            "target_x": {
+              "title": "Target X",
+              "type": "number"
+            },
+            "target_y": {
+              "title": "Target Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "profile",
+            "start_x",
+            "start_y",
+            "target_x",
+            "target_y",
+            "steps",
+            "planned_duration_ms",
+            "button",
+            "reaction_delay_ms",
+            "delay_before_press_ms",
+            "hold_duration_ms"
+          ],
+          "title": "PointerMotionData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
           "properties": {
             "data": {
-              "$defs": {
-                "PointerMotionData": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "button": {
-                      "enum": [
-                        "left",
-                        "right",
-                        "middle"
-                      ],
-                      "title": "Button",
-                      "type": "string"
-                    },
-                    "delay_before_press_ms": {
-                      "title": "Delay Before Press Ms",
-                      "type": "integer"
-                    },
-                    "hold_duration_ms": {
-                      "title": "Hold Duration Ms",
-                      "type": "integer"
-                    },
-                    "planned_duration_ms": {
-                      "title": "Planned Duration Ms",
-                      "type": "integer"
-                    },
-                    "profile": {
-                      "enum": [
-                        "natural",
-                        "precise",
-                        "direct"
-                      ],
-                      "title": "Profile",
-                      "type": "string"
-                    },
-                    "reaction_delay_ms": {
-                      "title": "Reaction Delay Ms",
-                      "type": "integer"
-                    },
-                    "start_x": {
-                      "title": "Start X",
-                      "type": "number"
-                    },
-                    "start_y": {
-                      "title": "Start Y",
-                      "type": "number"
-                    },
-                    "steps": {
-                      "title": "Steps",
-                      "type": "integer"
-                    },
-                    "target_x": {
-                      "title": "Target X",
-                      "type": "number"
-                    },
-                    "target_y": {
-                      "title": "Target Y",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "profile",
-                    "start_x",
-                    "start_y",
-                    "target_x",
-                    "target_y",
-                    "steps",
-                    "planned_duration_ms",
-                    "button",
-                    "reaction_delay_ms",
-                    "delay_before_press_ms",
-                    "hold_duration_ms"
-                  ],
-                  "title": "PointerMotionData",
-                  "type": "object"
-                }
-              },
               "additionalProperties": false,
               "properties": {
                 "element": {
@@ -3346,144 +3346,144 @@
     },
     "name": "page_click_xy_batch",
     "outputSchema": {
+      "$defs": {
+        "BatchClickResultData": {
+          "additionalProperties": false,
+          "properties": {
+            "error": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            },
+            "index": {
+              "title": "Index",
+              "type": "integer"
+            },
+            "label": {
+              "title": "Label",
+              "type": "string"
+            },
+            "motion": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PointerMotionData"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "success": {
+              "title": "Success",
+              "type": "boolean"
+            },
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "index",
+            "x",
+            "y",
+            "label",
+            "success",
+            "error",
+            "motion"
+          ],
+          "title": "BatchClickResultData",
+          "type": "object"
+        },
+        "PointerMotionData": {
+          "additionalProperties": false,
+          "properties": {
+            "button": {
+              "enum": [
+                "left",
+                "right",
+                "middle"
+              ],
+              "title": "Button",
+              "type": "string"
+            },
+            "delay_before_press_ms": {
+              "title": "Delay Before Press Ms",
+              "type": "integer"
+            },
+            "hold_duration_ms": {
+              "title": "Hold Duration Ms",
+              "type": "integer"
+            },
+            "planned_duration_ms": {
+              "title": "Planned Duration Ms",
+              "type": "integer"
+            },
+            "profile": {
+              "enum": [
+                "natural",
+                "precise",
+                "direct"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "reaction_delay_ms": {
+              "title": "Reaction Delay Ms",
+              "type": "integer"
+            },
+            "start_x": {
+              "title": "Start X",
+              "type": "number"
+            },
+            "start_y": {
+              "title": "Start Y",
+              "type": "number"
+            },
+            "steps": {
+              "title": "Steps",
+              "type": "integer"
+            },
+            "target_x": {
+              "title": "Target X",
+              "type": "number"
+            },
+            "target_y": {
+              "title": "Target Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "profile",
+            "start_x",
+            "start_y",
+            "target_x",
+            "target_y",
+            "steps",
+            "planned_duration_ms",
+            "button",
+            "reaction_delay_ms",
+            "delay_before_press_ms",
+            "hold_duration_ms"
+          ],
+          "title": "PointerMotionData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
           "properties": {
             "data": {
-              "$defs": {
-                "BatchClickResultData": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "error": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ],
-                      "title": "Error"
-                    },
-                    "index": {
-                      "title": "Index",
-                      "type": "integer"
-                    },
-                    "label": {
-                      "title": "Label",
-                      "type": "string"
-                    },
-                    "motion": {
-                      "anyOf": [
-                        {
-                          "$ref": "#/$defs/PointerMotionData"
-                        },
-                        {
-                          "type": "null"
-                        }
-                      ]
-                    },
-                    "success": {
-                      "title": "Success",
-                      "type": "boolean"
-                    },
-                    "x": {
-                      "title": "X",
-                      "type": "number"
-                    },
-                    "y": {
-                      "title": "Y",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "index",
-                    "x",
-                    "y",
-                    "label",
-                    "success",
-                    "error",
-                    "motion"
-                  ],
-                  "title": "BatchClickResultData",
-                  "type": "object"
-                },
-                "PointerMotionData": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "button": {
-                      "enum": [
-                        "left",
-                        "right",
-                        "middle"
-                      ],
-                      "title": "Button",
-                      "type": "string"
-                    },
-                    "delay_before_press_ms": {
-                      "title": "Delay Before Press Ms",
-                      "type": "integer"
-                    },
-                    "hold_duration_ms": {
-                      "title": "Hold Duration Ms",
-                      "type": "integer"
-                    },
-                    "planned_duration_ms": {
-                      "title": "Planned Duration Ms",
-                      "type": "integer"
-                    },
-                    "profile": {
-                      "enum": [
-                        "natural",
-                        "precise",
-                        "direct"
-                      ],
-                      "title": "Profile",
-                      "type": "string"
-                    },
-                    "reaction_delay_ms": {
-                      "title": "Reaction Delay Ms",
-                      "type": "integer"
-                    },
-                    "start_x": {
-                      "title": "Start X",
-                      "type": "number"
-                    },
-                    "start_y": {
-                      "title": "Start Y",
-                      "type": "number"
-                    },
-                    "steps": {
-                      "title": "Steps",
-                      "type": "integer"
-                    },
-                    "target_x": {
-                      "title": "Target X",
-                      "type": "number"
-                    },
-                    "target_y": {
-                      "title": "Target Y",
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "profile",
-                    "start_x",
-                    "start_y",
-                    "target_x",
-                    "target_y",
-                    "steps",
-                    "planned_duration_ms",
-                    "button",
-                    "reaction_delay_ms",
-                    "delay_before_press_ms",
-                    "hold_duration_ms"
-                  ],
-                  "title": "PointerMotionData",
-                  "type": "object"
-                }
-              },
               "additionalProperties": false,
               "properties": {
                 "abort_index": {
@@ -3983,6 +3983,959 @@
   },
   {
     "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Respond To Dialog"
+    },
+    "description": "Accept or dismiss one pending alert, confirm, or prompt through a capability-probed native DrissionPage dialog path.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Strict response for one currently pending JavaScript dialog.",
+      "properties": {
+        "action": {
+          "enum": [
+            "accept",
+            "dismiss"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "prompt_text": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text for an accepted prompt. The value is never returned.",
+          "title": "Prompt Text"
+        },
+        "timeout": {
+          "default": 5.0,
+          "description": "Maximum seconds to wait for a pending dialog.",
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "PageDialogRespondInput",
+      "type": "object"
+    },
+    "name": "page_dialog_respond",
+    "outputSchema": {
+      "$defs": {
+        "ActionReceipt": {
+          "additionalProperties": false,
+          "description": "Redacted evidence for one live-task consequential browser invocation.",
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 16,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "postconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Postconditions",
+              "type": "array"
+            },
+            "preconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Preconditions",
+              "type": "array"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "retry_of": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Retry Of"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "enum": [
+                "local_ui_mutation",
+                "external_submission",
+                "external_download",
+                "dialog_response"
+              ],
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "success",
+                "validation_failed",
+                "pending",
+                "indeterminate",
+                "failed"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id"
+          ],
+          "title": "ActionReceipt",
+          "type": "object"
+        },
+        "ConditionEvaluation": {
+          "additionalProperties": false,
+          "description": "Sanitized evidence for one evaluated expectation condition.",
+          "properties": {
+            "condition_index": {
+              "maximum": 7,
+              "minimum": 0,
+              "title": "Condition Index",
+              "type": "integer"
+            },
+            "evidence": {
+              "items": {
+                "pattern": "^[A-Z][A-Z0-9_]{1,99}$",
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Evidence",
+              "type": "array"
+            },
+            "kind": {
+              "enum": [
+                "url_changed",
+                "url_contains",
+                "selector_visible",
+                "selector_hidden",
+                "text_contains",
+                "property_equals"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "matched",
+                "unmatched",
+                "error"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "condition_index",
+            "kind",
+            "status"
+          ],
+          "title": "ConditionEvaluation",
+          "type": "object"
+        },
+        "DialogMessageMetadata": {
+          "additionalProperties": false,
+          "properties": {
+            "length": {
+              "minimum": 0,
+              "title": "Length",
+              "type": "integer"
+            },
+            "present": {
+              "title": "Present",
+              "type": "boolean"
+            },
+            "redacted": {
+              "const": true,
+              "title": "Redacted",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "present",
+            "length",
+            "redacted"
+          ],
+          "title": "DialogMessageMetadata",
+          "type": "object"
+        },
+        "DialogPromptMetadata": {
+          "additionalProperties": false,
+          "properties": {
+            "length": {
+              "minimum": 0,
+              "title": "Length",
+              "type": "integer"
+            },
+            "provided": {
+              "title": "Provided",
+              "type": "boolean"
+            },
+            "redacted": {
+              "const": true,
+              "title": "Redacted",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "provided",
+            "length",
+            "redacted"
+          ],
+          "title": "DialogPromptMetadata",
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "enum": [
+                    "accept",
+                    "dismiss"
+                  ],
+                  "title": "Action",
+                  "type": "string"
+                },
+                "dialog_message": {
+                  "$ref": "#/$defs/DialogMessageMetadata"
+                },
+                "dialog_type": {
+                  "enum": [
+                    "alert",
+                    "confirm",
+                    "prompt"
+                  ],
+                  "title": "Dialog Type",
+                  "type": "string"
+                },
+                "final_url": {
+                  "title": "Final Url",
+                  "type": "string"
+                },
+                "handled": {
+                  "const": true,
+                  "title": "Handled",
+                  "type": "boolean"
+                },
+                "prompt": {
+                  "$ref": "#/$defs/DialogPromptMetadata"
+                },
+                "receipt": {
+                  "$ref": "#/$defs/ActionReceipt"
+                }
+              },
+              "required": [
+                "dialog_type",
+                "action",
+                "handled",
+                "dialog_message",
+                "prompt",
+                "final_url",
+                "receipt"
+              ],
+              "title": "PageDialogRespondData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Respond To Dialog"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Click And Download"
+    },
+    "description": "Perform one native element click, await one completed download, and return an integrity-checked safe artifact receipt.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Strict request for one native click and one correlated download.",
+      "properties": {
+        "expected_filename": {
+          "anyOf": [
+            {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional exact basename constraint for the downloaded artifact.",
+          "title": "Expected Filename"
+        },
+        "expected_mime_type": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional MIME constraint inferred from the completed filename.",
+          "title": "Expected Mime Type"
+        },
+        "operation_key": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional live-task key. Reusing the same key replays the frozen artifact result without clicking again.",
+          "title": "Operation Key"
+        },
+        "selector": {
+          "description": "CSS/XPath/DrissionPage selector for the download control.",
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Selector",
+          "type": "string"
+        },
+        "timeout": {
+          "default": 30.0,
+          "description": "Shared maximum seconds for target resolution, click, and download completion.",
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "ElementClickAndDownloadInput",
+      "type": "object"
+    },
+    "name": "element_click_and_download",
+    "outputSchema": {
+      "$defs": {
+        "ActionReceipt": {
+          "additionalProperties": false,
+          "description": "Redacted evidence for one live-task consequential browser invocation.",
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 16,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "postconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Postconditions",
+              "type": "array"
+            },
+            "preconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Preconditions",
+              "type": "array"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "retry_of": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Retry Of"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "enum": [
+                "local_ui_mutation",
+                "external_submission",
+                "external_download",
+                "dialog_response"
+              ],
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "success",
+                "validation_failed",
+                "pending",
+                "indeterminate",
+                "failed"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id"
+          ],
+          "title": "ActionReceipt",
+          "type": "object"
+        },
+        "ArtifactRef": {
+          "additionalProperties": false,
+          "description": "Safe metadata for one complete artifact produced in the live task.",
+          "properties": {
+            "artifact_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Artifact Id",
+              "type": "string"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "filename": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Filename",
+              "type": "string"
+            },
+            "kind": {
+              "const": "download",
+              "title": "Kind",
+              "type": "string"
+            },
+            "mime_type": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mime Type"
+            },
+            "producing_action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Producing Action Id",
+              "type": "string"
+            },
+            "redacted": {
+              "default": false,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "safe_relative_path": {
+              "maxLength": 500,
+              "minLength": 1,
+              "pattern": "^[^/\\\\:]+(?:/[^/\\\\:]+)*$",
+              "title": "Safe Relative Path",
+              "type": "string"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Sha256",
+              "type": "string"
+            },
+            "size_bytes": {
+              "minimum": 0,
+              "title": "Size Bytes",
+              "type": "integer"
+            },
+            "source_url": {
+              "default": "",
+              "maxLength": 500,
+              "title": "Source Url",
+              "type": "string"
+            },
+            "status": {
+              "const": "complete",
+              "default": "complete",
+              "title": "Status",
+              "type": "string"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "artifact_id",
+            "task_id",
+            "producing_action_id",
+            "kind",
+            "filename",
+            "size_bytes",
+            "sha256",
+            "safe_relative_path",
+            "created_at"
+          ],
+          "title": "ArtifactRef",
+          "type": "object"
+        },
+        "ConditionEvaluation": {
+          "additionalProperties": false,
+          "description": "Sanitized evidence for one evaluated expectation condition.",
+          "properties": {
+            "condition_index": {
+              "maximum": 7,
+              "minimum": 0,
+              "title": "Condition Index",
+              "type": "integer"
+            },
+            "evidence": {
+              "items": {
+                "pattern": "^[A-Z][A-Z0-9_]{1,99}$",
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Evidence",
+              "type": "array"
+            },
+            "kind": {
+              "enum": [
+                "url_changed",
+                "url_contains",
+                "selector_visible",
+                "selector_hidden",
+                "text_contains",
+                "property_equals"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "matched",
+                "unmatched",
+                "error"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "condition_index",
+            "kind",
+            "status"
+          ],
+          "title": "ConditionEvaluation",
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "artifact": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ArtifactRef"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "locator": {
+                  "title": "Locator",
+                  "type": "string"
+                },
+                "operation_key": {
+                  "title": "Operation Key",
+                  "type": "string"
+                },
+                "receipt": {
+                  "$ref": "#/$defs/ActionReceipt"
+                },
+                "selector": {
+                  "title": "Selector",
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "title": "Selector Normalized",
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "success",
+                    "failed",
+                    "validation_failed",
+                    "indeterminate"
+                  ],
+                  "title": "Status",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "status",
+                "operation_key",
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "artifact",
+                "receipt"
+              ],
+              "title": "ElementClickAndDownloadData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Click And Download"
+  },
+  {
+    "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,
       "openWorldHint": true,
@@ -4432,6 +5385,25 @@
       "additionalProperties": false,
       "description": "Input schema for clicking elements.",
       "properties": {
+        "button": {
+          "default": "left",
+          "description": "Native pointer button to use.",
+          "enum": [
+            "left",
+            "right",
+            "middle"
+          ],
+          "title": "Button",
+          "type": "string"
+        },
+        "click_count": {
+          "default": 1,
+          "description": "Native click count; 2 requests double-click semantics.",
+          "maximum": 2,
+          "minimum": 1,
+          "title": "Click Count",
+          "type": "integer"
+        },
         "observe": {
           "default": false,
           "description": "Return a compact before/after page change summary.",
@@ -4467,6 +5439,15 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "button": {
+                  "enum": [
+                    "left",
+                    "right",
+                    "middle"
+                  ],
+                  "title": "Button",
+                  "type": "string"
+                },
                 "changes": {
                   "anyOf": [
                     {
@@ -4479,6 +5460,14 @@
                   ],
                   "default": null,
                   "title": "Changes"
+                },
+                "click_count": {
+                  "enum": [
+                    1,
+                    2
+                  ],
+                  "title": "Click Count",
+                  "type": "integer"
                 },
                 "locator": {
                   "title": "Locator",
@@ -4506,7 +5495,9 @@
                 "locator",
                 "selector_strategy",
                 "selector_normalized",
-                "url"
+                "url",
+                "button",
+                "click_count"
               ],
               "title": "ElementClickData",
               "type": "object"
@@ -6500,6 +7491,1249 @@
       "type": "object"
     },
     "title": "Inspect Forms"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Fill Form"
+    },
+    "description": "Fill supported native, controlled, contenteditable, multi-select, and ARIA form controls without submitting, then verify live values.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Strict input for filling a form without submitting it.",
+      "properties": {
+        "fields": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              }
+            ]
+          },
+          "description": "Field selectors, ids, names, labels, or placeholders mapped to string, boolean, or string-list values.",
+          "maxProperties": 100,
+          "minProperties": 1,
+          "propertyNames": {
+            "maxLength": 500,
+            "minLength": 1
+          },
+          "title": "Fields",
+          "type": "object"
+        },
+        "form_selector": {
+          "default": "form",
+          "description": "CSS/XPath/DrissionPage locator for one form or form container.",
+          "minLength": 1,
+          "title": "Form Selector",
+          "type": "string"
+        },
+        "redact_values": {
+          "default": true,
+          "description": "Redact requested and observed values; password values are always redacted.",
+          "title": "Redact Values",
+          "type": "boolean"
+        },
+        "timeout": {
+          "default": 10.0,
+          "description": "Maximum seconds for resolving and stabilizing the local form mutation.",
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "verify": {
+          "default": true,
+          "description": "Read each live control representation after interaction and require it to match.",
+          "title": "Verify",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "title": "FormFillInput",
+      "type": "object"
+    },
+    "name": "form_fill",
+    "outputSchema": {
+      "$defs": {
+        "ActionReceipt": {
+          "additionalProperties": false,
+          "description": "Redacted evidence for one live-task consequential browser invocation.",
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 16,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "postconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Postconditions",
+              "type": "array"
+            },
+            "preconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Preconditions",
+              "type": "array"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "retry_of": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Retry Of"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "enum": [
+                "local_ui_mutation",
+                "external_submission",
+                "external_download",
+                "dialog_response"
+              ],
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "success",
+                "validation_failed",
+                "pending",
+                "indeterminate",
+                "failed"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id"
+          ],
+          "title": "ActionReceipt",
+          "type": "object"
+        },
+        "ConditionEvaluation": {
+          "additionalProperties": false,
+          "description": "Sanitized evidence for one evaluated expectation condition.",
+          "properties": {
+            "condition_index": {
+              "maximum": 7,
+              "minimum": 0,
+              "title": "Condition Index",
+              "type": "integer"
+            },
+            "evidence": {
+              "items": {
+                "pattern": "^[A-Z][A-Z0-9_]{1,99}$",
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Evidence",
+              "type": "array"
+            },
+            "kind": {
+              "enum": [
+                "url_changed",
+                "url_contains",
+                "selector_visible",
+                "selector_hidden",
+                "text_contains",
+                "property_equals"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "matched",
+                "unmatched",
+                "error"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "condition_index",
+            "kind",
+            "status"
+          ],
+          "title": "ConditionEvaluation",
+          "type": "object"
+        },
+        "FormFillFieldResult": {
+          "additionalProperties": false,
+          "properties": {
+            "control_type": {
+              "title": "Control Type",
+              "type": "string"
+            },
+            "key": {
+              "title": "Key",
+              "type": "string"
+            },
+            "matched_by": {
+              "title": "Matched By",
+              "type": "string"
+            },
+            "observed_value": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Observed Value"
+            },
+            "reason": {
+              "title": "Reason",
+              "type": "string"
+            },
+            "redacted": {
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "requested_value": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Requested Value"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "success": {
+              "title": "Success",
+              "type": "boolean"
+            },
+            "verified": {
+              "title": "Verified",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "key",
+            "success",
+            "reason",
+            "matched_by",
+            "selector",
+            "control_type",
+            "requested_value",
+            "observed_value",
+            "redacted",
+            "verified"
+          ],
+          "title": "FormFillFieldResult",
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "failed_count": {
+                  "title": "Failed Count",
+                  "type": "integer"
+                },
+                "field_count": {
+                  "title": "Field Count",
+                  "type": "integer"
+                },
+                "fields": {
+                  "items": {
+                    "$ref": "#/$defs/FormFillFieldResult"
+                  },
+                  "title": "Fields",
+                  "type": "array"
+                },
+                "filled_count": {
+                  "title": "Filled Count",
+                  "type": "integer"
+                },
+                "form": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Form"
+                },
+                "form_found": {
+                  "title": "Form Found",
+                  "type": "boolean"
+                },
+                "form_selector": {
+                  "additionalProperties": true,
+                  "title": "Form Selector",
+                  "type": "object"
+                },
+                "receipt": {
+                  "$ref": "#/$defs/ActionReceipt"
+                },
+                "requested_count": {
+                  "title": "Requested Count",
+                  "type": "integer"
+                },
+                "verified_count": {
+                  "title": "Verified Count",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "form_selector",
+                "form_found",
+                "form",
+                "field_count",
+                "requested_count",
+                "filled_count",
+                "failed_count",
+                "verified_count",
+                "fields",
+                "receipt"
+              ],
+              "title": "FormFillData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Fill Form"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Submit Form Once"
+    },
+    "description": "Submit one form at most once for an operation key, classify validation or postconditions, and return a typed external-side-effect receipt.",
+    "inputSchema": {
+      "$defs": {
+        "Expectation": {
+          "additionalProperties": false,
+          "description": "Bounded postconditions evaluated under one shared deadline.",
+          "properties": {
+            "conditions": {
+              "items": {
+                "discriminator": {
+                  "mapping": {
+                    "property_equals": "#/$defs/PropertyEqualsCondition",
+                    "selector_hidden": "#/$defs/SelectorHiddenCondition",
+                    "selector_visible": "#/$defs/SelectorVisibleCondition",
+                    "text_contains": "#/$defs/TextContainsCondition",
+                    "url_changed": "#/$defs/UrlChangedCondition",
+                    "url_contains": "#/$defs/UrlContainsCondition"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/$defs/UrlChangedCondition"
+                  },
+                  {
+                    "$ref": "#/$defs/UrlContainsCondition"
+                  },
+                  {
+                    "$ref": "#/$defs/SelectorVisibleCondition"
+                  },
+                  {
+                    "$ref": "#/$defs/SelectorHiddenCondition"
+                  },
+                  {
+                    "$ref": "#/$defs/TextContainsCondition"
+                  },
+                  {
+                    "$ref": "#/$defs/PropertyEqualsCondition"
+                  }
+                ]
+              },
+              "maxItems": 8,
+              "minItems": 1,
+              "title": "Conditions",
+              "type": "array"
+            },
+            "mode": {
+              "default": "any",
+              "enum": [
+                "any",
+                "all"
+              ],
+              "title": "Mode",
+              "type": "string"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "timeout": {
+              "default": 10.0,
+              "exclusiveMinimum": 0,
+              "maximum": 120,
+              "title": "Timeout",
+              "type": "number"
+            }
+          },
+          "required": [
+            "conditions"
+          ],
+          "title": "Expectation",
+          "type": "object"
+        },
+        "PropertyEqualsCondition": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "property_equals",
+              "title": "Kind",
+              "type": "string"
+            },
+            "property": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Property",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Value"
+            }
+          },
+          "required": [
+            "kind",
+            "selector",
+            "property",
+            "value"
+          ],
+          "title": "PropertyEqualsCondition",
+          "type": "object"
+        },
+        "SelectorHiddenCondition": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "selector_hidden",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorHiddenCondition",
+          "type": "object"
+        },
+        "SelectorVisibleCondition": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "selector_visible",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorVisibleCondition",
+          "type": "object"
+        },
+        "TextContainsCondition": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "text_contains",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "anyOf": [
+                {
+                  "maxLength": 300,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector"
+            },
+            "value": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "title": "TextContainsCondition",
+          "type": "object"
+        },
+        "UrlChangedCondition": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "url_changed",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "title": "UrlChangedCondition",
+          "type": "object"
+        },
+        "UrlContainsCondition": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "url_contains",
+              "title": "Kind",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 300,
+              "minLength": 1,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "title": "UrlContainsCondition",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Strict input for one live-task external form submission.",
+      "properties": {
+        "expect": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Expectation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Bounded success postconditions. Omit only when a submitted_pending result is acceptable."
+        },
+        "form_selector": {
+          "default": "form",
+          "description": "CSS/XPath/DrissionPage locator resolving exactly one form.",
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Form Selector",
+          "type": "string"
+        },
+        "operation_key": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Live-task idempotency key. Reusing it with the same request replays the frozen result without clicking again.",
+          "title": "Operation Key"
+        },
+        "submit_selector": {
+          "default": "",
+          "description": "Optional locator resolving exactly one enabled submitter inside the form.",
+          "maxLength": 500,
+          "title": "Submit Selector",
+          "type": "string"
+        }
+      },
+      "title": "FormSubmitInput",
+      "type": "object"
+    },
+    "name": "form_submit",
+    "outputSchema": {
+      "$defs": {
+        "ActionReceipt": {
+          "additionalProperties": false,
+          "description": "Redacted evidence for one live-task consequential browser invocation.",
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 16,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "maxLength": 64,
+              "minLength": 1,
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "postconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Postconditions",
+              "type": "array"
+            },
+            "preconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Preconditions",
+              "type": "array"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "retry_of": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Retry Of"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "enum": [
+                "local_ui_mutation",
+                "external_submission",
+                "external_download",
+                "dialog_response"
+              ],
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "success",
+                "validation_failed",
+                "pending",
+                "indeterminate",
+                "failed"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id"
+          ],
+          "title": "ActionReceipt",
+          "type": "object"
+        },
+        "ConditionEvaluation": {
+          "additionalProperties": false,
+          "description": "Sanitized evidence for one evaluated expectation condition.",
+          "properties": {
+            "condition_index": {
+              "maximum": 7,
+              "minimum": 0,
+              "title": "Condition Index",
+              "type": "integer"
+            },
+            "evidence": {
+              "items": {
+                "pattern": "^[A-Z][A-Z0-9_]{1,99}$",
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Evidence",
+              "type": "array"
+            },
+            "kind": {
+              "enum": [
+                "url_changed",
+                "url_contains",
+                "selector_visible",
+                "selector_hidden",
+                "text_contains",
+                "property_equals"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "matched",
+                "unmatched",
+                "error"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "condition_index",
+            "kind",
+            "status"
+          ],
+          "title": "ConditionEvaluation",
+          "type": "object"
+        },
+        "FormSubmitDuplicatePrevention": {
+          "additionalProperties": false,
+          "properties": {
+            "browser_invoked": {
+              "title": "Browser Invoked",
+              "type": "boolean"
+            },
+            "guarantee": {
+              "const": "at_most_once_browser_invocation",
+              "default": "at_most_once_browser_invocation",
+              "title": "Guarantee",
+              "type": "string"
+            },
+            "replayed": {
+              "title": "Replayed",
+              "type": "boolean"
+            },
+            "scope": {
+              "const": "live_server_task",
+              "default": "live_server_task",
+              "title": "Scope",
+              "type": "string"
+            }
+          },
+          "required": [
+            "replayed",
+            "browser_invoked"
+          ],
+          "title": "FormSubmitDuplicatePrevention",
+          "type": "object"
+        },
+        "FormSubmitValidationMessage": {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "title": "Code",
+              "type": "string"
+            },
+            "message": {
+              "title": "Message",
+              "type": "string"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "source": {
+              "enum": [
+                "client",
+                "server",
+                "document"
+              ],
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          "required": [
+            "selector",
+            "name",
+            "message",
+            "code",
+            "source"
+          ],
+          "title": "FormSubmitValidationMessage",
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "current_url": {
+                  "title": "Current Url",
+                  "type": "string"
+                },
+                "duplicate_prevention": {
+                  "$ref": "#/$defs/FormSubmitDuplicatePrevention"
+                },
+                "form_selector": {
+                  "additionalProperties": true,
+                  "title": "Form Selector",
+                  "type": "object"
+                },
+                "operation_key": {
+                  "title": "Operation Key",
+                  "type": "string"
+                },
+                "postconditions": {
+                  "items": {
+                    "$ref": "#/$defs/ConditionEvaluation"
+                  },
+                  "title": "Postconditions",
+                  "type": "array"
+                },
+                "receipt": {
+                  "$ref": "#/$defs/ActionReceipt"
+                },
+                "recovery": {
+                  "title": "Recovery",
+                  "type": "string"
+                },
+                "status": {
+                  "enum": [
+                    "success",
+                    "validation_failed",
+                    "submitted_pending",
+                    "indeterminate",
+                    "blocked"
+                  ],
+                  "title": "Status",
+                  "type": "string"
+                },
+                "submitter": {
+                  "additionalProperties": true,
+                  "title": "Submitter",
+                  "type": "object"
+                },
+                "title": {
+                  "title": "Title",
+                  "type": "string"
+                },
+                "triggered": {
+                  "title": "Triggered",
+                  "type": "boolean"
+                },
+                "validation_messages": {
+                  "items": {
+                    "$ref": "#/$defs/FormSubmitValidationMessage"
+                  },
+                  "title": "Validation Messages",
+                  "type": "array"
+                }
+              },
+              "required": [
+                "status",
+                "operation_key",
+                "form_selector",
+                "submitter",
+                "triggered",
+                "current_url",
+                "title",
+                "validation_messages",
+                "postconditions",
+                "duplicate_prevention",
+                "recovery",
+                "receipt"
+              ],
+              "title": "FormSubmitData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Submit Form Once"
   },
   {
     "annotations": {

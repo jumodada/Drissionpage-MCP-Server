@@ -249,6 +249,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 | 指南 | 描述 |
 |-------|-------------|
 | [README_CN.md](README_CN.md) | 安装、工具和架构说明 |
+| [docs/long-term-roadmap-and-target-architecture.md](docs/long-term-roadmap-and-target-architecture.md) | 长期产品目标、总体架构和 1.0 路线图 |
 | [docs/compatibility.md](docs/compatibility.md) | Python、DrissionPage、MCP 和浏览器兼容性 |
 | [docs/tool-contract.md](docs/tool-contract.md) | MCP 工具名称、输入、注解和响应格式 |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | doctor 命令、浏览器启动和客户端配置排查 |
@@ -476,12 +477,6 @@ which chromium         # macOS
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] Resources、Prompts、eval harness、兼容性和故障排除文档
 - [x] PyPI 发布
-
-### 未来版本 (v0.6+)
-- [ ] 将 workflow/network beta 合同经过实测后推进到 0.7.0
-- [ ] 在脱敏 state summary 之外提供可选会话持久化
-- [ ] 代理支持
-- [ ] 网络拦截
 
 ---
 

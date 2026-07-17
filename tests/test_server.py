@@ -1,5 +1,7 @@
 """Test MCP server functionality."""
 
+import json
+from types import SimpleNamespace
 from unittest.mock import Mock
 import pytest
 from mcp.types import CallToolResult
@@ -129,6 +131,10 @@ class TestToolsIntegration:
         assert "browser_open_and_snapshot" in tool_names
         assert "browser_extract_links" in tool_names
         assert "form_fill_preview" in tool_names
+        assert "form_fill" in tool_names
+        assert "form_submit" in tool_names
+        assert "page_dialog_respond" in tool_names
+        assert "element_click_and_download" in tool_names
         assert "network_listen_start" in tool_names
         assert "network_listen_wait" in tool_names
         assert "network_listen_stop" in tool_names
@@ -137,7 +143,7 @@ class TestToolsIntegration:
         assert "wait_time" in tool_names
         assert "wait_until" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 58
+        assert len(tool_names) == 62
 
 
 if __name__ == "__main__":
@@ -191,6 +197,64 @@ async def test_internal_call_tool_impl_redacts_history_arguments() -> None:
 
 
 @pytest.mark.asyncio
+async def test_internal_call_tool_impl_redacts_dialog_prompt_history() -> None:
+    server = DrissionPageMCPServer()
+    secret = "dialog-history-secret"
+    result = await server._call_tool_impl(
+        "page_dialog_respond",
+        {"action": "accept", "prompt_text": secret, "timeout": 0.1},
+    )
+
+    assert result.isError is True
+    assert server.context is not None
+    history = server.context.action_history()
+    action = history["actions"][0]
+    assert action["args"]["prompt_text"] == "<redacted>"
+    assert secret not in json.dumps(result.structuredContent, ensure_ascii=False)
+    assert secret not in json.dumps(history, ensure_ascii=False)
+
+
+@pytest.mark.asyncio
+async def test_dialog_native_failure_secret_is_absent_from_error_and_history() -> None:
+    from drissionpage_mcp.browser.dialogs import DialogResponseIndeterminateError
+    from drissionpage_mcp.context import DrissionPageContext
+
+    secret = "dialog-native-failure-secret"
+
+    class FailingDialogs:
+        def probe(self) -> None:
+            return None
+
+        async def wait_for_pending(self, *, timeout: float) -> dict[str, str]:
+            return {"dialog_type": "prompt", "message": "redacted"}
+
+        async def respond(self, **kwargs: object) -> None:
+            raise DialogResponseIndeterminateError(f"native response exposed {secret}")
+
+    server = DrissionPageMCPServer()
+    server.context = DrissionPageContext()
+    server.context._current_tab = SimpleNamespace(  # type: ignore[assignment]
+        url="https://example.test/dialog",
+        mcp_tab_id="t0",
+        dialogs=FailingDialogs(),
+    )
+
+    result = await server._call_tool_impl(
+        "page_dialog_respond",
+        {"action": "accept", "prompt_text": secret, "timeout": 1},
+    )
+
+    assert result.isError is True
+    public = json.dumps(result.structuredContent, ensure_ascii=False)
+    history = json.dumps(server.context.action_history(), ensure_ascii=False)
+    assert secret not in public
+    assert secret not in history
+    receipt = server.context.receipt_inventory()[0]
+    assert receipt.status == "indeterminate"
+    assert receipt.error_code == "DIALOG_RESPONSE_INDETERMINATE"
+
+
+@pytest.mark.asyncio
 async def test_internal_call_tool_impl_converts_unexpected_exceptions() -> None:
 
     class EmptyArgs(BaseModel):
@@ -227,7 +291,6 @@ async def test_internal_call_tool_impl_converts_unexpected_exceptions() -> None:
 async def test_run_server_cleans_up_after_server_error() -> None:
 
     class FakeLowLevelServer:
-
         def get_capabilities(self, **_kwargs):
             return {}
 
@@ -235,7 +298,6 @@ async def test_run_server_cleans_up_after_server_error() -> None:
             raise RuntimeError("stdio failed")
 
     class AsyncCleanupContext:
-
         def __init__(self) -> None:
             self.cleaned = False
 

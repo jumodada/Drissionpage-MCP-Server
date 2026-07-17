@@ -32,6 +32,9 @@ RESOURCE_URIS = [
     "drissionpage://page/current",
     "drissionpage://tools/catalog",
     "drissionpage://policy/summary",
+    "drissionpage://task/current",
+    "drissionpage://artifacts/inventory",
+    "drissionpage://runtime/capabilities",
 ]
 
 
@@ -44,7 +47,7 @@ async def test_list_resources_is_deterministic_and_json_typed() -> None:
 
     resources = result.root.resources
     assert [str(resource.uri) for resource in resources] == RESOURCE_URIS
-    assert [resource.mimeType for resource in resources] == ["application/json"] * 8
+    assert [resource.mimeType for resource in resources] == ["application/json"] * 11
     assert all(resource.name and resource.description for resource in resources)
     current_page = resources[5]
     assert current_page.name == "page_current"
@@ -55,11 +58,15 @@ async def test_list_resources_is_deterministic_and_json_typed() -> None:
 async def test_read_session_and_policy_resources_do_not_initialize_browser(
     monkeypatch,
 ) -> None:
+    monkeypatch.delenv("DP_MCP_DENY_EXTERNAL_SUBMISSION", raising=False)
+    monkeypatch.delenv("DP_MCP_DENY_DOWNLOAD", raising=False)
+    monkeypatch.delenv("DP_MCP_DOWNLOAD_ROOT", raising=False)
     monkeypatch.delenv("CHROME_PATH", raising=False)
     monkeypatch.delenv("DP_BROWSER_PATH", raising=False)
     monkeypatch.delenv("DP_USER_DATA_PATH", raising=False)
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "example.com,allowed.test")
     monkeypatch.setenv("DP_MCP_BLOCK_PRIVATE_NETWORK", "1")
+    monkeypatch.setenv("DP_MCP_DENY_EXTERNAL_SUBMISSION", "1")
 
     server = DrissionPageMCPServer()
 
@@ -69,6 +76,11 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     config_payload = await _read_json(server, "drissionpage://session/config")
     guide_payload = await _read_json(server, "drissionpage://guide/model-usage")
     history_payload = await _read_json(server, "drissionpage://session/history")
+    task_payload = await _read_json(server, "drissionpage://task/current")
+    artifacts_payload = await _read_json(server, "drissionpage://artifacts/inventory")
+    capabilities_payload = await _read_json(
+        server, "drissionpage://runtime/capabilities"
+    )
 
     assert server.context is None
     assert session_payload == {
@@ -84,6 +96,9 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
                 "block_private_network": True,
                 "screenshot_root": False,
                 "upload_root": False,
+                "download_root": False,
+                "deny_external_submission": True,
+                "deny_download": False,
             },
         },
     }
@@ -132,12 +147,136 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
         "values": "<redacted>",
     }
     assert policy_payload["controls"]["block_private_network"] is True
+    assert policy_payload["controls"]["deny_external_submission"] is True
+    assert policy_payload["controls"]["download_root"] == {"configured": False}
+    assert policy_payload["controls"]["deny_download"] is False
+    assert config_payload["policy"]["controls"]["deny_external_submission"] is True
+    assert config_payload["policy"]["controls"]["download_root"] == {
+        "configured": False
+    }
+    assert config_payload["policy"]["controls"]["deny_download"] is False
     assert history_payload == {
         "available": True,
         "limit": 100,
         "count": 0,
         "actions": [],
     }
+    assert task_payload == {
+        "available": False,
+        "reason": "NO_ACTIVE_TASK",
+        "task": None,
+    }
+    assert artifacts_payload == {
+        "available": False,
+        "reason": "NO_ACTIVE_TASK",
+        "count": 0,
+        "returned": 0,
+        "artifacts": [],
+        "truncated": False,
+    }
+    assert capabilities_payload == {
+        "available": True,
+        "capabilities": {
+            "schema_version": "1",
+            "overall_status": "unprobed",
+            "drissionpage_version": "",
+            "browser_product": "",
+            "browser_version": "",
+            "capabilities": [],
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_new_runtime_resources_are_bounded_without_browser_side_effects() -> None:
+    from datetime import datetime, timezone
+
+    from drissionpage_mcp.context import DrissionPageContext
+    from drissionpage_mcp.tool_outputs import ArtifactRef
+
+    server = DrissionPageMCPServer()
+    server.context = DrissionPageContext(artifact_limit=80)
+    for index in range(80):
+        server.context.record_artifact(
+            ArtifactRef(
+                artifact_id=f"artifact-{index:06d}",
+                task_id=server.context.task_id,
+                producing_action_id="action-000001",
+                kind="download",
+                filename=f"report-{index}.csv",
+                mime_type="text/csv",
+                size_bytes=index,
+                sha256=f"{index:064x}",
+                safe_relative_path=(
+                    f"{server.context.task_id}/reports/report-{index}.csv"
+                ),
+                source_url="https://example.test/report?token=secret",
+                created_at=datetime.now(timezone.utc),
+            )
+        )
+
+    task_payload = await _read_json(server, "drissionpage://task/current")
+    artifacts_payload = await _read_json(server, "drissionpage://artifacts/inventory")
+    capabilities_payload = await _read_json(
+        server, "drissionpage://runtime/capabilities"
+    )
+
+    assert server.context.is_active() is False
+    assert task_payload["available"] is True
+    assert "receipts" not in task_payload["task"]
+    assert "operation_keys" not in task_payload["task"]
+    assert artifacts_payload["count"] == 80
+    assert artifacts_payload["truncated"] is True
+    assert artifacts_payload["returned"] < artifacts_payload["count"]
+    assert capabilities_payload["capabilities"]["overall_status"] == "unprobed"
+    for payload in (task_payload, artifacts_payload, capabilities_payload):
+        encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+        assert len(encoded) <= RESOURCE_JSON_MAX_CHARS
+        assert "token=secret" not in encoded
+        assert "/Users/" not in encoded
+
+
+@pytest.mark.asyncio
+async def test_artifact_inventory_preserves_safe_receipt_correlation_without_paths() -> (
+    None
+):
+    from datetime import datetime, timezone
+
+    from drissionpage_mcp.context import DrissionPageContext
+    from drissionpage_mcp.tool_outputs import ArtifactRef
+
+    server = DrissionPageMCPServer()
+    server.context = DrissionPageContext()
+    server.context.record_artifact(
+        ArtifactRef(
+            artifact_id="artifact-000001",
+            task_id=server.context.task_id,
+            producing_action_id="action-000001",
+            kind="download",
+            filename="fixture-report.csv",
+            mime_type="text/csv",
+            size_bytes=55,
+            sha256="a" * 64,
+            safe_relative_path=(
+                f"{server.context.task_id}/action-000001/fixture-report.csv"
+            ),
+            source_url="https://user:pass@example.test/report.csv?token=secret",
+            created_at=datetime.now(timezone.utc),
+        )
+    )
+
+    payload = await _read_json(server, "drissionpage://artifacts/inventory")
+
+    assert payload["available"] is True
+    assert payload["count"] == 1
+    artifact = payload["artifacts"][0]
+    assert artifact["artifact_id"] == "artifact-000001"
+    assert artifact["producing_action_id"] == "action-000001"
+    assert artifact["safe_relative_path"].startswith(server.context.task_id)
+    encoded = json.dumps(payload, ensure_ascii=False)
+    assert "/Users/" not in encoded
+    assert "token=secret" not in encoded
+    assert "user:pass" not in encoded
 
 
 @pytest.mark.asyncio
@@ -209,7 +348,7 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
 
     assert "tools/list" in payload["schema_source"]
     names = [tool["name"] for tool in payload["tools"]]
-    assert len(names) == 58
+    assert len(names) == 62
     assert names == list(server.tools.keys())
     assert "page_snapshot" in names
     assert "page_observe" in names
@@ -227,6 +366,10 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert "browser_open_and_snapshot" in names
     assert "browser_extract_links" in names
     assert "form_fill_preview" in names
+    assert "form_fill" in names
+    assert "form_submit" in names
+    assert "page_dialog_respond" in names
+    assert "element_click_and_download" in names
     assert "network_listen_start" in names
     assert "network_listen_wait" in names
     assert "network_listen_stop" in names
@@ -247,6 +390,12 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert schema_by_name["browser_open_and_snapshot"] == "BrowserOpenAndSnapshotData"
     assert schema_by_name["browser_extract_links"] == "BrowserExtractLinksData"
     assert schema_by_name["form_fill_preview"] == "FormFillPreviewData"
+    assert schema_by_name["form_fill"] == "FormFillData"
+    assert schema_by_name["form_submit"] == "FormSubmitData"
+    assert schema_by_name["page_dialog_respond"] == "PageDialogRespondData"
+    assert schema_by_name["element_click_and_download"] == (
+        "ElementClickAndDownloadData"
+    )
     assert schema_by_name["network_listen_wait"] == "NetworkListenWaitData"
     assert schema_by_name["page_pointer_move"] == "PagePointerMoveData"
     assert schema_by_name["page_pointer_drag"] == "PagePointerDragData"
@@ -340,6 +489,11 @@ async def test_tools_catalog_exposes_descriptions_for_ai_tool_choice() -> None:
         "Extract bounded link data" in by_name["browser_extract_links"]["description"]
     )
     assert "without submitting" in by_name["form_fill_preview"]["description"]
+    assert "without submitting" in by_name["form_fill"]["description"]
+    assert "verify live values" in by_name["form_fill"]["description"]
+    assert "at most once" in by_name["form_submit"]["description"]
+    assert "dialog" in by_name["page_dialog_respond"]["description"].lower()
+    assert "download" in by_name["element_click_and_download"]["description"].lower()
     assert "without clicking" in by_name["page_pointer_move"]["description"]
     assert "drag" in by_name["page_pointer_drag"]["description"].lower()
     assert "immediately before" in by_name["page_pointer_drag_element"]["description"]
@@ -363,6 +517,31 @@ async def test_tools_catalog_exposes_descriptions_for_ai_tool_choice() -> None:
 
     assert by_name["browser_open_and_snapshot"]["required_input"] == ["url"]
     assert by_name["form_fill_preview"]["required_input"] == ["fields"]
+    assert by_name["form_fill"]["required_input"] == ["fields"]
+    assert {
+        "form_selector",
+        "timeout",
+        "redact_values",
+        "verify",
+    } <= set(by_name["form_fill"]["optional_input"])
+    assert by_name["form_submit"]["required_input"] == []
+    assert {"form_selector", "submit_selector", "operation_key", "expect"} <= set(
+        by_name["form_submit"]["optional_input"]
+    )
+    assert by_name["page_dialog_respond"]["required_input"] == ["action"]
+    assert {"prompt_text", "timeout"} <= set(
+        by_name["page_dialog_respond"]["optional_input"]
+    )
+    assert {"button", "click_count"} <= set(by_name["element_click"]["optional_input"])
+    assert by_name["element_click"]["input_fields"]["button"]["default"] == "left"
+    assert by_name["element_click"]["input_fields"]["click_count"]["default"] == 1
+    assert by_name["element_click_and_download"]["required_input"] == ["selector"]
+    assert {
+        "operation_key",
+        "timeout",
+        "expected_filename",
+        "expected_mime_type",
+    } <= set(by_name["element_click_and_download"]["optional_input"])
     assert by_name["network_listen_start"]["required_input"] == []
 
 

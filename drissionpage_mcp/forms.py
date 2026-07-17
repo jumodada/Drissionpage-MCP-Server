@@ -148,11 +148,21 @@ def build_form_inspect_script(
 
   function fieldType(el) {{
     const tag = (el.tagName || 'element').toLowerCase();
+    const role = String(el.getAttribute('role') || '').toLowerCase();
+    if (el.isContentEditable) return 'contenteditable';
+    if (role) return role;
     return String(el.type || el.getAttribute('type') || tag).toLowerCase();
   }}
 
   function fieldValue(el, type) {{
     if (!includeValues || type === 'password') return null;
+    if (el.isContentEditable) return truncate(textOf(el), fieldTextChars);
+    if (type === 'checkbox' || type === 'radio' || type === 'switch') {{
+      return Boolean(el.checked || el.getAttribute('aria-checked') === 'true');
+    }}
+    if (el.multiple && el.options) {{
+      return Array.from(el.selectedOptions || []).map((option) => String(option.value || ''));
+    }}
     if ('value' in el) return String(el.value || '');
     return null;
   }}
@@ -168,27 +178,62 @@ def build_form_inspect_script(
 
   function summarizeField(el, index) {{
     const type = fieldType(el);
+    const role = String(el.getAttribute('role') || '').toLowerCase();
+    const editable = Boolean(
+      !el.disabled &&
+      !el.readOnly &&
+      el.getAttribute('aria-disabled') !== 'true' &&
+      (el.isContentEditable || 'value' in el || ['checkbox', 'radio', 'switch', 'combobox', 'listbox'].includes(type))
+    );
+    const selectedValues = el.options
+      ? Array.from(el.selectedOptions || []).map((option) => String(option.value || ''))
+      : [];
+    const validity = el.validity ? {{
+      valid: Boolean(el.validity.valid),
+      value_missing: Boolean(el.validity.valueMissing),
+      type_mismatch: Boolean(el.validity.typeMismatch),
+      pattern_mismatch: Boolean(el.validity.patternMismatch),
+      too_long: Boolean(el.validity.tooLong),
+      too_short: Boolean(el.validity.tooShort),
+      range_underflow: Boolean(el.validity.rangeUnderflow),
+      range_overflow: Boolean(el.validity.rangeOverflow),
+      step_mismatch: Boolean(el.validity.stepMismatch),
+      custom_error: Boolean(el.validity.customError),
+      message: truncate(el.validationMessage || '', fieldTextChars),
+    }} : {{valid: true, message: ''}};
     return {{
       index,
       tag: (el.tagName || 'element').toLowerCase(),
       type,
+      role,
       name: el.getAttribute('name') || '',
       label: fieldLabel(el),
       selector: recommendedSelector(el),
       placeholder: el.getAttribute('placeholder') || '',
       required: Boolean(el.required),
-      disabled: Boolean(el.disabled),
-      readonly: Boolean(el.readOnly),
-      checked: Boolean(el.checked),
+      disabled: Boolean(el.disabled || el.getAttribute('aria-disabled') === 'true'),
+      readonly: Boolean(el.readOnly || el.getAttribute('aria-readonly') === 'true'),
+      editable,
+      checked: Boolean(el.checked || el.getAttribute('aria-checked') === 'true'),
+      multiple: Boolean(el.multiple || el.getAttribute('aria-multiselectable') === 'true'),
       value: fieldValue(el, type),
+      selected_values: selectedValues,
+      validity,
       attributes: attrMap(el, type),
       options: fieldOptions(el),
+      capabilities: {{
+        fill: editable && !['file', 'submit', 'button', 'reset', 'image', 'hidden'].includes(type),
+        text_input: editable && ['text', 'search', 'email', 'url', 'tel', 'password', 'textarea', 'contenteditable'].includes(type),
+        boolean_input: editable && ['checkbox', 'radio', 'switch'].includes(type),
+        option_input: editable && ['select-one', 'select-multiple', 'combobox', 'listbox'].includes(type),
+        date_time_input: editable && ['date', 'datetime-local', 'time', 'month', 'week'].includes(type),
+      }},
     }};
   }}
 
   function summarizeForm(form, index) {{
     const fields = Array.from(
-      form.querySelectorAll('input,textarea,select,button')
+      form.querySelectorAll('input,textarea,select,button,[contenteditable="true"],[role="combobox"],[role="listbox"],[role="switch"]')
     );
     const selectedFields = fields.slice(0, maxFieldsPerForm);
     return {{

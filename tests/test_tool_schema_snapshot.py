@@ -37,7 +37,11 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
         )
 
     names = [tool["name"] for tool in tools]
-    assert len(tools) == 58
+    assert len(tools) == 62
+    assert names.count("form_fill") == 1
+    assert names.count("form_submit") == 1
+    assert names.count("page_dialog_respond") == 1
+    assert names.count("element_click_and_download") == 1
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
     return tools

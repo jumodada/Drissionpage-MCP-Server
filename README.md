@@ -8,7 +8,7 @@
 
 **[Open the interactive Browser Lab](https://drissionpage-mcp.vercel.app)** to track rotating targets, replay natural clicks, drag sliders, and verify observable state.
 
-**Official Repositories**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
+**Official Repositories**: [GitHub](https://github.- [ ] `0.7.0`: close form, dialog, downcom/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
@@ -249,6 +249,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 | Guide | Description |
 |-------|-------------|
 | [README.md](README.md) | Installation, tools, and architecture |
+| [docs/long-term-roadmap-and-target-architecture.md](docs/long-term-roadmap-and-target-architecture.md) | Long-term product goal, target architecture, and 1.0 roadmap |
 | [docs/compatibility.md](docs/compatibility.md) | Supported Python, DrissionPage, MCP, and browser versions |
 | [docs/tool-contract.md](docs/tool-contract.md) | Public MCP tool names, inputs, annotations, and response shape |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Doctor command, browser startup, and client setup fixes |
@@ -476,12 +477,6 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
 - [x] PyPI distribution
-
-### Future (v0.6+)
-- [ ] Promote workflow/network beta contracts toward 0.7.0 after field testing
-- [ ] Optional session persistence beyond redacted state summaries
-- [ ] Proxy support
-- [ ] Network interception
 
 ---
 

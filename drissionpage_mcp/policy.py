@@ -22,6 +22,9 @@ ENV_NAV_BLOCKLIST = "DP_MCP_NAV_BLOCKLIST"
 ENV_BLOCK_PRIVATE = "DP_MCP_BLOCK_PRIVATE_NETWORK"
 ENV_SCREENSHOT_ROOT = "DP_MCP_SCREENSHOT_ROOT"
 ENV_UPLOAD_ROOT = "DP_MCP_UPLOAD_ROOT"
+ENV_DOWNLOAD_ROOT = "DP_MCP_DOWNLOAD_ROOT"
+ENV_DENY_EXTERNAL_SUBMISSION = "DP_MCP_DENY_EXTERNAL_SUBMISSION"
+ENV_DENY_DOWNLOAD = "DP_MCP_DENY_DOWNLOAD"
 
 
 class PolicyDeniedError(ValueError):
@@ -43,6 +46,9 @@ class SafetyPolicy:
     block_private_network: bool = False
     screenshot_root: Path | None = None
     upload_root: Path | None = None
+    download_root: Path | None = None
+    deny_external_submission: bool = False
+    deny_download: bool = False
 
     @classmethod
     def from_env(cls) -> "SafetyPolicy":
@@ -50,6 +56,7 @@ class SafetyPolicy:
 
         root = os.getenv(ENV_SCREENSHOT_ROOT)
         upload_root = os.getenv(ENV_UPLOAD_ROOT)
+        download_root = os.getenv(ENV_DOWNLOAD_ROOT)
         return cls(
             navigation_allowlist=_split_env(os.getenv(ENV_NAV_ALLOWLIST)),
             navigation_blocklist=_split_env(os.getenv(ENV_NAV_BLOCKLIST)),
@@ -58,6 +65,9 @@ class SafetyPolicy:
             upload_root=(
                 Path(upload_root).expanduser().resolve() if upload_root else None
             ),
+            download_root=Path(download_root).expanduser() if download_root else None,
+            deny_external_submission=env_bool(ENV_DENY_EXTERNAL_SUBMISSION),
+            deny_download=env_bool(ENV_DENY_DOWNLOAD),
         )
 
     def validate_navigation(self, url: str) -> None:
@@ -165,6 +175,49 @@ class SafetyPolicy:
             resolved.append(requested)
         return resolved
 
+    def validate_external_submission(self) -> None:
+        """Reject form submission when the operator enabled the deny switch."""
+
+        if self.deny_external_submission:
+            raise PolicyDeniedError(
+                "External form submission is disabled by local policy.",
+                rule=ENV_DENY_EXTERNAL_SUBMISSION,
+                value="<redacted>",
+            )
+
+    def validate_external_download(self) -> None:
+        """Reject browser downloads when the operator enabled the deny switch."""
+
+        if self.deny_download:
+            raise PolicyDeniedError(
+                "Browser downloads are disabled by local policy.",
+                rule=ENV_DENY_DOWNLOAD,
+                value="<redacted>",
+            )
+
+    def validate_download_root(self) -> Path:
+        """Return the configured download root after checking its boundary."""
+
+        if self.download_root is None:
+            raise PolicyDeniedError(
+                "Browser downloads require DP_MCP_DOWNLOAD_ROOT.",
+                rule=ENV_DOWNLOAD_ROOT,
+                value="<redacted>",
+            )
+        if self.download_root.is_symlink():
+            raise PolicyDeniedError(
+                "DP_MCP_DOWNLOAD_ROOT must not be a symlink.",
+                rule=ENV_DOWNLOAD_ROOT,
+                value="<redacted>",
+            )
+        if self.download_root.exists() and not self.download_root.is_dir():
+            raise PolicyDeniedError(
+                "DP_MCP_DOWNLOAD_ROOT must identify a directory.",
+                rule=ENV_DOWNLOAD_ROOT,
+                value="<redacted>",
+            )
+        return self.download_root.resolve()
+
     def profile(self) -> str:
         """Return a compact public profile name for configured controls."""
 
@@ -179,6 +232,9 @@ class SafetyPolicy:
             "block_private_network": self.block_private_network,
             "screenshot_root": self.screenshot_root is not None,
             "upload_root": self.upload_root is not None,
+            "download_root": self.download_root is not None,
+            "deny_external_submission": self.deny_external_submission,
+            "deny_download": self.deny_download,
         }
 
     def public_summary(self) -> dict[str, object]:
@@ -202,6 +258,16 @@ class SafetyPolicy:
                     "configured": self.upload_root is not None,
                     **({"value": "<redacted>"} if self.upload_root is not None else {}),
                 },
+                "download_root": {
+                    "configured": self.download_root is not None,
+                    **(
+                        {"value": "<redacted>"}
+                        if self.download_root is not None
+                        else {}
+                    ),
+                },
+                "deny_external_submission": self.deny_external_submission,
+                "deny_download": self.deny_download,
             },
         }
 
@@ -216,6 +282,24 @@ def validate_screenshot_path(path: str) -> None:
     """Validate screenshot path against the current environment policy."""
 
     SafetyPolicy.from_env().validate_screenshot_path(path)
+
+
+def validate_external_submission() -> None:
+    """Validate external form submission against the current policy."""
+
+    SafetyPolicy.from_env().validate_external_submission()
+
+
+def validate_external_download() -> None:
+    """Validate browser downloads against the current policy."""
+
+    SafetyPolicy.from_env().validate_external_download()
+
+
+def validate_download_root() -> Path:
+    """Return the configured safe browser download root."""
+
+    return SafetyPolicy.from_env().validate_download_root()
 
 
 def validate_upload_paths(paths: Iterable[str]) -> list[Path]:

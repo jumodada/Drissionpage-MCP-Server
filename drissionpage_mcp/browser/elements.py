@@ -4,17 +4,31 @@ from __future__ import annotations
 
 import logging
 import os
+from inspect import Parameter, signature
 from typing import TYPE_CHECKING, Any
 
 from DrissionPage.errors import ElementNotFoundError
 
 from ..outline import summarize_elements
+from ..response_errors import ErrorCode
 from ..selector import normalize_selector
 
 if TYPE_CHECKING:
     from ..tab import PageTab
 
 logger = logging.getLogger(__name__)
+
+
+class ClickUnsupportedError(RuntimeError):
+    """Raised before interaction when the requested native click is unavailable."""
+
+    code = ErrorCode.UNSUPPORTED_OPERATION
+
+    def __init__(self, reason_code: str):
+        super().__init__(
+            f"Requested click is unsupported by this DrissionPage runtime ({reason_code})."
+        )
+        self.reason_code = reason_code
 
 
 class ElementOperations:
@@ -27,11 +41,37 @@ class ElementOperations:
     def _page(self) -> Any:
         return self._tab.page
 
-    async def click(self, selector: str, timeout: int = 10) -> None:
+    async def click(
+        self,
+        selector: str,
+        timeout: int = 10,
+        *,
+        button: str = "left",
+        click_count: int = 1,
+    ) -> None:
         try:
             plan = normalize_selector(selector)
             element = await self._tab._element_by_plan(plan, timeout=timeout)
-            element.click()
+            clicker = getattr(element, "click", None)
+            if button == "left" and click_count == 1:
+                if not callable(clicker):
+                    raise ClickUnsupportedError("CLICK_CALL_UNAVAILABLE")
+                clicker()
+            elif button == "right" and click_count == 1:
+                right = getattr(clicker, "right", None)
+                if not callable(right):
+                    raise ClickUnsupportedError("RIGHT_CLICK_UNAVAILABLE")
+                right()
+            elif button == "left" and click_count == 2:
+                multi = getattr(clicker, "multi", None)
+                if not callable(multi) or not _accepts_parameters(multi, "times"):
+                    raise ClickUnsupportedError("MULTI_CLICK_UNAVAILABLE")
+                multi(times=2)
+            else:
+                at = getattr(clicker, "at", None)
+                if not callable(at) or not _accepts_parameters(at, "button", "count"):
+                    raise ClickUnsupportedError("BUTTON_COUNT_CLICK_UNAVAILABLE")
+                at(button=button, count=click_count)
             await self._tab._stabilize(
                 "element_click", timeout=1.0, fallback_sleep=0.02
             )
@@ -183,3 +223,15 @@ class ElementOperations:
         except Exception as exc:
             logger.error("Failed to upload file into %s: %s", selector, exc)
             raise
+
+
+def _accepts_parameters(callable_obj: Any, *names: str) -> bool:
+    """Return whether a runtime callable explicitly accepts the required arguments."""
+
+    try:
+        parameters = signature(callable_obj).parameters
+    except (TypeError, ValueError):
+        return False
+    if any(item.kind == Parameter.VAR_KEYWORD for item in parameters.values()):
+        return True
+    return all(name in parameters for name in names)

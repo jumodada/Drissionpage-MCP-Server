@@ -380,6 +380,265 @@ def test_form_inspect_output_schema_validates_success_payload() -> None:
     validate(payload, tool_result_output_schema("form_inspect"))
 
 
+def test_form_fill_output_schema_validates_typed_receipt_and_field_results() -> None:
+    receipt = {
+        "schema_version": "1",
+        "action_id": "action-000001",
+        "task_id": "task-000001",
+        "operation_key": "form-fill-action-000001",
+        "request_fingerprint": "a" * 64,
+        "kind": "form_fill",
+        "side_effect": "local_ui_mutation",
+        "status": "success",
+        "started_at": "2026-07-16T00:00:00Z",
+        "finished_at": "2026-07-16T00:00:01Z",
+        "tab_id": "t0",
+        "preconditions": [],
+        "postconditions": [],
+        "retry_of": None,
+        "artifact_ids": [],
+        "error_code": None,
+        "redacted": True,
+    }
+    payload = ToolResult.success(
+        "Filled 1 of 1 requested form fields",
+        form_selector={
+            "selector": "#profile-form",
+            "locator": "css:#profile-form",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+        },
+        form_found=True,
+        form={
+            "selector": "#profile-form",
+            "id": "profile-form",
+            "name": "",
+            "method": "post",
+            "action": "https://example.test/task/form-rich",
+        },
+        field_count=1,
+        requested_count=1,
+        filled_count=1,
+        failed_count=0,
+        verified_count=1,
+        fields=[
+            {
+                "key": "Full name",
+                "success": True,
+                "reason": "",
+                "matched_by": "label",
+                "selector": "#full-name",
+                "control_type": "text",
+                "requested_value": "<redacted>",
+                "observed_value": "<redacted>",
+                "redacted": True,
+                "verified": True,
+            }
+        ],
+        receipt=receipt,
+    ).to_dict()
+    schema = tool_result_output_schema("form_fill")
+
+    validate(payload, schema)
+    success_data = schema["oneOf"][0]["properties"]["data"]
+    assert success_data["title"] == "FormFillData"
+    assert "receipt" in success_data["required"]
+    assert "fields" in success_data["required"]
+
+    payload["data"]["fields"][0]["unexpected"] = True
+    with pytest.raises(ValidationError):
+        validate(payload, schema)
+
+
+def test_form_submit_output_schema_validates_typed_external_receipt() -> None:
+    receipt = {
+        "schema_version": "1",
+        "action_id": "action-000002",
+        "task_id": "task-000001",
+        "operation_key": "profile-submit-1",
+        "request_fingerprint": "b" * 64,
+        "kind": "form_submit",
+        "side_effect": "external_submission",
+        "status": "success",
+        "started_at": "2026-07-16T00:00:00Z",
+        "finished_at": "2026-07-16T00:00:01Z",
+        "tab_id": "t0",
+        "target_fingerprint": "c" * 64,
+        "preconditions": [],
+        "postconditions": [
+            {
+                "condition_index": 0,
+                "kind": "url_changed",
+                "status": "matched",
+                "evidence": ["POSTCONDITION_MATCHED"],
+            }
+        ],
+        "retry_of": None,
+        "artifact_ids": [],
+        "error_code": None,
+        "redacted": True,
+    }
+    payload = ToolResult.success(
+        "Form submission classified as success",
+        status="success",
+        operation_key="profile-submit-1",
+        form_selector={
+            "selector": "#profile-form",
+            "locator": "css:#profile-form",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+        },
+        submitter={
+            "selector": "#profile-submit",
+            "id": "profile-submit",
+            "name": "",
+            "tag": "button",
+            "type": "submit",
+            "text": "Create profile",
+            "disabled": False,
+        },
+        triggered=True,
+        current_url="https://example.test/task/form-rich",
+        title="Complete",
+        validation_messages=[],
+        postconditions=receipt["postconditions"],
+        duplicate_prevention={
+            "scope": "live_server_task",
+            "guarantee": "at_most_once_browser_invocation",
+            "replayed": False,
+            "browser_invoked": True,
+        },
+        recovery="Use the returned postcondition evidence as the completion receipt.",
+        receipt=receipt,
+    ).to_dict()
+
+    schema = tool_result_output_schema("form_submit")
+    validate(payload, schema)
+    success_data = schema["oneOf"][0]["properties"]["data"]
+    assert success_data["title"] == "FormSubmitData"
+    assert {"status", "operation_key", "duplicate_prevention", "receipt"} <= set(
+        success_data["required"]
+    )
+    payload["data"]["status"] = "unknown"
+    with pytest.raises(ValidationError):
+        validate(payload, schema)
+
+
+def test_page_dialog_respond_output_schema_validates_redacted_receipt() -> None:
+    receipt = {
+        "schema_version": "1",
+        "action_id": "action-000003",
+        "task_id": "task-000001",
+        "operation_key": "dialog-response-action-000003",
+        "request_fingerprint": "d" * 64,
+        "kind": "page_dialog_respond",
+        "side_effect": "dialog_response",
+        "status": "success",
+        "started_at": "2026-07-17T00:00:00Z",
+        "finished_at": "2026-07-17T00:00:01Z",
+        "tab_id": "t0",
+        "target_fingerprint": "e" * 64,
+        "preconditions": [],
+        "postconditions": [],
+        "retry_of": None,
+        "artifact_ids": [],
+        "error_code": None,
+        "redacted": True,
+    }
+    payload = ToolResult.success(
+        "Handled pending prompt dialog with action accept",
+        dialog_type="prompt",
+        action="accept",
+        handled=True,
+        dialog_message={"present": True, "length": 14, "redacted": True},
+        prompt={"provided": True, "length": 17, "redacted": True},
+        final_url="https://example.test/dialog",
+        receipt=receipt,
+    ).to_dict()
+
+    schema = tool_result_output_schema("page_dialog_respond")
+    validate(payload, schema)
+    success_data = schema["oneOf"][0]["properties"]["data"]
+    assert success_data["title"] == "PageDialogRespondData"
+    assert {
+        "dialog_type",
+        "action",
+        "handled",
+        "dialog_message",
+        "prompt",
+        "final_url",
+        "receipt",
+    } <= set(success_data["required"])
+    assert "message" not in payload["data"]
+    assert "prompt_text" not in payload["data"]
+    payload["data"]["dialog_message"]["redacted"] = False
+    with pytest.raises(ValidationError):
+        validate(payload, schema)
+
+
+def test_click_and_download_output_schema_validates_artifact_receipt_link() -> None:
+    receipt = {
+        "schema_version": "1",
+        "action_id": "action-000004",
+        "task_id": "task-000001",
+        "operation_key": "download-report-1",
+        "request_fingerprint": "f" * 64,
+        "kind": "element_click_and_download",
+        "side_effect": "external_download",
+        "status": "success",
+        "started_at": "2026-07-17T00:00:00Z",
+        "finished_at": "2026-07-17T00:00:01Z",
+        "tab_id": "t0",
+        "target_fingerprint": "a" * 64,
+        "preconditions": [],
+        "postconditions": [],
+        "retry_of": None,
+        "artifact_ids": ["artifact-000001"],
+        "error_code": None,
+        "redacted": True,
+    }
+    artifact = {
+        "schema_version": "1",
+        "artifact_id": "artifact-000001",
+        "task_id": "task-000001",
+        "producing_action_id": "action-000004",
+        "kind": "download",
+        "filename": "fixture-report.csv",
+        "mime_type": "text/csv",
+        "size_bytes": 55,
+        "sha256": "b" * 64,
+        "safe_relative_path": ("task-000001/action-000004/fixture-report.csv"),
+        "source_url": "https://example.test/report.csv",
+        "created_at": "2026-07-17T00:00:01Z",
+        "status": "complete",
+        "redacted": False,
+    }
+    payload = ToolResult.success(
+        "Downloaded one integrity-checked artifact",
+        status="success",
+        operation_key="download-report-1",
+        selector="#download",
+        locator="css:#download",
+        selector_strategy="css",
+        selector_normalized=True,
+        artifact=artifact,
+        receipt=receipt,
+    ).to_dict()
+
+    schema = tool_result_output_schema("element_click_and_download")
+    validate(payload, schema)
+    data_schema = schema["oneOf"][0]["properties"]["data"]
+    assert data_schema["title"] == "ElementClickAndDownloadData"
+    assert {"status", "operation_key", "artifact", "receipt"} <= set(
+        data_schema["required"]
+    )
+    assert receipt["artifact_ids"] == [artifact["artifact_id"]]
+    assert artifact["producing_action_id"] == receipt["action_id"]
+    payload["data"]["artifact"]["safe_relative_path"] = "/tmp/fixture-report.csv"
+    with pytest.raises(ValidationError):
+        validate(payload, schema)
+
+
 def test_observable_action_output_schemas_validate_success_payloads() -> None:
     changes = {
         "url_before": "https://example.test/start",
@@ -481,6 +740,8 @@ def test_observable_action_output_schemas_validate_success_payloads() -> None:
         selector_strategy="css",
         selector_normalized=True,
         url="https://example.test/done",
+        button="left",
+        click_count=1,
         changes=changes,
     ).to_dict()
     type_payload = ToolResult.success(

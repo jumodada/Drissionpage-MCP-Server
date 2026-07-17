@@ -29,6 +29,9 @@ GUIDE_MODEL_USAGE_URI = MODEL_USAGE_RESOURCE_URI
 PAGE_CURRENT_URI = "drissionpage://page/current"
 TOOLS_CATALOG_URI = "drissionpage://tools/catalog"
 POLICY_SUMMARY_URI = "drissionpage://policy/summary"
+TASK_CURRENT_URI = "drissionpage://task/current"
+ARTIFACTS_INVENTORY_URI = "drissionpage://artifacts/inventory"
+RUNTIME_CAPABILITIES_URI = "drissionpage://runtime/capabilities"
 
 RESOURCE_URIS = [
     SESSION_SUMMARY_URI,
@@ -39,6 +42,9 @@ RESOURCE_URIS = [
     PAGE_CURRENT_URI,
     TOOLS_CATALOG_URI,
     POLICY_SUMMARY_URI,
+    TASK_CURRENT_URI,
+    ARTIFACTS_INVENTORY_URI,
+    RUNTIME_CAPABILITIES_URI,
 ]
 
 
@@ -102,6 +108,27 @@ def list_resources() -> list[Resource]:
             description="Configured local safety policy without secret/path leakage.",
             mimeType="application/json",
         ),
+        Resource(
+            uri=_uri(TASK_CURRENT_URI),
+            name="task_current",
+            title="Current Task",
+            description="Immutable summary of the live-process task runtime.",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri=_uri(ARTIFACTS_INVENTORY_URI),
+            name="artifacts_inventory",
+            title="Artifacts Inventory",
+            description="Bounded safe metadata for complete task artifacts.",
+            mimeType="application/json",
+        ),
+        Resource(
+            uri=_uri(RUNTIME_CAPABILITIES_URI),
+            name="runtime_capabilities",
+            title="Runtime Capabilities",
+            description="Evidence-backed browser capability state without probing.",
+            mimeType="application/json",
+        ),
     ]
 
 
@@ -130,6 +157,12 @@ def read_resource(
         payload = tools_catalog(tools)
     elif normalized_uri == POLICY_SUMMARY_URI:
         payload = SafetyPolicy.from_env().public_summary()
+    elif normalized_uri == TASK_CURRENT_URI:
+        payload = task_current(context)
+    elif normalized_uri == ARTIFACTS_INVENTORY_URI:
+        payload = artifacts_inventory(context)
+    elif normalized_uri == RUNTIME_CAPABILITIES_URI:
+        payload = runtime_capabilities(context)
     else:
         raise ValueError(f"Unknown resource URI: {uri}")
 
@@ -208,6 +241,63 @@ def session_config(context: Any) -> dict[str, Any]:
         },
         "policy": policy.public_summary(),
     }
+
+
+def task_current(context: Any) -> dict[str, Any]:
+    """Return an immutable task summary without exposing dedupe keys or receipts."""
+
+    if context is None or not hasattr(context, "task_summary"):
+        return {
+            "available": False,
+            "reason": "NO_ACTIVE_TASK",
+            "task": None,
+        }
+    task = context.task_summary()
+    return {
+        "available": True,
+        "task": task.model_dump(mode="json"),
+    }
+
+
+def artifacts_inventory(context: Any) -> dict[str, Any]:
+    """Return newest complete artifact metadata under the global JSON budget."""
+
+    if context is None or not hasattr(context, "artifact_inventory"):
+        return {
+            "available": False,
+            "reason": "NO_ACTIVE_TASK",
+            "count": 0,
+            "returned": 0,
+            "artifacts": [],
+            "truncated": False,
+        }
+    artifacts = [
+        artifact.model_dump(mode="json") for artifact in context.artifact_inventory()
+    ]
+    payload = {
+        "available": True,
+        "count": len(artifacts),
+        "returned": len(artifacts),
+        "artifacts": artifacts,
+        "truncated": False,
+    }
+    return _fit_list_resource_budget(payload, "artifacts")
+
+
+def runtime_capabilities(context: Any) -> dict[str, Any]:
+    """Return recorded capability evidence without creating or probing a browser."""
+
+    if context is None or not hasattr(context, "capability_set"):
+        from .tool_outputs import CapabilitySet
+
+        capability_set = CapabilitySet()
+    else:
+        capability_set = context.capability_set()
+    payload = {
+        "available": True,
+        "capabilities": capability_set.model_dump(mode="json"),
+    }
+    return _fit_list_resource_budget(payload, "capabilities")
 
 
 def current_page(context: Any) -> dict[str, Any]:
@@ -374,6 +464,42 @@ def _fit_resource_budget(payload: dict[str, Any]) -> dict[str, Any]:
 
         if not shrunk:
             break
+    return fitted
+
+
+def _fit_list_resource_budget(
+    payload: dict[str, Any], collection_field: str
+) -> dict[str, Any]:
+    """Drop oldest list entries until a non-page resource fits the hard budget."""
+
+    fitted = dict(payload)
+    value = fitted.get(collection_field)
+    if collection_field == "capabilities" and isinstance(value, dict):
+        entries = list(value.get("capabilities") or [])
+        while len(_json_resource(fitted)) > RESOURCE_JSON_MAX_CHARS and entries:
+            entries.pop(0)
+            value = dict(value)
+            value["capabilities"] = entries
+            fitted[collection_field] = value
+            fitted["truncated"] = True
+        if len(_json_resource(fitted)) > RESOURCE_JSON_MAX_CHARS:
+            fitted[collection_field] = {
+                "schema_version": "1",
+                "overall_status": "unprobed",
+                "drissionpage_version": "",
+                "browser_product": "",
+                "browser_version": "",
+                "capabilities": [],
+            }
+            fitted["truncated"] = True
+        return fitted
+
+    entries = list(value or []) if isinstance(value, list) else []
+    while len(_json_resource(fitted)) > RESOURCE_JSON_MAX_CHARS and entries:
+        entries.pop(0)
+        fitted[collection_field] = entries
+        fitted["returned"] = len(entries)
+        fitted["truncated"] = True
     return fitted
 
 

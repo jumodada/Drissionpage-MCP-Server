@@ -79,9 +79,14 @@ class ToolOutcome:
         self._content.append(TextContent(type="text", text=f"### Error\n{error}"))
 
     def add_result(self, message: str, **data: Any) -> None:
+        self.set_result(message, data)
+        self._content.append(TextContent(type="text", text=f"### Result\n{message}"))
+
+    def set_result(self, message: str, data: dict[str, Any]) -> None:
+        """Set structured success data without adding a presentation block."""
+
         self._message = message
         self._data = data
-        self._content.append(TextContent(type="text", text=f"### Result\n{message}"))
 
     def add_code(self, code: str) -> None:
         self._code_snippets.append(code)

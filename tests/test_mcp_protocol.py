@@ -25,7 +25,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 58
+    assert len(tools) == 62
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -40,6 +40,10 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "tab_close",
         "element_find_all",
         "form_inspect",
+        "form_fill",
+        "form_submit",
+        "page_dialog_respond",
+        "element_click_and_download",
         "element_get_text",
         "wait_until",
         "wait_time",
@@ -68,6 +72,9 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         assert isinstance(tool.annotations.readOnlyHint, bool)
         assert isinstance(tool.annotations.destructiveHint, bool)
         assert isinstance(tool.annotations.idempotentHint, bool)
+    form_submit_tool = next(tool for tool in tools if tool.name == "form_submit")
+    assert form_submit_tool.annotations is not None
+    assert form_submit_tool.annotations.idempotentHint is False
 
 
 @pytest.mark.asyncio
@@ -169,7 +176,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 58
+            assert len(tools.tools) == 62
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -181,6 +188,10 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "tab_list",
                 "element_find_all",
                 "form_inspect",
+                "form_fill",
+                "form_submit",
+                "page_dialog_respond",
+                "element_click_and_download",
                 "wait_until",
                 "element_upload_file",
                 "frame_list",
@@ -267,6 +278,53 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     )
     assert (
         "forms" in schemas["form_inspect"]["oneOf"][0]["properties"]["data"]["required"]
+    )
+    assert schemas["form_fill"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "FormFillData"
+    )
+    assert {
+        "form_selector",
+        "form_found",
+        "field_count",
+        "requested_count",
+        "filled_count",
+        "failed_count",
+        "verified_count",
+        "fields",
+        "receipt",
+    } <= set(schemas["form_fill"]["oneOf"][0]["properties"]["data"]["required"])
+    assert schemas["form_submit"]["oneOf"][0]["properties"]["data"]["title"] == (
+        "FormSubmitData"
+    )
+    assert {
+        "status",
+        "operation_key",
+        "postconditions",
+        "duplicate_prevention",
+        "receipt",
+    } <= set(schemas["form_submit"]["oneOf"][0]["properties"]["data"]["required"])
+    assert schemas["page_dialog_respond"]["oneOf"][0]["properties"]["data"][
+        "title"
+    ] == ("PageDialogRespondData")
+    assert {
+        "dialog_type",
+        "dialog_message",
+        "handled",
+        "receipt",
+    } <= set(
+        schemas["page_dialog_respond"]["oneOf"][0]["properties"]["data"]["required"]
+    )
+    assert {"button", "click_count"} <= set(
+        schemas["element_click"]["oneOf"][0]["properties"]["data"]["required"]
+    )
+    assert (
+        schemas["element_click_and_download"]["oneOf"][0]["properties"]["data"]["title"]
+        == "ElementClickAndDownloadData"
+    )
+    assert {"status", "operation_key", "artifact", "receipt"} <= set(
+        schemas["element_click_and_download"]["oneOf"][0]["properties"]["data"][
+            "required"
+        ]
     )
     assert schemas["element_upload_file"]["oneOf"][0]["properties"]["data"][
         "title"

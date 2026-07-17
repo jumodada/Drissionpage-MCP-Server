@@ -6,10 +6,15 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.policy import SafetyPolicy
+from drissionpage_mcp.policy import (
+    ENV_DENY_DOWNLOAD,
+    ENV_DOWNLOAD_ROOT,
+)
 from drissionpage_mcp.response_errors import ErrorCode
 from drissionpage_mcp.tools.base import ToolOutcome
 from drissionpage_mcp.tools.common import ScreenshotSaveInput, screenshot_save
 from drissionpage_mcp.tools.files import UploadFileInput, element_upload_file
+from drissionpage_mcp.tools.forms import FormSubmitInput, form_submit
 from drissionpage_mcp.tools.navigate import NavigateInput, navigate
 from drissionpage_mcp.tools.workflow import (
     BrowserOpenAndSnapshotInput,
@@ -210,6 +215,57 @@ def test_upload_root_policy_allows_existing_child_files(monkeypatch, tmp_path) -
     assert paths == [candidate.resolve()]
 
 
+@pytest.mark.asyncio
+async def test_external_submission_policy_denies_before_tab_or_operation_claim(
+    monkeypatch,
+) -> None:
+    _clear_policy_env(monkeypatch)
+    monkeypatch.setenv("DP_MCP_DENY_EXTERNAL_SUBMISSION", "1")
+    context = DrissionPageContext()
+
+    outcome = await form_submit.execute(
+        context,
+        FormSubmitInput(
+            form_selector="#profile-form",
+            operation_key="profile-submit-1",
+        ),
+    )
+
+    assert outcome.is_error is True
+    payload = outcome.structured_content()
+    assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
+    assert payload["error"]["details"]["rule"] == ("DP_MCP_DENY_EXTERNAL_SUBMISSION")
+    task = context.task_summary()
+    assert task.operation_count == 0
+    assert task.receipt_count == 0
+    assert task.action_count == 0
+    assert context.receipt_inventory() == []
+    assert context.is_active() is False
+    assert SafetyPolicy.from_env().control_flags()["deny_external_submission"] is True
+    summary = SafetyPolicy.from_env().public_summary()
+    assert summary["controls"]["deny_external_submission"] is True
+
+
+def test_download_policy_summary_redacts_root_and_exposes_deny_flag(
+    monkeypatch, tmp_path
+) -> None:
+    _clear_policy_env(monkeypatch)
+    monkeypatch.setenv(ENV_DOWNLOAD_ROOT, str(tmp_path))
+    monkeypatch.setenv(ENV_DENY_DOWNLOAD, "1")
+
+    policy = SafetyPolicy.from_env()
+    assert policy.validate_download_root() == tmp_path.resolve()
+    assert policy.control_flags()["download_root"] is True
+    assert policy.control_flags()["deny_download"] is True
+    summary = policy.public_summary()
+    assert summary["controls"]["download_root"] == {
+        "configured": True,
+        "value": "<redacted>",
+    }
+    assert summary["controls"]["deny_download"] is True
+    assert str(tmp_path) not in json.dumps(summary, ensure_ascii=False)
+
+
 def _clear_policy_env(monkeypatch) -> None:
     for name in (
         "DP_MCP_NAV_ALLOWLIST",
@@ -217,5 +273,8 @@ def _clear_policy_env(monkeypatch) -> None:
         "DP_MCP_BLOCK_PRIVATE_NETWORK",
         "DP_MCP_SCREENSHOT_ROOT",
         "DP_MCP_UPLOAD_ROOT",
+        "DP_MCP_DOWNLOAD_ROOT",
+        "DP_MCP_DENY_DOWNLOAD",
+        "DP_MCP_DENY_EXTERNAL_SUBMISSION",
     ):
         monkeypatch.delenv(name, raising=False)
