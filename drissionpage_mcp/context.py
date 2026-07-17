@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 from secrets import token_hex
 from threading import Lock
 from typing import Any, Deque, List, Mapping, Optional
-from urllib.parse import urlsplit, urlunsplit
 
 from .compat import create_browser, get_latest_tab, new_tab, quit_browser
 from .limits import MAX_WAIT_SECONDS
@@ -24,6 +23,7 @@ from .tool_outputs import (
     CapabilitySet,
     PolicyControl,
     TaskContext,
+    sanitize_public_url,
 )
 
 logger = logging.getLogger(__name__)
@@ -918,6 +918,8 @@ def _redact_history_value(value: Any) -> Any:
                 )
             ):
                 redacted[key] = "<redacted>"
+            elif key_text == "url" or key_text.endswith("_url"):
+                redacted[key] = _redact_history_url(item)
             else:
                 redacted[key] = _redact_history_value(item)
         return redacted
@@ -976,16 +978,7 @@ def _summarize_console_message(message: Mapping[str, Any]) -> dict[str, Any]:
 def _redact_history_url(value: Any) -> str:
     """Remove credentials, query strings, and fragments from history URLs."""
 
-    text = str(value or "")
-    if not text:
-        return ""
-    try:
-        parts = urlsplit(text)
-    except ValueError:
-        return "<redacted-url>"
-
-    netloc = parts.netloc.rsplit("@", 1)[-1]
-    return urlunsplit((parts.scheme, netloc, parts.path, "", ""))
+    return sanitize_public_url(value)
 
 
 def _task_policy_snapshot() -> dict[str, Any]:

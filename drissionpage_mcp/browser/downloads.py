@@ -5,16 +5,21 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import mimetypes
+import os
 import shutil
+import stat
 from inspect import Parameter, signature
 from pathlib import Path
 from time import monotonic
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from ..response_errors import ErrorCode
 
 if TYPE_CHECKING:
     from ..tab import PageTab
+
+
+_T = TypeVar("_T")
 
 
 class DownloadUnsupportedError(RuntimeError):
@@ -86,9 +91,12 @@ class DownloadOperations:
                 raise DownloadIndeterminateError(
                     "The download deadline expired while waiting for the tab boundary."
                 )
-            return await self._click_and_wait(
-                element, download_dir=download_dir, timeout=remaining
+            operation = asyncio.create_task(
+                self._click_and_wait(
+                    element, download_dir=download_dir, timeout=remaining
+                )
             )
+            return await _await_terminal(operation)
 
     async def _click_and_wait(
         self,
@@ -140,19 +148,7 @@ class DownloadOperations:
             raise DownloadValidationError("Completed download has no artifact path.")
         path = Path(str(final_path)).expanduser()
         base = download_dir.resolve()
-        resolved = path.resolve()
-        try:
-            resolved.relative_to(base)
-        except ValueError as exc:
-            raise DownloadValidationError(
-                "Completed download escaped the approved download root."
-            ) from exc
-        if path.is_symlink() or not path.is_file():
-            raise DownloadValidationError(
-                "Completed download is not a regular non-symlink file."
-            )
-
-        size_bytes, sha256 = _file_integrity(path)
+        resolved, size_bytes, sha256 = _file_integrity(path, approved_root=base)
         filename = Path(str(getattr(mission, "name", "") or path.name)).name
         if filename != path.name:
             filename = path.name
@@ -181,18 +177,78 @@ class DownloadOperations:
                 pass
 
 
-def _file_integrity(path: Path) -> tuple[int, str]:
-    before = path.stat()
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    after = path.stat()
-    if before.st_size != after.st_size or before.st_mtime_ns != after.st_mtime_ns:
-        raise DownloadIndeterminateError(
-            "The completed artifact changed while its integrity was being checked."
-        )
-    return after.st_size, digest.hexdigest()
+async def _await_terminal(task: "asyncio.Task[_T]") -> _T:
+    cancellation: asyncio.CancelledError | None = None
+    while not task.done():
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError as exc:
+            cancellation = exc
+    try:
+        result = task.result()
+    except BaseException:
+        if cancellation is not None:
+            raise cancellation
+        raise
+    if cancellation is not None:
+        raise cancellation
+    return result
+
+
+def _file_integrity(path: Path, *, approved_root: Path) -> tuple[Path, int, str]:
+    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        descriptor = os.open(path, flags)
+    except OSError as exc:
+        raise DownloadValidationError(
+            "Completed download is not a stable regular non-symlink file."
+        ) from exc
+    try:
+        before = os.fstat(descriptor)
+        if not stat.S_ISREG(before.st_mode):
+            raise DownloadValidationError(
+                "Completed download is not a regular non-symlink file."
+            )
+        try:
+            leaf = os.stat(path, follow_symlinks=False)
+            resolved = path.resolve(strict=True)
+            resolved.relative_to(approved_root)
+        except (OSError, ValueError) as exc:
+            raise DownloadValidationError(
+                "Completed download escaped the approved download root."
+            ) from exc
+        if stat.S_ISLNK(leaf.st_mode) or (leaf.st_dev, leaf.st_ino) != (
+            before.st_dev,
+            before.st_ino,
+        ):
+            raise DownloadValidationError(
+                "Completed download path changed during validation."
+            )
+
+        digest = hashlib.sha256()
+        with os.fdopen(descriptor, "rb", closefd=False) as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(chunk)
+        after = os.fstat(descriptor)
+        if (
+            before.st_size,
+            before.st_mtime_ns,
+            before.st_ctime_ns,
+            before.st_dev,
+            before.st_ino,
+        ) != (
+            after.st_size,
+            after.st_mtime_ns,
+            after.st_ctime_ns,
+            after.st_dev,
+            after.st_ino,
+        ):
+            raise DownloadIndeterminateError(
+                "The completed artifact changed while its integrity was being checked."
+            )
+        return resolved, after.st_size, digest.hexdigest()
+    finally:
+        os.close(descriptor)
 
 
 def _accepts_parameters(callable_obj: Any, *names: str) -> bool:

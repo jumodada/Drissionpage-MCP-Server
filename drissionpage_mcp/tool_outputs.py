@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 from datetime import datetime
+from ipaddress import ip_address
 from pathlib import PurePosixPath
-from typing import Annotated, Any, Literal, Union
+import re
+from typing import Annotated, Any, Literal, Union, cast
 from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    RootModel,
     StringConstraints,
     field_validator,
     model_validator,
@@ -46,6 +49,65 @@ SafeRelativePath = Annotated[
         pattern=r"^[^/\\:]+(?:/[^/\\:]+)*$",
     ),
 ]
+PublicSourceUrl = Annotated[
+    str,
+    StringConstraints(
+        max_length=500,
+        pattern=r"^(?:|https?://[^/?#\s]+(?:/[^?#\s\\]*)?)$",
+    ),
+]
+
+_HOST_LABEL_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", re.I)
+_INVALID_PERCENT_ESCAPE_RE = re.compile(r"%(?![0-9a-f]{2})", re.I)
+
+
+def _normalize_public_host(hostname: str) -> str:
+    """Return one normalized domain/IP literal or an empty invalid marker."""
+
+    try:
+        address = ip_address(hostname)
+    except ValueError:
+        try:
+            ascii_host = hostname.encode("idna").decode("ascii").rstrip(".")
+        except UnicodeError:
+            return ""
+        if len(ascii_host) > 253 or not all(
+            _HOST_LABEL_RE.fullmatch(label) for label in ascii_host.split(".")
+        ):
+            return ""
+        return ascii_host.lower()
+    return f"[{address.compressed}]" if address.version == 6 else address.compressed
+
+
+def sanitize_public_url(value: Any) -> str:
+    """Return a query-free public HTTP(S) URL or an empty redaction."""
+
+    if not isinstance(value, str) or not value:
+        return ""
+    if "\\" in value or any(
+        character.isspace() or ord(character) < 32 for character in value
+    ):
+        return ""
+    try:
+        parts = urlsplit(value)
+        hostname = parts.hostname
+        port = parts.port
+    except (TypeError, ValueError):
+        return ""
+    if (
+        parts.scheme.lower() not in {"http", "https"}
+        or not hostname
+        or not hostname.strip(".")
+        or (parts.path and not parts.path.startswith("/"))
+        or _INVALID_PERCENT_ESCAPE_RE.search(parts.path)
+    ):
+        return ""
+    normalized_host = _normalize_public_host(hostname)
+    if not normalized_host:
+        return ""
+    netloc = normalized_host if port is None else f"{normalized_host}:{port}"
+    sanitized = urlunsplit((parts.scheme.lower(), netloc, parts.path, "", ""))
+    return sanitized if len(sanitized) <= 500 else ""
 
 
 class UrlChangedCondition(ContractData):
@@ -185,7 +247,7 @@ class ArtifactRef(ContractData):
     size_bytes: Annotated[int, Field(ge=0)]
     sha256: Sha256Hex
     safe_relative_path: SafeRelativePath
-    source_url: Annotated[str, StringConstraints(max_length=500)] = ""
+    source_url: PublicSourceUrl = ""
     created_at: datetime
     status: Literal["complete"] = "complete"
     redacted: bool = False
@@ -207,14 +269,10 @@ class ArtifactRef(ContractData):
             raise ValueError("safe_relative_path must be a normalized relative path")
         return path.as_posix()
 
-    @field_validator("source_url")
+    @field_validator("source_url", mode="before")
     @classmethod
-    def sanitize_source_url(cls, value: str) -> str:
-        if not value:
-            return ""
-        parts = urlsplit(value)
-        netloc = parts.netloc.rsplit("@", 1)[-1]
-        return urlunsplit((parts.scheme, netloc, parts.path, "", ""))[:500]
+    def sanitize_source_url(cls, value: Any) -> str:
+        return sanitize_public_url(value)
 
 
 class CapabilityProbe(ContractData):
@@ -540,15 +598,113 @@ class ElementClickData(ToolData):
     changes: dict[str, Any] | None = None
 
 
-class ElementClickAndDownloadData(ToolData):
-    status: Literal["success", "failed", "validation_failed", "indeterminate"]
+class ElementClickAndDownloadSuccessReceipt(ActionReceipt):
+    kind: Literal["element_click_and_download"]
+    side_effect: Literal["external_download"]
+    status: Literal["success"]
+    artifact_ids: Annotated[tuple[ContractId, ...], Field(min_length=1, max_length=1)]
+
+
+class ElementClickAndDownloadFailedReceipt(ActionReceipt):
+    kind: Literal["element_click_and_download"]
+    side_effect: Literal["external_download"]
+    status: Literal["failed"]
+    artifact_ids: Annotated[tuple[ContractId, ...], Field(max_length=0)] = ()
+
+
+class ElementClickAndDownloadValidationFailedReceipt(ActionReceipt):
+    kind: Literal["element_click_and_download"]
+    side_effect: Literal["external_download"]
+    status: Literal["validation_failed"]
+    artifact_ids: Annotated[tuple[ContractId, ...], Field(max_length=0)] = ()
+
+
+class ElementClickAndDownloadIndeterminateReceipt(ActionReceipt):
+    kind: Literal["element_click_and_download"]
+    side_effect: Literal["external_download"]
+    status: Literal["indeterminate"]
+    artifact_ids: Annotated[tuple[ContractId, ...], Field(max_length=0)] = ()
+
+
+class _ElementClickAndDownloadDataBase(ToolData):
     operation_key: str
     selector: str
     locator: str
     selector_strategy: str
     selector_normalized: bool
-    artifact: ArtifactRef | None
-    receipt: ActionReceipt
+
+
+class ElementClickAndDownloadSuccessData(_ElementClickAndDownloadDataBase):
+    status: Literal["success"]
+    artifact: ArtifactRef
+    receipt: ElementClickAndDownloadSuccessReceipt
+
+    @model_validator(mode="after")
+    def validate_correlations(self) -> "ElementClickAndDownloadSuccessData":
+        if self.receipt.operation_key != self.operation_key:
+            raise ValueError("receipt operation_key must match data operation_key")
+        if self.artifact.task_id != self.receipt.task_id:
+            raise ValueError("artifact task_id must match receipt task_id")
+        if self.artifact.producing_action_id != self.receipt.action_id:
+            raise ValueError(
+                "artifact producing_action_id must match receipt action_id"
+            )
+        if self.receipt.artifact_ids != (self.artifact.artifact_id,):
+            raise ValueError(
+                "receipt artifact_ids must contain exactly the artifact id"
+            )
+        return self
+
+
+class ElementClickAndDownloadFailedData(_ElementClickAndDownloadDataBase):
+    status: Literal["failed"]
+    artifact: None
+    receipt: ElementClickAndDownloadFailedReceipt
+
+    @model_validator(mode="after")
+    def validate_operation_key(self) -> "ElementClickAndDownloadFailedData":
+        if self.receipt.operation_key != self.operation_key:
+            raise ValueError("receipt operation_key must match data operation_key")
+        return self
+
+
+class ElementClickAndDownloadValidationFailedData(_ElementClickAndDownloadDataBase):
+    status: Literal["validation_failed"]
+    artifact: None
+    receipt: ElementClickAndDownloadValidationFailedReceipt
+
+    @model_validator(mode="after")
+    def validate_operation_key(self) -> "ElementClickAndDownloadValidationFailedData":
+        if self.receipt.operation_key != self.operation_key:
+            raise ValueError("receipt operation_key must match data operation_key")
+        return self
+
+
+class ElementClickAndDownloadIndeterminateData(_ElementClickAndDownloadDataBase):
+    status: Literal["indeterminate"]
+    artifact: None
+    receipt: ElementClickAndDownloadIndeterminateReceipt
+
+    @model_validator(mode="after")
+    def validate_operation_key(self) -> "ElementClickAndDownloadIndeterminateData":
+        if self.receipt.operation_key != self.operation_key:
+            raise ValueError("receipt operation_key must match data operation_key")
+        return self
+
+
+ElementClickAndDownloadVariant = Annotated[
+    Union[
+        ElementClickAndDownloadSuccessData,
+        ElementClickAndDownloadFailedData,
+        ElementClickAndDownloadValidationFailedData,
+        ElementClickAndDownloadIndeterminateData,
+    ],
+    Field(discriminator="status"),
+]
+
+
+class ElementClickAndDownloadData(RootModel[ElementClickAndDownloadVariant]):
+    """Status-discriminated download result with correlated public evidence."""
 
 
 class ElementTypeData(ToolData):
@@ -925,6 +1081,11 @@ def tool_outcome_schema(output_model: type[ToolData]) -> dict[str, Any]:
 
     data_schema = output_model.model_json_schema()
     definitions = data_schema.pop("$defs", None)
+    error_data_schema = (
+        data_schema
+        if cast(type[BaseModel], output_model) is ElementClickAndDownloadData
+        else {"type": "object", "additionalProperties": True}
+    )
     schema: dict[str, Any] = {
         "type": "object",
         "oneOf": [
@@ -955,7 +1116,7 @@ def tool_outcome_schema(output_model: type[ToolData]) -> dict[str, Any]:
                             "details": {"type": "object", "additionalProperties": True},
                         },
                     },
-                    "data": {"type": "object", "additionalProperties": True},
+                    "data": error_data_schema,
                 },
             },
         ],

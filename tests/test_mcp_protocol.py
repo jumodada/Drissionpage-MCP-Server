@@ -321,11 +321,16 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
         schemas["element_click_and_download"]["oneOf"][0]["properties"]["data"]["title"]
         == "ElementClickAndDownloadData"
     )
-    assert {"status", "operation_key", "artifact", "receipt"} <= set(
-        schemas["element_click_and_download"]["oneOf"][0]["properties"]["data"][
-            "required"
-        ]
-    )
+    download_data_schema = schemas["element_click_and_download"]["oneOf"][0][
+        "properties"
+    ]["data"]
+    assert len(download_data_schema["oneOf"]) == 4
+    assert set(download_data_schema["discriminator"]["mapping"]) == {
+        "success",
+        "failed",
+        "validation_failed",
+        "indeterminate",
+    }
     assert schemas["element_upload_file"]["oneOf"][0]["properties"]["data"][
         "title"
     ] == ("ElementUploadFileData")

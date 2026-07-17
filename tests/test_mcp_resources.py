@@ -273,10 +273,69 @@ async def test_artifact_inventory_preserves_safe_receipt_correlation_without_pat
     assert artifact["artifact_id"] == "artifact-000001"
     assert artifact["producing_action_id"] == "action-000001"
     assert artifact["safe_relative_path"].startswith(server.context.task_id)
+    assert artifact["source_url"] == "https://example.test/report.csv"
     encoded = json.dumps(payload, ensure_ascii=False)
     assert "/Users/" not in encoded
     assert "token=secret" not in encoded
     assert "user:pass" not in encoded
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "unsafe_url",
+    [
+        "file:///Users/example/secret.txt",
+        "data:text/plain,secret",
+        "javascript:alert(1)",
+        "not a URL",
+        "https://",
+        "https://[malformed",
+    ],
+)
+async def test_history_and_artifact_resources_redact_unsafe_urls(
+    unsafe_url: str,
+) -> None:
+    from datetime import datetime, timezone
+
+    from drissionpage_mcp.context import DrissionPageContext
+    from drissionpage_mcp.tool_outputs import ArtifactRef
+
+    server = DrissionPageMCPServer()
+    server.context = DrissionPageContext()
+    server.context.record_action(
+        "page_navigate",
+        {"url": unsafe_url, "nested": {"source_url": unsafe_url}},
+        {"ok": True, "data": {"url": unsafe_url}},
+        url_before=unsafe_url,
+        url_after=unsafe_url,
+    )
+    server.context.record_artifact(
+        ArtifactRef(
+            artifact_id="artifact-000001",
+            task_id=server.context.task_id,
+            producing_action_id="action-000001",
+            kind="download",
+            filename="fixture-report.csv",
+            mime_type="text/csv",
+            size_bytes=55,
+            sha256="a" * 64,
+            safe_relative_path=(
+                f"{server.context.task_id}/action-000001/fixture-report.csv"
+            ),
+            source_url=unsafe_url,
+            created_at=datetime.now(timezone.utc),
+        )
+    )
+
+    history = await _read_json(server, "drissionpage://session/history")
+    artifacts = await _read_json(server, "drissionpage://artifacts/inventory")
+
+    assert history["actions"][0]["url_before"] == ""
+    assert history["actions"][0]["url_after"] == ""
+    assert history["actions"][0]["args"]["url"] == ""
+    assert history["actions"][0]["args"]["nested"]["source_url"] == ""
+    assert history["actions"][0]["result"]["url"] == ""
+    assert artifacts["artifacts"][0]["source_url"] == ""
 
 
 @pytest.mark.asyncio

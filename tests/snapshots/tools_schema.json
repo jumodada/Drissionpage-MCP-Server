@@ -4495,167 +4495,6 @@
     "name": "element_click_and_download",
     "outputSchema": {
       "$defs": {
-        "ActionReceipt": {
-          "additionalProperties": false,
-          "description": "Redacted evidence for one live-task consequential browser invocation.",
-          "properties": {
-            "action_id": {
-              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-              "title": "Action Id",
-              "type": "string"
-            },
-            "artifact_ids": {
-              "items": {
-                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-                "type": "string"
-              },
-              "maxItems": 16,
-              "title": "Artifact Ids",
-              "type": "array"
-            },
-            "error_code": {
-              "anyOf": [
-                {
-                  "maxLength": 100,
-                  "minLength": 1,
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Error Code"
-            },
-            "finished_at": {
-              "format": "date-time",
-              "title": "Finished At",
-              "type": "string"
-            },
-            "kind": {
-              "maxLength": 64,
-              "minLength": 1,
-              "title": "Kind",
-              "type": "string"
-            },
-            "operation_key": {
-              "maxLength": 128,
-              "minLength": 1,
-              "title": "Operation Key",
-              "type": "string"
-            },
-            "postconditions": {
-              "items": {
-                "$ref": "#/$defs/ConditionEvaluation"
-              },
-              "maxItems": 8,
-              "title": "Postconditions",
-              "type": "array"
-            },
-            "preconditions": {
-              "items": {
-                "$ref": "#/$defs/ConditionEvaluation"
-              },
-              "maxItems": 8,
-              "title": "Preconditions",
-              "type": "array"
-            },
-            "redacted": {
-              "const": true,
-              "default": true,
-              "title": "Redacted",
-              "type": "boolean"
-            },
-            "request_fingerprint": {
-              "pattern": "^[0-9a-f]{64}$",
-              "title": "Request Fingerprint",
-              "type": "string"
-            },
-            "retry_of": {
-              "anyOf": [
-                {
-                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Retry Of"
-            },
-            "schema_version": {
-              "const": "1",
-              "default": "1",
-              "title": "Schema Version",
-              "type": "string"
-            },
-            "side_effect": {
-              "enum": [
-                "local_ui_mutation",
-                "external_submission",
-                "external_download",
-                "dialog_response"
-              ],
-              "title": "Side Effect",
-              "type": "string"
-            },
-            "started_at": {
-              "format": "date-time",
-              "title": "Started At",
-              "type": "string"
-            },
-            "status": {
-              "enum": [
-                "success",
-                "validation_failed",
-                "pending",
-                "indeterminate",
-                "failed"
-              ],
-              "title": "Status",
-              "type": "string"
-            },
-            "tab_id": {
-              "maxLength": 128,
-              "minLength": 1,
-              "title": "Tab Id",
-              "type": "string"
-            },
-            "target_fingerprint": {
-              "anyOf": [
-                {
-                  "pattern": "^[0-9a-f]{64}$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Target Fingerprint"
-            },
-            "task_id": {
-              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-              "title": "Task Id",
-              "type": "string"
-            }
-          },
-          "required": [
-            "action_id",
-            "task_id",
-            "operation_key",
-            "request_fingerprint",
-            "kind",
-            "side_effect",
-            "status",
-            "started_at",
-            "finished_at",
-            "tab_id"
-          ],
-          "title": "ActionReceipt",
-          "type": "object"
-        },
         "ArtifactRef": {
           "additionalProperties": false,
           "description": "Safe metadata for one complete artifact produced in the live task.",
@@ -4731,6 +4570,7 @@
             "source_url": {
               "default": "",
               "maxLength": 500,
+              "pattern": "^(?:|https?://[^/?#\\s]+(?:/[^?#\\s\\\\]*)?)$",
               "title": "Source Url",
               "type": "string"
             },
@@ -4808,6 +4648,798 @@
           ],
           "title": "ConditionEvaluation",
           "type": "object"
+        },
+        "ElementClickAndDownloadFailedData": {
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "title": "Artifact",
+              "type": "null"
+            },
+            "locator": {
+              "title": "Locator",
+              "type": "string"
+            },
+            "operation_key": {
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ElementClickAndDownloadFailedReceipt"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "selector_normalized": {
+              "title": "Selector Normalized",
+              "type": "boolean"
+            },
+            "selector_strategy": {
+              "title": "Selector Strategy",
+              "type": "string"
+            },
+            "status": {
+              "const": "failed",
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation_key",
+            "selector",
+            "locator",
+            "selector_strategy",
+            "selector_normalized",
+            "status",
+            "artifact",
+            "receipt"
+          ],
+          "title": "ElementClickAndDownloadFailedData",
+          "type": "object"
+        },
+        "ElementClickAndDownloadFailedReceipt": {
+          "additionalProperties": false,
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "default": [],
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 0,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "const": "element_click_and_download",
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "postconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Postconditions",
+              "type": "array"
+            },
+            "preconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Preconditions",
+              "type": "array"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "retry_of": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Retry Of"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "const": "external_download",
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "const": "failed",
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id"
+          ],
+          "title": "ElementClickAndDownloadFailedReceipt",
+          "type": "object"
+        },
+        "ElementClickAndDownloadIndeterminateData": {
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "title": "Artifact",
+              "type": "null"
+            },
+            "locator": {
+              "title": "Locator",
+              "type": "string"
+            },
+            "operation_key": {
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ElementClickAndDownloadIndeterminateReceipt"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "selector_normalized": {
+              "title": "Selector Normalized",
+              "type": "boolean"
+            },
+            "selector_strategy": {
+              "title": "Selector Strategy",
+              "type": "string"
+            },
+            "status": {
+              "const": "indeterminate",
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation_key",
+            "selector",
+            "locator",
+            "selector_strategy",
+            "selector_normalized",
+            "status",
+            "artifact",
+            "receipt"
+          ],
+          "title": "ElementClickAndDownloadIndeterminateData",
+          "type": "object"
+        },
+        "ElementClickAndDownloadIndeterminateReceipt": {
+          "additionalProperties": false,
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "default": [],
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 0,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "const": "element_click_and_download",
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "postconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Postconditions",
+              "type": "array"
+            },
+            "preconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Preconditions",
+              "type": "array"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "retry_of": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Retry Of"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "const": "external_download",
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "const": "indeterminate",
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id"
+          ],
+          "title": "ElementClickAndDownloadIndeterminateReceipt",
+          "type": "object"
+        },
+        "ElementClickAndDownloadSuccessData": {
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "locator": {
+              "title": "Locator",
+              "type": "string"
+            },
+            "operation_key": {
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ElementClickAndDownloadSuccessReceipt"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "selector_normalized": {
+              "title": "Selector Normalized",
+              "type": "boolean"
+            },
+            "selector_strategy": {
+              "title": "Selector Strategy",
+              "type": "string"
+            },
+            "status": {
+              "const": "success",
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation_key",
+            "selector",
+            "locator",
+            "selector_strategy",
+            "selector_normalized",
+            "status",
+            "artifact",
+            "receipt"
+          ],
+          "title": "ElementClickAndDownloadSuccessData",
+          "type": "object"
+        },
+        "ElementClickAndDownloadSuccessReceipt": {
+          "additionalProperties": false,
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 1,
+              "minItems": 1,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "const": "element_click_and_download",
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "postconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Postconditions",
+              "type": "array"
+            },
+            "preconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Preconditions",
+              "type": "array"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "retry_of": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Retry Of"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "const": "external_download",
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "const": "success",
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id",
+            "artifact_ids"
+          ],
+          "title": "ElementClickAndDownloadSuccessReceipt",
+          "type": "object"
+        },
+        "ElementClickAndDownloadValidationFailedData": {
+          "additionalProperties": false,
+          "properties": {
+            "artifact": {
+              "title": "Artifact",
+              "type": "null"
+            },
+            "locator": {
+              "title": "Locator",
+              "type": "string"
+            },
+            "operation_key": {
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ElementClickAndDownloadValidationFailedReceipt"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "selector_normalized": {
+              "title": "Selector Normalized",
+              "type": "boolean"
+            },
+            "selector_strategy": {
+              "title": "Selector Strategy",
+              "type": "string"
+            },
+            "status": {
+              "const": "validation_failed",
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "operation_key",
+            "selector",
+            "locator",
+            "selector_strategy",
+            "selector_normalized",
+            "status",
+            "artifact",
+            "receipt"
+          ],
+          "title": "ElementClickAndDownloadValidationFailedData",
+          "type": "object"
+        },
+        "ElementClickAndDownloadValidationFailedReceipt": {
+          "additionalProperties": false,
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "default": [],
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 0,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "const": "element_click_and_download",
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "postconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Postconditions",
+              "type": "array"
+            },
+            "preconditions": {
+              "items": {
+                "$ref": "#/$defs/ConditionEvaluation"
+              },
+              "maxItems": 8,
+              "title": "Preconditions",
+              "type": "array"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "retry_of": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Retry Of"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "const": "external_download",
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "const": "validation_failed",
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id"
+          ],
+          "title": "ElementClickAndDownloadValidationFailedReceipt",
+          "type": "object"
         }
       },
       "oneOf": [
@@ -4815,64 +5447,31 @@
           "additionalProperties": false,
           "properties": {
             "data": {
-              "additionalProperties": false,
-              "properties": {
-                "artifact": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/ArtifactRef"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
+              "description": "Status-discriminated download result with correlated public evidence.",
+              "discriminator": {
+                "mapping": {
+                  "failed": "#/$defs/ElementClickAndDownloadFailedData",
+                  "indeterminate": "#/$defs/ElementClickAndDownloadIndeterminateData",
+                  "success": "#/$defs/ElementClickAndDownloadSuccessData",
+                  "validation_failed": "#/$defs/ElementClickAndDownloadValidationFailedData"
                 },
-                "locator": {
-                  "title": "Locator",
-                  "type": "string"
-                },
-                "operation_key": {
-                  "title": "Operation Key",
-                  "type": "string"
-                },
-                "receipt": {
-                  "$ref": "#/$defs/ActionReceipt"
-                },
-                "selector": {
-                  "title": "Selector",
-                  "type": "string"
-                },
-                "selector_normalized": {
-                  "title": "Selector Normalized",
-                  "type": "boolean"
-                },
-                "selector_strategy": {
-                  "title": "Selector Strategy",
-                  "type": "string"
-                },
-                "status": {
-                  "enum": [
-                    "success",
-                    "failed",
-                    "validation_failed",
-                    "indeterminate"
-                  ],
-                  "title": "Status",
-                  "type": "string"
-                }
+                "propertyName": "status"
               },
-              "required": [
-                "status",
-                "operation_key",
-                "selector",
-                "locator",
-                "selector_strategy",
-                "selector_normalized",
-                "artifact",
-                "receipt"
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ElementClickAndDownloadSuccessData"
+                },
+                {
+                  "$ref": "#/$defs/ElementClickAndDownloadFailedData"
+                },
+                {
+                  "$ref": "#/$defs/ElementClickAndDownloadValidationFailedData"
+                },
+                {
+                  "$ref": "#/$defs/ElementClickAndDownloadIndeterminateData"
+                }
               ],
-              "title": "ElementClickAndDownloadData",
-              "type": "object"
+              "title": "ElementClickAndDownloadData"
             },
             "message": {
               "type": "string"
@@ -4892,8 +5491,31 @@
           "additionalProperties": false,
           "properties": {
             "data": {
-              "additionalProperties": true,
-              "type": "object"
+              "description": "Status-discriminated download result with correlated public evidence.",
+              "discriminator": {
+                "mapping": {
+                  "failed": "#/$defs/ElementClickAndDownloadFailedData",
+                  "indeterminate": "#/$defs/ElementClickAndDownloadIndeterminateData",
+                  "success": "#/$defs/ElementClickAndDownloadSuccessData",
+                  "validation_failed": "#/$defs/ElementClickAndDownloadValidationFailedData"
+                },
+                "propertyName": "status"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ElementClickAndDownloadSuccessData"
+                },
+                {
+                  "$ref": "#/$defs/ElementClickAndDownloadFailedData"
+                },
+                {
+                  "$ref": "#/$defs/ElementClickAndDownloadValidationFailedData"
+                },
+                {
+                  "$ref": "#/$defs/ElementClickAndDownloadIndeterminateData"
+                }
+              ],
+              "title": "ElementClickAndDownloadData"
             },
             "error": {
               "additionalProperties": false,

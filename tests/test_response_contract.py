@@ -237,6 +237,18 @@ def test_tool_result_output_schema_validates_real_payloads() -> None:
         ).to_dict(),
         schema,
     )
+    validate(
+        {
+            "ok": False,
+            "message": "Generic failure with diagnostic data",
+            "error": {
+                "code": ErrorCode.UNKNOWN_ERROR.value,
+                "message": "Generic failure with diagnostic data",
+            },
+            "data": {"unrestricted": {"nested": [1, True, None]}},
+        },
+        schema,
+    )
     with pytest.raises(ValidationError):
         validate(
             {
@@ -629,14 +641,214 @@ def test_click_and_download_output_schema_validates_artifact_receipt_link() -> N
     validate(payload, schema)
     data_schema = schema["oneOf"][0]["properties"]["data"]
     assert data_schema["title"] == "ElementClickAndDownloadData"
-    assert {"status", "operation_key", "artifact", "receipt"} <= set(
-        data_schema["required"]
-    )
+    assert len(data_schema["oneOf"]) == 4
     assert receipt["artifact_ids"] == [artifact["artifact_id"]]
     assert artifact["producing_action_id"] == receipt["action_id"]
     payload["data"]["artifact"]["safe_relative_path"] = "/tmp/fixture-report.csv"
     with pytest.raises(ValidationError):
         validate(payload, schema)
+    payload["data"]["artifact"]["safe_relative_path"] = (
+        "task-000001/action-000004/fixture-report.csv"
+    )
+    payload["data"]["artifact"]["source_url"] = "file:///Users/private/report.csv"
+    with pytest.raises(ValidationError):
+        validate(payload, schema)
+
+
+def _click_and_download_error_payload() -> dict[str, object]:
+    return {
+        "ok": False,
+        "message": "Download failed",
+        "error": {
+            "code": ErrorCode.UNKNOWN_ERROR.value,
+            "message": "Download failed",
+            "details": {},
+        },
+        "data": {
+            "status": "failed",
+            "operation_key": "download-report-1",
+            "selector": "#download",
+            "locator": "css:#download",
+            "selector_strategy": "css",
+            "selector_normalized": True,
+            "artifact": None,
+            "receipt": {
+                "schema_version": "1",
+                "action_id": "action-000004",
+                "task_id": "task-000001",
+                "operation_key": "download-report-1",
+                "request_fingerprint": "f" * 64,
+                "kind": "element_click_and_download",
+                "side_effect": "external_download",
+                "status": "failed",
+                "started_at": "2026-07-17T00:00:00Z",
+                "finished_at": "2026-07-17T00:00:01Z",
+                "tab_id": "t0",
+                "target_fingerprint": "a" * 64,
+                "preconditions": [],
+                "postconditions": [],
+                "retry_of": None,
+                "artifact_ids": [],
+                "error_code": "DOWNLOAD_FAILED",
+                "redacted": True,
+            },
+        },
+    }
+
+
+def test_click_and_download_output_schema_validates_error_data() -> None:
+    validate(
+        _click_and_download_error_payload(),
+        tool_result_output_schema("element_click_and_download"),
+    )
+
+
+@pytest.mark.parametrize(
+    "invalid_case",
+    ["failed_with_artifact", "status_mismatch", "nonempty_artifact_ids"],
+)
+def test_click_and_download_output_schema_rejects_invalid_error_data(
+    invalid_case: str,
+) -> None:
+    payload = _click_and_download_error_payload()
+    data = payload["data"]
+    assert isinstance(data, dict)
+    receipt = data["receipt"]
+    assert isinstance(receipt, dict)
+
+    if invalid_case == "failed_with_artifact":
+        data["artifact"] = {
+            "schema_version": "1",
+            "artifact_id": "artifact-000001",
+            "task_id": "task-000001",
+            "producing_action_id": "action-000004",
+            "kind": "download",
+            "filename": "fixture-report.csv",
+            "mime_type": "text/csv",
+            "size_bytes": 55,
+            "sha256": "b" * 64,
+            "safe_relative_path": "task-000001/action-000004/fixture-report.csv",
+            "source_url": "https://example.test/report.csv",
+            "created_at": "2026-07-17T00:00:01Z",
+            "status": "complete",
+            "redacted": False,
+        }
+    elif invalid_case == "status_mismatch":
+        receipt["status"] = "validation_failed"
+    else:
+        receipt["artifact_ids"] = ["artifact-000001"]
+
+    with pytest.raises(ValidationError):
+        validate(payload, tool_result_output_schema("element_click_and_download"))
+
+
+@pytest.mark.parametrize(
+    ("data_status", "receipt_status", "artifact_present", "artifact_ids"),
+    [
+        ("success", "success", False, ["artifact-000001"]),
+        ("success", "failed", True, ["artifact-000001"]),
+        ("failed", "failed", True, []),
+        ("validation_failed", "failed", False, []),
+        ("indeterminate", "indeterminate", False, ["artifact-000001"]),
+    ],
+)
+def test_click_and_download_output_schema_rejects_contradictory_shapes(
+    data_status: str,
+    receipt_status: str,
+    artifact_present: bool,
+    artifact_ids: list[str],
+) -> None:
+    receipt = {
+        "schema_version": "1",
+        "action_id": "action-000004",
+        "task_id": "task-000001",
+        "operation_key": "download-report-1",
+        "request_fingerprint": "f" * 64,
+        "kind": "element_click_and_download",
+        "side_effect": "external_download",
+        "status": receipt_status,
+        "started_at": "2026-07-17T00:00:00Z",
+        "finished_at": "2026-07-17T00:00:01Z",
+        "tab_id": "t0",
+        "target_fingerprint": "a" * 64,
+        "preconditions": [],
+        "postconditions": [],
+        "retry_of": None,
+        "artifact_ids": artifact_ids,
+        "error_code": None,
+        "redacted": True,
+    }
+    artifact = {
+        "schema_version": "1",
+        "artifact_id": "artifact-000001",
+        "task_id": "task-000001",
+        "producing_action_id": "action-000004",
+        "kind": "download",
+        "filename": "fixture-report.csv",
+        "mime_type": "text/csv",
+        "size_bytes": 55,
+        "sha256": "b" * 64,
+        "safe_relative_path": "task-000001/action-000004/fixture-report.csv",
+        "source_url": "https://example.test/report.csv",
+        "created_at": "2026-07-17T00:00:01Z",
+        "status": "complete",
+        "redacted": False,
+    }
+    payload = ToolResult.success(
+        "Download result",
+        status=data_status,
+        operation_key="download-report-1",
+        selector="#download",
+        locator="css:#download",
+        selector_strategy="css",
+        selector_normalized=True,
+        artifact=artifact if artifact_present else None,
+        receipt=receipt,
+    ).to_dict()
+
+    with pytest.raises(ValidationError):
+        validate(payload, tool_result_output_schema("element_click_and_download"))
+
+
+@pytest.mark.parametrize(
+    ("receipt_field", "value"),
+    [
+        ("kind", "form_submit"),
+        ("side_effect", "external_submission"),
+    ],
+)
+def test_click_and_download_output_schema_rejects_wrong_receipt_contract(
+    receipt_field: str, value: str
+) -> None:
+    schema = tool_result_output_schema("element_click_and_download")
+    receipt = {
+        "schema_version": "1",
+        "action_id": "action-000004",
+        "task_id": "task-000001",
+        "operation_key": "download-report-1",
+        "request_fingerprint": "f" * 64,
+        "kind": "element_click_and_download",
+        "side_effect": "external_download",
+        "status": "success",
+        "started_at": "2026-07-17T00:00:00Z",
+        "finished_at": "2026-07-17T00:00:01Z",
+        "tab_id": "t0",
+        "target_fingerprint": "a" * 64,
+        "preconditions": [],
+        "postconditions": [],
+        "retry_of": None,
+        "artifact_ids": ["artifact-000001"],
+        "error_code": None,
+        "redacted": True,
+    }
+    receipt[receipt_field] = value
+    receipt_schema = {
+        "$ref": "#/$defs/ElementClickAndDownloadSuccessReceipt",
+        "$defs": schema["$defs"],
+    }
+
+    with pytest.raises(ValidationError):
+        validate(receipt, receipt_schema)
 
 
 def test_observable_action_output_schemas_validate_success_payloads() -> None:

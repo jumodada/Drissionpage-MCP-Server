@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 import math
 from datetime import datetime, timezone
 from pathlib import Path
 from time import monotonic
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import Field, StrictStr, StringConstraints, model_validator
 
@@ -165,13 +166,15 @@ async def element_click_and_download(
         download_dir = _allocate_download_dir(root, context.task_id, action_id)
         claim = context.claim_operation(operation_key, fingerprint)
     except Exception:
-        if download_dir is not None:
-            try:
-                await tab.downloads.cleanup(download_dir)
-            except Exception:
-                pass
         if reserved:
             context.release_artifact_slot(artifact_id)
+            reserved = False
+        rollback_cancellation: asyncio.CancelledError | None = None
+        if download_dir is not None:
+            cleanup = asyncio.create_task(tab.downloads.cleanup(download_dir))
+            rollback_cancellation = await _drain_cleanup(cleanup)
+        if rollback_cancellation is not None:
+            raise rollback_cancellation
         raise
     started_at = datetime.now(timezone.utc)
     target_fingerprint = context.request_fingerprint(
@@ -257,18 +260,50 @@ async def element_click_and_download(
         outcome.set_result("Downloaded one integrity-checked artifact", data)
         outcome.set_include_snapshot(True)
         return outcome
+    except asyncio.CancelledError:
+        if reserved:
+            context.release_artifact_slot(artifact_id)
+            reserved = False
+        if download_dir is not None:
+            cleanup = asyncio.create_task(tab.downloads.cleanup(download_dir))
+            await _drain_cleanup(cleanup)
+        receipt = _receipt(
+            context=context,
+            action_id=action_id,
+            operation_key=operation_key,
+            fingerprint=fingerprint,
+            tab_id=tab.mcp_tab_id or "untracked-tab",
+            target_fingerprint=target_fingerprint,
+            started_at=started_at,
+            status="indeterminate",
+            error_code="DOWNLOAD_INDETERMINATE",
+        )
+        failure_data = {
+            "status": "indeterminate",
+            "operation_key": operation_key,
+            **plan.metadata(),
+            "artifact": None,
+            "receipt": receipt.model_dump(mode="json"),
+        }
+        failure_data = ElementClickAndDownloadData.model_validate(
+            failure_data
+        ).model_dump(mode="json")
+        context.complete_operation(claim, receipt, result=failure_data)
+        raise
     except Exception as exc:
         if committed:
             raise
         if reserved:
             context.release_artifact_slot(artifact_id)
+            reserved = False
+        failure_cancellation: asyncio.CancelledError | None = None
         if download_dir is not None:
-            try:
-                await tab.downloads.cleanup(download_dir)
-            except Exception:
-                pass
+            cleanup = asyncio.create_task(tab.downloads.cleanup(download_dir))
+            failure_cancellation = await _drain_cleanup(cleanup)
         status: Literal["failed", "validation_failed", "indeterminate"]
-        if isinstance(exc, DownloadValidationError):
+        if failure_cancellation is not None:
+            status = "indeterminate"
+        elif isinstance(exc, DownloadValidationError):
             status = "validation_failed"
         elif isinstance(exc, (DownloadIndeterminateError, TimeoutError)):
             status = "indeterminate"
@@ -294,8 +329,35 @@ async def element_click_and_download(
             "artifact": None,
             "receipt": receipt.model_dump(mode="json"),
         }
+        failure_data = ElementClickAndDownloadData.model_validate(
+            failure_data
+        ).model_dump(mode="json")
         context.complete_operation(claim, receipt, result=failure_data)
+        if failure_cancellation is not None:
+            raise failure_cancellation
         return _failure_outcome(failure_data, exc)
+
+
+async def _drain_cleanup(
+    task: "asyncio.Task[Any]",
+) -> asyncio.CancelledError | None:
+    cancellation: asyncio.CancelledError | None = None
+    while True:
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError as exc:
+            cancellation = exc
+            if task.done():
+                break
+            continue
+        break
+    try:
+        task.result()
+    except asyncio.CancelledError as exc:
+        cancellation = exc
+    except Exception:
+        pass
+    return cancellation
 
 
 def _allocate_download_dir(root: Path, task_id: str, action_id: str) -> Path:

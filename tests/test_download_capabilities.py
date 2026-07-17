@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import os
 import shutil
 import threading
 import time
@@ -17,6 +18,7 @@ from pydantic import ValidationError
 
 from drissionpage_mcp.browser.downloads import DownloadIndeterminateError
 from drissionpage_mcp.browser.downloads import DownloadOperations
+from drissionpage_mcp.browser.downloads import DownloadValidationError
 from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.tool_outputs import ArtifactRef, CapabilityProbe, CapabilitySet
 from drissionpage_mcp.tools.downloads import (
@@ -493,6 +495,153 @@ async def test_failed_download_has_no_artifact_cleans_partial_and_replays_failur
 
 
 @pytest.mark.asyncio
+async def test_cancellation_drains_native_work_freezes_failure_and_replays(
+    monkeypatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "downloads"
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(root))
+    started = threading.Event()
+    release = threading.Event()
+    finished = threading.Event()
+    click_calls = 0
+    manager = SimpleNamespace(missions={})
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        url = "https://example.test/report.csv"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+            self.name = path.name
+
+    class Clicker:
+        def to_download(self, *, save_path: str, timeout: float) -> Mission:
+            nonlocal click_calls
+            click_calls += 1
+            started.set()
+            release.wait(timeout=1)
+            path = Path(save_path) / "cancelled.csv"
+            path.write_bytes(DOWNLOAD_BYTES)
+            finished.set()
+            return Mission(path)
+
+    element = SimpleNamespace(click=Clicker())
+
+    class NativeTab:
+        url = "https://example.test/download"
+        mcp_tab_id = "t0"
+
+        def __init__(self) -> None:
+            self.page = SimpleNamespace(browser=SimpleNamespace(_dl_mgr=manager))
+            self.downloads = DownloadOperations(self)  # type: ignore[arg-type]
+            self.element_lookups = 0
+
+        async def _element_by_plan(self, plan: object, *, timeout: int) -> object:
+            self.element_lookups += 1
+            return element
+
+    context = DrissionPageContext(artifact_limit=1)
+    tab = NativeTab()
+    context._current_tab = tab  # type: ignore[assignment]
+    args = ElementClickAndDownloadInput(
+        selector="#download", operation_key="cancelled-download", timeout=2
+    )
+    task = asyncio.create_task(element_click_and_download.execute(context, args))
+    while not started.is_set():
+        await asyncio.sleep(0)
+
+    task.cancel()
+    done, _pending = await asyncio.wait({task}, timeout=0.02)
+    assert done == set()
+    release.set()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert finished.is_set()
+    assert click_calls == 1
+    receipt = context.operation_receipt("cancelled-download")
+    assert receipt is not None
+    assert receipt.status == "indeterminate"
+    assert receipt.error_code == "DOWNLOAD_INDETERMINATE"
+    assert receipt.artifact_ids == ()
+    frozen = context.operation_result("cancelled-download")
+    assert frozen is not None
+    assert frozen["status"] == "indeterminate"
+    assert frozen["artifact"] is None
+    assert frozen["receipt"] == receipt.model_dump(mode="json")
+    assert context.task_summary().operation_count == 1
+    assert context.task_summary().receipt_count == 1
+    assert context.artifact_inventory() == []
+    assert not [path for path in root.rglob("*") if path.is_file()]
+    context.reserve_artifact_slot("reservation-probe")
+    context.release_artifact_slot("reservation-probe")
+
+    monkeypatch.delenv("DP_MCP_DOWNLOAD_ROOT")
+    monkeypatch.setenv("DP_MCP_DENY_DOWNLOAD", "1")
+    context._current_tab = None
+    replay = await element_click_and_download.execute(context, args)
+    assert replay.is_error is True
+    assert replay.structured_content()["data"] == frozen
+    assert click_calls == 1
+    assert tab.element_lookups == 1
+
+
+@pytest.mark.asyncio
+async def test_cancellation_during_failure_cleanup_still_freezes_indeterminate(
+    monkeypatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "downloads"
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(root))
+    cleanup_started = asyncio.Event()
+    cleanup_release = asyncio.Event()
+
+    class BlockingCleanupDownloads(_FakeDownloads):
+        async def cleanup(self, download_dir: Path) -> None:
+            cleanup_started.set()
+            await cleanup_release.wait()
+            await super().cleanup(download_dir)
+
+    downloads = BlockingCleanupDownloads(
+        fail=DownloadValidationError("invalid completed artifact")
+    )
+    context, tab = _context_with_downloads(downloads)
+    args = ElementClickAndDownloadInput(
+        selector="#download", operation_key="cancelled-cleanup", timeout=1
+    )
+    task = asyncio.create_task(element_click_and_download.execute(context, args))
+    await cleanup_started.wait()
+
+    task.cancel()
+    await asyncio.sleep(0)
+    task.cancel()
+    done, _pending = await asyncio.wait({task}, timeout=0.02)
+    assert done == set()
+    cleanup_release.set()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    receipt = context.operation_receipt("cancelled-cleanup")
+    assert receipt is not None
+    assert receipt.status == "indeterminate"
+    assert receipt.error_code == "DOWNLOAD_INDETERMINATE"
+    frozen = context.operation_result("cancelled-cleanup")
+    assert frozen is not None
+    assert frozen["status"] == "indeterminate"
+    assert frozen["artifact"] is None
+    assert context.artifact_inventory() == []
+    assert not [path for path in root.rglob("*") if path.is_file()]
+
+    monkeypatch.delenv("DP_MCP_DOWNLOAD_ROOT")
+    monkeypatch.setenv("DP_MCP_DENY_DOWNLOAD", "1")
+    context._current_tab = None
+    replay = await element_click_and_download.execute(context, args)
+    assert replay.is_error is True
+    assert replay.structured_content()["data"] == frozen
+    assert downloads.clicked == [tab.element]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "constraint",
     [
@@ -590,6 +739,82 @@ async def test_same_tab_native_download_calls_are_serialized(tmp_path: Path) -> 
 
     assert state["max_active"] == 1
     assert first_result["path"] == (first_dir / "first.csv").resolve()
+    assert second_result["path"] == (second_dir / "second.csv").resolve()
+
+
+@pytest.mark.asyncio
+async def test_cancellation_keeps_tab_lock_until_native_work_finishes(
+    tmp_path: Path,
+) -> None:
+    state_lock = threading.Lock()
+    first_started = threading.Event()
+    release_first = threading.Event()
+    state = {"active": 0, "max_active": 0}
+    manager = SimpleNamespace(missions={})
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        url = "https://example.test/report.csv"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+            self.name = path.name
+
+    class Clicker:
+        def __init__(self, filename: str, *, blocked: bool = False) -> None:
+            self.filename = filename
+            self.blocked = blocked
+
+        def to_download(self, *, save_path: str, timeout: float) -> Mission:
+            with state_lock:
+                state["active"] += 1
+                state["max_active"] = max(state["max_active"], state["active"])
+            try:
+                if self.blocked:
+                    first_started.set()
+                    release_first.wait(timeout=1)
+                path = Path(save_path) / self.filename
+                path.write_bytes(DOWNLOAD_BYTES)
+                return Mission(path)
+            finally:
+                with state_lock:
+                    state["active"] -= 1
+
+    downloads = DownloadOperations(
+        SimpleNamespace(page=SimpleNamespace(browser=SimpleNamespace(_dl_mgr=manager)))
+    )  # type: ignore[arg-type]
+    first_dir = tmp_path / "cancel-lock-first"
+    second_dir = tmp_path / "cancel-lock-second"
+    first_dir.mkdir()
+    second_dir.mkdir()
+    first = asyncio.create_task(
+        downloads.click_and_wait(
+            SimpleNamespace(click=Clicker("first.csv", blocked=True)),
+            download_dir=first_dir,
+            timeout=1,
+        )
+    )
+    while not first_started.is_set():
+        await asyncio.sleep(0)
+    first.cancel()
+    second = asyncio.create_task(
+        downloads.click_and_wait(
+            SimpleNamespace(click=Clicker("second.csv")),
+            download_dir=second_dir,
+            timeout=1,
+        )
+    )
+
+    done, _pending = await asyncio.wait({first, second}, timeout=0.02)
+    assert done == set()
+    assert state["max_active"] == 1
+    release_first.set()
+    with pytest.raises(asyncio.CancelledError):
+        await first
+    second_result = await second
+
+    assert state["max_active"] == 1
     assert second_result["path"] == (second_dir / "second.csv").resolve()
 
 
@@ -692,6 +917,90 @@ async def test_native_artifact_path_escape_or_symlink_never_records_success(
     receipt = context.receipt_inventory()[0]
     assert receipt.status == "validation_failed"
     assert receipt.artifact_ids == ()
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(not getattr(os, "O_NOFOLLOW", 0), reason="O_NOFOLLOW unavailable")
+@pytest.mark.parametrize("swap_timing", ["before_open", "after_open"])
+async def test_artifact_leaf_swap_never_hashes_symlink_target(
+    monkeypatch, tmp_path: Path, swap_timing: str
+) -> None:
+    root = tmp_path / "downloads"
+    outside = tmp_path / "outside-secret.txt"
+    outside.write_bytes(b"outside secret must never be hashed")
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(root))
+    manager = SimpleNamespace(missions={})
+    target_path: Path | None = None
+    opened_flags: list[int] = []
+    captured_descriptors: list[int] = []
+    real_open = os.open
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        url = "https://example.test/report.csv"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+            self.name = path.name
+
+    class Clicker:
+        def to_download(self, *, save_path: str, timeout: float) -> Mission:
+            nonlocal target_path
+            target_path = Path(save_path) / "report.csv"
+            target_path.write_bytes(DOWNLOAD_BYTES)
+            return Mission(target_path)
+
+    def swapping_open(path: object, flags: int, *args: object, **kwargs: object) -> int:
+        candidate = Path(path) if isinstance(path, (str, os.PathLike)) else None
+        if target_path is None or candidate != target_path:
+            return real_open(path, flags, *args, **kwargs)  # type: ignore[arg-type]
+        opened_flags.append(flags)
+        if swap_timing == "before_open":
+            target_path.unlink()
+            target_path.symlink_to(outside)
+            return real_open(path, flags, *args, **kwargs)  # type: ignore[arg-type]
+        descriptor = real_open(path, flags, *args, **kwargs)  # type: ignore[arg-type]
+        captured_descriptors.append(descriptor)
+        target_path.rename(target_path.with_suffix(".original"))
+        target_path.symlink_to(outside)
+        return descriptor
+
+    monkeypatch.setattr(os, "open", swapping_open)
+    element = SimpleNamespace(click=Clicker())
+
+    class NativeTab:
+        url = "https://example.test/download"
+        mcp_tab_id = "t0"
+
+        def __init__(self) -> None:
+            self.page = SimpleNamespace(browser=SimpleNamespace(_dl_mgr=manager))
+            self.downloads = DownloadOperations(self)  # type: ignore[arg-type]
+
+        async def _element_by_plan(self, plan: object, *, timeout: int) -> object:
+            return element
+
+    context = DrissionPageContext()
+    context._current_tab = NativeTab()  # type: ignore[assignment]
+    outcome = await element_click_and_download.execute(
+        context,
+        ElementClickAndDownloadInput(
+            selector="#download", operation_key=f"leaf-swap-{swap_timing}", timeout=1
+        ),
+    )
+
+    assert outcome.is_error is True
+    assert outcome.structured_content()["error"]["code"] == "PRECONDITION_FAILED"
+    assert context.artifact_inventory() == []
+    receipt = context.receipt_inventory()[0]
+    assert receipt.status == "validation_failed"
+    assert receipt.artifact_ids == ()
+    assert outside.read_bytes() == b"outside secret must never be hashed"
+    assert opened_flags and all(flags & os.O_NOFOLLOW for flags in opened_flags)
+    assert not [path for path in root.rglob("*") if path.is_file()]
+    for descriptor in captured_descriptors:
+        with pytest.raises(OSError):
+            os.fstat(descriptor)
 
 
 @pytest.mark.asyncio

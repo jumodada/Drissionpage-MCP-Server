@@ -19,6 +19,7 @@ from drissionpage_mcp.tool_outputs import (
     ArtifactRef,
     CapabilityProbe,
     CapabilitySet,
+    ElementClickAndDownloadData,
     Expectation,
     TaskContext,
 )
@@ -164,10 +165,178 @@ def test_artifact_ref_rejects_unsafe_metadata(field: str, value: str) -> None:
         ArtifactRef.model_validate(payload)
 
 
-def test_artifact_source_url_is_sanitized() -> None:
-    artifact = _artifact(DrissionPageContext(), "artifact-000001")
+@pytest.mark.parametrize(
+    ("source_url", "expected"),
+    [
+        (
+            "https://user:pass@example.test/report?token=secret#part",
+            "https://example.test/report",
+        ),
+        (
+            "http://user:pass@example.test:8080/report?token=secret#part",
+            "http://example.test:8080/report",
+        ),
+    ],
+)
+def test_artifact_source_url_is_sanitized(source_url: str, expected: str) -> None:
+    context = DrissionPageContext()
+    payload = _artifact(context, "artifact-000001").model_dump()
+    payload["source_url"] = source_url
 
-    assert artifact.source_url == "https://example.test/report"
+    artifact = ArtifactRef.model_validate(payload)
+
+    assert artifact.source_url == expected
+
+
+@pytest.mark.parametrize(
+    "source_url",
+    [
+        "file:///Users/example/secret.txt",
+        "data:text/plain,secret",
+        "javascript:alert(1)",
+        "not a URL",
+        "https://",
+        "https://[malformed",
+        "http://.",
+        "https://bad_host.example/report.csv",
+        "https://-bad.example/report.csv",
+        "https://bad-.example/report.csv",
+        "https://example..test/report.csv",
+        "https://example.test/report with space.csv",
+        "https://example.test/report\\secret.csv",
+        "https://example.test/report%zz.csv",
+        "https://example.test/" + "a" * 500,
+    ],
+)
+def test_artifact_source_url_redacts_unsafe_or_malformed_urls(
+    source_url: str,
+) -> None:
+    context = DrissionPageContext()
+    payload = _artifact(context, "artifact-000001").model_dump()
+    payload["source_url"] = source_url
+
+    artifact = ArtifactRef.model_validate(payload)
+
+    assert artifact.source_url == ""
+
+
+def _download_data_payload(
+    *,
+    status: str = "success",
+) -> dict[str, object]:
+    now = datetime.now(timezone.utc)
+    artifact_id = "artifact-000001"
+    task_id = "task-000001"
+    action_id = "action-000001"
+    operation_key = "download-report-1"
+    receipt = ActionReceipt(
+        action_id=action_id,
+        task_id=task_id,
+        operation_key=operation_key,
+        request_fingerprint="a" * 64,
+        kind="element_click_and_download",
+        side_effect="external_download",
+        status=status,
+        started_at=now,
+        finished_at=now,
+        tab_id="t0",
+        artifact_ids=(artifact_id,) if status == "success" else (),
+    ).model_dump(mode="json")
+    artifact = ArtifactRef(
+        artifact_id=artifact_id,
+        task_id=task_id,
+        producing_action_id=action_id,
+        kind="download",
+        filename="report.csv",
+        mime_type="text/csv",
+        size_bytes=10,
+        sha256="b" * 64,
+        safe_relative_path=f"{task_id}/{action_id}/report.csv",
+        source_url="https://example.test/report.csv",
+        created_at=now,
+    ).model_dump(mode="json")
+    return {
+        "status": status,
+        "operation_key": operation_key,
+        "selector": "#download",
+        "locator": "css:#download",
+        "selector_strategy": "css",
+        "selector_normalized": True,
+        "artifact": artifact if status == "success" else None,
+        "receipt": receipt,
+    }
+
+
+def test_click_and_download_contract_accepts_correlated_success_and_failures() -> None:
+    success = ElementClickAndDownloadData.model_validate(_download_data_payload())
+    failure = ElementClickAndDownloadData.model_validate(
+        _download_data_payload(status="failed")
+    )
+
+    assert success.model_dump(mode="json")["artifact"] is not None
+    assert failure.model_dump(mode="json")["artifact"] is None
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("artifact",), None),
+        (("receipt", "status"), "failed"),
+        (("receipt", "kind"), "form_submit"),
+        (("receipt", "side_effect"), "external_submission"),
+        (("receipt", "operation_key"), "other-operation"),
+        (("artifact", "task_id"), "task-other"),
+        (("artifact", "producing_action_id"), "action-other"),
+        (("receipt", "artifact_ids"), []),
+        (("receipt", "artifact_ids"), ["artifact-other"]),
+    ],
+)
+def test_click_and_download_contract_rejects_uncorrelated_success(
+    path: tuple[str, ...], value: object
+) -> None:
+    payload = _download_data_payload()
+    target = payload
+    for key in path[:-1]:
+        nested = target[key]
+        assert isinstance(nested, dict)
+        target = nested
+    target[path[-1]] = value
+
+    with pytest.raises(ValidationError):
+        ElementClickAndDownloadData.model_validate(payload)
+
+
+@pytest.mark.parametrize("status", ["failed", "validation_failed", "indeterminate"])
+def test_click_and_download_contract_rejects_invalid_failure_shapes(
+    status: str,
+) -> None:
+    payload = _download_data_payload(status=status)
+    valid_artifact = _download_data_payload()["artifact"]
+
+    mismatched_receipt = _download_data_payload(status=status)
+    receipt = mismatched_receipt["receipt"]
+    assert isinstance(receipt, dict)
+    receipt["status"] = "success"
+    with pytest.raises(ValidationError):
+        ElementClickAndDownloadData.model_validate(mismatched_receipt)
+
+    mismatched_operation = _download_data_payload(status=status)
+    receipt = mismatched_operation["receipt"]
+    assert isinstance(receipt, dict)
+    receipt["operation_key"] = "other-operation"
+    with pytest.raises(ValidationError):
+        ElementClickAndDownloadData.model_validate(mismatched_operation)
+
+    payload["artifact"] = valid_artifact
+    with pytest.raises(ValidationError):
+        ElementClickAndDownloadData.model_validate(payload)
+
+    payload = _download_data_payload(status=status)
+    receipt = payload["receipt"]
+    assert isinstance(receipt, dict)
+    receipt["artifact_ids"] = ["artifact-000001"]
+    with pytest.raises(ValidationError):
+        ElementClickAndDownloadData.model_validate(payload)
 
 
 def test_request_fingerprint_is_canonical_and_sensitive_to_request_changes() -> None:

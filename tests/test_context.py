@@ -81,7 +81,9 @@ async def test_initialize_is_idempotent_and_exposes_tab_state(monkeypatch) -> No
         return browser
 
     monkeypatch.setattr("drissionpage_mcp.context.create_browser", fake_create_browser)
-    monkeypatch.setattr("drissionpage_mcp.context.get_latest_tab", lambda _browser: page)
+    monkeypatch.setattr(
+        "drissionpage_mcp.context.get_latest_tab", lambda _browser: page
+    )
 
     context = DrissionPageContext()
 
@@ -244,7 +246,10 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
 
     assert payload["limit"] == 2
     assert payload["count"] == 2
-    assert [item["tool"] for item in payload["actions"]] == ["wait_time", "page_get_url"]
+    assert [item["tool"] for item in payload["actions"]] == [
+        "wait_time",
+        "page_get_url",
+    ]
 
     context = DrissionPageContext(history_limit=10)
     context.record_action(
@@ -261,7 +266,7 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
             "ok": True,
             "message": "typed",
             "data": {
-                    "url": "https://example.test/home?token=secret#frag",
+                "url": "https://example.test/home?token=secret#frag",
                 "changes": {
                     "url_changed": True,
                     "title_changed": False,
@@ -302,6 +307,68 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
         "console_warnings_added": 0,
         "new_console_messages": [],
     }
+
+
+@pytest.mark.parametrize(
+    "unsafe_url",
+    [
+        "file:///Users/example/secret.txt",
+        "data:text/plain,secret",
+        "javascript:alert(1)",
+        "not a URL",
+        "https://",
+        "https://[malformed",
+    ],
+)
+def test_action_history_redacts_unsafe_or_malformed_urls(unsafe_url: str) -> None:
+    context = DrissionPageContext()
+
+    context.record_action(
+        "page_navigate",
+        {"url": unsafe_url, "nested": {"source_url": unsafe_url}},
+        {"ok": True, "data": {"url": unsafe_url, "final_url": unsafe_url}},
+        url_before=unsafe_url,
+        url_after=unsafe_url,
+    )
+
+    action = context.action_history()["actions"][0]
+    assert action["url_before"] == ""
+    assert action["url_after"] == ""
+    assert action["args"]["url"] == ""
+    assert action["args"]["nested"]["source_url"] == ""
+    assert action["result"]["url"] == ""
+    assert action["result"]["final_url"] == ""
+
+
+def test_action_history_preserves_only_sanitized_public_url_parts() -> None:
+    context = DrissionPageContext()
+
+    context.record_action(
+        "page_navigate",
+        {
+            "url": "https://user:pass@example.test/start?token=secret#part",
+            "nested": {"source_url": "http://example.test:8080/report.csv?key=secret"},
+        },
+        {
+            "ok": True,
+            "data": {
+                "url": "https://example.test/final?token=secret",
+                "final_url": "https://example.test/done#secret",
+            },
+        },
+        url_before="https://user:pass@example.test/start?token=secret#part",
+        url_after="https://example.test/done?token=secret#part",
+    )
+
+    action = context.action_history()["actions"][0]
+    assert action["url_before"] == "https://example.test/start"
+    assert action["url_after"] == "https://example.test/done"
+    assert action["args"]["url"] == "https://example.test/start"
+    assert action["args"]["nested"]["source_url"] == (
+        "http://example.test:8080/report.csv"
+    )
+    assert action["result"]["url"] == "https://example.test/final"
+    assert action["result"]["final_url"] == "https://example.test/done"
 
 
 @pytest.mark.asyncio
