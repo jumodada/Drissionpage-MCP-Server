@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.6.2. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.7.0. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -26,6 +26,16 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
 
+## 0.6.2 to 0.7.0 Migration
+
+0.7.0 additively grows the public registry from 58 to 62 tools and preserves existing tool names and defaults.
+
+- `form_fill` fills and verifies supported native/rich controls without submitting; `form_submit` owns the external submission boundary and returns an `ActionReceipt`.
+- A clearly authorized task may call `form_submit` without a redundant confirmation round. `form_fill_preview` remains unchanged for preview-only/no-submit flows.
+- Optional `operation_key` values prevent a second live-task invocation for matching `form_submit` and `element_click_and_download` requests. This is not a restart-safe or remote exactly-once guarantee.
+- `page_dialog_respond` and enriched `element_click` variants are capability-probed. Unsupported native behavior returns `UNSUPPORTED_OPERATION` rather than a substituted action.
+- `element_click_and_download` requires `DP_MCP_DOWNLOAD_ROOT` and returns safe relative paths, SHA-256, bounded metadata, and a correlated `ArtifactRef`/receipt.
+- The W01-W08 ten-run reliability benchmark and remaining coverage/stability expansion are scheduled for 0.7.1; 0.7.0 claims browser-backed feature coverage, not that ten-run threshold.
 
 ## 0.6.1 to 0.6.2 Migration
 

@@ -12,6 +12,8 @@ import pytest
 from pydantic import ValidationError
 
 from drissionpage_mcp.browser.dialogs import (
+    DialogOperations,
+    DialogPreconditionError,
     DialogResponseIndeterminateError,
     DialogUnsupportedError,
 )
@@ -46,6 +48,128 @@ def test_click_input_defaults_are_compatible_and_variants_are_strict() -> None:
     for invalid_count in (0, 3, True, 1.5):
         with pytest.raises(ValidationError):
             ClickElementInput(selector="#target", click_count=invalid_count)  # type: ignore[arg-type]
+
+
+class _DialogStates:
+    def __init__(self, has_alert: bool) -> None:
+        self.has_alert = has_alert
+
+
+class _DialogPage:
+    def __init__(self, *, dialog_type: str = "alert", message: str = "message") -> None:
+        self.states = _DialogStates(True)
+        self._alert = SimpleNamespace(activated=True, type=dialog_type, text=message)
+        self.result: object = True
+        self.error: Exception | None = None
+
+    def handle_alert(
+        self, *, accept: bool, send: str | None, timeout: float, next_one: bool
+    ) -> None:
+        return None
+
+    def _handle_alert(
+        self, *, accept: bool, send: str | None, timeout: float, next_one: bool
+    ) -> object:
+        if self.error is not None:
+            raise self.error
+        self.states.has_alert = False
+        return self.result
+
+
+@pytest.mark.parametrize(
+    ("page", "reason"),
+    [
+        (SimpleNamespace(), "HANDLE_ALERT_API_UNAVAILABLE"),
+        (
+            SimpleNamespace(handle_alert=lambda: None),
+            "HANDLE_ALERT_API_UNAVAILABLE",
+        ),
+        (
+            SimpleNamespace(
+                handle_alert=_DialogPage().handle_alert,
+                _handle_alert=lambda: None,
+            ),
+            "BOUNDED_HANDLE_ALERT_API_UNAVAILABLE",
+        ),
+        (
+            SimpleNamespace(
+                handle_alert=_DialogPage().handle_alert,
+                _handle_alert=_DialogPage()._handle_alert,
+                states=SimpleNamespace(),
+            ),
+            "ALERT_STATE_UNAVAILABLE",
+        ),
+        (
+            SimpleNamespace(
+                handle_alert=_DialogPage().handle_alert,
+                _handle_alert=_DialogPage()._handle_alert,
+                states=_DialogStates(True),
+                _alert=SimpleNamespace(type="alert"),
+            ),
+            "ALERT_METADATA_UNAVAILABLE",
+        ),
+    ],
+)
+def test_dialog_probe_fails_closed_for_incomplete_runtime(
+    page: object, reason: str
+) -> None:
+    operations = DialogOperations(SimpleNamespace(page=page))  # type: ignore[arg-type]
+    with pytest.raises(DialogUnsupportedError) as caught:
+        operations.probe()
+    assert caught.value.reason_code == reason
+
+
+@pytest.mark.asyncio
+async def test_dialog_adapter_classifies_pending_and_native_failure_paths() -> None:
+    unsupported_page = _DialogPage(dialog_type="beforeunload")
+    unsupported = DialogOperations(SimpleNamespace(page=unsupported_page))  # type: ignore[arg-type]
+    with pytest.raises(DialogUnsupportedError, match="DIALOG_TYPE_UNSUPPORTED"):
+        await unsupported.wait_for_pending(timeout=0.01)
+
+    timeout_page = _DialogPage()
+    timeout_page.states.has_alert = False
+    waiting = DialogOperations(SimpleNamespace(page=timeout_page))  # type: ignore[arg-type]
+    with pytest.raises(TimeoutError, match="No pending"):
+        await waiting.wait_for_pending(timeout=0)
+
+    changed_page = _DialogPage()
+    changed = DialogOperations(SimpleNamespace(page=changed_page))  # type: ignore[arg-type]
+    with pytest.raises(DialogPreconditionError, match="changed"):
+        await changed.respond(
+            pending={"dialog_type": "confirm", "message": "other"},
+            action="accept",
+            prompt_text=None,
+            timeout=0.01,
+        )
+    with pytest.raises(DialogPreconditionError, match="prompt_text"):
+        await changed.respond(
+            pending={"dialog_type": "alert", "message": "message"},
+            action="accept",
+            prompt_text="not-valid",
+            timeout=0.01,
+        )
+
+    error_page = _DialogPage()
+    error_page.error = RuntimeError("native failure")
+    failing = DialogOperations(SimpleNamespace(page=error_page))  # type: ignore[arg-type]
+    with pytest.raises(DialogResponseIndeterminateError):
+        await failing.respond(
+            pending={"dialog_type": "alert", "message": "message"},
+            action="accept",
+            prompt_text=None,
+            timeout=0.01,
+        )
+
+    false_page = _DialogPage()
+    false_page.result = False
+    false_result = DialogOperations(SimpleNamespace(page=false_page))  # type: ignore[arg-type]
+    with pytest.raises(DialogResponseIndeterminateError):
+        await false_result.respond(
+            pending={"dialog_type": "alert", "message": "message"},
+            action="dismiss",
+            prompt_text=None,
+            timeout=0.01,
+        )
 
 
 @pytest.mark.asyncio

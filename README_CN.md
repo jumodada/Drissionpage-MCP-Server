@@ -14,7 +14,7 @@
 
 ## 🖱️ 视觉驱动的人机交互
 
-**DrissionPage MCP 0.6.2 为多模态 AI 提供完整的第一阶段交互能力：** 它可以把视觉模型识别出的 viewport 坐标和有界路径转换为完整、符合物理节奏的指针动作链，而不是把鼠标瞬移到坐标后直接点击。
+**DrissionPage MCP 0.7.0 为多模态 AI 打通普通浏览器工作的闭环：** 在现有视觉交互层上，增加结构化表单完成、带证据的提交、浏览器对话框处理和完整性校验下载。
 
 > **一次 MCP 调用即可连接视觉理解与真实浏览器交互。** 模型负责判断“在哪里操作”，DrissionPage MCP 负责决定“鼠标如何移动过去并完成点击”。
 
@@ -72,7 +72,7 @@ page_click_xy(profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-项目仍以 58 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径；当 selector 或 accessibility metadata 不足时，0.6.2 还提供可选的**视觉驱动人机交互层**，把 viewport 坐标和有界拖拽路径转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
+项目仍以 62 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径。0.7.0 新增自主表单完成、副作用回执、原生对话框响应、增强点击语义和安全下载产物；当 selector 或 accessibility metadata 不足时，可选的**视觉驱动人机交互层**会把 viewport 坐标和有界拖拽路径转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -166,7 +166,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 58 个强大工具 + MCP Resources/Prompts
+## 🛠️ 62 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
@@ -179,10 +179,11 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `tab_switch` - 切换到 `tab_list` 返回的标签页
 - `tab_close` - 关闭单个标签页，不关闭整个浏览器
 
-### 🎯 元素交互与提取（13 个）
+### 🎯 元素交互与提取（14 个）
 - `element_find` - 通过 CSS 选择器或 XPath 查找单个元素；`h1` 等裸选择器按 CSS 处理
 - `element_find_all` - 提取重复列表、卡片和表格元素，返回有界文本、属性和推荐 selector
-- `element_click` - 点击任意元素
+- `element_click` - 点击任意元素，并以兼容方式支持左/右/中键和单击/双击语义
+- `element_click_and_download` - 将一次原生点击与 `DP_MCP_DOWNLOAD_ROOT` 下的一份完整性校验产物关联
 - `element_type` - 向元素输入文本
 - `element_upload_file` - 从 `DP_MCP_UPLOAD_ROOT` 上传文件到 `input[type=file]`
 - `element_scroll_into_view` - 将元素滚动到视口内
@@ -194,10 +195,12 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `element_get_property` - 获取实时 DOM property，例如输入框当前 value
 - `element_get_html` - 获取元素或整页 HTML
 
-### 🧾 表单工具（1 个）
+### 🧾 表单工具（3 个）
 - `form_inspect` - 检查表单和控件，返回 label、selector、必填/禁用状态、选项和安全的可选 value
+- `form_fill` - 填写原生和富控件，不提交，并返回逐字段验证与脱敏结果
+- `form_submit` - 对已授权表单执行一次提交，返回 postcondition 证据、operation-key 重放状态和 typed receipt
 
-### 📸 页面操作（17 个）
+### 📸 页面操作（18 个）
 - `page_screenshot` - 捕获完整页面或视口
 - `page_screenshot_save` - 保存截图到 `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - 返回有界页面 outline，包括标题、链接、按钮、输入框、表单和 selector 推荐
@@ -215,6 +218,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_click_xy` - 将视觉模型识别出的 viewport 坐标转换为自然贝塞尔指针移动和真实时长点击
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
+- `page_dialog_respond` - 通过能力探测后的原生路径接受或取消一个待处理 alert、confirm 或 prompt
 
 ### 🧱 iframe / Shadow DOM（5 个）
 - `frame_list` - 列出 iframe/frame，不改变全局 frame 状态
@@ -269,7 +273,7 @@ DrissionMCP/
 │   ├── context.py          # 浏览器管理
 │   ├── response.py         # 响应格式化
 │   ├── tab.py              # 页面操作
-│   └── tools/              # 58 个自动化、标签页管理、页面理解、表单检查、调试与可观察动作工具
+│   └── tools/              # 62 个自动化、任务完成、标签页/iframe/shadow、页面理解与可观察性工具
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -421,7 +425,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.6.2`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.7.0`。
 
 ### 浏览器问题？
 ```bash
@@ -450,14 +454,14 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.6.2 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.7.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.6.2)
-- [x] 58 个核心自动化、标签页管理、页面理解、表单检查与 console 可观察性工具，已移除 alias 工具面
+### 当前版本 (v0.7.0)
+- [x] 62 个核心自动化、任务完成、标签页/iframe/shadow、页面理解、工作流、网络监听与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -467,7 +471,9 @@ which chromium         # macOS
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
 - [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
-- [x] Workflow helper：`browser_open_and_snapshot`、`browser_extract_links`、`form_fill_preview`
+- [x] Workflow helper：`browser_open_and_snapshot`、`browser_extract_links`，以及保持不提交语义的兼容工具 `form_fill_preview`
+- [x] 可验证的 `form_fill` 与 operation-key 感知的 `form_submit`，返回 typed `ActionReceipt`，歧义结果不会盲目重复提交
+- [x] 能力探测后的 `page_dialog_respond`、兼容扩展的双击/右键语义，以及返回安全 `ArtifactRef` 的 `element_click_and_download`
 - [x] Network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，用于 HTTP/XHR/Fetch 观察
 - [x] `page_pointer_move`、`page_pointer_drag` 与 `page_click_xy` 自然指针动作链：三次贝塞尔轨迹、smoothstep 缓动、有界抖动、反应延迟和真实按键停留
 - [x] 有界的可选 `page_pointer_drag.waypoints`，在一次按住手势中完成画布路径、地图操作、框选或可视化编辑器连线
@@ -611,13 +617,14 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.6.2
+## 🆕 最新版本：v0.7.0
 
-发布日期：2026-07-15。本版本扩展现有坐标拖拽，不新增另一套工具或动作语言：
+发布日期：2026-07-18。本版本在保持现有工具合同的前提下，打通第一阶段已授权任务完成闭环：
 
-- `page_pointer_drag` 支持最多六个可选有序 `waypoints`，用于画布路径、地图手势、框选和可视化编辑器连线。
-- 整条路径只按下一次鼠标，经过所有路径点时保持按住，精确到达最终目标后只释放一次。
-- 未提供 `waypoints` 的现有调用保持 0.6.1 输入与输出行为。
-- 多段路径继续复用现有运动规划器、pointer profile、typed drag result 和失败安全释放执行器。
-- 严格单元测试和真实 Chromium 测试覆盖路径点顺序、按住状态、精确终点、dispatch 前拒绝无效输入，以及中断后的释放。
-- 公开工具数保持 58 个，并继续使用严格 schema 和 typed results。
+- `form_fill` 以真实交互语义处理原生和富控件，并提供逐字段验证和秘密脱敏。
+- `form_submit` 使用 `operation_key` 执行一次已授权提交，返回有界 postcondition 证据和 typed `ActionReceipt`；歧义结果不会盲目重复提交。
+- `page_dialog_respond` 通过能力探测后的原生路径处理待处理 alert、confirm 和 prompt。
+- `element_click` 兼容扩展右键、中键和双击语义，现有默认值不变。
+- `element_click_and_download` 将一次原生点击与一份完成产物、校验和、安全相对路径和 `ArtifactRef` 关联；相同 operation key 重放不会再次点击。
+- 公开工具数现为 62 个，并继续使用严格输入 schema 和 typed output envelope。
+- W01-W08 每项十轮的可靠性 benchmark 与剩余 coverage/稳定性硬化明确安排到 0.7.1；0.7.0 不声明已达到该阈值。

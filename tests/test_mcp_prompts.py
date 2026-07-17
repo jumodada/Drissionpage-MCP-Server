@@ -83,6 +83,11 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
     if prompt_name == "drissionpage_mcp_usage_playbook":
         assert "DrissionPage>=4.1.1.4,<5" in text
         assert "form_fill_preview" in text
+        assert "form_fill" in text
+        assert "form_submit" in text
+        assert "operation_key" in text
+        assert "indeterminate" in text
+        assert "element_click_and_download" in text
         assert "network_listen_start" in text
         assert "observation only" in text.lower()
         assert "page_click_xy" in text
@@ -90,8 +95,11 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
         assert "natural: Default" in text
     if prompt_name == "browser_fill_form_safely":
         assert "form_fill_preview" in text
-        assert "confirmation" in text.lower()
-        assert "do not submit" in text.lower()
+        assert "form_fill" in text
+        assert "form_submit" in text
+        assert "authorized" in text.lower()
+        assert "indeterminate" in text
+        assert "ask for confirmation" not in text.lower()
     if prompt_name == "browser_vision_guided_interaction":
         assert "page_screenshot" in text
         assert "viewport CSS pixels" in text

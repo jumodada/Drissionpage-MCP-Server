@@ -125,10 +125,14 @@ Fields JSON: {fields}
 Steps:
 1. Call `page_navigate` or `browser_open_and_snapshot`.
 2. Inspect forms with `form_inspect`.
-3. Prefill fields with `form_fill_preview`; never echo secrets in the final answer.
-4. Do not submit, click final confirmation buttons, or trigger destructive actions until
-   explicit user confirmation is received.
-5. After filling, summarize what was entered and ask for confirmation before submit.
+3. If the task is fill-only or does not authorize submission, use `form_fill_preview`
+   and stop without submitting.
+4. If the task clearly authorizes completion, use `form_fill`, then call
+   `form_submit` with a stable `operation_key` and bounded `expect` evidence.
+   The authorized task is sufficient; do not ask for redundant confirmation.
+5. Never echo secrets. Correct `validation_failed` fields with fresh evidence.
+   For `submitted_pending` or `indeterminate`, inspect the receipt, URL, and visible
+   state; do not automatically submit again.
 """
 
 
@@ -219,7 +223,7 @@ PROMPTS: tuple[PromptSpec, ...] = (
     PromptSpec(
         name="browser_fill_form_safely",
         title="Fill Form Safely",
-        description="Fill form fields while requiring confirmation before submission.",
+        description="Preview a form or complete an authorized submission with evidence and duplicate prevention.",
         arguments=(
             _arg("url", "Absolute URL containing the form.", required=True),
             _arg("form_goal", "What the form should accomplish.", required=True),

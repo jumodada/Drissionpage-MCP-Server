@@ -52,11 +52,12 @@ Tool choice: prefer the highest-level matching workflow, then reliable selector-
 Selector-first drag: when the source and destination have stable CSS/XPath selectors, use page_pointer_drag_element. Use destination kind=track_ratio for a known thumb and track; geometry is resolved immediately before the action, with one same-origin iframe supported and CSS paths required inside nested open Shadow DOM. Closed Shadow DOM and cross-origin iframe internals are not promised.
 Vision fallback: when no reliable selector exists, use page_screenshot with full_page=false and identify viewport CSS coordinates. Use page_pointer_move with profile=natural for hover/reveal/inspection, page_click_xy when activation requires a click, or page_pointer_drag for one bounded coordinate drag; add waypoints only when the gesture must follow a multi-segment path. Then verify a bounded state change. Never pass full-page document coordinates or resized image pixels directly; use page_evaluate viewport dimensions to correct client-side image scaling.
 Pointer profiles: natural is the default visual UI profile and held drags use distance-aware duration, acceleration/deceleration, correlated event intervals, bounded jitter, reaction/grip/release delays, optional micro-pauses, and exact-target correction; precise reduces jitter and disables overshoot; direct is only for explicitly immediate deterministic movement. Supply start_x and start_y together only when the pointer origin is known.
-Forms: use form_inspect, then form_fill_preview; treat requires_confirmation=true as a hard stop before submit and never echo field secrets.
+Forms: use form_inspect, then form_fill for verified local mutation. When the user's task clearly authorizes submission, call form_submit with an operation_key and bounded expect evidence without asking for redundant confirmation. Preserve form_fill_preview for fill-only or preview requests. Never echo field secrets, and never resubmit an indeterminate result without fresh evidence and a new authorized operation.
+Dialogs and downloads: use page_dialog_respond only for a currently pending browser dialog. Use element_click_and_download for one correlated click and download under DP_MCP_DOWNLOAD_ROOT; reuse its operation_key to replay the frozen result without another click.
 Autonomous verification workflow: page_detect_challenges performs read-only signal detection; use a fresh viewport screenshot, choose page_pointer_drag_element for stable selector paths or page_pointer_move/page_click_xy/page_click_xy_batch/page_pointer_drag by visual intent, then page_wait_challenge_result or wait_until for bounded classification and retry with fresh evidence. These are general capabilities for authorized automation and technical exchange; bypassing human-verification systems is not recommended and completion is not guaranteed.
 Network: use network_listen_start before the triggering action, network_listen_wait for bounded HTTP/XHR/Fetch metadata, then network_listen_stop; this is observation only, not interception or request mutation.
 Recovery: inspect structuredContent.error and follow the first actionable error.details.hints entry. Retry only after new evidence or corrected input; stop and report the repeated blocker when the same failure recurs. After a visual action use element state, page_observe, wait_until, or a fresh page_screenshot. Do not repeat stale coordinate actions blindly; re-observe, correct coordinate mapping, or switch to a discovered selector.
-Safety: respect error.details.hints, navigation policy errors, DP_MCP_SCREENSHOT_ROOT for saved screenshots, and DP_MCP_UPLOAD_ROOT for uploads.
+Safety: respect error.details.hints, navigation and side-effect policy errors, DP_MCP_SCREENSHOT_ROOT for saved screenshots, DP_MCP_UPLOAD_ROOT for uploads, and DP_MCP_DOWNLOAD_ROOT for downloads.
 Responses: prefer structuredContent; otherwise parse the first text block under ### JSON_RESULT. Legacy alias tools are not public."""
 
 
@@ -81,7 +82,9 @@ def usage_playbook_text(*, task: str = "", version: str = __version__) -> str:
 - Prefer workflow helpers before low-level primitives when they match the task.
 - For page summary or inspection, start with browser_open_and_snapshot; use page_navigate only when you intentionally do not need immediate page context.
 - Use page_snapshot for selectors/content, page_observe after actions, and wait_until for dynamic UI instead of fixed sleeps.
-- For forms, call form_inspect then form_fill_preview. Do not submit until explicit user confirmation; do not echo secrets.
+- For authorized form completion, call form_inspect, form_fill, then form_submit with a stable operation_key and bounded expect evidence. Do not ask for redundant confirmation when the user's task already authorizes submission. Use form_fill_preview when the request is preview-only or does not authorize submit; never echo secrets.
+- Treat validation_failed as correctable, but treat submitted_pending or indeterminate as a stop-and-inspect state. Never blindly resubmit after ambiguity.
+- For downloads, call element_click_and_download with DP_MCP_DOWNLOAD_ROOT configured and reuse the same operation_key for replay. For a pending alert, confirm, or prompt, use page_dialog_respond.
 - For links, use browser_extract_links with bounded limit and same_origin_only when useful.
 - For network observation, call network_listen_start, trigger the page action, call network_listen_wait, then network_listen_stop. This is observation only.
 
@@ -148,14 +151,28 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
                 "use_when": "Need bounded link text and URLs from the current page.",
             },
             {
-                "task": "safe_form_fill",
+                "task": "authorized_form_completion",
                 "preferred_sequence": [
                     "form_inspect",
-                    "form_fill_preview",
-                    "explicit confirmation",
-                    "element_click",
+                    "form_fill",
+                    "form_submit with operation_key and expect evidence",
+                    "inspect fresh evidence if status is submitted_pending or indeterminate",
                 ],
-                "use_when": "Need to prefill controls without submitting or leaking field values.",
+                "use_when": "The user's task clearly authorizes filling and submitting a form without a redundant confirmation round.",
+            },
+            {
+                "task": "form_preview_only",
+                "preferred_sequence": ["form_inspect", "form_fill_preview"],
+                "use_when": "The request is fill-only, preview-only, or does not authorize submission.",
+            },
+            {
+                "task": "download_delivery",
+                "preferred_sequence": [
+                    "configure an approved DP_MCP_DOWNLOAD_ROOT",
+                    "element_click_and_download with an operation_key",
+                    "reuse the same operation_key to replay without another click",
+                ],
+                "use_when": "One element click must be correlated with one integrity-checked downloaded artifact.",
             },
             {
                 "task": "vision_guided_interaction",
@@ -224,11 +241,20 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
         "forms": {
             "flow": [
                 "form_inspect",
-                "form_fill_preview",
-                "explicit confirmation",
-                "element_click",
+                "form_fill",
+                "form_submit with operation_key and bounded expect evidence",
+                "fresh evidence inspection for submitted_pending or indeterminate",
             ],
-            "boundary": "form_fill_preview fills controls but never submits; values are redacted by default.",
+            "preview_flow": ["form_inspect", "form_fill_preview"],
+            "boundary": "A clearly authorized task may submit without redundant confirmation. form_fill_preview remains the no-submit compatibility path. Never automatically resubmit an indeterminate outcome.",
+        },
+        "downloads": {
+            "flow": [
+                "configure an approved DP_MCP_DOWNLOAD_ROOT",
+                "element_click_and_download with operation_key",
+                "reuse operation_key for frozen replay",
+            ],
+            "boundary": "One native click, one terminal download result, safe relative paths only, and no second click when replaying the same operation key.",
         },
         "network": {
             "flow": [
@@ -256,6 +282,9 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
                 "browser_open_and_snapshot local fixture",
                 "browser_extract_links local fixture",
                 "form_fill_preview no-submit redaction fixture",
+                "form_fill and form_submit task-completion fixtures",
+                "dialog response and enriched click fixtures",
+                "integrity-checked download and replay fixtures",
                 "network listener local Fetch/XHR fixture",
                 "vision-guided natural pointer click on shared browser fixture",
                 "drissionpage-mcp doctor --launch-browser",

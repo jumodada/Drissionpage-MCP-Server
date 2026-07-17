@@ -119,9 +119,13 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert config_payload["environment"]["browser_path"]["value"] == ""
     assert config_payload["policy"]["profile"] == "restricted"
     assert guide_payload["available"] is True
-    assert guide_payload["version"] == "0.6.2"
+    assert guide_payload["version"] == "0.7.0"
     assert "DrissionPage>=4.1.1.4,<5" in guide_payload["instructions"]
     assert "form_fill_preview" in guide_payload["instructions"]
+    assert "form_fill" in guide_payload["instructions"]
+    assert "form_submit" in guide_payload["instructions"]
+    assert "element_click_and_download" in guide_payload["instructions"]
+    assert "indeterminate" in guide_payload["instructions"]
     assert "network_listen_start" in guide_payload["instructions"]
     assert "page_click_xy" in guide_payload["instructions"]
     assert "page_pointer_drag_element" in guide_payload["instructions"]
@@ -490,10 +494,21 @@ async def test_model_usage_guide_exposes_workflow_first_routes() -> None:
         "page_snapshot",
     ]
     assert routes["link_discovery"]["preferred_sequence"] == ["browser_extract_links"]
-    assert routes["safe_form_fill"]["preferred_sequence"][:2] == [
+    assert routes["authorized_form_completion"]["preferred_sequence"][:2] == [
+        "form_inspect",
+        "form_fill",
+    ]
+    assert (
+        "form_submit with operation_key"
+        in routes["authorized_form_completion"]["preferred_sequence"][2]
+    )
+    assert routes["form_preview_only"]["preferred_sequence"] == [
         "form_inspect",
         "form_fill_preview",
     ]
+    assert routes["download_delivery"]["preferred_sequence"][-1] == (
+        "reuse the same operation_key to replay without another click"
+    )
     assert routes["vision_guided_interaction"]["preferred_sequence"] == [
         "prefer element_find/element_click when reliable",
         "page_screenshot full_page=false",

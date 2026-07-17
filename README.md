@@ -8,13 +8,13 @@
 
 **[Open the interactive Browser Lab](https://drissionpage-mcp.vercel.app)** to track rotating targets, replay natural clicks, drag sliders, and verify observable state.
 
-**Official Repositories**: [GitHub](https://github.- [ ] `0.7.0`: close form, dialog, downcom/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
+**Official Repositories**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
 ## 🖱️ Vision-Guided Human–Computer Interaction
 
-**DrissionPage MCP 0.6.2 provides a complete first-stage interaction layer for multimodal AI:** it can turn a vision model's viewport coordinates into complete, physically plausible pointer action chains—not just raw teleport-and-click events.
+**DrissionPage MCP 0.7.0 closes the ordinary browser-work loop for multimodal AI:** it combines structured form completion, evidence-backed submission, browser dialog handling, and integrity-checked downloads with the existing vision-guided interaction layer.
 
 > **One MCP call connects visual understanding to real browser interaction.** The model identifies where to act; DrissionPage MCP handles how the pointer gets there and performs the click.
 
@@ -72,7 +72,7 @@ Designed for legitimate UI automation, testing, accessibility workflows, and tec
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Structured, deterministic automation remains the default through 58 tools plus MCP Resources/Prompts. When selectors or accessibility metadata are insufficient, 0.6.2 also provides an optional **vision-guided human–computer interaction layer** that converts viewport coordinates and bounded drag paths into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+Structured, deterministic automation remains the default through 62 tools plus MCP Resources/Prompts. Version 0.7.0 adds autonomous form completion, side-effect receipts, native dialog response, enriched click semantics, and safe download artifacts. When selectors or accessibility metadata are insufficient, the optional **vision-guided human–computer interaction layer** converts viewport coordinates and bounded drag paths into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -166,7 +166,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 58 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 62 Powerful Tools + MCP Resources/Prompts
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -179,10 +179,11 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `tab_switch` - Switch to a tab returned by `tab_list`
 - `tab_close` - Close one tab without closing the whole browser
 
-### 🎯 Element Interaction & Extraction (13 tools)
+### 🎯 Element Interaction & Extraction (14 tools)
 - `element_find` - Find one element by CSS selector or XPath; bare selectors like `h1` are treated as CSS
 - `element_find_all` - Extract bounded repeated elements with text, attributes, and recommended selectors
-- `element_click` - Click any element
+- `element_click` - Click any element with additive left/right/middle and single/double-click semantics
+- `element_click_and_download` - Correlate one native click with one integrity-checked artifact under `DP_MCP_DOWNLOAD_ROOT`
 - `element_type` - Input text into elements
 - `element_upload_file` - Upload files from `DP_MCP_UPLOAD_ROOT` to `input[type=file]`
 - `element_scroll_into_view` - Bring an element into the viewport before acting
@@ -194,10 +195,12 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `element_get_property` - Get a live DOM property such as an input value
 - `element_get_html` - Get element or page HTML
 
-### 🧾 Form Operations (1 tool)
+### 🧾 Form Operations (3 tools)
 - `form_inspect` - Inspect forms and controls with labels, selectors, requirements, options, and safe optional values
+- `form_fill` - Fill native and rich controls without submitting, with field-level verification and redaction
+- `form_submit` - Submit an authorized form once with postcondition evidence, operation-key replay, and typed receipt status
 
-### 📸 Page Operations (17 tools)
+### 📸 Page Operations (18 tools)
 - `page_screenshot` - Capture an inline full-page or viewport screenshot
 - `page_screenshot_save` - Save a screenshot under `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
@@ -215,6 +218,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_click_xy` - Convert vision-model viewport coordinates into natural Bézier pointer movement and physically timed clicks
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
+- `page_dialog_respond` - Accept or dismiss one pending alert, confirm, or prompt through a capability-probed native path
 
 ### 🧱 Frame / Shadow DOM (5 tools)
 - `frame_list` - List iframe/frame contexts without changing global frame state
@@ -269,7 +273,7 @@ DrissionMCP/
 │   ├── context.py          # Browser management
 │   ├── response.py         # Response formatting
 │   ├── tab.py              # Page operations
-│   └── tools/              # 46 automation, tab/frame/shadow, page-understanding, form, debug, and session-state tools
+│   └── tools/              # 62 automation, task-completion, tab/frame/shadow, page-understanding, and observability tools
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -421,7 +425,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.6.2`.
+Should output the installed package version, for example `drissionpage-mcp 0.7.0`.
 
 ### Browser Issues?
 ```bash
@@ -450,14 +454,14 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.6.2 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.7.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.6.2)
-- [x] 52 core automation, tab/frame/shadow, page-understanding, form-inspection, workflow, network-listener, session-state, and console-observability tools with removed alias surface
+### Current (v0.7.0)
+- [x] 62 core automation, task-completion, tab/frame/shadow, page-understanding, workflow, network-listener, session-state, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -467,7 +471,9 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
 - [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
 - [x] Console observability with `page_console_logs`, console summary in `page_observe`, and console change fields in `observe=true`
-- [x] Workflow helpers with `browser_open_and_snapshot`, `browser_extract_links`, and `form_fill_preview`
+- [x] Workflow helpers with `browser_open_and_snapshot`, `browser_extract_links`, and the no-submit compatibility tool `form_fill_preview`
+- [x] Verified `form_fill` plus operation-key-aware `form_submit` with typed `ActionReceipt` evidence and no blind resubmission after ambiguity
+- [x] Capability-probed `page_dialog_respond`, additive double/context click behavior, and `element_click_and_download` with safe `ArtifactRef` metadata
 - [x] Network listener beta with `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation
 - [x] Natural `page_pointer_move`, `page_pointer_drag`, and `page_click_xy` action chains with cubic Bézier motion, smoothstep easing, bounded jitter, reaction delay, and realistic button hold time
 - [x] Optional bounded `page_pointer_drag.waypoints` for one held multi-segment canvas, map, box-selection, or visual-editor gesture
@@ -611,13 +617,14 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.6.2
+## 🆕 Latest Version: v0.7.0
 
-Released on 2026-07-15. This release extends the existing coordinate drag without adding another tool or action language:
+Released on 2026-07-18. This release closes the first authorized task-completion loop while preserving existing tool contracts:
 
-- `page_pointer_drag` accepts up to six optional ordered `waypoints` for canvas paths, map gestures, box selection, and visual-editor connections.
-- The pointer is pressed once, remains held through every waypoint, reaches the exact final target, and is released once.
-- Existing calls without `waypoints` retain the 0.6.1 input and output behavior.
-- Multi-segment paths reuse the existing motion planner, pointer profiles, typed drag result, and failure-safe release executor.
-- Strict unit and real Chromium tests cover ordered waypoint delivery, held-button state, exact arrival, invalid-input rejection before dispatch, and release after interruption.
-- The public registry remains at 58 tools with strict schemas and typed results.
+- `form_fill` handles native and rich controls with genuine interaction semantics, per-field verification, and secret redaction.
+- `form_submit` performs one authorized submission with an `operation_key`, bounded postcondition evidence, and typed `ActionReceipt`; ambiguous outcomes are never blindly resubmitted.
+- `page_dialog_respond` handles pending alerts, confirms, and prompts through a capability-probed native path.
+- `element_click` additively supports right/middle buttons and double-click semantics without changing existing defaults.
+- `element_click_and_download` correlates one native click with one completed artifact, checksum, safe relative path, and `ArtifactRef`; replaying the same operation key never clicks again.
+- The public registry now exposes 62 tools with strict input schemas and typed output envelopes.
+- The ten-run W01-W08 reliability benchmark and remaining coverage/stability hardening are explicitly scheduled for 0.7.1; 0.7.0 does not claim that threshold.

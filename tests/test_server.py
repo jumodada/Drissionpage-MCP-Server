@@ -27,6 +27,10 @@ class TestDrissionPageMCPServer:
         assert "DrissionPage>=4.1.1.4,<5" in server.server.instructions
         assert "page_snapshot" in server.server.instructions
         assert "form_fill_preview" in server.server.instructions
+        assert "form_fill" in server.server.instructions
+        assert "form_submit" in server.server.instructions
+        assert "element_click_and_download" in server.server.instructions
+        assert "indeterminate" in server.server.instructions
         assert "network_listen_start" in server.server.instructions
         assert "page_click_xy" in server.server.instructions
         assert "viewport CSS coordinates" in server.server.instructions

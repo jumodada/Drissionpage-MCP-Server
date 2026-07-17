@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from pydantic import ValidationError
 
 from drissionpage_mcp.context import (
     DrissionPageContext,
+    OperationClaim,
     OperationInFlightError,
     OperationKeyConflictError,
     TaskLedgerFullError,
@@ -86,6 +87,41 @@ def _artifact(context: DrissionPageContext, artifact_id: str) -> ArtifactRef:
     )
 
 
+def _download_receipt(
+    context: DrissionPageContext,
+    operation_key: str,
+    fingerprint: str,
+    artifact_id: str,
+) -> ActionReceipt:
+    now = datetime.now(timezone.utc)
+    return ActionReceipt(
+        action_id="action-000001",
+        task_id=context.task_id,
+        operation_key=operation_key,
+        request_fingerprint=fingerprint,
+        kind="element_click_and_download",
+        side_effect="external_download",
+        status="success",
+        started_at=now,
+        finished_at=now,
+        tab_id="t0",
+        artifact_ids=(artifact_id,),
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"operation_limit": 0},
+        {"artifact_limit": 0},
+        {"retry_limit": -1},
+    ],
+)
+def test_task_context_rejects_invalid_ledger_limits(kwargs: dict[str, int]) -> None:
+    with pytest.raises(ValueError):
+        DrissionPageContext(**kwargs)
+
+
 def test_shared_contracts_are_strict_frozen_and_bounded() -> None:
     expectation = Expectation(
         mode="all",
@@ -113,6 +149,13 @@ def test_shared_contracts_are_strict_frozen_and_bounded() -> None:
     with pytest.raises(ValidationError):
         task.action_count = 1  # type: ignore[misc]
 
+    receipt_payload = _receipt(DrissionPageContext(), "submit-1", "a" * 64).model_dump()
+    receipt_payload["finished_at"] = receipt_payload["started_at"] - timedelta(
+        seconds=1
+    )
+    with pytest.raises(ValidationError, match="must not precede"):
+        ActionReceipt.model_validate(receipt_payload)
+
 
 def test_capability_support_requires_behavioral_probe_evidence() -> None:
     checked_at = datetime.now(timezone.utc)
@@ -134,6 +177,11 @@ def test_capability_support_requires_behavioral_probe_evidence() -> None:
             status="supported",
             evidence_source="runtime_probe",
             checked_at=checked_at,
+        )
+    with pytest.raises(ValidationError, match="require evidence_source"):
+        CapabilityProbe(
+            name="dialog.respond",
+            status="unsupported",
         )
     with pytest.raises(ValidationError):
         CapabilityProbe(
@@ -355,6 +403,38 @@ def test_request_fingerprint_is_canonical_and_sensitive_to_request_changes() -> 
     assert len(first) == 64
 
 
+@pytest.mark.parametrize("method_name", ["claim_operation", "preview_operation"])
+@pytest.mark.parametrize(
+    ("operation_key", "fingerprint"),
+    [
+        ("", "a" * 64),
+        ("x" * 129, "a" * 64),
+        ("submit-1", "short"),
+    ],
+)
+def test_operation_claim_inputs_are_strict(
+    method_name: str, operation_key: str, fingerprint: str
+) -> None:
+    context = DrissionPageContext()
+    method = getattr(context, method_name)
+
+    with pytest.raises(ValueError):
+        method(operation_key, fingerprint)
+
+
+@pytest.mark.parametrize("method_name", ["claim_operation", "preview_operation"])
+def test_operation_claim_inputs_normalize_uppercase_fingerprints(
+    method_name: str,
+) -> None:
+    context = DrissionPageContext()
+    method = getattr(context, method_name)
+
+    result = method("submit-1", "A" * 64)
+
+    if result is not None:
+        assert result.request_fingerprint == "a" * 64
+
+
 def test_atomic_claim_allows_only_one_concurrent_invocation() -> None:
     context = DrissionPageContext(operation_limit=2)
     fingerprint = "a" * 64
@@ -390,6 +470,184 @@ def test_completed_operation_replays_receipt_and_rejects_changed_request() -> No
     assert replay.cached_receipt == receipt
     with pytest.raises(OperationKeyConflictError):
         context.claim_operation("submit-1", "b" * 64)
+
+
+def test_complete_operation_rejects_mismatched_or_inactive_claims() -> None:
+    context = DrissionPageContext()
+    fingerprint = "a" * 64
+    claim = context.claim_operation("submit-1", fingerprint)
+    receipt = _receipt(context, "submit-1", fingerprint)
+
+    with pytest.raises(OperationKeyConflictError, match="operation_key"):
+        context.complete_operation(
+            claim, receipt.model_copy(update={"operation_key": "submit-other"})
+        )
+    with pytest.raises(OperationKeyConflictError, match="request_fingerprint"):
+        context.complete_operation(
+            claim, receipt.model_copy(update={"request_fingerprint": "b" * 64})
+        )
+    with pytest.raises(OperationKeyConflictError, match="task_id"):
+        context.complete_operation(
+            claim, receipt.model_copy(update={"task_id": "task-other"})
+        )
+
+    retried_receipt = receipt.model_copy(update={"retry_of": "action-000000"})
+    completed = context.complete_operation(
+        claim, retried_receipt, result={"nested": {"x": 1}}
+    )
+    assert context.complete_operation(claim, retried_receipt) is completed
+    assert context.task_summary().retry_count == 1
+    cached = context.operation_result("submit-1")
+    assert cached == {"nested": {"x": 1}}
+    assert cached is not None
+    cached["nested"]["x"] = 2
+    assert context.operation_result("submit-1") == {"nested": {"x": 1}}
+
+    inactive = OperationClaim("never-claimed", claim.request_fingerprint)
+    inactive_receipt = receipt.model_copy(update={"operation_key": "never-claimed"})
+    with pytest.raises(OperationKeyConflictError, match="not active"):
+        context.complete_operation(inactive, inactive_receipt)
+
+
+def test_local_receipt_guards_replay_and_ledger_limit() -> None:
+    context = DrissionPageContext(operation_limit=1)
+    local = _local_receipt(context, "local-1").model_copy(
+        update={"retry_of": "action-000000"}
+    )
+
+    with pytest.raises(OperationKeyConflictError, match="task_id"):
+        context.record_local_receipt(local.model_copy(update={"task_id": "task-other"}))
+    with pytest.raises(OperationKeyConflictError, match="side_effect"):
+        context.record_local_receipt(
+            local.model_copy(update={"side_effect": "external_submission"})
+        )
+
+    recorded = context.record_local_receipt(local)
+    assert context.record_local_receipt(local) is recorded
+    assert context.task_summary().retry_count == 1
+    conflicting = local.model_copy(update={"request_fingerprint": "b" * 64})
+    with pytest.raises(OperationKeyConflictError):
+        context.record_local_receipt(conflicting)
+    with pytest.raises(TaskLedgerFullError):
+        context.record_local_receipt(_local_receipt(context, "local-2"))
+
+    in_flight_context = DrissionPageContext()
+    in_flight = _local_receipt(in_flight_context, "local-in-flight")
+    in_flight_context.claim_operation(
+        in_flight.operation_key, in_flight.request_fingerprint
+    )
+    with pytest.raises(OperationInFlightError):
+        in_flight_context.record_local_receipt(in_flight)
+
+
+def test_artifact_guards_and_atomic_completion_contract() -> None:
+    context = DrissionPageContext(artifact_limit=2)
+    artifact = _artifact(context, "artifact-000001")
+
+    with pytest.raises(OperationKeyConflictError, match="task_id"):
+        context.record_artifact(artifact.model_copy(update={"task_id": "task-other"}))
+    recorded = context.record_artifact(artifact)
+    assert context.record_artifact(artifact) is recorded
+    with pytest.raises(OperationKeyConflictError, match="different metadata"):
+        context.record_artifact(artifact.model_copy(update={"sha256": "b" * 64}))
+
+    context.reserve_artifact_slot("artifact-000002")
+    with pytest.raises(OperationKeyConflictError, match="already reserved"):
+        context.reserve_artifact_slot("artifact-000002")
+    context.release_artifact_slot("artifact-000002")
+
+    operation_context = DrissionPageContext()
+    fingerprint = "a" * 64
+    claim = operation_context.claim_operation("download-1", fingerprint)
+    download_artifact = _artifact(operation_context, "artifact-000001")
+    receipt = _download_receipt(
+        operation_context, "download-1", fingerprint, download_artifact.artifact_id
+    ).model_copy(update={"retry_of": "action-000000"})
+    operation_context.reserve_artifact_slot(download_artifact.artifact_id)
+
+    mismatch_cases = [
+        (receipt.model_copy(update={"operation_key": "other"}), download_artifact),
+        (
+            receipt.model_copy(update={"request_fingerprint": "b" * 64}),
+            download_artifact,
+        ),
+        (receipt.model_copy(update={"task_id": "task-other"}), download_artifact),
+        (
+            receipt,
+            download_artifact.model_copy(
+                update={"producing_action_id": "action-other"}
+            ),
+        ),
+        (
+            receipt.model_copy(update={"artifact_ids": ("artifact-other",)}),
+            download_artifact,
+        ),
+    ]
+    for invalid_receipt, invalid_artifact in mismatch_cases:
+        with pytest.raises(OperationKeyConflictError):
+            operation_context.complete_artifact_operation(
+                claim,
+                invalid_receipt,
+                invalid_artifact,
+                result={"status": "success"},
+            )
+
+    completed = operation_context.complete_artifact_operation(
+        claim, receipt, download_artifact, result={"status": "success"}
+    )
+    assert (
+        operation_context.complete_artifact_operation(
+            claim, receipt, download_artifact, result={"status": "success"}
+        )
+        is completed
+    )
+    assert operation_context.task_summary().retry_count == 1
+
+    inactive_context = DrissionPageContext()
+    inactive_artifact = _artifact(inactive_context, "artifact-000002")
+    inactive_claim = OperationClaim("download-2", fingerprint)
+    inactive_receipt = _download_receipt(
+        inactive_context,
+        inactive_claim.operation_key,
+        fingerprint,
+        inactive_artifact.artifact_id,
+    )
+    with pytest.raises(OperationKeyConflictError, match="not active"):
+        inactive_context.complete_artifact_operation(
+            inactive_claim,
+            inactive_receipt,
+            inactive_artifact,
+            result={"status": "success"},
+        )
+
+
+def test_capability_probe_aggregation_covers_all_public_states() -> None:
+    context = DrissionPageContext()
+    now = datetime.now(timezone.utc)
+
+    unprobed = CapabilityProbe(
+        name="dialog.respond",
+        status="unprobed",
+    )
+    supported = CapabilityProbe(
+        name="dialog.respond",
+        status="supported",
+        evidence_source="integration_probe",
+        checked_at=now,
+    )
+    unsupported = CapabilityProbe(
+        name="download.click_and_wait",
+        status="unsupported",
+        evidence_source="runtime_probe",
+        reason_code="DOWNLOAD_MANAGER_UNAVAILABLE",
+        checked_at=now,
+    )
+
+    assert context.record_capability_probe(unprobed).overall_status == "unprobed"
+    assert context.record_capability_probe(supported).overall_status == "supported"
+    assert context.record_capability_probe(unsupported).overall_status == "degraded"
+    context.set_capability_set(CapabilitySet())
+    assert context.record_capability_probe(unsupported).overall_status == "unsupported"
 
 
 def test_preview_operation_replays_without_reserving_new_key() -> None:

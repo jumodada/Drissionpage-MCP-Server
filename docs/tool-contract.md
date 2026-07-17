@@ -174,6 +174,7 @@ The server marks tools with MCP annotations:
 | `page_click_xy` | Destructive | `x`, `y` | Move and click at viewport CSS coordinates. Defaults to a natural cubic Bézier pointer profile; optional: `start_x` + `start_y`, `element`, `profile`, and `button`. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |
+| `page_dialog_respond` | Destructive | `action` | Accept or dismiss one currently pending alert, confirm, or prompt through a capability-probed native path. Optional: `prompt_text`, `timeout`. Prompt text is never returned. |
 
 ### Debug / Observability
 
@@ -187,7 +188,8 @@ The server marks tools with MCP annotations:
 | --- | --- | --- | --- |
 | `element_find` | Read-only | `selector` | Find an element by CSS selector or XPath. Bare selectors are treated as CSS. Optional: `timeout` (default 3s). |
 | `element_find_all` | Read-only | `selector` | Find multiple matching elements with bounded text, attributes, optional HTML, count/truncation metadata, and recommended selectors. Optional: `limit` (default 20), `include_html`. |
-| `element_click` | Destructive | `selector` | Click an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `observe`. |
+| `element_click` | Destructive | `selector` | Click an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `observe`, `button` (`left`, `right`, `middle`), `click_count` (`1`, `2`). Existing calls remain left single-clicks. Unsupported native variants return `UNSUPPORTED_OPERATION` rather than substituting another click. |
+| `element_click_and_download` | Destructive | `selector` | Perform one native click and await one correlated completed download under `DP_MCP_DOWNLOAD_ROOT`. Returns an integrity-checked `ArtifactRef` and linked `ActionReceipt`. Optional: `operation_key`, `timeout`, `expected_filename`, `expected_mime_type`. |
 | `element_type` | Destructive | `selector`, `text` | Type text into an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `clear`, `observe`. |
 | `element_upload_file` | Destructive | `selector`, `paths` | Upload one or more files from `DP_MCP_UPLOAD_ROOT` into an `input[type=file]`. Optional: `timeout`. |
 | `element_scroll_into_view` | Destructive | `selector` | Scroll an element into the viewport. Optional: `center`, `timeout`. |
@@ -223,6 +225,8 @@ The server marks tools with MCP annotations:
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
 | `form_inspect` | Read-only | none | Inspect forms and controls with labels, selectors, methods/actions, required/disabled/read-only state, select options, and safe optional values. Optional: `selector`, `include_values`, `max_forms`, `max_fields_per_form`. Password values are never returned. |
+| `form_fill` | Destructive | `fields` | Fill native and supported rich controls without submitting. Returns per-field match strategy, control type, verification, redacted values, and a local UI mutation receipt. Optional: `form_selector`, `timeout`, `redact_values`, `verify`. |
+| `form_submit` | Destructive | none | Submit one authorized form action and classify success, validation, pending, or indeterminate behavior with an `ActionReceipt`. Optional: `form_selector`, `submit_selector`, `operation_key`, `expect`. Reusing the same operation key and request replays the frozen live-task result without another submit. |
 
 ### Wait Operations
 
@@ -247,6 +251,9 @@ The server exposes deterministic JSON resources:
 | `drissionpage://page/current` | Bounded current page title, URL, text excerpt, and HTML excerpt. |
 | `drissionpage://tools/catalog` | Public tool catalog with annotations, descriptions, and output data schema names. |
 | `drissionpage://policy/summary` | Redacted local safety policy summary. |
+| `drissionpage://task/current` | Bounded current `TaskContext` identifiers, counters, receipts, and operation state. |
+| `drissionpage://artifacts/inventory` | Bounded download artifact inventory with safe relative paths and sanitized public source URLs. |
+| `drissionpage://runtime/capabilities` | Runtime-probed support evidence for dialog, click-variant, and download capabilities. |
 
 Resource caps:
 
@@ -263,7 +270,7 @@ The server exposes user-controlled workflow prompts:
 | `drissionpage_mcp_usage_playbook` | Explain the safe default tool flow for an MCP-connected model. |
 | `browser_navigate_and_summarize` | Navigate with `browser_open_and_snapshot`, inspect bounded page context, and summarize with source URL. |
 | `browser_extract_structured_data` | Navigate with workflow helpers, inspect bounded text/HTML only as needed, and return schema-shaped JSON. |
-| `browser_fill_form_safely` | Inspect and prefill forms with confirmation guidance before submission. |
+| `browser_fill_form_safely` | Use `form_fill_preview` for preview-only requests or complete a clearly authorized task through `form_fill` and `form_submit` without redundant confirmation. Ambiguous results stop for fresh evidence. |
 | `browser_vision_guided_interaction` | Teach selector-first visual interaction, viewport screenshot coordinate mapping, `natural`/`precise`/`direct` profile choice, bounded verification, and stale-coordinate recovery. |
 | `browser_debug_page_issue` | Gather workflow-first page evidence for debugging. |
 
@@ -274,6 +281,11 @@ The server exposes user-controlled workflow prompts:
 - `page_snapshot`, `element_find_all`, and `form_inspect` include `meta.approx_tokens`, `meta.json_chars`, and `meta.truncated` so clients can narrow later calls when a response is large.
 - `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
 - `form_inspect` is read-only. It returns field values only when `include_values=true`, and password values are always returned as `null`.
+- `form_fill_preview` remains a compatibility tool that never submits and returns `requires_confirmation=true`. Use it for preview-only or fill-only requests.
+- `form_fill` mutates local form state but never submits. Password values are always redacted, and supported controls return field-level verification rather than silent omission.
+- `form_submit` may proceed without redundant confirmation only when the user's task already authorizes submission. An `operation_key` provides at-most-once invocation within the live server task, not restart-safe or remote exactly-once semantics. `submitted_pending` and `indeterminate` require fresh evidence and never trigger an implicit resubmit.
+- `page_dialog_respond` handles one currently pending JavaScript dialog. Capability gaps return `UNSUPPORTED_OPERATION`; prompt text and dialog messages are redacted from public history where required.
+- `element_click_and_download` requires an approved `DP_MCP_DOWNLOAD_ROOT`. A successful response includes one checksum-verified regular file, safe relative path, sanitized HTTP(S) source URL, `ArtifactRef`, and correlated `ActionReceipt`. Replaying the same operation key does not click again; failure and indeterminate results contain no artifact.
 - `tab_list` synchronizes with browser tabs opened by normal page behavior, including `target="_blank"` links.
 - `page_observe` is designed for compact state checks. Use `page_snapshot` when you need selectors and structured page outline details. Its `console` field summarizes recent current-tab console messages when DrissionPage console capture is available.
 - `page_console_logs` returns normalized console messages with `index`, `level`, `text`, `url`, `line`, `column`, and `source`. Use `since` with the previous `next_cursor` to fetch only newer messages.
@@ -300,5 +312,8 @@ By default, DrissionPage MCP remains a local stdio browser automation server wit
 | `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost/private/link-local navigation. |
 | `DP_MCP_SCREENSHOT_ROOT` | Required root directory for `page_screenshot_save` file writes. |
 | `DP_MCP_UPLOAD_ROOT` | Required root directory for `element_upload_file` input files. |
+| `DP_MCP_DOWNLOAD_ROOT` | Required approved root for `element_click_and_download` artifacts. Public results expose safe relative paths only. |
+| `DP_MCP_DENY_EXTERNAL_SUBMISSION` | Deny `form_submit` before an operation claim or browser side effect. |
+| `DP_MCP_DENY_DOWNLOAD` | Deny `element_click_and_download` before the native click or filesystem allocation. |
 
 Denied navigation is checked before `context.ensure_tab()`, so policy rejection does not start or initialize a browser.

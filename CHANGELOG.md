@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-07-18
+
+### Added
+- Added `form_fill` for verified native and rich-control mutation and `form_submit` for one authorized, evidence-classified submission with live-task operation-key replay.
+- Added capability-probed `page_dialog_respond` for pending alert, confirm, and prompt dialogs.
+- Added `element_click_and_download` with policy-controlled storage, SHA-256 and size verification, safe relative paths, `ArtifactRef`, and correlated `ActionReceipt` output.
+- Added `TaskContext`, action receipt, artifact inventory, capability, policy, resource, protocol, and schema contracts for externally consequential workflows.
+
+### Changed
+- Extended `element_click` additively with left/right/middle button selection and single/double-click semantics while preserving existing defaults.
+- Updated model guidance so clearly authorized tasks can use `form_fill` and `form_submit` without redundant confirmation; `form_fill_preview` remains the stable no-submit compatibility path.
+- Ambiguous submission and download results are frozen as non-success outcomes and never trigger an implicit second external action.
+- Public registry now exposes 62 tools.
+
+### Security
+- Enforced submission/download policy denial before browser side effects, operation claims, or artifact allocation.
+- Sanitized public URLs to well-formed HTTP(S) origin/path data and removed credentials, query, fragment, local paths, and unsafe schemes.
+- Hardened downloads against cancellation bookkeeping leaks and path replacement races by draining native work and hashing a stable no-follow file descriptor.
+
+### Release Scope
+- 0.7.0 ships the browser-backed task-completion features and typed safety contracts. The W01-W08 ten-run 9/10 reliability benchmark, expanded branch coverage, and final stability audit are scheduled for 0.7.1; this release does not claim that ten-run threshold.
+
 ## [0.6.2] - 2026-07-15
 
 ### Added
@@ -353,7 +375,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.5.9...v0.6.0

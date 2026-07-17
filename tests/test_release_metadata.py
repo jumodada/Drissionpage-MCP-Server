@@ -1,4 +1,4 @@
-"""Release metadata and documentation checks for 0.6.2."""
+"""Release metadata and documentation checks for 0.7.0."""
 
 from __future__ import annotations
 
@@ -13,11 +13,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_6_2() -> None:
+def test_package_version_metadata_is_0_7_0() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.6.2"
-    assert drissionpage_mcp.__version__ == "0.6.2"
+    assert pyproject["project"]["version"] == "0.7.0"
+    assert drissionpage_mcp.__version__ == "0.7.0"
 
 
 def test_docs_describe_breaking_alias_removal() -> None:
@@ -36,9 +36,15 @@ def test_docs_describe_breaking_alias_removal() -> None:
     assert "wait_sleep" not in _tool_inventory(contract)
     assert "drissionpage://session/summary" in contract
     assert "browser_navigate_and_summarize" in contract
+    assert "form_fill" in _tool_inventory(contract)
+    assert "form_submit" in _tool_inventory(contract)
+    assert "page_dialog_respond" in _tool_inventory(contract)
+    assert "element_click_and_download" in _tool_inventory(contract)
+    assert "DP_MCP_DOWNLOAD_ROOT" in contract
+    assert "indeterminate" in contract
 
 
-def test_readmes_end_with_latest_0_6_2_feature_summary() -> None:
+def test_readmes_end_with_latest_0_7_0_feature_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
@@ -51,24 +57,33 @@ def test_readmes_end_with_latest_0_6_2_feature_summary() -> None:
     assert "website/public/og-browser-lab.png" not in readme_cn
     assert "Watch the original natural pointer demo" not in readme
     assert "观看原始自然指针演示" not in readme_cn
-    assert "## 🆕 Latest Version: v0.6.2" in readme
-    assert "Released on 2026-07-15" in readme
-    assert "page_pointer_move" in readme
-    assert "page_pointer_drag" in readme
-    assert "failure-safe" in readme
-    assert "public registry remains at 58 tools" in readme
+    assert "## 🆕 Latest Version: v0.7.0" in readme
+    assert "Released on 2026-07-18" in readme
+    assert "form_fill" in readme
+    assert "form_submit" in readme
+    assert "page_dialog_respond" in readme
+    assert "element_click_and_download" in readme
+    assert "public registry now exposes 62 tools" in readme
     assert "### 🌐 Navigation (4 tools)" in readme
-    assert "### 📸 Page Operations (17 tools)" in readme
-    assert "optional ordered `waypoints`" in readme
-    assert "## 🆕 最新版本：v0.6.2" in readme_cn
-    assert "发布日期：2026-07-15" in readme_cn
-    assert "page_pointer_move" in readme_cn
-    assert "page_pointer_drag" in readme_cn
-    assert "失败安全" in readme_cn
-    assert "公开工具数保持 58 个" in readme_cn
+    assert "### 🎯 Element Interaction & Extraction (14 tools)" in readme
+    assert "### 🧾 Form Operations (3 tools)" in readme
+    assert "### 📸 Page Operations (18 tools)" in readme
+    assert "## 🆕 最新版本：v0.7.0" in readme_cn
+    assert "发布日期：2026-07-18" in readme_cn
+    assert "form_fill" in readme_cn
+    assert "form_submit" in readme_cn
+    assert "page_dialog_respond" in readme_cn
+    assert "element_click_and_download" in readme_cn
+    assert "公开工具数现为 62 个" in readme_cn
     assert "### 🌐 导航工具（4 个）" in readme_cn
-    assert "### 📸 页面操作（17 个）" in readme_cn
-    assert "可选有序 `waypoints`" in readme_cn
+    assert "### 🎯 元素交互与提取（14 个）" in readme_cn
+    assert "### 🧾 表单工具（3 个）" in readme_cn
+    assert "### 📸 页面操作（18 个）" in readme_cn
+    assert "## [0.7.0] - 2026-07-18" in changelog
+    assert "ActionReceipt" in changelog
+    assert "ArtifactRef" in changelog
+    assert "0.7.1" in changelog
+    assert "ten-run" in changelog
     assert "## [0.6.2] - 2026-07-15" in changelog
     assert "optional ordered `waypoints`" in changelog
     assert "no new public tool" in changelog
@@ -77,7 +92,11 @@ def test_readmes_end_with_latest_0_6_2_feature_summary() -> None:
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.0...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.7.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...v0.7.0"
         in changelog
     )
     assert (
