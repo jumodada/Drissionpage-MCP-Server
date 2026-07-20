@@ -11,6 +11,7 @@ from urllib.request import Request, urlopen
 
 import pytest
 
+import tests.evals.task_completion_benchmark as benchmark
 from tests.fixtures.http_fixture import (
     TASK_COMPLETION_DOWNLOAD,
     TASK_COMPLETION_DOWNLOAD_SHA256,
@@ -22,6 +23,8 @@ from tests.evals.task_completion_benchmark import (
     WORKLOAD_TOOL_REQUIREMENTS,
     WORKLOADS,
     _console_report,
+    _browser_evidence_complete,
+    _missing_required_tools,
     _side_effect_evidence,
     _summarize,
 )
@@ -39,6 +42,87 @@ def test_eval_task_completion_catalog_covers_eight_workloads() -> None:
     assert (
         len({scenario.terminal_selector for scenario in TASK_COMPLETION_SCENARIOS}) == 9
     )
+
+
+def test_eval_task_completion_enforces_declared_public_tool_path() -> None:
+    assert _missing_required_tools(
+        "W04", ["page_navigate", "form_fill", "form_submit"]
+    ) == ["element_upload_file"]
+    assert (
+        _missing_required_tools(
+            "W04",
+            ["page_navigate", "form_fill", "element_upload_file", "form_submit"],
+        )
+        == []
+    )
+
+
+def test_eval_task_completion_requires_browser_version_evidence() -> None:
+    assert (
+        _browser_evidence_complete(
+            [{"browser_product": "Chrome/150.0", "browser_revision": "@revision"}]
+        )
+        is True
+    )
+    assert _browser_evidence_complete([{"browser_product": ""}]) is False
+    assert _browser_evidence_complete([]) is False
+
+
+@pytest.mark.asyncio
+async def test_eval_task_completion_restarts_server_after_workload_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    created: list[object] = []
+    observed_servers: list[object] = []
+
+    class FakeServer:
+        def __init__(self) -> None:
+            self.cleaned = False
+            created.append(self)
+
+        async def cleanup(self) -> None:
+            self.cleaned = True
+
+    async def failing_workload(client, *_args):
+        observed_servers.append(client.server)
+        raise benchmark.BenchmarkFailure("expected failure")
+
+    async def succeeding_workload(client, *_args):
+        observed_servers.append(client.server)
+        return {"business_result": "ok"}
+
+    monkeypatch.setattr(benchmark, "DrissionPageMCPServer", FakeServer)
+    monkeypatch.setattr(
+        benchmark,
+        "WORKLOADS",
+        {"W01": failing_workload, "W02": succeeding_workload},
+    )
+    monkeypatch.setattr(
+        benchmark,
+        "WORKLOAD_TOOL_REQUIREMENTS",
+        {"W01": frozenset(), "W02": frozenset()},
+    )
+    monkeypatch.setattr(
+        benchmark,
+        "SIDE_EFFECT_BASELINES",
+        {"W01": {}, "W02": {}},
+    )
+    monkeypatch.setattr(
+        benchmark,
+        "_runtime_evidence",
+        lambda *_args, **_kwargs: {
+            "browser_product": "Chrome/test",
+            "browser_revision": "@test",
+        },
+    )
+
+    report = await benchmark.run_benchmark(iterations=1)
+
+    assert len(created) == 2
+    assert observed_servers == created
+    assert all(server.cleaned for server in created)
+    assert report["runs"][0]["success"] is False
+    assert report["runs"][1]["success"] is True
 
 
 def test_eval_task_completion_summary_requires_nine_of_ten_without_duplicates() -> None:

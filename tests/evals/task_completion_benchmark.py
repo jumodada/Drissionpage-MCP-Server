@@ -8,7 +8,7 @@ import json
 import os
 import platform
 import sys
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
 from math import ceil
 from pathlib import Path
@@ -223,10 +223,15 @@ async def _w05_dialog(
     click = asyncio.create_task(
         client.call("element_click", {"selector": "#confirm-button", "timeout": 2})
     )
-    response = await client.call(
-        "page_dialog_respond", {"action": "accept", "timeout": 2}
-    )
-    await click
+    try:
+        response = await client.call(
+            "page_dialog_respond", {"action": "accept", "timeout": 2}
+        )
+        await click
+    finally:
+        if not click.done():
+            click.cancel()
+        await asyncio.gather(click, return_exceptions=True)
     _require(response["data"]["handled"] is True, "W05 dialog was not handled")
     status = await client.call("element_get_text", {"selector": "#dialog-status"})
     _require(status["data"]["text"] == "confirm accepted", "W05 result mismatch")
@@ -248,12 +253,17 @@ async def _w06_popup(
             break
         await asyncio.sleep(0.02)
     _require(bool(popup_id), "W06 popup tab was not discovered")
-    await client.call("tab_switch", {"tab_id": popup_id})
-    await client.call("element_click", {"selector": "#popup-complete", "timeout": 2})
-    status = await client.call("element_get_text", {"selector": "#popup-result"})
-    _require(status["data"]["text"] == "popup work complete", "W06 result mismatch")
-    await client.call("tab_close", {"tab_id": popup_id})
-    return {"business_result": "popup work complete"}
+    try:
+        await client.call("tab_switch", {"tab_id": popup_id})
+        await client.call(
+            "element_click", {"selector": "#popup-complete", "timeout": 2}
+        )
+        status = await client.call("element_get_text", {"selector": "#popup-result"})
+        _require(status["data"]["text"] == "popup work complete", "W06 result mismatch")
+        return {"business_result": "popup work complete"}
+    finally:
+        with suppress(Exception):
+            await client.call("tab_close", {"tab_id": popup_id})
 
 
 async def _w07_download(
@@ -338,7 +348,7 @@ async def run_benchmark(iterations: int = 10) -> dict[str, Any]:
     runtimes: list[dict[str, Any]] = []
 
     for iteration in range(1, iterations + 1):
-        server = DrissionPageMCPServer()
+        server: DrissionPageMCPServer | None = None
         with TemporaryDirectory(prefix="drissionmcp-benchmark-") as temp_dir:
             root = Path(temp_dir)
             (root / "uploads").mkdir()
@@ -349,9 +359,12 @@ async def run_benchmark(iterations: int = 10) -> dict[str, Any]:
             with _benchmark_environment(root), local_http_fixture() as base_url:
                 try:
                     for workload_id, workload in WORKLOADS.items():
+                        if server is None:
+                            server = DrissionPageMCPServer()
                         await _reset_fixture(base_url)
                         client = BenchmarkClient(server)
                         started = monotonic()
+                        restart_server = False
                         try:
                             evidence = await workload(
                                 client,
@@ -359,11 +372,20 @@ async def run_benchmark(iterations: int = 10) -> dict[str, Any]:
                                 f"{workload_id.lower()}-{iteration:02d}",
                                 root,
                             )
+                            missing_tools = _missing_required_tools(
+                                workload_id, client.calls
+                            )
+                            _require(
+                                not missing_tools,
+                                f"{workload_id} skipped required public tools: "
+                                + ", ".join(missing_tools),
+                            )
                             success = True
                             error = ""
                             failure_category = ""
                         except Exception as exc:
                             success = False
+                            restart_server = True
                             evidence = {}
                             error = f"{type(exc).__name__}: {exc}"[:500]
                             failure_category = _failure_category(error)
@@ -397,11 +419,20 @@ async def run_benchmark(iterations: int = 10) -> dict[str, Any]:
                                 "failure_category": failure_category,
                             }
                         )
-                    runtimes.append(_runtime_evidence(server, iteration))
+                        if restart_server:
+                            runtimes.append(_runtime_evidence(server, iteration))
+                            await server.cleanup()
+                            server = None
                 finally:
-                    await server.cleanup()
+                    if server is not None:
+                        runtimes.append(_runtime_evidence(server, iteration))
+                        await server.cleanup()
 
     summary = _summarize(results, iterations)
+    summary["browser_evidence_complete"] = _browser_evidence_complete(runtimes)
+    summary["passed"] = bool(summary["passed"]) and bool(
+        summary["browser_evidence_complete"]
+    )
     return {
         "schema_version": "1",
         "release": __version__,
@@ -445,6 +476,18 @@ def _summarize(results: list[dict[str, Any]], iterations: int) -> dict[str, Any]
         "duplicate_count": duplicate_count,
         "workloads": workloads,
     }
+
+
+def _missing_required_tools(workload_id: str, calls: list[str]) -> list[str]:
+    required = WORKLOAD_TOOL_REQUIREMENTS[workload_id]
+    return sorted(required.difference(calls))
+
+
+def _browser_evidence_complete(runtimes: list[dict[str, Any]]) -> bool:
+    return bool(runtimes) and all(
+        bool(item.get("browser_product")) and bool(item.get("browser_revision"))
+        for item in runtimes
+    )
 
 
 async def _fill_employee_code(client: BenchmarkClient, value: str) -> None:
@@ -512,7 +555,12 @@ async def _reset_fixture(base_url: str) -> None:
 
 
 def _runtime_evidence(server: DrissionPageMCPServer, iteration: int) -> dict[str, Any]:
-    evidence: dict[str, Any] = {"iteration": iteration, "browser_product": ""}
+    evidence: dict[str, Any] = {
+        "iteration": iteration,
+        "browser_product": "",
+        "browser_revision": "",
+        "error": "",
+    }
     context = server.context
     browser = context.browser if context is not None else None
     run_cdp = getattr(browser, "_run_cdp", None)
@@ -521,8 +569,12 @@ def _runtime_evidence(server: DrissionPageMCPServer, iteration: int) -> dict[str
             version = run_cdp("Browser.getVersion")
             evidence["browser_product"] = str(version.get("product") or "")
             evidence["browser_revision"] = str(version.get("revision") or "")
-        except Exception:
-            pass
+        except Exception as exc:
+            evidence["error"] = f"{type(exc).__name__}: {exc}"[:300]
+    elif browser is None:
+        evidence["error"] = "browser was not initialized"
+    else:
+        evidence["error"] = "Browser.getVersion is unavailable"
     return evidence
 
 

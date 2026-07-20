@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -27,6 +29,15 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Ruff check
         run: python -m ruff check drissionpage_mcp tests playground
+      - name: Enforce pre-0.8 production LOC budget
+        run: |
+          BASELINE=e0b8805
+          NET_PRODUCTION_LOC="$({
+            git diff --numstat "$BASELINE" HEAD -- \
+              ':(glob)drissionpage_mcp/**/*.py'
+          } | awk '{ added += $1; deleted += $2 } END { print added - deleted }')"
+          echo "Production LOC net growth from $BASELINE: $NET_PRODUCTION_LOC"
+          test "$NET_PRODUCTION_LOC" -le 200
 
   unit:
     name: Unit tests
@@ -138,116 +149,10 @@ jobs:
           if-no-files-found: warn
 
   coverage:
-    name: Coverage and Codecov
+    name: Coverage and browser integration
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    env:
-      DP_TEST_SITE_URL: http://127.0.0.1:4321
-    steps:
-      - uses: actions/checkout@v4
-      - name: Checkout shared DrissionPage test site
-        uses: actions/checkout@v4
-        with:
-          repository: jumodada/DrissionPage-test-site
-          path: DrissionPage-test-site
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Locate Chrome or Chromium
-        run: |
-          BROWSER_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
-          if [ -z "$BROWSER_BIN" ]; then
-            sudo apt-get update
-            sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
-            BROWSER_BIN="$(command -v chromium || command -v chromium-browser || true)"
-          fi
-          test -n "$BROWSER_BIN"
-          echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
-          "$BROWSER_BIN" --version
-      - name: Set up Node for shared test site
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: DrissionPage-test-site/package-lock.json
-      - name: Build shared DrissionPage test site
-        working-directory: DrissionPage-test-site
-        run: |
-          npm ci
-          npm run build
-      - name: Start shared DrissionPage test site
-        working-directory: DrissionPage-test-site
-        run: |
-          nohup npm run dev -- --host 127.0.0.1 --port 4321 > "$RUNNER_TEMP/drissionpage-test-site.log" 2>&1 &
-          echo $! > "$RUNNER_TEMP/drissionpage-test-site.pid"
-          for _ in $(seq 1 60); do
-            if curl -fsS "$DP_TEST_SITE_URL/api/health.json" >/dev/null; then
-              exit 0
-            fi
-            sleep 1
-          done
-          cat "$RUNNER_TEMP/drissionpage-test-site.log"
-          exit 1
-      - name: Install dependencies
-        run: python -m pip install -e ".[dev]"
-      - name: Run tests with coverage
-        env:
-          DP_HEADLESS: "1"
-          DP_NO_SANDBOX: "1"
-          DP_MCP_REQUIRE_BROWSER: "0"
-        run: |
-          python -m pytest tests/ \
-            --cov=drissionpage_mcp \
-            --cov-report=term-missing \
-            --cov-report=xml:coverage.xml
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
-        with:
-          files: ./coverage.xml
-          flags: all-tests
-          name: python-3.11
-          token: ${{ secrets.CODECOV_TOKEN }}
-          fail_ci_if_error: true
-
-  package:
-    name: Package build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-          cache: pip
-      - name: Install build tools
-        run: python -m pip install -e ".[dev]"
-      - name: Build package
-        run: python -m build
-      - name: Check wheel package contents
-        run: |
-          python - <<'PY'
-          import glob
-          import zipfile
-
-          wheels = glob.glob("dist/*.whl")
-          assert len(wheels) == 1, wheels
-          with zipfile.ZipFile(wheels[0]) as wheel:
-              names = wheel.namelist()
-              top_level_file = next(
-                  name for name in names if name.endswith(".dist-info/top_level.txt")
-              )
-              top_level = wheel.read(top_level_file).decode().splitlines()
-
-          assert top_level == ["drissionpage_mcp"], top_level
-          assert not any(name == "src/" or name.startswith("src/") for name in names)
-          PY
-      - name: Check package metadata
-        run: python -m twine check dist/*
-
-  browser-integration:
-    name: Browser integration
-    runs-on: ubuntu-latest
     env:
       DP_TEST_SITE_URL: http://127.0.0.1:4321
       RUN_PRIVATE_TEST_SITE: ${{ github.event_name != 'pull_request' && secrets.DP_PRIVATE_FIXTURE_URL != '' }}
@@ -301,12 +206,16 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Tool registry smoke
         run: python playground/run_mcp_lab.py --case registry --json
-      - name: Run browser integration fixture tests
+      - name: Run tests with coverage
         env:
           DP_HEADLESS: "1"
           DP_NO_SANDBOX: "1"
           DP_MCP_REQUIRE_BROWSER: "1"
-        run: python -m pytest tests/test_browser_integration.py
+        run: |
+          python -m pytest tests/ \
+            --cov=drissionpage_mcp \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml
       - name: Run private shared DrissionPage test-site smoke
         if: ${{ env.RUN_PRIVATE_TEST_SITE == 'true' }}
         env:
@@ -339,3 +248,45 @@ jobs:
               print(f"::add-mask::{token}")
           PY
           python -m pytest tests/test_browser_integration.py -k shared_drissionpage_test_site -q
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./coverage.xml
+          flags: all-tests
+          name: python-3.11
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+
+  package:
+    name: Package build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install build tools
+        run: python -m pip install -e ".[dev]"
+      - name: Build package
+        run: python -m build
+      - name: Check wheel package contents
+        run: |
+          python - <<'PY'
+          import glob
+          import zipfile
+
+          wheels = glob.glob("dist/*.whl")
+          assert len(wheels) == 1, wheels
+          with zipfile.ZipFile(wheels[0]) as wheel:
+              names = wheel.namelist()
+              top_level_file = next(
+                  name for name in names if name.endswith(".dist-info/top_level.txt")
+              )
+              top_level = wheel.read(top_level_file).decode().splitlines()
+
+          assert top_level == ["drissionpage_mcp"], top_level
+          assert not any(name == "src/" or name.startswith("src/") for name in names)
+          PY
+      - name: Check package metadata
+        run: python -m twine check dist/*

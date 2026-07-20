@@ -6,6 +6,35 @@ import json
 from typing import Any
 
 
+def _form_control_helpers_script() -> str:
+    """Share scoped form and ARIA container lookup across form scripts."""
+
+    return r"""
+  function textOf(node) { return String(node && (node.innerText || node.textContent) || '').replace(/\s+/g, ' ').trim(); }
+  function cssString(value) { return String(value).split('\\').join('\\\\').replace(/"/g, '\\"'); }
+  function selectedForm() {
+    const xpath = formLocator.match(/^(?:xpath|x)[:=](.*)$/s); const css = formLocator.match(/^css[:=](.*)$/s); let node = null;
+    if (xpath) node = document.evaluate(xpath[1], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+    else node = document.querySelector(css ? css[1] : 'form');
+    if (!node) return null; return node.matches && node.matches('form') ? node : (node.querySelector && node.querySelector('form'));
+  }
+  function boundContainer(form, el) {
+    if (ariaContainerSelf) {
+      if (el.getAttribute('role') !== 'listbox') return {container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'};
+      return {container: el, reason: ''};
+    }
+    const ids = String(el.getAttribute('aria-controls') || '').split(/\s+/).concat(String(el.getAttribute('aria-owns') || '').split(/\s+/)).filter(Boolean);
+    if (!ariaContainerId || !ids.includes(ariaContainerId)) return {container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'};
+    const matches = Array.from(form.querySelectorAll('[id="' + cssString(ariaContainerId) + '"]'));
+    if (matches.length > 1) return {container: null, reason: 'ARIA_OPTION_CONTAINER_AMBIGUOUS'};
+    if (matches.length !== 1) return {container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'};
+    const container = matches[0];
+    if (!container.matches('[role="listbox"]') && !container.querySelector('[role="option"]')) return {container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'};
+    return {container, reason: ''};
+  }
+"""
+
+
 def _extract_links_script(
     *,
     locator: str,
@@ -503,28 +532,7 @@ def _form_fill_framework_script(
   const value = {json.dumps(value, ensure_ascii=False)};
   const ariaContainerId = {json.dumps(aria_container_id)};
   const ariaContainerSelf = {json.dumps(aria_container_self)};
-  function textOf(node) {{ return String(node && (node.innerText || node.textContent) || '').replace(/\\s+/g, ' ').trim(); }}
-  function cssString(value) {{ return String(value).split('\\\\').join('\\\\\\\\').replace(/"/g, '\\\\"'); }}
-  function selectedForm() {{
-    const xpath = formLocator.match(/^(?:xpath|x)[:=](.*)$/s); const css = formLocator.match(/^css[:=](.*)$/s); let node = null;
-    if (xpath) node = document.evaluate(xpath[1], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    else node = document.querySelector(css ? css[1] : 'form');
-    if (!node) return null; return node.matches && node.matches('form') ? node : (node.querySelector && node.querySelector('form'));
-  }}
-  function boundContainer(form, el) {{
-    if (ariaContainerSelf) {{
-      if (el.getAttribute('role') !== 'listbox') return {{container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'}};
-      return {{container: el, reason: ''}};
-    }}
-    const ids = String(el.getAttribute('aria-controls') || '').split(/\\s+/).concat(String(el.getAttribute('aria-owns') || '').split(/\\s+/)).filter(Boolean);
-    if (!ariaContainerId || !ids.includes(ariaContainerId)) return {{container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'}};
-    const matches = Array.from(form.querySelectorAll('[id="' + cssString(ariaContainerId) + '"]'));
-    if (matches.length > 1) return {{container: null, reason: 'ARIA_OPTION_CONTAINER_AMBIGUOUS'}};
-    if (matches.length !== 1) return {{container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'}};
-    const container = matches[0];
-    if (!container.matches('[role="listbox"]') && !container.querySelector('[role="option"]')) return {{container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'}};
-    return {{container, reason: ''}};
-  }}
+{_form_control_helpers_script()}
   const form = selectedForm(); if (!form) return {{reason: 'FORM_NOT_FOUND'}};
   const el = document.querySelector(selector); if (!el || !form.contains(el)) return {{reason: 'FIELD_NOT_MATCHED'}};
   if (action === 'framework_date_time') {{
@@ -580,28 +588,7 @@ def _form_fill_observe_script(
   const controlType = {json.dumps(control_type)};
   const ariaContainerId = {json.dumps(aria_container_id)};
   const ariaContainerSelf = {json.dumps(aria_container_self)};
-  function textOf(node) {{ return String(node && (node.innerText || node.textContent) || '').replace(/\\s+/g, ' ').trim(); }}
-  function cssString(value) {{ return String(value).split('\\\\').join('\\\\\\\\').replace(/"/g, '\\\\"'); }}
-  function selectedForm() {{
-    const xpath = formLocator.match(/^(?:xpath|x)[:=](.*)$/s); const css = formLocator.match(/^css[:=](.*)$/s); let node = null;
-    if (xpath) node = document.evaluate(xpath[1], document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-    else node = document.querySelector(css ? css[1] : 'form');
-    if (!node) return null; return node.matches && node.matches('form') ? node : (node.querySelector && node.querySelector('form'));
-  }}
-  function boundContainer(form, el) {{
-    if (ariaContainerSelf) {{
-      if (el.getAttribute('role') !== 'listbox') return {{container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'}};
-      return {{container: el, reason: ''}};
-    }}
-    const ids = String(el.getAttribute('aria-controls') || '').split(/\\s+/).concat(String(el.getAttribute('aria-owns') || '').split(/\\s+/)).filter(Boolean);
-    if (!ariaContainerId || !ids.includes(ariaContainerId)) return {{container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'}};
-    const matches = Array.from(form.querySelectorAll('[id="' + cssString(ariaContainerId) + '"]'));
-    if (matches.length > 1) return {{container: null, reason: 'ARIA_OPTION_CONTAINER_AMBIGUOUS'}};
-    if (matches.length !== 1) return {{container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'}};
-    const container = matches[0];
-    if (!container.matches('[role="listbox"]') && !container.querySelector('[role="option"]')) return {{container: null, reason: 'ARIA_OPTION_CONTAINER_MISSING'}};
-    return {{container, reason: ''}};
-  }}
+{_form_control_helpers_script()}
   const form = selectedForm(); if (!form) return {{reason: 'FORM_NOT_FOUND', value: null}};
   const el = document.querySelector(selector); if (!el || !form.contains(el)) return {{reason: 'FIELD_NOT_MATCHED', value: null}};
   if (['checkbox', 'radio'].includes(controlType)) return {{reason: '', value: Boolean(el.checked)}};

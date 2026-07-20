@@ -26,7 +26,6 @@ def test_repository_has_no_unresolved_merge_markers() -> None:
         *Path(".github").rglob("*.yml"),
         *Path("drissionpage_mcp").rglob("*.py"),
         *Path("tests").rglob("*.py"),
-        Path("CHANGELOG.md"),
         Path("README.md"),
         Path("README_CN.md"),
         Path(".gitignore"),
@@ -57,7 +56,7 @@ def test_independent_workflow_lint_catches_invalid_primary_ci() -> None:
 
 
 def test_ci_separates_required_quality_gates() -> None:
-    """keeps lint/unit/protocol/package/browser checks as separate jobs."""
+    """keeps quality gates separate without running browser integration twice."""
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     job_names = set(re.findall(r"^  ([a-z0-9_-]+):\n", workflow, re.MULTILINE))
@@ -70,40 +69,51 @@ def test_ci_separates_required_quality_gates() -> None:
         "benchmark",
         "coverage",
         "package",
-        "browser-integration",
     } <= job_names
+    assert "browser-integration" not in job_names
 
 
-def test_ci_browser_integration_is_not_manual_only() -> None:
-    """runs the browser integration job on push/PR with explicit skip handling."""
+def test_ci_enforces_pre_0_8_production_loc_budget() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    lint_job = workflow.split("  lint:\n", maxsplit=1)[1].split(
+        "\n  unit:\n", maxsplit=1
+    )[0]
+
+    assert "fetch-depth: 0" in lint_job
+    assert "BASELINE=e0b8805" in lint_job
+    assert "drissionpage_mcp/**/*.py" in lint_job
+    assert 'test "$NET_PRODUCTION_LOC" -le 200' in lint_job
+
+
+def test_ci_coverage_is_the_single_strict_browser_integration_gate() -> None:
+    """runs browser integration once while collecting release coverage."""
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
-    browser_job = workflow.split("  browser-integration:\n", maxsplit=1)[1]
+    coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
+        "\n  package:\n", maxsplit=1
+    )[0]
 
-    assert "github.event_name == 'workflow_dispatch'" not in browser_job
-    assert "tests/test_browser_integration.py" in browser_job
-    assert "chromium" in browser_job.lower()
-    assert "command -v google-chrome" in browser_job
-    assert "CHROME_PATH=$BROWSER_BIN" in browser_job
-    assert 'DP_HEADLESS: "1"' in browser_job
+    assert "python -m pytest tests/" in coverage_job
+    assert "chromium" in coverage_job.lower()
+    assert "command -v google-chrome" in coverage_job
+    assert "CHROME_PATH=$BROWSER_BIN" in coverage_job
+    assert 'DP_HEADLESS: "1"' in coverage_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
 
 
-def test_ci_browser_jobs_start_shared_drissionpage_test_site() -> None:
-    """keeps shared SSR test-site coverage wired into browser-capable jobs."""
+def test_ci_browser_gate_starts_shared_drissionpage_test_site_once() -> None:
+    """keeps one shared SSR test-site setup in the browser-capable job."""
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
-    for job_name, next_job in (
-        ("coverage", "package"),
-        ("browser-integration", None),
-    ):
-        job = workflow.split(f"  {job_name}:\n", maxsplit=1)[1]
-        if next_job is not None:
-            job = job.split(f"\n  {next_job}:\n", maxsplit=1)[0]
-        assert "repository: jumodada/DrissionPage-test-site" in job
-        assert "DP_TEST_SITE_URL: http://127.0.0.1:4321" in job
-        assert "npm run build" in job
-        assert "npm run dev -- --host 127.0.0.1 --port 4321" in job
-        assert "api/health.json" in job
+    coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
+        "\n  package:\n", maxsplit=1
+    )[0]
+    assert coverage_job.count("repository: jumodada/DrissionPage-test-site") == 1
+    assert coverage_job.count("npm run build") == 1
+    assert coverage_job.count("npm run dev -- --host 127.0.0.1 --port 4321") == 1
+    assert "DP_TEST_SITE_URL: http://127.0.0.1:4321" in coverage_job
+    assert "api/health.json" in coverage_job
+    assert workflow.count("repository: jumodada/DrissionPage-test-site") == 1
 
 
 def test_ci_private_shared_test_site_uses_secret_only() -> None:
@@ -115,14 +125,13 @@ def test_ci_private_shared_test_site_uses_secret_only() -> None:
     assert "vars.DP_TEST_SITE_URL" not in workflow
     assert "DP_TEST_SITE_URL: https://" not in workflow
 
-    for job_name, next_job in (("browser-integration", None),):
-        job = workflow.split(f"  {job_name}:\n", maxsplit=1)[1]
-        if next_job is not None:
-            job = job.split(f"\n  {next_job}:\n", maxsplit=1)[0]
-        assert "RUN_PRIVATE_TEST_SITE" in job
-        assert "github.event_name != 'pull_request'" in job
-        assert "DP_TEST_SITE_URL: ${{ secrets.DP_PRIVATE_FIXTURE_URL }}" in job
-        assert "::add-mask::" in job
+    coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
+        "\n  package:\n", maxsplit=1
+    )[0]
+    assert "RUN_PRIVATE_TEST_SITE" in coverage_job
+    assert "github.event_name != 'pull_request'" in coverage_job
+    assert "DP_TEST_SITE_URL: ${{ secrets.DP_PRIVATE_FIXTURE_URL }}" in coverage_job
+    assert "::add-mask::" in coverage_job
 
 
 def test_ci_uploads_xml_coverage_to_codecov() -> None:
@@ -148,9 +157,7 @@ def test_ci_checks_wheel_package_contents() -> None:
     """prevents broad compatibility shim packages from leaking into wheels."""
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
-    package_job = workflow.split("  package:\n", maxsplit=1)[1].split(
-        "\n  browser-integration:\n", maxsplit=1
-    )[0]
+    package_job = workflow.split("  package:\n", maxsplit=1)[1]
 
     assert "Check wheel package contents" in package_job
     assert 'top_level == ["drissionpage_mcp"]' in package_job
@@ -192,7 +199,6 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
         "\n  package:\n", maxsplit=1
     )[0]
-    browser_job = workflow.split("  browser-integration:\n", maxsplit=1)[1]
 
     assert "DrissionPage-test-site" not in benchmark_job
     assert "tests.evals.task_completion_benchmark" in benchmark_job
@@ -200,8 +206,8 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
     assert "tests.evals.task_completion_benchmark" not in coverage_job
-    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in browser_job
-    assert 'DP_MCP_REQUIRE_BROWSER: "0"' in coverage_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "0"' not in workflow
 
 
 def test_codecov_policy_matches_current_project_baseline() -> None:
