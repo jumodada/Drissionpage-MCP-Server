@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 from mcp.types import CallToolRequest, CallToolRequestParams
@@ -94,6 +95,29 @@ def test_plain_form_text_uses_one_native_input_payload() -> None:
         "1",
         "6",
     ]
+
+
+def test_plain_form_text_uses_platform_independent_clear_before_input() -> None:
+    element = SimpleNamespace(clear=Mock(), input=Mock())
+    form = SimpleNamespace(ele=lambda *_args, **_kwargs: element)
+    actions = SimpleNamespace(type=Mock())
+    page = SimpleNamespace(ele=lambda *_args, **_kwargs: form, actions=actions)
+    workflows = WorkflowOperations(SimpleNamespace(page=page))
+
+    workflows._apply_native_form_value(
+        form_selector="#validation-form",
+        target={
+            "relative_selector": "#employee-code",
+            "action": "native_input",
+            "control_type": "text",
+        },
+        value="DP-070",
+        deadline=1,
+    )
+
+    element.clear.assert_called_once_with(by_js=True)
+    element.input.assert_called_once_with("DP-070", clear=False)
+    actions.type.assert_called_once_with("\ue004")
 
 
 @pytest.mark.parametrize(

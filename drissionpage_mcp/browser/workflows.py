@@ -697,7 +697,9 @@ class WorkflowOperations:
 
         action = str(target["action"])
         if action == "native_input":
-            element.clear()
+            # DrissionPage 4.1 clears with a platform-specific key chord on Linux.
+            # Its JS path is consistent across platforms; real input still follows.
+            element.clear(by_js=True)
             element.input(
                 self._native_input_value(str(value), str(target["control_type"])),
                 clear=False,
