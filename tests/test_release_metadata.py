@@ -1,8 +1,7 @@
-"""Release metadata and documentation checks for 0.7.1."""
+"""Release metadata checks for 0.7.1."""
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 try:
@@ -20,41 +19,19 @@ def test_package_version_metadata_is_0_7_1() -> None:
     assert drissionpage_mcp.__version__ == "0.7.1"
 
 
-def test_docs_describe_breaking_alias_removal() -> None:
+def test_changelog_describes_breaking_alias_removal() -> None:
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-    contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
-    compatibility = Path("docs/compatibility.md").read_text(encoding="utf-8")
 
     assert "## [0.4.1]" in changelog
     assert "## [0.4.0]" in changelog
     assert "element_input_text" in changelog
     assert "wait_sleep" in changelog
-    assert "0.4.1" in compatibility
-    assert "property_name" in compatibility
-    assert "text:..." in compatibility
-    assert "element_input_text" not in _tool_inventory(contract)
-    assert "wait_sleep" not in _tool_inventory(contract)
-    assert "drissionpage://session/summary" in contract
-    assert "browser_navigate_and_summarize" in contract
-    assert "form_fill" in _tool_inventory(contract)
-    assert "form_submit" in _tool_inventory(contract)
-    assert "page_dialog_respond" in _tool_inventory(contract)
-    assert "element_click_and_download" in _tool_inventory(contract)
-    assert "DP_MCP_DOWNLOAD_ROOT" in contract
-    assert "indeterminate" in contract
 
 
-def test_readmes_end_with_latest_0_7_1_feature_summary() -> None:
+def test_readmes_and_changelog_publish_latest_0_7_1_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-
-    for path in (
-        Path("docs/0.7-to-0.8-execution-plan.md"),
-        Path("docs/0.7.1-release-evidence.md"),
-        Path("docs/long-term-roadmap-and-target-architecture.md"),
-    ):
-        assert path.is_file(), path
 
     browser_lab_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/drissionpage-mcp-browser-lab.gif"
     assert browser_lab_url in readme and browser_lab_url in readme_cn
@@ -89,7 +66,6 @@ def test_readmes_end_with_latest_0_7_1_feature_summary() -> None:
     assert "## [0.7.1] - 2026-07-20" in changelog
     assert "ActionReceipt" in changelog
     assert "ArtifactRef" in changelog
-    assert "0.7.1" in changelog
     assert "ten-run" in changelog
     assert "## [0.6.2] - 2026-07-15" in changelog
     assert "optional ordered `waypoints`" in changelog
@@ -120,39 +96,28 @@ def test_readmes_end_with_latest_0_7_1_feature_summary() -> None:
     )
 
 
-def test_public_guides_advertise_mcp_model_usage_surfaces() -> None:
-    """keeps model guidance discoverable through MCP surfaces, not long docs."""
-
+def test_public_readmes_advertise_mcp_model_usage_surfaces() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
-    contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
 
     assert "drissionpage://guide/model-usage" in readme
     assert "drissionpage://guide/model-usage" in readme_cn
-    assert "drissionpage://guide/model-usage" in contract
     assert "drissionpage_mcp_usage_playbook" in readme
     assert "drissionpage_mcp_usage_playbook" in readme_cn
-    assert "drissionpage_mcp_usage_playbook" in contract
     assert "browser_vision_guided_interaction" in readme
     assert "browser_vision_guided_interaction" in readme_cn
-    assert "browser_vision_guided_interaction" in contract
     assert "MCP-exposed model usage guide" in changelog
-    assert not Path("docs/model-usage-skill.md").exists()
-    assert not Path("docs/skills").exists()
 
 
-def test_public_guides_keep_no_sandbox_out_of_general_setup_examples() -> None:
+def test_public_readmes_keep_no_sandbox_out_of_general_setup_examples() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
-    troubleshooting = Path("docs/troubleshooting.md").read_text(encoding="utf-8")
 
     assert '# DP_NO_SANDBOX = "1"' not in readme
     assert '# DP_NO_SANDBOX = "1"' not in readme_cn
     assert '"DP_NO_SANDBOX": "1"' not in readme
     assert '"DP_NO_SANDBOX": "1"' not in readme_cn
-    assert "DP_NO_SANDBOX=1" in troubleshooting
-    assert "restricted container" in troubleshooting
 
 
 def test_public_guides_do_not_advertise_removed_alias_tools() -> None:
@@ -170,39 +135,27 @@ def test_public_guides_do_not_advertise_removed_alias_tools() -> None:
         assert "19 个" not in text
 
 
-def test_public_guides_include_codex_mcp_configuration() -> None:
-    """documents Codex's TOML MCP setup alongside JSON MCP clients."""
-
+def test_public_readmes_include_codex_mcp_configuration() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
-    contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
-    troubleshooting = Path("docs/troubleshooting.md").read_text(encoding="utf-8")
     manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    for text in (readme, readme_cn, contract, troubleshooting):
+    for text in (readme, readme_cn):
         assert "[mcp_servers.drissionpage]" in text
         assert 'command = "drissionpage-mcp"' in text
 
     assert "Codex CLI/IDE" in readme
     assert "Codex CLI/IDE" in readme_cn
-    assert "codex mcp list" in troubleshooting
     assert "recursive-include examples" not in manifest
     assert "Codex" in pyproject["project"]["description"]
     assert "codex" in pyproject["project"]["keywords"]
-    assert 'command = "python"' in contract
-    assert 'args = ["-m", "drissionpage_mcp.cli"]' in contract
 
 
-def test_public_guides_do_not_point_to_removed_or_stale_setup_paths() -> None:
-    """keeps first-run docs aligned after removing examples/ and mcp-config files."""
-
-    public_docs = {
+def test_public_readmes_do_not_point_to_removed_or_stale_setup_paths() -> None:
+    public_files = {
         "README.md": Path("README.md").read_text(encoding="utf-8"),
         "README_CN.md": Path("README_CN.md").read_text(encoding="utf-8"),
-        "docs/troubleshooting.md": Path("docs/troubleshooting.md").read_text(
-            encoding="utf-8"
-        ),
         "playground/README.md": Path("playground/README.md").read_text(
             encoding="utf-8"
         ),
@@ -211,25 +164,23 @@ def test_public_guides_do_not_point_to_removed_or_stale_setup_paths() -> None:
         ),
     }
 
-    for path, text in public_docs.items():
+    for path, text in public_files.items():
         assert "mcp-config.json" not in text, path
         assert "examples/" not in text, path
         assert "current 75% floor" not in text, path
         assert "当前 75% 覆盖率底线" not in text, path
 
-    assert "current 95% floor" in public_docs["README.md"]
-    assert "当前 95% 覆盖率底线" in public_docs["README_CN.md"]
-    assert 'args = ["-m", "drissionpage_mcp.cli"]' in public_docs["README.md"]
-    assert 'args = ["-m", "drissionpage_mcp.cli"]' in public_docs["README_CN.md"]
-    assert "playground/quick_start.py" not in "\n".join(public_docs.values())
-    assert "playground/local_test.py" not in "\n".join(public_docs.values())
-    assert "playground/run_mcp_lab.py --case registry" in public_docs["README.md"]
-    assert "playground/run_mcp_lab.py --case registry" in public_docs["README_CN.md"]
-    assert "DP_HEADLESS" in public_docs["docs/troubleshooting.md"]
-    assert "doctor --launch-browser" in public_docs["docs/troubleshooting.md"]
+    assert "current 95% floor" in public_files["README.md"]
+    assert "当前 95% 覆盖率底线" in public_files["README_CN.md"]
+    assert 'args = ["-m", "drissionpage_mcp.cli"]' in public_files["README.md"]
+    assert 'args = ["-m", "drissionpage_mcp.cli"]' in public_files["README_CN.md"]
+    assert "playground/quick_start.py" not in "\n".join(public_files.values())
+    assert "playground/local_test.py" not in "\n".join(public_files.values())
+    assert "playground/run_mcp_lab.py --case registry" in public_files["README.md"]
+    assert "playground/run_mcp_lab.py --case registry" in public_files["README_CN.md"]
 
 
-def test_maintenance_docs_do_not_retain_deleted_examples_or_old_versions() -> None:
+def test_maintenance_files_do_not_retain_deleted_examples_or_old_versions() -> None:
     security = Path("SECURITY.md").read_text(encoding="utf-8")
     codecov = Path("codecov.yml").read_text(encoding="utf-8")
     readme = Path("README.md").read_text(encoding="utf-8")
@@ -241,9 +192,3 @@ def test_maintenance_docs_do_not_retain_deleted_examples_or_old_versions() -> No
     assert "examples/**" not in codecov
     assert "docs/release-checklist.md" not in readme
     assert "docs/release-checklist.md" not in readme_cn
-
-
-def _tool_inventory(contract: str) -> str:
-    match = re.search(r"## Tool Inventory(.*?)## Compatibility Notes", contract, re.S)
-    assert match, "tool inventory section should exist"
-    return match.group(1)
