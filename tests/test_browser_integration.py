@@ -1,6 +1,7 @@
 """Browser integration tests using the deterministic local HTTP fixture."""
 
 from __future__ import annotations
+
 import asyncio
 import base64
 import json
@@ -10,9 +11,12 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 from urllib.request import urlopen
+
 import pytest
-from drissionpage_mcp.tools.base import ToolOutcome
+
+from drissionpage_mcp.browser.workflows import WorkflowOperations
 from drissionpage_mcp.server import DrissionPageMCPServer
+from drissionpage_mcp.tools.base import ToolOutcome
 from tests.fixtures.http_fixture import (
     TASK_COMPLETION_DOWNLOAD,
     TASK_COMPLETION_DOWNLOAD_SHA256,
@@ -936,7 +940,7 @@ async def test_mcp_form_fill_completes_native_and_rich_controls_with_receipt() -
             data = payload["data"]
             assert data["form_found"] is True
             assert data["requested_count"] == 13
-            assert data["filled_count"] == 13
+            assert data["filled_count"] == 13, data["fields"]
             assert data["failed_count"] == 0
             assert data["verified_count"] == 13
             results = {field["key"]: field for field in data["fields"]}
@@ -1004,6 +1008,62 @@ async def test_mcp_form_fill_completes_native_and_rich_controls_with_receipt() -
             assert "skills:change" in event_text
             assert "bio:input" in event_text
             assert "office:change" in event_text
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_form_fill_recovers_when_native_date_time_input_does_not_stick(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """falls back only after native date/time input fails live verification."""
+
+    original_apply = WorkflowOperations._apply_native_form_value
+
+    def drop_native_date_time_value(self: WorkflowOperations, **kwargs: Any) -> None:
+        target = kwargs["target"]
+        if target["control_type"] in {"date", "time"}:
+            return
+        original_apply(self, **kwargs)
+
+    monkeypatch.setattr(
+        WorkflowOperations,
+        "_apply_native_form_value",
+        drop_native_date_time_value,
+    )
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/form-rich"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            _content, payload = await _execute_tool(
+                server,
+                "form_fill",
+                {
+                    "form_selector": "#profile-form",
+                    "redact_values": False,
+                    "fields": {
+                        "Start date": "2026-07-16",
+                        "Start time": "09:30",
+                    },
+                },
+            )
+
+            fields = {item["key"]: item for item in payload["data"]["fields"]}
+            assert fields["Start date"]["observed_value"] == "2026-07-16"
+            assert fields["Start date"]["success"] is True
+            assert fields["Start time"]["observed_value"] == "09:30"
+            assert fields["Start time"]["success"] is True
+            _content, event_payload = await _execute_tool(
+                server, "element_get_text", {"selector": "#form-event-state"}
+            )
+            event_text = event_payload["data"]["text"]
+            assert "start-date:input" in event_text
+            assert "start-date:change" in event_text
+            assert "start-time:input" in event_text
+            assert "start-time:change" in event_text
     finally:
         await server.cleanup()
 
@@ -1080,7 +1140,7 @@ async def test_mcp_form_fill_updates_controlled_state_and_validation_evidence() 
             )
             assert controlled_payload["ok"] is True
             controlled = controlled_payload["data"]["fields"][0]
-            assert controlled["success"] is True
+            assert controlled["success"] is True, controlled
             assert controlled["verified"] is True
             assert controlled["observed_value"] == "Ada Controlled"
             _content, rendered_payload = await _execute_tool(
@@ -1107,7 +1167,7 @@ async def test_mcp_form_fill_updates_controlled_state_and_validation_evidence() 
                 },
             )
             invalid_field = invalid_payload["data"]["fields"][0]
-            assert invalid_field["success"] is True
+            assert invalid_field["success"] is True, invalid_field
             assert invalid_field["verified"] is True
             assert invalid_field["observed_value"] == "wrong"
             _content, invalid_inspect = await _execute_tool(
@@ -1130,7 +1190,7 @@ async def test_mcp_form_fill_updates_controlled_state_and_validation_evidence() 
                 },
             )
             corrected = corrected_payload["data"]["fields"][0]
-            assert corrected["success"] is True
+            assert corrected["success"] is True, corrected
             assert corrected["verified"] is True
             assert corrected["observed_value"] == "DP-070"
             _content, valid_inspect = await _execute_tool(
@@ -1272,6 +1332,9 @@ async def test_mcp_form_submit_classifies_client_and_server_validation_then_reco
                 },
             )
             assert server_fill["ok"] is True
+            assert server_fill["data"]["fields"][0]["success"] is True, server_fill[
+                "data"
+            ]["fields"][0]
             _content, server_failure = await _execute_tool(
                 server,
                 "form_submit",
@@ -1291,7 +1354,7 @@ async def test_mcp_form_submit_classifies_client_and_server_validation_then_reco
             assert any(
                 message["source"] == "server" and message["code"] == "SERVER_VALIDATION"
                 for message in server_failure["data"]["validation_messages"]
-            )
+            ), server_failure["data"]["validation_messages"]
             assert _json(base_url + "/__fixture__/state")["counters"] == {
                 "validation_attempted_requests": 1
             }

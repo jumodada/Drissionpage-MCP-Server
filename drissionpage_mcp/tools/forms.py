@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Literal, cast
 from urllib.parse import urlsplit, urlunsplit
@@ -181,7 +182,8 @@ async def form_fill(
             verify=args.verify,
             timeout=args.timeout,
         )
-    except Exception:
+    except (asyncio.CancelledError, Exception) as exc:
+        cancelled = isinstance(exc, asyncio.CancelledError)
         failed_receipt = ActionReceipt(
             action_id=action_id,
             task_id=context.task_id,
@@ -189,11 +191,13 @@ async def form_fill(
             request_fingerprint=fingerprint,
             kind="form_fill",
             side_effect="local_ui_mutation",
-            status="failed",
+            status="indeterminate" if cancelled else "failed",
             started_at=started_at,
             finished_at=datetime.now(timezone.utc),
             tab_id=tab.mcp_tab_id or "untracked-tab",
-            error_code="INTERACTION_FAILED",
+            error_code=(
+                "FORM_FILL_INDETERMINATE" if cancelled else "INTERACTION_FAILED"
+            ),
             redacted=True,
         )
         context.complete_operation(claim, failed_receipt)
@@ -303,8 +307,12 @@ async def form_submit(
             resolved=resolved,
             expect=args.expect,
         )
-    except Exception as exc:
-        triggered = bool(getattr(exc, "triggered", True))
+    except (asyncio.CancelledError, Exception) as exc:
+        cancelled = isinstance(exc, asyncio.CancelledError)
+        triggered = True if cancelled else bool(getattr(exc, "triggered", True))
+        error_code = (
+            "SUBMISSION_CANCELLED" if cancelled else "SUBMISSION_WORKFLOW_FAILED"
+        )
         result = {
             "status": "indeterminate",
             "triggered": triggered,
@@ -313,7 +321,7 @@ async def form_submit(
             "validation_messages": [],
             "preconditions": [],
             "postconditions": [],
-            "error_code": "SUBMISSION_WORKFLOW_FAILED",
+            "error_code": error_code,
         }
         failed_receipt = ActionReceipt(
             action_id=action_id,
@@ -327,7 +335,7 @@ async def form_submit(
             finished_at=datetime.now(timezone.utc),
             tab_id=tab.mcp_tab_id or "untracked-tab",
             target_fingerprint=target_fingerprint,
-            error_code="SUBMISSION_WORKFLOW_FAILED",
+            error_code=error_code,
             redacted=True,
         )
         data = _form_submit_data(
@@ -338,6 +346,8 @@ async def form_submit(
             tab=tab,
         )
         context.complete_operation(claim, failed_receipt, result=data)
+        if cancelled:
+            raise
         outcome.add_result(
             (
                 "Form submission outcome is indeterminate; no automatic resubmission was attempted"

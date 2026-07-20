@@ -20,8 +20,8 @@ from ..page_scripts import (
     _form_submit_resolve_script,
     _form_submit_state_script,
 )
-from ..selector import normalize_selector
 from ..response_errors import ErrorCode
+from ..selector import normalize_selector
 from ..tool_outputs import ConditionEvaluation, Expectation
 from ._scripts import run_structured_script
 
@@ -260,21 +260,12 @@ class WorkflowOperations:
                         deadline=deadline,
                     )
                 else:
-                    fallback = run_structured_script(
-                        self._page,
-                        _form_fill_framework_script(
-                            form_locator=plan.locator,
-                            selector=str(target["selector"]),
-                            action=action,
-                            value=value,
-                            aria_container_id=str(
-                                target.get("aria_container_id") or ""
-                            ),
-                            aria_container_self=bool(target.get("aria_container_self")),
-                        ),
-                        "form fill fallback script returned no structured data",
+                    interaction_error = self._apply_framework_form_value(
+                        form_locator=plan.locator,
+                        target=target,
+                        action=action,
+                        value=value,
                     )
-                    interaction_error = str(fallback.get("reason") or "")
             except Exception:
                 logger.debug("Form field interaction failed", exc_info=True)
                 interaction_error = "INTERACTION_FAILED"
@@ -294,15 +285,52 @@ class WorkflowOperations:
                 observation = {"reason": "INTERACTION_FAILED", "value": None}
             observation_error = str(observation.get("reason") or "")
             actual = observation.get("value")
-            reason = interaction_error or observation_error
             matches = self._form_value_matches(value, actual, control_type)
-            verified = not reason and (not verify or matches)
-            if not reason and not verified:
-                reason = "VERIFICATION_FAILED"
+            if (
+                control_type in {"date", "time"}
+                and not observation_error
+                and not matches
+                and monotonic() < deadline
+            ):
+                try:
+                    fallback_error = self._apply_framework_form_value(
+                        form_locator=plan.locator,
+                        target=target,
+                        action="framework_date_time",
+                        value=value,
+                    )
+                    if not fallback_error:
+                        interaction_error = ""
+                        await self._tab._stabilize(
+                            "form_fill_date_time_fallback",
+                            timeout=min(max(deadline - monotonic(), 0), 0.5),
+                        )
+                        observation = await self._observe_form_value(
+                            form_locator=plan.locator,
+                            target=target,
+                            requested=value,
+                            deadline=deadline,
+                        )
+                        observation_error = str(observation.get("reason") or "")
+                        actual = observation.get("value")
+                        matches = self._form_value_matches(value, actual, control_type)
+                    elif not interaction_error:
+                        interaction_error = fallback_error
+                except Exception:
+                    logger.debug("Date/time form fallback failed", exc_info=True)
+                    if not interaction_error:
+                        interaction_error = "INTERACTION_FAILED"
+
+            reason = interaction_error or observation_error
+            success, verified, reason = self._classify_form_value(
+                reason=reason,
+                matches=matches,
+                verify=verify,
+            )
             results.append(
                 {
                     **base,
-                    "success": not reason and verified,
+                    "success": success,
                     "reason": reason,
                     "observed_value": "<redacted>" if redact else actual,
                     "verified": verified,
@@ -700,6 +728,30 @@ class WorkflowOperations:
             else:
                 raise RuntimeError(f"Unknown native select mode: {mode}")
 
+    def _apply_framework_form_value(
+        self,
+        *,
+        form_locator: str,
+        target: Mapping[str, Any],
+        action: str,
+        value: str | bool | list[str],
+    ) -> str:
+        """Apply one scoped JavaScript fallback and return its reason code."""
+
+        result = run_structured_script(
+            self._page,
+            _form_fill_framework_script(
+                form_locator=form_locator,
+                selector=str(target["selector"]),
+                action=action,
+                value=value,
+                aria_container_id=str(target.get("aria_container_id") or ""),
+                aria_container_self=bool(target.get("aria_container_self")),
+            ),
+            "form fill fallback script returned no structured data",
+        )
+        return str(result.get("reason") or "")
+
     async def _observe_form_value(
         self,
         *,
@@ -750,7 +802,7 @@ class WorkflowOperations:
                     sequence.append(right)
                 sequence.extend(part)
             return sequence
-        return list(value)
+        return value
 
     @staticmethod
     def _form_value_matches(
@@ -765,6 +817,20 @@ class WorkflowOperations:
         if control_type in {"combobox", "listbox"}:
             return str(actual).lower() == requested.lower()
         return str(actual) == requested
+
+    @staticmethod
+    def _classify_form_value(
+        *, reason: str, matches: bool, verify: bool
+    ) -> tuple[bool, bool, str]:
+        """Separate interaction success from optional value verification."""
+
+        if reason:
+            return False, False, reason
+        if matches:
+            return True, True, ""
+        if verify:
+            return False, False, "VERIFICATION_FAILED"
+        return True, False, ""
 
     @staticmethod
     def _field_result(

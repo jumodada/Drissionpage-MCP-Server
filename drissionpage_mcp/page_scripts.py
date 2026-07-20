@@ -527,6 +527,17 @@ def _form_fill_framework_script(
   }}
   const form = selectedForm(); if (!form) return {{reason: 'FORM_NOT_FOUND'}};
   const el = document.querySelector(selector); if (!el || !form.contains(el)) return {{reason: 'FIELD_NOT_MATCHED'}};
+  if (action === 'framework_date_time') {{
+    const type = String(el.type || el.getAttribute('type') || '').toLowerCase();
+    if (el.tagName !== 'INPUT' || !['date', 'time'].includes(type)) return {{reason: 'UNSUPPORTED_CONTROL'}};
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    if (!descriptor || typeof descriptor.set !== 'function') return {{reason: 'VALUE_SETTER_UNAVAILABLE'}};
+    el.focus();
+    descriptor.set.call(el, String(value));
+    el.dispatchEvent(new Event('input', {{bubbles: true, composed: true}}));
+    el.dispatchEvent(new Event('change', {{bubbles: true, composed: true}}));
+    return {{reason: ''}};
+  }}
   if (action === 'framework_contenteditable') {{
     if (!el.isContentEditable) return {{reason: 'UNSUPPORTED_CONTROL'}};
     el.focus();
