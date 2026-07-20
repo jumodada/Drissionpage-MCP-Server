@@ -11,10 +11,49 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
     import tomli as tomllib
 
 CI_WORKFLOW = Path(".github/workflows/ci.yml")
+WORKFLOW_LINT = Path(".github/workflows/workflow-lint.yml")
 CODECOV_CONFIG = Path("codecov.yml")
 MANIFEST = Path("MANIFEST.in")
 PYPROJECT = Path("pyproject.toml")
 README_FILES = (Path("README.md"), Path("README_CN.md"))
+
+
+def test_repository_has_no_unresolved_merge_markers() -> None:
+    """prevents conflicted source or workflow files from being committed."""
+
+    markers = ("<<<<<<< ", "=======", ">>>>>>> ")
+    paths = [
+        *Path(".github").rglob("*.yml"),
+        *Path("drissionpage_mcp").rglob("*.py"),
+        *Path("tests").rglob("*.py"),
+        Path("CHANGELOG.md"),
+        Path("README.md"),
+        Path("README_CN.md"),
+        Path(".gitignore"),
+    ]
+    conflicts = [
+        str(path)
+        for path in paths
+        if path.is_file()
+        and any(
+            line.startswith(markers)
+            for line in path.read_text(encoding="utf-8").splitlines()
+        )
+    ]
+
+    assert conflicts == []
+
+
+def test_independent_workflow_lint_catches_invalid_primary_ci() -> None:
+    """keeps syntax validation runnable when the primary workflow is invalid."""
+
+    workflow = WORKFLOW_LINT.read_text(encoding="utf-8")
+
+    assert "rhysd/actionlint:1.7.7" in workflow
+    assert "git grep -nE" in workflow
+    assert "<<<<<<< " in workflow
+    assert ".github" in workflow
+    assert "pull_request:" in workflow
 
 
 def test_ci_separates_required_quality_gates() -> None:
@@ -28,6 +67,7 @@ def test_ci_separates_required_quality_gates() -> None:
         "unit",
         "protocol",
         "evals",
+        "benchmark",
         "coverage",
         "package",
         "browser-integration",
@@ -43,6 +83,7 @@ def test_ci_browser_integration_is_not_manual_only() -> None:
     assert "github.event_name == 'workflow_dispatch'" not in browser_job
     assert "tests/test_browser_integration.py" in browser_job
     assert "chromium" in browser_job.lower()
+    assert "command -v google-chrome" in browser_job
     assert "CHROME_PATH=$BROWSER_BIN" in browser_job
     assert 'DP_HEADLESS: "1"' in browser_job
 
@@ -74,10 +115,7 @@ def test_ci_private_shared_test_site_uses_secret_only() -> None:
     assert "vars.DP_TEST_SITE_URL" not in workflow
     assert "DP_TEST_SITE_URL: https://" not in workflow
 
-    for job_name, next_job in (
-        ("coverage", "package"),
-        ("browser-integration", None),
-    ):
+    for job_name, next_job in (("browser-integration", None),):
         job = workflow.split(f"  {job_name}:\n", maxsplit=1)[1]
         if next_job is not None:
             job = job.split(f"\n  {next_job}:\n", maxsplit=1)[0]
@@ -145,16 +183,25 @@ def test_distribution_does_not_publish_src_compat_shim() -> None:
     assert not Path("src").exists()
 
 
-def test_browser_jobs_require_browser_after_installing_chromium() -> None:
+def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
-    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in workflow
+    benchmark_job = workflow.split("  benchmark:\n", maxsplit=1)[1].split(
+        "\n  coverage:\n", maxsplit=1
+    )[0]
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
         "\n  package:\n", maxsplit=1
     )[0]
     browser_job = workflow.split("  browser-integration:\n", maxsplit=1)[1]
+
+    assert "DrissionPage-test-site" not in benchmark_job
+    assert "tests.evals.task_completion_benchmark" in benchmark_job
+    assert "command -v google-chrome" in benchmark_job
+    assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
+    assert "tests.evals.task_completion_benchmark" not in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in browser_job
-    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "0"' in coverage_job
 
 
 def test_codecov_policy_matches_current_project_baseline() -> None:
@@ -176,7 +223,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.7.0"
+    assert version == "0.7.1"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")
@@ -190,6 +237,16 @@ def test_ci_runs_0_4_0_resource_prompt_and_eval_gates() -> None:
     assert "tests/test_mcp_resources.py" in workflow
     assert "tests/test_mcp_prompts.py" in workflow
     assert "python -m pytest tests/evals -q" in workflow
+    assert "tests.evals.task_completion_benchmark" in workflow
+    assert "--iterations 10" in workflow
+    benchmark_job = workflow.split("  benchmark:\n", maxsplit=1)[1].split(
+        "\n  coverage:\n", maxsplit=1
+    )[0]
+    benchmark_upload = benchmark_job.split(
+        "- name: Upload task-completion benchmark", 1
+    )[1]
+    assert "if: always()" in benchmark_upload.split("- name:", 1)[0]
+    assert "if-no-files-found: warn" in benchmark_upload
 
 
 def test_security_policy_and_ci_document_0_4_0_controls() -> None:

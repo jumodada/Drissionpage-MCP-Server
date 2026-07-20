@@ -97,6 +97,46 @@ jobs:
       - name: Run deterministic evals
         run: python -m pytest tests/evals -q
 
+  benchmark:
+    name: W01-W08 reliability benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Locate Chrome or Chromium
+        run: |
+          BROWSER_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER_BIN" ]; then
+            sudo apt-get update
+            sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+            BROWSER_BIN="$(command -v chromium || command -v chromium-browser || true)"
+          fi
+          test -n "$BROWSER_BIN"
+          echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
+          "$BROWSER_BIN" --version
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Run W01-W08 ten-run reliability benchmark
+        env:
+          DP_HEADLESS: "1"
+          DP_NO_SANDBOX: "1"
+          DP_MCP_REQUIRE_BROWSER: "1"
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          python -m tests.evals.task_completion_benchmark \
+            --iterations 10 \
+            --output benchmark-results/0.7.1-task-completion.json
+      - name: Upload task-completion benchmark
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 0.7.1-task-completion-benchmark
+          path: benchmark-results/0.7.1-task-completion.json
+          if-no-files-found: warn
+
   coverage:
     name: Coverage and Codecov
     runs-on: ubuntu-latest
@@ -104,7 +144,6 @@ jobs:
       contents: read
     env:
       DP_TEST_SITE_URL: http://127.0.0.1:4321
-      RUN_PRIVATE_TEST_SITE: ${{ github.event_name != 'pull_request' && secrets.DP_PRIVATE_FIXTURE_URL != '' }}
     steps:
       - uses: actions/checkout@v4
       - name: Checkout shared DrissionPage test site
@@ -116,11 +155,14 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - name: Install Chromium
+      - name: Locate Chrome or Chromium
         run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
-          BROWSER_BIN="$(command -v chromium-browser || command -v chromium || true)"
+          BROWSER_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER_BIN" ]; then
+            sudo apt-get update
+            sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+            BROWSER_BIN="$(command -v chromium || command -v chromium-browser || true)"
+          fi
           test -n "$BROWSER_BIN"
           echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
           "$BROWSER_BIN" --version
@@ -154,44 +196,12 @@ jobs:
         env:
           DP_HEADLESS: "1"
           DP_NO_SANDBOX: "1"
-          DP_MCP_REQUIRE_BROWSER: "1"
+          DP_MCP_REQUIRE_BROWSER: "0"
         run: |
           python -m pytest tests/ \
             --cov=drissionpage_mcp \
             --cov-report=term-missing \
             --cov-report=xml:coverage.xml
-      - name: Run private shared DrissionPage test-site smoke
-        if: ${{ env.RUN_PRIVATE_TEST_SITE == 'true' }}
-        env:
-          DP_HEADLESS: "1"
-          DP_NO_SANDBOX: "1"
-          DP_MCP_REQUIRE_BROWSER: "1"
-          DP_TEST_SITE_URL: ${{ secrets.DP_PRIVATE_FIXTURE_URL }}
-        run: |
-          python - <<'PY'
-          import os
-          from urllib.parse import parse_qsl, urlsplit
-
-          url = os.environ["DP_TEST_SITE_URL"].strip()
-          parsed = urlsplit(url)
-          tokens = {url, parsed.netloc}
-          if parsed.scheme and parsed.netloc:
-              tokens.add(f"{parsed.scheme}://{parsed.netloc}")
-          for key, value in parse_qsl(parsed.query, keep_blank_values=True):
-              key = key.lower()
-              if value and (
-                  len(value) > 12
-                  or "secret" in key
-                  or "token" in key
-                  or "key" in key
-                  or "bypass" in key
-                  or "sig" in key
-              ):
-                  tokens.add(value)
-          for token in sorted(token for token in tokens if token):
-              print(f"::add-mask::{token}")
-          PY
-          python -m pytest tests/test_browser_integration.py -k shared_drissionpage_test_site -q
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:
@@ -252,11 +262,14 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - name: Install Chromium
+      - name: Locate Chrome or Chromium
         run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
-          BROWSER_BIN="$(command -v chromium-browser || command -v chromium || true)"
+          BROWSER_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER_BIN" ]; then
+            sudo apt-get update
+            sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+            BROWSER_BIN="$(command -v chromium || command -v chromium-browser || true)"
+          fi
           test -n "$BROWSER_BIN"
           echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
           "$BROWSER_BIN" --version

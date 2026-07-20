@@ -1,0 +1,30 @@
+name: Workflow lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    name: Workflow syntax and merge markers
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject unresolved merge markers
+        run: |
+          if git grep -nE '^(<<<<<<< |=======|>>>>>>> )' -- \
+            .github drissionpage_mcp tests \
+            .gitignore CHANGELOG.md README.md README_CN.md; then
+            exit 1
+          fi
+      - name: Validate GitHub Actions workflows
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" \
+            --workdir /repo \
+            rhysd/actionlint:1.7.7

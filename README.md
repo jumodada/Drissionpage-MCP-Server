@@ -14,7 +14,7 @@
 
 ## 🖱️ Vision-Guided Human–Computer Interaction
 
-**DrissionPage MCP 0.7.0 closes the ordinary browser-work loop for multimodal AI:** it combines structured form completion, evidence-backed submission, browser dialog handling, and integrity-checked downloads with the existing vision-guided interaction layer.
+**DrissionPage MCP 0.7.1 validates the ordinary browser-work loop for multimodal AI:** the 62-tool surface now has a reproducible W01-W08 benchmark for structured forms, evidence-backed submissions, browser dialogs, popups, downloads, and exact click/keyboard behavior.
 
 > **One MCP call connects visual understanding to real browser interaction.** The model identifies where to act; DrissionPage MCP handles how the pointer gets there and performs the click.
 
@@ -72,7 +72,7 @@ Designed for legitimate UI automation, testing, accessibility workflows, and tec
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Structured, deterministic automation remains the default through 62 tools plus MCP Resources/Prompts. Version 0.7.0 adds autonomous form completion, side-effect receipts, native dialog response, enriched click semantics, and safe download artifacts. When selectors or accessibility metadata are insufficient, the optional **vision-guided human–computer interaction layer** converts viewport coordinates and bounded drag paths into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+Structured, deterministic automation remains the default through 62 tools plus MCP Resources/Prompts. Version 0.7.1 keeps that public surface fixed, hardens repeated form input across Linux/macOS, and adds a ten-run task-completion benchmark without introducing 0.8 data features. When selectors or accessibility metadata are insufficient, the optional **vision-guided human–computer interaction layer** converts viewport coordinates and bounded drag paths into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -425,7 +425,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.7.0`.
+Should output the installed package version, for example `drissionpage-mcp 0.7.1`.
 
 ### Browser Issues?
 ```bash
@@ -454,13 +454,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.7.0 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.7.1 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.7.0)
+### Current (v0.7.1)
 - [x] 62 core automation, task-completion, tab/frame/shadow, page-understanding, workflow, network-listener, session-state, and console-observability tools with removed alias surface
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -474,6 +474,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Workflow helpers with `browser_open_and_snapshot`, `browser_extract_links`, and the no-submit compatibility tool `form_fill_preview`
 - [x] Verified `form_fill` plus operation-key-aware `form_submit` with typed `ActionReceipt` evidence and no blind resubmission after ambiguity
 - [x] Capability-probed `page_dialog_respond`, additive double/context click behavior, and `element_click_and_download` with safe `ArtifactRef` metadata
+- [x] Reproducible W01-W08 public-tool benchmark with ten isolated runs per workload, machine-readable evidence, and zero duplicate side effects
 - [x] Network listener beta with `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation
 - [x] Natural `page_pointer_move`, `page_pointer_drag`, and `page_click_xy` action chains with cubic Bézier motion, smoothstep easing, bounded jitter, reaction delay, and realistic button hold time
 - [x] Optional bounded `page_pointer_drag.waypoints` for one held multi-segment canvas, map, box-selection, or visual-editor gesture
@@ -617,14 +618,12 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.7.0
+## 🆕 Latest Version: v0.7.1
 
-Released on 2026-07-18. This release closes the first authorized task-completion loop while preserving existing tool contracts:
+Released on 2026-07-20. This release validates and stabilizes the 0.7 task-completion boundary without adding public tools:
 
-- `form_fill` handles native and rich controls with genuine interaction semantics, per-field verification, and secret redaction.
-- `form_submit` performs one authorized submission with an `operation_key`, bounded postcondition evidence, and typed `ActionReceipt`; ambiguous outcomes are never blindly resubmitted.
-- `page_dialog_respond` handles pending alerts, confirms, and prompts through a capability-probed native path.
-- `element_click` additively supports right/middle buttons and double-click semantics without changing existing defaults.
-- `element_click_and_download` correlates one native click with one completed artifact, checksum, safe relative path, and `ArtifactRef`; replaying the same operation key never clicks again.
-- The public registry now exposes 62 tools with strict input schemas and typed output envelopes.
-- The ten-run W01-W08 reliability benchmark and remaining coverage/stability hardening are explicitly scheduled for 0.7.1; 0.7.0 does not claim that threshold.
+- Repeated native text replacement now uses one platform-independent clear path before real input, eliminating the Linux headless stale-value failure.
+- W01-W08 run through the public MCP tool path for rich forms, controlled input, validation recovery, upload/submit, dialogs, popups, downloads, and click/keyboard semantics.
+- The [local release evidence](docs/0.7.1-release-evidence.md) records 80/80 workload runs with zero duplicate submissions or downloads; CI repeats the ten-run benchmark on Ubuntu headless Chromium and uploads the JSON report.
+- The public registry remains at 62 tools. No table/grid extraction, `PageModel`, public `TargetRef`, checkpoint runtime, planner, or workflow DSL was added.
+- `TaskContext.retry_limit` remains compatibility metadata for future explicit retry lineage; 0.7.1 does not perform automatic retries.

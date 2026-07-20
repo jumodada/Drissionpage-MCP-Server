@@ -14,7 +14,7 @@
 
 ## 🖱️ 视觉驱动的人机交互
 
-**DrissionPage MCP 0.7.0 为多模态 AI 打通普通浏览器工作的闭环：** 在现有视觉交互层上，增加结构化表单完成、带证据的提交、浏览器对话框处理和完整性校验下载。
+**DrissionPage MCP 0.7.1 验证了多模态 AI 的普通浏览器工作闭环：** 保持 62 个工具不变，并为结构化表单、带证据提交、浏览器弹窗、popup、下载和精确点击/键盘行为提供可复现的 W01-W08 benchmark。
 
 > **一次 MCP 调用即可连接视觉理解与真实浏览器交互。** 模型负责判断“在哪里操作”，DrissionPage MCP 负责决定“鼠标如何移动过去并完成点击”。
 
@@ -72,7 +72,7 @@ page_click_xy(profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-项目仍以 62 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径。0.7.0 新增自主表单完成、副作用回执、原生对话框响应、增强点击语义和安全下载产物；当 selector 或 accessibility metadata 不足时，可选的**视觉驱动人机交互层**会把 viewport 坐标和有界拖拽路径转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
+项目仍以 62 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径。0.7.1 固定公共工具面，修复 Linux/macOS 重复表单输入差异，并增加每项十轮的任务完成 benchmark，不提前引入 0.8 数据能力；当 selector 或 accessibility metadata 不足时，可选的**视觉驱动人机交互层**会把 viewport 坐标和有界拖拽路径转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -425,7 +425,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.7.0`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.7.1`。
 
 ### 浏览器问题？
 ```bash
@@ -454,13 +454,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.7.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.7.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.7.0)
+### 当前版本 (v0.7.1)
 - [x] 62 个核心自动化、任务完成、标签页/iframe/shadow、页面理解、工作流、网络监听与 console 可观察性工具，已移除 alias 工具面
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -474,6 +474,7 @@ which chromium         # macOS
 - [x] Workflow helper：`browser_open_and_snapshot`、`browser_extract_links`，以及保持不提交语义的兼容工具 `form_fill_preview`
 - [x] 可验证的 `form_fill` 与 operation-key 感知的 `form_submit`，返回 typed `ActionReceipt`，歧义结果不会盲目重复提交
 - [x] 能力探测后的 `page_dialog_respond`、兼容扩展的双击/右键语义，以及返回安全 `ArtifactRef` 的 `element_click_and_download`
+- [x] 可复现的 W01-W08 公共工具 benchmark，每个工作负载运行十轮，保存机器可读证据且重复副作用为零
 - [x] Network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，用于 HTTP/XHR/Fetch 观察
 - [x] `page_pointer_move`、`page_pointer_drag` 与 `page_click_xy` 自然指针动作链：三次贝塞尔轨迹、smoothstep 缓动、有界抖动、反应延迟和真实按键停留
 - [x] 有界的可选 `page_pointer_drag.waypoints`，在一次按住手势中完成画布路径、地图操作、框选或可视化编辑器连线
@@ -617,14 +618,12 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.7.0
+## 🆕 最新版本：v0.7.1
 
-发布日期：2026-07-18。本版本在保持现有工具合同的前提下，打通第一阶段已授权任务完成闭环：
+发布日期：2026-07-20。本版本不增加公共工具，专注验证和稳定 0.7 任务完成边界：
 
-- `form_fill` 以真实交互语义处理原生和富控件，并提供逐字段验证和秘密脱敏。
-- `form_submit` 使用 `operation_key` 执行一次已授权提交，返回有界 postcondition 证据和 typed `ActionReceipt`；歧义结果不会盲目重复提交。
-- `page_dialog_respond` 通过能力探测后的原生路径处理待处理 alert、confirm 和 prompt。
-- `element_click` 兼容扩展右键、中键和双击语义，现有默认值不变。
-- `element_click_and_download` 将一次原生点击与一份完成产物、校验和、安全相对路径和 `ArtifactRef` 关联；相同 operation key 重放不会再次点击。
-- 公开工具数现为 62 个，并继续使用严格输入 schema 和 typed output envelope。
-- W01-W08 每项十轮的可靠性 benchmark 与剩余 coverage/稳定性硬化明确安排到 0.7.1；0.7.0 不声明已达到该阈值。
+- 原生文本重复填写统一采用跨平台清空路径后再执行真实输入，消除 Linux headless 旧值残留问题。
+- W01-W08 通过公共 MCP 工具路径覆盖富表单、controlled input、验证恢复、上传提交、弹窗、popup、下载和点击/键盘语义。
+- [本地发布证据](docs/0.7.1-release-evidence.md)记录 80/80 次工作负载运行，重复提交和下载为零；CI 会在 Ubuntu headless Chromium 上重复十轮并上传 JSON 报告。
+- 公开工具数保持 62 个，没有提前增加 table/grid、`PageModel`、公共 `TargetRef`、checkpoint runtime、planner 或 workflow DSL。
+- `TaskContext.retry_limit` 仅保留为未来显式 retry lineage 的兼容元数据；0.7.1 不执行自动重试。
