@@ -17,18 +17,14 @@ from tests.fixtures.http_fixture import (
     TASK_COMPLETION_SCENARIOS,
     local_http_fixture,
 )
-
-
-WORKLOAD_TOOL_REQUIREMENTS = {
-    "W01": frozenset({"form_fill", "form_submit"}),
-    "W02": frozenset({"form_fill", "form_submit"}),
-    "W03": frozenset({"form_fill", "form_submit"}),
-    "W04": frozenset({"element_upload_file", "form_fill", "form_submit"}),
-    "W05": frozenset({"element_click", "page_dialog_respond"}),
-    "W06": frozenset({"element_click", "tab_list", "tab_switch"}),
-    "W07": frozenset({"element_click_and_download"}),
-    "W08": frozenset({"element_click", "keyboard_press"}),
-}
+from tests.evals.task_completion_benchmark import (
+    SIDE_EFFECT_BASELINES,
+    WORKLOAD_TOOL_REQUIREMENTS,
+    WORKLOADS,
+    _console_report,
+    _side_effect_evidence,
+    _summarize,
+)
 
 
 def test_eval_task_completion_catalog_covers_eight_workloads() -> None:
@@ -38,10 +34,72 @@ def test_eval_task_completion_catalog_covers_eight_workloads() -> None:
         f"W{index:02d}" for index in range(1, 9)
     }
     assert set(WORKLOAD_TOOL_REQUIREMENTS) == {f"W{index:02d}" for index in range(1, 9)}
+    assert set(WORKLOADS) == set(WORKLOAD_TOOL_REQUIREMENTS)
     assert len({scenario.route for scenario in TASK_COMPLETION_SCENARIOS}) == 9
     assert (
         len({scenario.terminal_selector for scenario in TASK_COMPLETION_SCENARIOS}) == 9
     )
+
+
+def test_eval_task_completion_summary_requires_nine_of_ten_without_duplicates() -> None:
+    results = [
+        {
+            "workload_id": workload_id,
+            "success": iteration != 10,
+            "tool_call_count": 2,
+            "duplicate_count": 0,
+        }
+        for workload_id in WORKLOADS
+        for iteration in range(1, 11)
+    ]
+
+    summary = _summarize(results, 10)
+
+    assert summary["passed"] is True
+    assert summary["total_runs"] == 80
+    assert all(item["success_rate"] == 0.9 for item in summary["workloads"].values())
+
+    results[0]["duplicate_count"] = 1
+    assert _summarize(results, 10)["passed"] is False
+
+
+def test_eval_task_completion_counts_duplicate_side_effects_from_fixture_state() -> (
+    None
+):
+    assert set(SIDE_EFFECT_BASELINES) == set(WORKLOADS)
+    observed, duplicate_count = _side_effect_evidence(
+        "W07",
+        {"counters": {"download_requests": 3, "download_fail_requests": 2}},
+    )
+
+    assert observed == {"download_requests": 3, "download_fail_requests": 2}
+    assert duplicate_count == 3
+
+
+def test_eval_task_completion_console_report_includes_failed_run_evidence() -> None:
+    failed_run = {
+        "workload_id": "W04",
+        "iteration": 3,
+        "success": False,
+        "error": "BenchmarkFailure: W04 submit failed",
+        "failure_category": "workload_failure",
+        "tool_calls": [
+            "page_navigate",
+            "form_fill",
+            "element_upload_file",
+            "form_submit",
+        ],
+        "side_effect_counts": {"upload_attempted_requests": 1},
+        "duplicate_count": 0,
+    }
+    report = {"summary": {"passed": False}, "runs": [failed_run]}
+
+    console = _console_report(report)
+
+    assert console["summary"] == {"passed": False}
+    assert console["failed_runs"] == [
+        {key: value for key, value in failed_run.items() if key != "success"}
+    ]
 
 
 @pytest.mark.parametrize("scenario", TASK_COMPLETION_SCENARIOS)

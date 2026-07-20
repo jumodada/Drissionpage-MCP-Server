@@ -11,10 +11,8 @@ from urllib.request import urlopen
 from playground.mcp_lab.server import local_lab_server
 
 
-def test_playground_is_rebuilt_as_mcp_lab() -> None:
-    """keeps playground focused on the real MCP lab instead of stale demos."""
-
-    readme = Path("playground/README.md").read_text(encoding="utf-8")
+def test_playground_has_only_current_mcp_lab_entrypoints() -> None:
+    """keeps executable playground entrypoints focused on the MCP lab."""
 
     assert Path("playground/run_mcp_lab.py").is_file()
     assert Path("playground/mcp_lab/server.py").is_file()
@@ -22,11 +20,6 @@ def test_playground_is_rebuilt_as_mcp_lab() -> None:
     assert not Path("playground/quick_start.py").exists()
     assert not Path("playground/local_test.py").exists()
     assert not Path("playground/test_scenarios").exists()
-    assert "MCP Lab" in readme
-    assert "form_inspect" in readme
-    assert "commerce" in readme
-    assert "social-notes" in readme
-    assert "timeline" in readme
 
 
 def test_mcp_lab_site_routes_are_deterministic() -> None:

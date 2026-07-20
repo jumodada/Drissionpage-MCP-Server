@@ -103,7 +103,7 @@ class FixtureState:
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             return {
-                "version": "0.7.0",
+                "version": "0.7.1",
                 "counters": dict(sorted(self._counters.items())),
                 "events": [dict(event) for event in self._events],
                 "download": {
@@ -315,7 +315,9 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                     <output id="submitted">{submitted}</output>
                   </body>
                 </html>
-                """.format(submitted=_escape_html(submitted))
+                """.format(
+                    submitted=_escape_html(submitted)
+                )
             )
             return
 
@@ -780,7 +782,9 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
 
         self._send_text("not found", status=404)
 
-    def log_message(self, format: str, *args: object) -> None:  # noqa: A002 - stdlib arg name
+    def log_message(
+        self, format: str, *args: object
+    ) -> None:  # noqa: A002 - stdlib arg name
         """Silence per-request fixture logs for deterministic test output."""
 
     def _send_html(self, html: str, status: int = 200) -> None:

@@ -92,3 +92,4 @@ test-results/
 
 # Optional local shared SSR test-site checkout
 DrissionPage-test-site/
+.graphify/
