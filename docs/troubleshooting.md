@@ -95,7 +95,7 @@ Then verify:
 The current tool registry should load 62 tools.
 
 
-## Task Completion / Pointer / Network 0.7.0 Checks
+## Task Completion / Pointer / Network 0.7.1 Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to the `natural` profile; supply `start_x` and `start_y` together when the model knows the pointer origin. Use `direct` only when natural movement is not desired.
 - Use `browser_open_and_snapshot` when a client would otherwise call navigate, wait, snapshot, form inspection, and console logs separately.
@@ -106,6 +106,27 @@ The current tool registry should load 62 tools.
 - Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.
 - Read `drissionpage://session/config` to confirm whether `DP_USER_DATA_PATH`, browser path, headless, sandbox, and policy controls are configured; paths are intentionally redacted.
 - If an AI client is choosing the wrong call sequence, read `drissionpage://guide/model-usage` for workflow routes and `drissionpage://tools/catalog` for public tool descriptions before retrying.
+
+For the release reliability gate, run the deterministic public-tool benchmark:
+
+```bash
+DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
+python -m tests.evals.task_completion_benchmark \
+  --iterations 10 \
+  --output benchmark-results/0.7.1-task-completion.json
+```
+
+The report is workload-scoped. Every W01-W08 workload must reach at least 9/10;
+an overall average cannot hide one failing workload. Browser startup failures
+are reported separately from workload failures. Each run includes the observed
+fixture side-effect counters used to derive `duplicate_count`; CI uploads the
+<<<<<<< HEAD
+JSON on both success and failure. Failed runs are also printed directly under
+`failed_runs` in the benchmark step log, including the workload, iteration,
+error category, tool calls, and observed side-effect counters.
+=======
+JSON on both success and failure.
+>>>>>>> a892045afa29a9c1e7751cde256599015e912153
 
 ## Browser Does Not Start
 

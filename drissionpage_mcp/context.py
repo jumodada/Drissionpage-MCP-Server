@@ -534,12 +534,7 @@ class DrissionPageContext:
             if result is not None:
                 self._operation_results[claim.operation_key] = deepcopy(dict(result))
             self._in_flight_operations.remove(claim.operation_key)
-            self._action_count += 1
-            if receipt.retry_of is not None:
-                self._retry_count += 1
-            self._last_action_id = receipt.action_id
-            if receipt.status == "success":
-                self._last_verified_action_id = receipt.action_id
+            self._advance_receipt_state(receipt)
             return receipt
 
     def operation_result(self, operation_key: str) -> dict[str, Any] | None:
@@ -605,12 +600,7 @@ class DrissionPageContext:
 
             self._operation_fingerprints[key] = fingerprint
             self._operation_receipts[key] = receipt
-            self._action_count += 1
-            if receipt.retry_of is not None:
-                self._retry_count += 1
-            self._last_action_id = receipt.action_id
-            if receipt.status == "success":
-                self._last_verified_action_id = receipt.action_id
+            self._advance_receipt_state(receipt)
             return receipt
 
     def record_artifact(self, artifact: ArtifactRef) -> ArtifactRef:
@@ -696,13 +686,16 @@ class DrissionPageContext:
             self._operation_receipts[claim.operation_key] = receipt
             self._operation_results[claim.operation_key] = deepcopy(dict(result))
             self._in_flight_operations.remove(claim.operation_key)
-            self._action_count += 1
-            if receipt.retry_of is not None:
-                self._retry_count += 1
-            self._last_action_id = receipt.action_id
-            if receipt.status == "success":
-                self._last_verified_action_id = receipt.action_id
+            self._advance_receipt_state(receipt)
             return receipt
+
+    def _advance_receipt_state(self, receipt: ActionReceipt) -> None:
+        self._action_count += 1
+        if receipt.retry_of is not None:
+            self._retry_count += 1
+        self._last_action_id = receipt.action_id
+        if receipt.status == "success":
+            self._last_verified_action_id = receipt.action_id
 
     def reserve_artifact_slot(self, artifact_id: str) -> None:
         """Reserve one named artifact slot before a browser download starts."""

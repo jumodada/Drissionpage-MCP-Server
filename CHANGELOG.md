@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-07-20
+
+### Fixed
+- Fixed repeated native text input on Linux headless Chromium by using the platform-independent DrissionPage clear path before real input.
+- Added a regression test for the clear-before-input contract and verified controlled-input event evidence after repeated writes.
+
+### Changed
+- Added the public-tool W01-W08 benchmark runner with ten isolated runs per workload, machine-readable results, browser/DrissionPage runtime evidence, and duplicate-side-effect accounting.
+<<<<<<< HEAD
+- Isolated the Ubuntu benchmark on its own runner, preferred the runner's preinstalled Chrome with a shared temporary directory for uploads, kept strict browser startup enforcement in the browser-integration and benchmark jobs, and printed failed-run evidence directly in CI logs.
+=======
+>>>>>>> a892045afa29a9c1e7751cde256599015e912153
+- Kept the public registry at 62 tools and clarified that `TaskContext.retry_limit` is reserved metadata; 0.7.x does not perform automatic retries.
+- Consolidated repeated receipt counter/state advancement inside the task context without changing receipt or resource output fields.
+
+### Verification
+<<<<<<< HEAD
+- Local headless benchmark: 80/80 workload runs on both macOS/Chrome and Linux/Chromium, each W01-W08 at 10/10 with zero duplicate submissions or downloads.
+- Full local coverage run: 554 passed, 2 skipped, 95.13% coverage. Ubuntu CI repeats the benchmark on a fresh runner and uploads the JSON report on both success and failure.
+=======
+- Local headless benchmark: 80/80 workload runs, each W01-W08 at 10/10, zero duplicate submissions or downloads.
+- Full local coverage run: 553 passed, 2 skipped, 95.08% coverage. Ubuntu CI repeats the benchmark and uploads the JSON report on both success and failure.
+>>>>>>> a892045afa29a9c1e7751cde256599015e912153
+
+### Release Scope
+- 0.7.1 is a reliability and simplification release. Table/grid extraction, `PageModel`, public `TargetRef`, checkpoints, planners, workflow DSLs, and other 0.8/0.9 capabilities remain out of scope.
+
 ## [0.7.0] - 2026-07-18
 
 ### Added
@@ -375,7 +402,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.0...v0.6.1

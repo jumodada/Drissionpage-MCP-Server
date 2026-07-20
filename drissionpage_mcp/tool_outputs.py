@@ -352,7 +352,7 @@ class TaskContext(ContractData):
     artifact_count: Annotated[int, Field(ge=0)] = 0
     operation_limit: Annotated[int, Field(ge=1)]
     artifact_limit: Annotated[int, Field(ge=1)]
-    retry_limit: Annotated[int, Field(ge=0)]
+    retry_limit: Annotated[int, Field(ge=0, description="Reserved; no auto-retry.")]
     last_action_id: ContractId | None = None
     last_verified_action_id: ContractId | None = None
 

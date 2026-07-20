@@ -1,4 +1,4 @@
-"""Core 0.7.0 contracts and live-process ledger behavior."""
+"""Core 0.7.x contracts and live-process ledger behavior."""
 
 from __future__ import annotations
 
