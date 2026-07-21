@@ -219,11 +219,6 @@ The server marks tools with MCP annotations:
 | `storage_set` | Destructive | `key`, `value` | Set one localStorage/sessionStorage value. The value is not echoed in the response. Optional: `area`. |
 | `storage_clear` | Destructive | none | Clear one storage key or the whole selected storage area. Optional: `area`, `key`. |
 
-### Form Operations
-
-| Tool | Type | Required input | Description |
-| --- | --- | --- | --- |
-
 ### Wait Operations
 
 | Tool | Type | Required input | Description |

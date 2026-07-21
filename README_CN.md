@@ -248,7 +248,6 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 | 指南 | 描述 |
 |-------|-------------|
 | [README_CN.md](README_CN.md) | 安装、工具和架构说明 |
-| [docs/long-term-roadmap-and-target-architecture.md](docs/long-term-roadmap-and-target-architecture.md) | 长期产品目标、总体架构和 1.0 路线图 |
 | [docs/compatibility.md](docs/compatibility.md) | Python、DrissionPage、MCP 和浏览器兼容性 |
 | [docs/tool-contract.md](docs/tool-contract.md) | MCP 工具名称、输入、注解和响应格式 |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | doctor 命令、浏览器启动和客户端配置排查 |
