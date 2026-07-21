@@ -6,7 +6,7 @@
 
 - `registry` — stdio MCP initialize/list/call check without opening a browser.
 - `site` — no-browser local HTTP fixture check.
-- `form-inspect` — real browser `form_inspect` flow with password value masking.
+- Browser cases use atomic element discovery, property reads, clicks, and waits.
 - `commerce` — Taobao-like product search/cards/cart-oriented page understanding.
 - `social-notes` — Xiaohongshu-like mobile feed, note cards, search form, and detail links.
 - `timeline` — Twitter-like composer, timeline posts, dynamic load-more behavior.
@@ -23,7 +23,6 @@ python playground/run_mcp_lab.py --case registry
 Browser-backed checks:
 
 ```bash
-DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 DP_HEADLESS=1 python playground/run_mcp_lab.py --case commerce
 DP_HEADLESS=1 python playground/run_mcp_lab.py --case social-notes
 DP_HEADLESS=1 python playground/run_mcp_lab.py --case timeline
@@ -64,11 +63,11 @@ The lab starts a deterministic local HTTP server on `127.0.0.1` during each case
 
 The old playground only loaded tools or pointed people to public demo sites. This lab tests the real contract that matters for MCP clients:
 
-1. Can the client discover the current 28-tool registry?
+1. Can the client discover the current 58-tool registry?
 2. Can it navigate a deterministic local business page?
 3. Can `page_snapshot` expose high-value controls on dense pages?
 4. Can `element_find_all` extract repeated cards/posts?
-5. Can `form_inspect` inspect realistic forms without leaking password values?
+5. Can atomic element tools inspect and operate realistic controls?
 6. Can dynamic UI changes be verified through MCP tools instead of screenshots alone?
 
 ## CI usage
@@ -83,5 +82,5 @@ python playground/run_mcp_lab.py --case site --json
 Use browser-backed cases when Chrome/Chromium is available:
 
 ```bash
-DP_HEADLESS=1 DP_NO_SANDBOX=1 python playground/run_mcp_lab.py --case form-inspect --json
+DP_HEADLESS=1 DP_NO_SANDBOX=1 python playground/run_mcp_lab.py --case timeline --json
 ```

@@ -23,7 +23,6 @@ ENV_BLOCK_PRIVATE = "DP_MCP_BLOCK_PRIVATE_NETWORK"
 ENV_SCREENSHOT_ROOT = "DP_MCP_SCREENSHOT_ROOT"
 ENV_UPLOAD_ROOT = "DP_MCP_UPLOAD_ROOT"
 ENV_DOWNLOAD_ROOT = "DP_MCP_DOWNLOAD_ROOT"
-ENV_DENY_EXTERNAL_SUBMISSION = "DP_MCP_DENY_EXTERNAL_SUBMISSION"
 ENV_DENY_DOWNLOAD = "DP_MCP_DENY_DOWNLOAD"
 
 
@@ -47,7 +46,6 @@ class SafetyPolicy:
     screenshot_root: Path | None = None
     upload_root: Path | None = None
     download_root: Path | None = None
-    deny_external_submission: bool = False
     deny_download: bool = False
 
     @classmethod
@@ -66,7 +64,6 @@ class SafetyPolicy:
                 Path(upload_root).expanduser().resolve() if upload_root else None
             ),
             download_root=Path(download_root).expanduser() if download_root else None,
-            deny_external_submission=env_bool(ENV_DENY_EXTERNAL_SUBMISSION),
             deny_download=env_bool(ENV_DENY_DOWNLOAD),
         )
 
@@ -175,16 +172,6 @@ class SafetyPolicy:
             resolved.append(requested)
         return resolved
 
-    def validate_external_submission(self) -> None:
-        """Reject form submission when the operator enabled the deny switch."""
-
-        if self.deny_external_submission:
-            raise PolicyDeniedError(
-                "External form submission is disabled by local policy.",
-                rule=ENV_DENY_EXTERNAL_SUBMISSION,
-                value="<redacted>",
-            )
-
     def validate_external_download(self) -> None:
         """Reject browser downloads when the operator enabled the deny switch."""
 
@@ -233,7 +220,6 @@ class SafetyPolicy:
             "screenshot_root": self.screenshot_root is not None,
             "upload_root": self.upload_root is not None,
             "download_root": self.download_root is not None,
-            "deny_external_submission": self.deny_external_submission,
             "deny_download": self.deny_download,
         }
 
@@ -266,7 +252,6 @@ class SafetyPolicy:
                         else {}
                     ),
                 },
-                "deny_external_submission": self.deny_external_submission,
                 "deny_download": self.deny_download,
             },
         }
@@ -282,12 +267,6 @@ def validate_screenshot_path(path: str) -> None:
     """Validate screenshot path against the current environment policy."""
 
     SafetyPolicy.from_env().validate_screenshot_path(path)
-
-
-def validate_external_submission() -> None:
-    """Validate external form submission against the current policy."""
-
-    SafetyPolicy.from_env().validate_external_submission()
 
 
 def validate_external_download() -> None:

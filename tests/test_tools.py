@@ -177,12 +177,18 @@ def test_tool_core_has_single_typed_registry_without_legacy_surfaces() -> None:
     from drissionpage_mcp.tools import ALL_TOOLS
     from drissionpage_mcp.tools.base import ToolOutcome, ToolSpec
 
-    assert len(ALL_TOOLS) == 62
-    assert len({tool.name for tool in ALL_TOOLS}) == 62
+    assert len(ALL_TOOLS) == 58
+    assert len({tool.name for tool in ALL_TOOLS}) == 58
     assert {tool.name for tool in ALL_TOOLS} >= {
         "page_dialog_respond",
         "element_click_and_download",
     }
+    assert {
+        "form_inspect",
+        "form_fill",
+        "form_submit",
+        "form_fill_preview",
+    }.isdisjoint(tool.name for tool in ALL_TOOLS)
     assert all(isinstance(tool, ToolSpec) for tool in ALL_TOOLS)
     assert all(tool.output_model is not None for tool in ALL_TOOLS)
 

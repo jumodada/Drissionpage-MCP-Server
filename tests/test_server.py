@@ -26,11 +26,8 @@ class TestDrissionPageMCPServer:
         assert server.server.instructions
         assert "DrissionPage>=4.1.1.4,<5" in server.server.instructions
         assert "page_snapshot" in server.server.instructions
-        assert "form_fill_preview" in server.server.instructions
-        assert "form_fill" in server.server.instructions
-        assert "form_submit" in server.server.instructions
+        assert "atomic interaction" in server.server.instructions
         assert "element_click_and_download" in server.server.instructions
-        assert "indeterminate" in server.server.instructions
         assert "network_listen_start" in server.server.instructions
         assert "page_click_xy" in server.server.instructions
         assert "viewport CSS coordinates" in server.server.instructions
@@ -131,12 +128,8 @@ class TestToolsIntegration:
         assert "storage_get" in tool_names
         assert "storage_set" in tool_names
         assert "storage_clear" in tool_names
-        assert "form_inspect" in tool_names
         assert "browser_open_and_snapshot" in tool_names
         assert "browser_extract_links" in tool_names
-        assert "form_fill_preview" in tool_names
-        assert "form_fill" in tool_names
-        assert "form_submit" in tool_names
         assert "page_dialog_respond" in tool_names
         assert "element_click_and_download" in tool_names
         assert "network_listen_start" in tool_names
@@ -147,7 +140,13 @@ class TestToolsIntegration:
         assert "wait_time" in tool_names
         assert "wait_until" in tool_names
         assert "wait_sleep" not in tool_names
-        assert len(tool_names) == 62
+        assert {
+            "form_inspect",
+            "form_fill",
+            "form_submit",
+            "form_fill_preview",
+        }.isdisjoint(tool_names)
+        assert len(tool_names) == 58
 
 
 if __name__ == "__main__":

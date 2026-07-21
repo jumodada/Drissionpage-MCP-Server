@@ -114,28 +114,6 @@ Steps:
 """
 
 
-def _fill_form_safely(values: dict[str, str]) -> str:
-    fields = values.get("fields_json", "{}")
-    return f"""Fill a form safely with DrissionMCP.
-
-Target URL: {values["url"]}
-Goal: {values["form_goal"]}
-Fields JSON: {fields}
-
-Steps:
-1. Call `page_navigate` or `browser_open_and_snapshot`.
-2. Inspect forms with `form_inspect`.
-3. If the task is fill-only or does not authorize submission, use `form_fill_preview`
-   and stop without submitting.
-4. If the task clearly authorizes completion, use `form_fill`, then call
-   `form_submit` with a stable `operation_key` and bounded `expect` evidence.
-   The authorized task is sufficient; do not ask for redundant confirmation.
-5. Never echo secrets. Correct `validation_failed` fields with fresh evidence.
-   For `submitted_pending` or `indeterminate`, inspect the receipt, URL, and visible
-   state; do not automatically submit again.
-"""
-
-
 def _vision_guided_interaction(values: dict[str, str]) -> str:
     url = values.get("url", "")
     verification_goal = values.get("verification_goal", "")
@@ -219,19 +197,6 @@ PROMPTS: tuple[PromptSpec, ...] = (
             ),
         ),
         render=_extract_structured_data,
-    ),
-    PromptSpec(
-        name="browser_fill_form_safely",
-        title="Fill Form Safely",
-        description="Preview a form or complete an authorized submission with evidence and duplicate prevention.",
-        arguments=(
-            _arg("url", "Absolute URL containing the form.", required=True),
-            _arg("form_goal", "What the form should accomplish.", required=True),
-            _arg(
-                "fields_json", "Optional JSON object of field values.", required=False
-            ),
-        ),
-        render=_fill_form_safely,
     ),
     PromptSpec(
         name="browser_vision_guided_interaction",

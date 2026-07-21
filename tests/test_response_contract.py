@@ -349,193 +349,6 @@ def test_0_5_5_output_schemas_validate_new_capability_payloads() -> None:
     validate(storage_payload, tool_result_output_schema("storage_get"))
 
 
-def test_form_inspect_output_schema_validates_success_payload() -> None:
-    payload = ToolResult.success(
-        "Inspected 1 of 1 forms",
-        selector="",
-        include_values=False,
-        count=1,
-        returned=1,
-        limits={"max_forms": 10, "max_fields_per_form": 50},
-        truncated={"forms": False, "fields": False},
-        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
-        forms=[
-            {
-                "index": 0,
-                "selector": "#fixture-form",
-                "id": "fixture-form",
-                "name": "",
-                "method": "get",
-                "action": "https://example.test/form",
-                "text": "Name Submit",
-                "fields": [
-                    {
-                        "index": 0,
-                        "tag": "input",
-                        "type": "text",
-                        "name": "name",
-                        "label": "Name",
-                        "selector": "#name",
-                        "placeholder": "",
-                        "required": False,
-                        "disabled": False,
-                        "readonly": False,
-                        "checked": False,
-                        "value": None,
-                        "attributes": {"id": "name", "name": "name"},
-                        "options": [],
-                    }
-                ],
-            }
-        ],
-    ).to_dict()
-    validate(payload, tool_result_output_schema("form_inspect"))
-
-
-def test_form_fill_output_schema_validates_typed_receipt_and_field_results() -> None:
-    receipt = {
-        "schema_version": "1",
-        "action_id": "action-000001",
-        "task_id": "task-000001",
-        "operation_key": "form-fill-action-000001",
-        "request_fingerprint": "a" * 64,
-        "kind": "form_fill",
-        "side_effect": "local_ui_mutation",
-        "status": "success",
-        "started_at": "2026-07-16T00:00:00Z",
-        "finished_at": "2026-07-16T00:00:01Z",
-        "tab_id": "t0",
-        "preconditions": [],
-        "postconditions": [],
-        "retry_of": None,
-        "artifact_ids": [],
-        "error_code": None,
-        "redacted": True,
-    }
-    payload = ToolResult.success(
-        "Filled 1 of 1 requested form fields",
-        form_selector={
-            "selector": "#profile-form",
-            "locator": "css:#profile-form",
-            "selector_strategy": "css",
-            "selector_normalized": True,
-        },
-        form_found=True,
-        form={
-            "selector": "#profile-form",
-            "id": "profile-form",
-            "name": "",
-            "method": "post",
-            "action": "https://example.test/task/form-rich",
-        },
-        field_count=1,
-        requested_count=1,
-        filled_count=1,
-        failed_count=0,
-        verified_count=1,
-        fields=[
-            {
-                "key": "Full name",
-                "success": True,
-                "reason": "",
-                "matched_by": "label",
-                "selector": "#full-name",
-                "control_type": "text",
-                "requested_value": "<redacted>",
-                "observed_value": "<redacted>",
-                "redacted": True,
-                "verified": True,
-            }
-        ],
-        receipt=receipt,
-    ).to_dict()
-    schema = tool_result_output_schema("form_fill")
-
-    validate(payload, schema)
-    success_data = schema["oneOf"][0]["properties"]["data"]
-    assert success_data["title"] == "FormFillData"
-    assert "receipt" in success_data["required"]
-    assert "fields" in success_data["required"]
-
-    payload["data"]["fields"][0]["unexpected"] = True
-    with pytest.raises(ValidationError):
-        validate(payload, schema)
-
-
-def test_form_submit_output_schema_validates_typed_external_receipt() -> None:
-    receipt = {
-        "schema_version": "1",
-        "action_id": "action-000002",
-        "task_id": "task-000001",
-        "operation_key": "profile-submit-1",
-        "request_fingerprint": "b" * 64,
-        "kind": "form_submit",
-        "side_effect": "external_submission",
-        "status": "success",
-        "started_at": "2026-07-16T00:00:00Z",
-        "finished_at": "2026-07-16T00:00:01Z",
-        "tab_id": "t0",
-        "target_fingerprint": "c" * 64,
-        "preconditions": [],
-        "postconditions": [
-            {
-                "condition_index": 0,
-                "kind": "url_changed",
-                "status": "matched",
-                "evidence": ["POSTCONDITION_MATCHED"],
-            }
-        ],
-        "retry_of": None,
-        "artifact_ids": [],
-        "error_code": None,
-        "redacted": True,
-    }
-    payload = ToolResult.success(
-        "Form submission classified as success",
-        status="success",
-        operation_key="profile-submit-1",
-        form_selector={
-            "selector": "#profile-form",
-            "locator": "css:#profile-form",
-            "selector_strategy": "css",
-            "selector_normalized": True,
-        },
-        submitter={
-            "selector": "#profile-submit",
-            "id": "profile-submit",
-            "name": "",
-            "tag": "button",
-            "type": "submit",
-            "text": "Create profile",
-            "disabled": False,
-        },
-        triggered=True,
-        current_url="https://example.test/task/form-rich",
-        title="Complete",
-        validation_messages=[],
-        postconditions=receipt["postconditions"],
-        duplicate_prevention={
-            "scope": "live_server_task",
-            "guarantee": "at_most_once_browser_invocation",
-            "replayed": False,
-            "browser_invoked": True,
-        },
-        recovery="Use the returned postcondition evidence as the completion receipt.",
-        receipt=receipt,
-    ).to_dict()
-
-    schema = tool_result_output_schema("form_submit")
-    validate(payload, schema)
-    success_data = schema["oneOf"][0]["properties"]["data"]
-    assert success_data["title"] == "FormSubmitData"
-    assert {"status", "operation_key", "duplicate_prevention", "receipt"} <= set(
-        success_data["required"]
-    )
-    payload["data"]["status"] = "unknown"
-    with pytest.raises(ValidationError):
-        validate(payload, schema)
-
-
 def test_page_dialog_respond_output_schema_validates_redacted_receipt() -> None:
     receipt = {
         "schema_version": "1",
@@ -550,8 +363,6 @@ def test_page_dialog_respond_output_schema_validates_redacted_receipt() -> None:
         "finished_at": "2026-07-17T00:00:01Z",
         "tab_id": "t0",
         "target_fingerprint": "e" * 64,
-        "preconditions": [],
-        "postconditions": [],
         "retry_of": None,
         "artifact_ids": [],
         "error_code": None,
@@ -602,8 +413,6 @@ def test_click_and_download_output_schema_validates_artifact_receipt_link() -> N
         "finished_at": "2026-07-17T00:00:01Z",
         "tab_id": "t0",
         "target_fingerprint": "a" * 64,
-        "preconditions": [],
-        "postconditions": [],
         "retry_of": None,
         "artifact_ids": ["artifact-000001"],
         "error_code": None,
@@ -685,8 +494,6 @@ def _click_and_download_error_payload() -> dict[str, object]:
                 "finished_at": "2026-07-17T00:00:01Z",
                 "tab_id": "t0",
                 "target_fingerprint": "a" * 64,
-                "preconditions": [],
-                "postconditions": [],
                 "retry_of": None,
                 "artifact_ids": [],
                 "error_code": "DOWNLOAD_FAILED",
@@ -771,8 +578,6 @@ def test_click_and_download_output_schema_rejects_contradictory_shapes(
         "finished_at": "2026-07-17T00:00:01Z",
         "tab_id": "t0",
         "target_fingerprint": "a" * 64,
-        "preconditions": [],
-        "postconditions": [],
         "retry_of": None,
         "artifact_ids": artifact_ids,
         "error_code": None,
@@ -813,8 +618,8 @@ def test_click_and_download_output_schema_rejects_contradictory_shapes(
 @pytest.mark.parametrize(
     ("receipt_field", "value"),
     [
-        ("kind", "form_submit"),
-        ("side_effect", "external_submission"),
+        ("kind", "page_dialog_respond"),
+        ("side_effect", "dialog_response"),
     ],
 )
 def test_click_and_download_output_schema_rejects_wrong_receipt_contract(
@@ -834,8 +639,6 @@ def test_click_and_download_output_schema_rejects_wrong_receipt_contract(
         "finished_at": "2026-07-17T00:00:01Z",
         "tab_id": "t0",
         "target_fingerprint": "a" * 64,
-        "preconditions": [],
-        "postconditions": [],
         "retry_of": None,
         "artifact_ids": ["artifact-000001"],
         "error_code": None,
@@ -1028,40 +831,6 @@ def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
         ],
         meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
     ).to_dict()
-    fill_payload = ToolResult.success(
-        "Prepared fields",
-        form_selector={
-            "selector": "#profile",
-            "locator": "css:#profile",
-            "selector_strategy": "css",
-            "selector_normalized": True,
-        },
-        form_found=True,
-        form={
-            "selector": "#profile",
-            "id": "profile",
-            "name": "",
-            "method": "post",
-            "action": "/api/echo.json",
-        },
-        field_count=2,
-        filled_count=1,
-        skipped_count=0,
-        filled=[
-            {
-                "key": "name",
-                "selector": "#name",
-                "matched_by": "name",
-                "tag": "input",
-                "type": "text",
-                "value": "<redacted>",
-            }
-        ],
-        skipped=[],
-        requires_confirmation=True,
-        submitted=False,
-        redacted=True,
-    ).to_dict()
     start_payload = ToolResult.success(
         "Started network listener",
         listening=True,
@@ -1105,7 +874,6 @@ def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
     ).to_dict()
     validate(open_payload, tool_result_output_schema("browser_open_and_snapshot"))
     validate(links_payload, tool_result_output_schema("browser_extract_links"))
-    validate(fill_payload, tool_result_output_schema("form_fill_preview"))
     validate(start_payload, tool_result_output_schema("network_listen_start"))
     validate(wait_payload, tool_result_output_schema("network_listen_wait"))
     validate(stop_payload, tool_result_output_schema("network_listen_stop"))

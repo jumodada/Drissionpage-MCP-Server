@@ -303,41 +303,6 @@ class TaskRuntime:
         with self._task_lock:
             return self._operation_receipts.get(operation_key)
 
-    def record_local_receipt(self, receipt: ActionReceipt) -> ActionReceipt:
-        """Atomically record or replay one local UI mutation receipt."""
-
-        if receipt.task_id != self._task_id:
-            raise OperationKeyConflictError("receipt task_id does not match context")
-        if receipt.side_effect != "local_ui_mutation":
-            raise OperationKeyConflictError(
-                "local receipt side_effect must be local_ui_mutation"
-            )
-
-        key = receipt.operation_key
-        fingerprint = receipt.request_fingerprint
-        with self._task_lock:
-            existing_fingerprint = self._operation_fingerprints.get(key)
-            if existing_fingerprint is not None and existing_fingerprint != fingerprint:
-                raise OperationKeyConflictError(
-                    "operation_key is already bound to a different request"
-                )
-            existing = self._operation_receipts.get(key)
-            if existing is not None:
-                if existing.request_fingerprint != fingerprint:
-                    raise OperationKeyConflictError(
-                        "operation_key is already bound to a different request"
-                    )
-                return existing
-            if key in self._in_flight_operations:
-                raise OperationInFlightError(
-                    "operation_key is already executing in this live task"
-                )
-            self._ensure_operation_capacity_locked(key)
-            self._operation_fingerprints[key] = fingerprint
-            self._operation_receipts[key] = receipt
-            self._advance_receipt_state(receipt)
-            return receipt
-
     def record_artifact(self, artifact: ArtifactRef) -> ArtifactRef:
         """Record one complete artifact without evicting prior task evidence."""
 

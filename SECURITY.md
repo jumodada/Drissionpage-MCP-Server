@@ -77,7 +77,7 @@ Policy denials return structured `POLICY_DENIED` errors. Navigation policy is
 checked before browser initialization, so a denied URL does not start a browser
 session.
 
-`form_fill_preview` redacts field values by default and never submits forms. Network listener beta tools only observe packets; headers are opt-in/redacted and bodies are opt-in/bounded.
+Atomic element tools do not infer whether a click or key press submits application state. The MCP host must authorize and verify consequential actions. Network listener beta tools only observe packets; headers are opt-in/redacted and bodies are opt-in/bounded.
 
 Runtime request throttling is not implemented for the current local stdio server
 because this package is a single-user MCP server rather than a remote

@@ -92,15 +92,15 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current tool registry should load 62 tools.
+The current tool registry should load 58 tools.
 
 
-## Task Completion / Pointer / Network 0.7.1 Checks
+## Task Completion / Pointer / Network 0.7.2 Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to the `natural` profile; supply `start_x` and `start_y` together when the model knows the pointer origin. Use `direct` only when natural movement is not desired.
-- Use `browser_open_and_snapshot` when a client would otherwise call navigate, wait, snapshot, form inspection, and console logs separately.
-- Use `form_fill_preview` for preview-only/no-submit prefill. For a clearly authorized task, use `form_inspect`, `form_fill`, then `form_submit` with an `operation_key` and bounded `expect` evidence; do not ask for redundant confirmation.
-- A `validation_failed` result may be corrected and submitted as a new authorized operation. For `submitted_pending` or `indeterminate`, inspect fresh URL, receipt, and visible state; do not blindly resubmit.
+- Use `browser_open_and_snapshot` when a client would otherwise call navigate, wait, snapshot, and console inspection separately.
+- Discover controls with `page_snapshot`, `element_find_all`, and `element_find`. Operate them with explicit type, select, check, click, keyboard, and upload calls, then verify live properties, attributes, text, URL, or bounded wait conditions.
+- The core does not infer component libraries or business submission intent. Keep library- or site-specific matching in a client Skill and always collect fresh evidence before retrying a consequential action.
 - Configure `DP_MCP_DOWNLOAD_ROOT` before `element_click_and_download`. A replay with the same operation key returns the frozen result without another click. Use `drissionpage://artifacts/inventory` for safe artifact metadata.
 - `page_dialog_respond` works only for a currently pending alert, confirm, or prompt. Capability gaps and unsupported click variants return `UNSUPPORTED_OPERATION` rather than another action.
 - Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.
@@ -113,7 +113,7 @@ For the release reliability gate, run the deterministic public-tool benchmark:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.7.1-task-completion.json
+  --output benchmark-results/0.7.2-task-completion.json
 ```
 
 The report is workload-scoped. Every W01-W08 workload must reach at least 9/10;

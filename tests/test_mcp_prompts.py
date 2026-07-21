@@ -12,7 +12,6 @@ PROMPT_NAMES = [
     "drissionpage_mcp_usage_playbook",
     "browser_navigate_and_summarize",
     "browser_extract_structured_data",
-    "browser_fill_form_safely",
     "browser_vision_guided_interaction",
     "browser_debug_page_issue",
 ]
@@ -82,24 +81,15 @@ async def test_get_prompt_returns_modern_tool_guidance(prompt_name: str) -> None
     assert "wait_sleep" not in text
     if prompt_name == "drissionpage_mcp_usage_playbook":
         assert "DrissionPage>=4.1.1.4,<5" in text
-        assert "form_fill_preview" in text
-        assert "form_fill" in text
-        assert "form_submit" in text
+        assert "type, select, check, click, or keyboard" in text
+        assert "Do not infer a framework or widget library" in text
         assert "operation_key" in text
-        assert "indeterminate" in text
         assert "element_click_and_download" in text
         assert "network_listen_start" in text
         assert "observation only" in text.lower()
         assert "page_click_xy" in text
         assert "viewport CSS" in text
         assert "natural: Default" in text
-    if prompt_name == "browser_fill_form_safely":
-        assert "form_fill_preview" in text
-        assert "form_fill" in text
-        assert "form_submit" in text
-        assert "authorized" in text.lower()
-        assert "indeterminate" in text
-        assert "ask for confirmation" not in text.lower()
     if prompt_name == "browser_vision_guided_interaction":
         assert "page_screenshot" in text
         assert "viewport CSS pixels" in text

@@ -103,7 +103,7 @@ class FixtureState:
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             return {
-                "version": "0.7.1",
+                "version": "0.7.2",
                 "counters": dict(sorted(self._counters.items())),
                 "events": [dict(event) for event in self._events],
                 "download": {
@@ -315,9 +315,7 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                     <output id="submitted">{submitted}</output>
                   </body>
                 </html>
-                """.format(
-                    submitted=_escape_html(submitted)
-                )
+                """.format(submitted=_escape_html(submitted))
             )
             return
 
@@ -371,13 +369,40 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                       <input id="agree" name="agree" type="checkbox" />
                       <label for="keyboard-input">Keyboard</label>
                       <input id="keyboard-input" name="keyboard" value="" />
+                      <label for="editable-notes">Notes</label>
+                      <div id="editable-notes" contenteditable="true"></div>
+                      <button id="mode-switch" type="button" role="switch" aria-checked="false">Off</button>
+                      <label for="city-picker">City</label>
+                      <input id="city-picker" role="combobox" aria-controls="city-options" readonly />
                       <button id="hover-target" type="button">Hover me</button>
                       <output id="hover-status">waiting</output>
                       <section id="deep-target">Deep target</section>
                     </main>
+                    <ul id="city-options" role="listbox" hidden>
+                      <li role="option" data-value="London" aria-selected="false">London</li>
+                      <li role="option" data-value="Shanghai" aria-selected="false">Shanghai</li>
+                    </ul>
                     <script>
                       document.getElementById('hover-target').addEventListener('mouseover', function () {
                         document.getElementById('hover-status').textContent = 'hovered';
+                      });
+                      const modeSwitch = document.getElementById('mode-switch');
+                      modeSwitch.addEventListener('click', function () {
+                        const checked = this.getAttribute('aria-checked') !== 'true';
+                        this.setAttribute('aria-checked', String(checked));
+                        this.textContent = checked ? 'On' : 'Off';
+                      });
+                      const cityPicker = document.getElementById('city-picker');
+                      const cityOptions = document.getElementById('city-options');
+                      cityPicker.addEventListener('click', () => { cityOptions.hidden = false; });
+                      cityOptions.querySelectorAll('[role="option"]').forEach(option => {
+                        option.addEventListener('click', () => {
+                          cityOptions.querySelectorAll('[role="option"]').forEach(item => {
+                            item.setAttribute('aria-selected', String(item === option));
+                          });
+                          cityPicker.value = option.dataset.value;
+                          cityOptions.hidden = true;
+                        });
                       });
                     </script>
                   </body>
@@ -782,9 +807,7 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
 
         self._send_text("not found", status=404)
 
-    def log_message(
-        self, format: str, *args: object
-    ) -> None:  # noqa: A002 - stdlib arg name
+    def log_message(self, format: str, *args: object) -> None:  # noqa: A002 - stdlib arg name
         """Silence per-request fixture logs for deterministic test output."""
 
     def _send_html(self, html: str, status: int = 200) -> None:

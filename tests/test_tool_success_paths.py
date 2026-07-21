@@ -13,7 +13,6 @@ from drissionpage_mcp.tools import (
     debug,
     element,
     files,
-    forms,
     frame,
     interaction,
     navigate,
@@ -94,10 +93,8 @@ class FakeTab:
         self.page_ops = SimpleNamespace(resize=self.resize, screenshot=self.screenshot)
         self.pointer = SimpleNamespace(click_at=self.click)
         self.workflows = SimpleNamespace(
-            inspect_forms=self.inspect_forms,
             open_and_snapshot=self.open_and_snapshot,
             extract_links=self.extract_links,
-            form_fill_preview=self.form_fill_preview,
         )
 
     def summary(self, *, active: bool = False) -> dict[str, Any]:
@@ -239,62 +236,6 @@ class FakeTab:
             "max_chars": max_chars,
         }
 
-    async def inspect_forms(
-        self,
-        *,
-        selector: str = "",
-        include_values: bool = False,
-        max_forms: int = 10,
-        max_fields_per_form: int = 50,
-    ) -> dict[str, Any]:
-        self._record(
-            "inspect_forms",
-            selector=selector,
-            include_values=include_values,
-            max_forms=max_forms,
-            max_fields_per_form=max_fields_per_form,
-        )
-        return {
-            "selector": selector,
-            "include_values": include_values,
-            "count": 1,
-            "returned": 1,
-            "limits": {
-                "max_forms": max_forms,
-                "max_fields_per_form": max_fields_per_form,
-            },
-            "truncated": {"forms": False, "fields": False},
-            "forms": [
-                {
-                    "index": 0,
-                    "selector": "#fixture-form",
-                    "id": "fixture-form",
-                    "name": "",
-                    "method": "get",
-                    "action": "/form",
-                    "text": "Name Submit",
-                    "fields": [
-                        {
-                            "index": 0,
-                            "tag": "input",
-                            "type": "text",
-                            "name": "name",
-                            "label": "Name",
-                            "selector": "#name",
-                            "placeholder": "",
-                            "required": False,
-                            "disabled": False,
-                            "readonly": False,
-                            "checked": False,
-                            "value": "Ada" if include_values else None,
-                            "attributes": {"id": "name", "name": "name"},
-                            "options": [],
-                        }
-                    ],
-                }
-            ],
-        }
-
     async def open_and_snapshot(
         self,
         *,
@@ -304,7 +245,6 @@ class FakeTab:
         wait_value: str = "",
         wait_timeout: float = 5.0,
         include_html: bool = False,
-        include_forms: bool = False,
         include_console: bool = False,
         max_elements: int = 50,
         max_text_chars: int = 4000,
@@ -317,7 +257,6 @@ class FakeTab:
             wait_value=wait_value,
             wait_timeout=wait_timeout,
             include_html=include_html,
-            include_forms=include_forms,
             include_console=include_console,
             max_elements=max_elements,
             max_text_chars=max_text_chars,
@@ -340,8 +279,6 @@ class FakeTab:
                 max_text_chars=max_text_chars,
             ),
         }
-        if include_forms:
-            payload["forms"] = await self.inspect_forms()
         if include_console:
             payload["console"] = await self.console_logs()
         return payload
@@ -399,54 +336,6 @@ class FakeTab:
             "limit": limit,
             "truncated": limit < 2,
             "links": selected,
-        }
-
-    async def form_fill_preview(
-        self,
-        *,
-        form_selector: str = "form",
-        fields: dict[str, Any],
-        redact_values: bool = True,
-    ) -> dict[str, Any]:
-        self._record(
-            "form_fill_preview",
-            form_selector=form_selector,
-            fields=fields,
-            redact_values=redact_values,
-        )
-        return {
-            "form_selector": {
-                "selector": form_selector,
-                "locator": "css:#fixture-form",
-                "selector_strategy": "css",
-                "selector_normalized": True,
-            },
-            "form_found": True,
-            "form": {
-                "selector": "#fixture-form",
-                "id": "fixture-form",
-                "name": "",
-                "method": "post",
-                "action": "/api/echo.json",
-            },
-            "field_count": 3,
-            "filled_count": len(fields),
-            "skipped_count": 0,
-            "filled": [
-                {
-                    "key": key,
-                    "selector": f"#{key}",
-                    "matched_by": "name",
-                    "tag": "input",
-                    "type": "text",
-                    "value": "<redacted>" if redact_values else str(value),
-                }
-                for key, value in fields.items()
-            ],
-            "skipped": [],
-            "requires_confirmation": True,
-            "submitted": False,
-            "redacted": redact_values,
         }
 
     async def network_listen_start(
@@ -1207,7 +1096,6 @@ async def test_workflow_tools_success_paths() -> None:
             url="https://example.test/workflow",
             wait_condition="visible",
             selector="#app",
-            include_forms=True,
             include_console=True,
             max_elements=5,
             max_text_chars=100,
@@ -1219,7 +1107,6 @@ async def test_workflow_tools_success_paths() -> None:
         "max_elements": 5,
         "max_text_chars": 100,
     }
-    assert open_payload["data"]["forms"]["count"] == 1
     assert open_payload["data"]["console"]["count"] == 2
     links_response = await _execute(
         workflow.browser_extract_links,
@@ -1231,22 +1118,6 @@ async def test_workflow_tools_success_paths() -> None:
     assert links_payload["data"]["truncated"] is True
     assert links_payload["data"]["links"][0]["url"].endswith("/docs")
     assert links_payload["data"]["meta"]["truncated"] is True
-    fill_response = await _execute(
-        workflow.form_fill_preview,
-        ctx,
-        workflow.FormFillPreviewInput(
-            form_selector="#fixture-form",
-            fields={"name": "Ada", "secret": "do-not-echo"},
-        ),
-    )
-    fill_payload = fill_response.structured_content()
-    assert fill_payload["data"]["requires_confirmation"] is True
-    assert fill_payload["data"]["submitted"] is False
-    assert fill_payload["data"]["filled_count"] == 2
-    assert "Ada" not in str(fill_payload["data"])
-    assert "do-not-echo" not in str(fill_payload["data"])
-
-
 @pytest.mark.asyncio
 async def test_network_tools_success_paths() -> None:
     ctx = FakeContext()
@@ -1283,36 +1154,6 @@ async def test_network_tools_success_paths() -> None:
         "was_listening": True,
         "cleared": True,
     }
-
-
-@pytest.mark.asyncio
-async def test_form_tools_success_paths() -> None:
-    ctx = FakeContext()
-    response = await _execute(
-        forms.form_inspect,
-        ctx,
-        forms.FormInspectInput(
-            selector="#fixture-form",
-            include_values=True,
-            max_forms=2,
-            max_fields_per_form=3,
-        ),
-    )
-    payload = response.structured_content()
-    assert payload["message"] == "Inspected 1 of 1 forms"
-    assert payload["data"]["forms"][0]["selector"] == "#fixture-form"
-    assert payload["data"]["forms"][0]["fields"][0]["selector"] == "#name"
-    assert payload["data"]["forms"][0]["fields"][0]["value"] == "Ada"
-    assert ctx.tab.calls[-1] == (
-        "inspect_forms",
-        (),
-        {
-            "selector": "#fixture-form",
-            "include_values": True,
-            "max_forms": 2,
-            "max_fields_per_form": 3,
-        },
-    )
 
 
 @pytest.mark.asyncio
@@ -1618,10 +1459,6 @@ def test_get_property_input_uses_property_field_only() -> None:
             {"url": "https://example.test", "maxElements": 10},
         ),
         (workflow.BrowserExtractLinksInput, {"sameOriginOnly": True}),
-        (
-            workflow.FormFillPreviewInput,
-            {"fields": {"name": "Ada"}, "submit_now": True},
-        ),
         (network.NetworkListenStartInput, {"target": "/api"}),
         (network.NetworkListenWaitInput, {"timeout_ms": 1000}),
         (wait.WaitTimeInput, {"seconds": 1, "milliseconds": 500}),

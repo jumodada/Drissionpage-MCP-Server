@@ -14,7 +14,7 @@
 
 ## 🖱️ 视觉驱动的人机交互
 
-**DrissionPage MCP 0.7.1 验证了多模态 AI 的普通浏览器工作闭环：** 保持 62 个工具不变，并为结构化表单、带证据提交、浏览器弹窗、popup、下载和精确点击/键盘行为提供可复现的 W01-W08 benchmark。
+**DrissionPage MCP 0.7.2 将核心收敛为 58 个准确的浏览器原子能力：** W01-W08 通过组合原子工具完成受控输入、富组件、上传、提交、弹窗、popup 和下载。
 
 > **一次 MCP 调用即可连接视觉理解与真实浏览器交互。** 模型负责判断“在哪里操作”，DrissionPage MCP 负责决定“鼠标如何移动过去并完成点击”。
 
@@ -72,7 +72,7 @@ page_click_xy(profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-项目仍以 62 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径。0.7.1 固定公共工具面，修复 Linux/macOS 重复表单输入差异，并增加每项十轮的任务完成 benchmark，不提前引入 0.8 数据能力；当 selector 或 accessibility metadata 不足时，可选的**视觉驱动人机交互层**会把 viewport 坐标和有界拖拽路径转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
+项目仍以 58 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径。0.7.2 从服务端删除表单和组件库特定编排：模型组合输入、选择、勾选、点击、键盘、等待和状态读取原语，可复用表单流程放在发行包外的可选 Skill 中；当 selector 或 accessibility metadata 不足时，可选的**视觉驱动人机交互层**会把 viewport 坐标和有界拖拽路径转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -166,7 +166,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 62 个强大工具 + MCP Resources/Prompts
+## 🛠️ 58 个强大工具 + MCP Resources/Prompts
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
@@ -194,11 +194,6 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `element_get_attribute` - 获取 HTML attribute
 - `element_get_property` - 获取实时 DOM property，例如输入框当前 value
 - `element_get_html` - 获取元素或整页 HTML
-
-### 🧾 表单工具（3 个）
-- `form_inspect` - 检查表单和控件，返回 label、selector、必填/禁用状态、选项和安全的可选 value
-- `form_fill` - 填写原生和富控件，不提交，并返回逐字段验证与脱敏结果
-- `form_submit` - 对已授权表单执行一次提交，返回 postcondition 证据、operation-key 重放状态和 typed receipt
 
 ### 📸 页面操作（18 个）
 - `page_screenshot` - 捕获完整页面或视口
@@ -244,7 +239,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ### 🧩 MCP Resources 和 Prompts
 - Resources：`drissionpage://session/summary`、`drissionpage://session/history`、`drissionpage://session/state`、`drissionpage://session/config`、`drissionpage://guide/model-usage`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
-- Prompts：`drissionpage_mcp_usage_playbook`、`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_fill_form_safely`、`browser_vision_guided_interaction`、`browser_debug_page_issue`
+- Prompts：`drissionpage_mcp_usage_playbook`、`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_vision_guided_interaction`、`browser_debug_page_issue`
 
 ---
 
@@ -274,7 +269,7 @@ DrissionMCP/
 │   ├── runtime.py          # Operation key、receipt、artifact 和 capability 状态
 │   ├── tool_outputs.py     # 类型化公共结果和任务运行时合同
 │   ├── browser/            # 聚焦的 DrissionPage 能力、页面脚本和有限工作流
-│   └── tools/              # 62 个类型化 MCP 工具定义和薄适配层
+│   └── tools/              # 58 个类型化 MCP 工具定义和薄适配层
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -426,7 +421,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.7.1`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.7.2`。
 
 ### 浏览器问题？
 ```bash
@@ -455,25 +450,25 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.7.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.7.2 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.7.1)
-- [x] 62 个核心自动化、任务完成、标签页/iframe/shadow、页面理解、工作流、网络监听与 console 可观察性工具，已移除 alias 工具面
+### 当前版本 (v0.7.2)
+- [x] 58 个原子自动化、标签页/iframe/shadow、页面理解、有界工作流、网络监听、会话状态与 console 可观察性工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
 - [x] 常见失败会在 `error.details.hints` 中返回结构化恢复建议
 - [x] `page_snapshot` 会平衡输出预算，链接密集页面仍能暴露按钮、输入框和表单
-- [x] `form_inspect` 只读表单 inventory，返回 label、selector、必填状态、选项和安全的可选 value
+- [x] 输入、选择、勾选、点击、键盘、上传、等待和状态读取原语覆盖原生控件与框架驱动组件，不包含组件库专用分支
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
 - [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
-- [x] Workflow helper：`browser_open_and_snapshot`、`browser_extract_links`，以及保持不提交语义的兼容工具 `form_fill_preview`
-- [x] 可验证的 `form_fill` 与 operation-key 感知的 `form_submit`，返回 typed `ActionReceipt`，歧义结果不会盲目重复提交
+- [x] 只保留具有通用价值的有界工作流：`browser_open_and_snapshot` 与 `browser_extract_links`
+- [x] 表单发现、填写与提交编排迁移到可选 Skill，不进入 wheel 和 sdist
 - [x] 能力探测后的 `page_dialog_respond`、兼容扩展的双击/右键语义，以及返回安全 `ArtifactRef` 的 `element_click_and_download`
 - [x] 可复现的 W01-W08 公共工具 benchmark，每个工作负载运行十轮，保存机器可读证据且重复副作用为零
 - [x] Network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，用于 HTTP/XHR/Fetch 观察
@@ -619,12 +614,11 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.7.1
+## 🆕 最新版本：v0.7.2
 
-发布日期：2026-07-20。本版本不增加公共工具，专注验证和稳定 0.7 任务完成边界：
+发布日期：2026-07-21。本次发布将核心收敛为准确、可组合的浏览器能力：
 
-- 原生文本重复填写统一采用跨平台清空路径后再执行真实输入，消除 Linux headless 旧值残留问题。
-- W01-W08 通过公共 MCP 工具路径覆盖富表单、controlled input、验证恢复、上传提交、弹窗、popup、下载和点击/键盘语义。
-- [本地发布证据](docs/0.7.1-release-evidence.md)记录 80/80 次工作负载运行，重复提交和下载为零；CI 会在 Ubuntu headless Chromium 上重复十轮并上传 JSON 报告。
-- 公开工具数保持 62 个，没有提前增加 table/grid、`PageModel`、公共 `TargetRef`、checkpoint runtime、planner 或 workflow DSL。
-- `TaskContext.retry_limit` 仅保留为未来显式 retry lineage 的兼容元数据；0.7.1 不执行自动重试。
+- 删除 `form_inspect`、`form_fill`、`form_submit` 和 `form_fill_preview`，不在核心中维护不完整的组件库启发式。
+- W01-W08 改用保留的原子工具覆盖受控输入、contenteditable、ARIA 组件、原生选择/勾选、上传、提交、弹窗、popup 与下载。
+- 保留 `element_click_and_download`、`page_dialog_respond` 等具有不可分割时序边界的通用能力及关联 receipt。
+- 表单编排以可选 Skill 示例提供，不进入 Python 发行包。

@@ -23,7 +23,7 @@ def test_playground_is_rebuilt_as_mcp_lab() -> None:
     assert not Path("playground/local_test.py").exists()
     assert not Path("playground/test_scenarios").exists()
     assert "MCP Lab" in readme
-    assert "form_inspect" in readme
+    assert "atomic element" in readme
     assert "commerce" in readme
     assert "social-notes" in readme
     assert "timeline" in readme
@@ -73,7 +73,7 @@ def test_mcp_lab_registry_case_cli_returns_json_report() -> None:
     assert report["ok"] is True
     assert report["summary"]["failed"] == 0
     assert report["cases"][0]["name"] == "registry"
-    assert "form_inspect" in report["cases"][0]["details"]["tools"]
+    assert "element_type" in report["cases"][0]["details"]["tools"]
 
 
 def _run_lab(*args: str) -> dict[str, object]:

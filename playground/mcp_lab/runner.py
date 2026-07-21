@@ -153,7 +153,7 @@ async def _case_registry(context: LabContext) -> dict[str, Any]:
         init = await session.initialize()
         tools = await session.list_tools()
         names = sorted(tool.name for tool in tools.tools)
-        required = {"page_snapshot", "element_find_all", "form_inspect", "wait_time"}
+        required = {"page_snapshot", "element_find_all", "element_type", "wait_time"}
         missing = required - set(names)
         if missing:
             raise AssertionError(f"missing tools: {sorted(missing)}")
@@ -165,26 +165,6 @@ async def _case_registry(context: LabContext) -> dict[str, Any]:
             "tool_count": len(names),
             "tools": names,
         }
-
-
-async def _case_form_inspect(context: LabContext) -> dict[str, Any]:
-    async with _mcp_session(context) as session:
-        await session.initialize()
-        with local_lab_server() as base_url:
-            await _navigate_or_raise(session, base_url + "/cases/forms")
-            inspected = await session.call_tool("form_inspect", {"include_values": True})
-            data = _assert_tool_ok(inspected.structuredContent)
-            fields = _fields_by_selector(data)
-            assert fields["#full-name"]["value"] == "Ada Lovelace"
-            assert fields["#secret"]["value"] is None
-            assert "value" not in fields["#secret"]["attributes"]
-            assert fields["#plan"]["options"][1]["selected"] is True
-            await _close_page(session)
-            return {
-                "base_url": base_url,
-                "forms": data["returned"],
-                "fields": sorted(fields),
-            }
 
 
 async def _case_commerce(context: LabContext) -> dict[str, Any]:
@@ -222,9 +202,11 @@ async def _case_social_notes(context: LabContext) -> dict[str, Any]:
             data = _assert_tool_ok(cards.structuredContent)
             assert data["count"] == 3
             assert any("Weekend market guide" in item["text"] for item in data["elements"])
-            form = await session.call_tool("form_inspect", {"selector": "#notes-search-form"})
+            form = await session.call_tool(
+                "element_find", {"selector": "#notes-search-form"}
+            )
             form_data = _assert_tool_ok(form.structuredContent)
-            assert form_data["returned"] == 1
+            assert form_data["element"]["tag"] == "form"
             await _close_page(session)
             return {"base_url": base_url, "notes": data["count"]}
 
@@ -235,11 +217,11 @@ async def _case_timeline(context: LabContext) -> dict[str, Any]:
         with local_lab_server() as base_url:
             await _navigate_or_raise(session, base_url + "/scenarios/timeline")
             composer = await session.call_tool(
-                "form_inspect", {"selector": "#timeline-composer", "include_values": True}
+                "element_get_property",
+                {"selector": "#post-text", "property": "value"},
             )
             composer_data = _assert_tool_ok(composer.structuredContent)
-            fields = _fields_by_selector(composer_data)
-            assert fields["#post-text"]["value"] == "Shipping MCP Lab today"
+            assert composer_data["value"] == "Shipping MCP Lab today"
             clicked = await session.call_tool("element_click", {"selector": "#load-more-posts"})
             _assert_tool_ok(clicked.structuredContent)
             loaded = await session.call_tool("wait_for_element", {"selector": "#post-003"})
@@ -256,7 +238,6 @@ async def _case_timeline(context: LabContext) -> dict[str, Any]:
 _CASES: dict[str, CaseFunc] = {
     "site": _case_site,
     "registry": _case_registry,
-    "form-inspect": _case_form_inspect,
     "commerce": _case_commerce,
     "social-notes": _case_social_notes,
     "timeline": _case_timeline,
@@ -319,14 +300,6 @@ async def _close_page(session: ClientSession) -> None:
     result = await session.call_tool("page_close", {})
     if result.structuredContent and not result.structuredContent.get("ok", False):
         raise AssertionError(result.structuredContent)
-
-
-def _fields_by_selector(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    fields: dict[str, dict[str, Any]] = {}
-    for form in data["forms"]:
-        for item in form["fields"]:
-            fields[item["selector"]] = item
-    return fields
 
 
 def _looks_browser_unavailable(message: str) -> bool:

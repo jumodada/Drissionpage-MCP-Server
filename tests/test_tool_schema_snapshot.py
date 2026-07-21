@@ -37,9 +37,13 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
         )
 
     names = [tool["name"] for tool in tools]
-    assert len(tools) == 62
-    assert names.count("form_fill") == 1
-    assert names.count("form_submit") == 1
+    assert len(tools) == 58
+    assert {
+        "form_inspect",
+        "form_fill",
+        "form_submit",
+        "form_fill_preview",
+    }.isdisjoint(names)
     assert names.count("page_dialog_respond") == 1
     assert names.count("element_click_and_download") == 1
     assert "element_input_text" not in names

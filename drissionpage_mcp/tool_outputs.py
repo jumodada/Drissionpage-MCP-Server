@@ -19,9 +19,6 @@ from pydantic import (
     model_validator,
 )
 
-from .limits import MAX_WAIT_SECONDS
-
-
 class ToolData(BaseModel):
     """Strict base for tool data payloads."""
 
@@ -38,9 +35,7 @@ ContractId = Annotated[
     str,
     StringConstraints(pattern=r"^[a-z][a-z0-9_-]{2,127}$"),
 ]
-ShortText = Annotated[str, StringConstraints(min_length=1, max_length=300)]
 Sha256Hex = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
-EvidenceCode = Annotated[str, StringConstraints(pattern=r"^[A-Z][A-Z0-9_]{1,99}$")]
 SafeRelativePath = Annotated[
     str,
     StringConstraints(
@@ -110,80 +105,6 @@ def sanitize_public_url(value: Any) -> str:
     return sanitized if len(sanitized) <= 500 else ""
 
 
-class UrlChangedCondition(ContractData):
-    kind: Literal["url_changed"]
-
-
-class UrlContainsCondition(ContractData):
-    kind: Literal["url_contains"]
-    value: ShortText
-
-
-class SelectorVisibleCondition(ContractData):
-    kind: Literal["selector_visible"]
-    selector: ShortText
-
-
-class SelectorHiddenCondition(ContractData):
-    kind: Literal["selector_hidden"]
-    selector: ShortText
-
-
-class TextContainsCondition(ContractData):
-    kind: Literal["text_contains"]
-    value: ShortText
-    selector: ShortText | None = None
-
-
-class PropertyEqualsCondition(ContractData):
-    kind: Literal["property_equals"]
-    selector: ShortText
-    property: Annotated[str, StringConstraints(min_length=1, max_length=100)]
-    value: str | int | float | bool | None
-
-
-ExpectationCondition = Annotated[
-    Union[
-        UrlChangedCondition,
-        UrlContainsCondition,
-        SelectorVisibleCondition,
-        SelectorHiddenCondition,
-        TextContainsCondition,
-        PropertyEqualsCondition,
-    ],
-    Field(discriminator="kind"),
-]
-
-
-class Expectation(ContractData):
-    """Bounded postconditions evaluated under one shared deadline."""
-
-    schema_version: Literal["1"] = "1"
-    mode: Literal["any", "all"] = "any"
-    conditions: Annotated[
-        tuple[ExpectationCondition, ...], Field(min_length=1, max_length=8)
-    ]
-    timeout: Annotated[float, Field(gt=0, le=MAX_WAIT_SECONDS)] = 10.0
-
-
-class ConditionEvaluation(ContractData):
-    """Sanitized evidence for one evaluated expectation condition."""
-
-    condition_index: Annotated[int, Field(ge=0, le=7)]
-    kind: Literal[
-        "url_changed",
-        "url_contains",
-        "selector_visible",
-        "selector_hidden",
-        "text_contains",
-        "property_equals",
-    ]
-    status: Literal["matched", "unmatched", "error"]
-    evidence: Annotated[tuple[EvidenceCode, ...], Field(max_length=4)] = Field(
-        default_factory=tuple
-    )
-
-
 class ActionReceipt(ContractData):
     """Redacted evidence for one live-task consequential browser invocation."""
 
@@ -193,16 +114,10 @@ class ActionReceipt(ContractData):
     operation_key: Annotated[str, StringConstraints(min_length=1, max_length=128)]
     request_fingerprint: Sha256Hex
     kind: Annotated[str, StringConstraints(min_length=1, max_length=64)]
-    side_effect: Literal[
-        "local_ui_mutation",
-        "external_submission",
-        "external_download",
-        "dialog_response",
-    ]
+    side_effect: Literal["external_download", "dialog_response"]
     status: Literal[
         "success",
         "validation_failed",
-        "pending",
         "indeterminate",
         "failed",
     ]
@@ -210,12 +125,6 @@ class ActionReceipt(ContractData):
     finished_at: datetime
     tab_id: Annotated[str, StringConstraints(min_length=1, max_length=128)]
     target_fingerprint: Sha256Hex | None = None
-    preconditions: Annotated[tuple[ConditionEvaluation, ...], Field(max_length=8)] = (
-        Field(default_factory=tuple)
-    )
-    postconditions: Annotated[tuple[ConditionEvaluation, ...], Field(max_length=8)] = (
-        Field(default_factory=tuple)
-    )
     retry_of: ContractId | None = None
     artifact_ids: Annotated[tuple[ContractId, ...], Field(max_length=16)] = Field(
         default_factory=tuple
@@ -813,81 +722,6 @@ class ElementCheckData(ToolData):
     by_js: bool
 
 
-class FormInspectData(ToolData):
-    selector: str
-    include_values: bool
-    count: int
-    returned: int
-    limits: dict[str, Any]
-    truncated: dict[str, Any]
-    forms: list[dict[str, Any]]
-    meta: dict[str, Any]
-
-
-class FormFillFieldResult(ToolData):
-    key: str
-    success: bool
-    reason: str
-    matched_by: str
-    selector: str
-    control_type: str
-    requested_value: str | bool | list[str] | None
-    observed_value: str | bool | list[str] | None
-    redacted: bool
-    verified: bool
-
-
-class FormFillData(ToolData):
-    form_selector: dict[str, Any]
-    form_found: bool
-    form: dict[str, Any] | None
-    field_count: int
-    requested_count: int
-    filled_count: int
-    failed_count: int
-    verified_count: int
-    fields: list[FormFillFieldResult]
-    receipt: ActionReceipt
-
-
-class FormSubmitValidationMessage(ToolData):
-    selector: str
-    name: str
-    message: str
-    code: str
-    source: Literal["client", "server", "document"]
-
-
-class FormSubmitDuplicatePrevention(ToolData):
-    scope: Literal["live_server_task"] = "live_server_task"
-    guarantee: Literal["at_most_once_browser_invocation"] = (
-        "at_most_once_browser_invocation"
-    )
-    replayed: bool
-    browser_invoked: bool
-
-
-class FormSubmitData(ToolData):
-    status: Literal[
-        "success",
-        "validation_failed",
-        "submitted_pending",
-        "indeterminate",
-        "blocked",
-    ]
-    operation_key: str
-    form_selector: dict[str, Any]
-    submitter: dict[str, Any]
-    triggered: bool
-    current_url: str
-    title: str
-    validation_messages: list[FormSubmitValidationMessage]
-    postconditions: list[ConditionEvaluation]
-    duplicate_prevention: FormSubmitDuplicatePrevention
-    recovery: str
-    receipt: ActionReceipt
-
-
 class DialogMessageMetadata(ToolData):
     present: bool
     length: Annotated[int, Field(ge=0)]
@@ -1018,7 +852,6 @@ class BrowserOpenAndSnapshotData(ToolData):
     title: str
     wait: dict[str, Any]
     snapshot: dict[str, Any]
-    forms: dict[str, Any] | None = None
     console: dict[str, Any] | None = None
     meta: dict[str, Any]
 
@@ -1037,20 +870,6 @@ class BrowserExtractLinksData(ToolData):
     truncated: bool
     links: list[dict[str, Any]]
     meta: dict[str, Any]
-
-
-class FormFillPreviewData(ToolData):
-    form_selector: dict[str, Any]
-    form_found: bool
-    form: Any
-    field_count: int
-    filled_count: int
-    skipped_count: int
-    filled: list[dict[str, Any]]
-    skipped: list[dict[str, Any]]
-    requires_confirmation: bool
-    submitted: bool
-    redacted: bool
 
 
 class NetworkListenStartData(ToolData):

@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.7.1. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.7.2. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -34,6 +34,22 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - W01-W08 is now executable through the public MCP tool path. Run `python -m tests.evals.task_completion_benchmark --iterations 10` with a local Chromium browser for the release gate.
 - `TaskContext.retry_limit` remains a compatibility field for future explicit retry lineage. The 0.7 runtime never retries an action automatically.
 - The release does not introduce table/grid extraction, `PageModel`, public `TargetRef`, checkpoint persistence, or a workflow DSL.
+
+## 0.7.1 to 0.7.2 Migration
+
+0.7.2 intentionally narrows the public registry from 62 to 58 generic browser tools. It removes component-library and form workflow heuristics from the core package.
+
+| Removed tool | Compose instead |
+| --- | --- |
+| `form_inspect` | `page_snapshot`, `element_find_all`, `element_find`, and attribute/property/text reads |
+| `form_fill` | explicit `element_type`, `element_select`, `element_check`, `element_click`, and `keyboard_press`, followed by state reads |
+| `form_fill_preview` | the same atomic actions without the final activation step |
+| `form_submit` | explicit click or keyboard activation followed by `wait_until`, URL, DOM, text, or property verification |
+
+- No aliases or placeholder tools are registered.
+- `DP_MCP_DENY_EXTERNAL_SUBMISSION` is removed because generic click and keyboard tools can also submit. Treating one named workflow as the only submission boundary created false assurance.
+- `ActionReceipt` remains for timing-critical downloads and native dialog responses. Ordinary DOM mutations are verified through explicit state reads.
+- Reusable form recipes are available as an optional Skill outside the wheel and sdist.
 
 ## 0.6.2 to 0.7.0 Migration
 
