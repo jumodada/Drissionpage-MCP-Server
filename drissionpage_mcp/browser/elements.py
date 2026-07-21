@@ -86,7 +86,8 @@ class ElementOperations:
             if not element:
                 raise ElementNotFoundError(f"Element not found: {selector}")
             if clear:
-                element.clear()
+                # Avoid DrissionPage's Linux Ctrl+A/Delete clear path; native input follows.
+                element.clear(by_js=True)
             element.input(text)
             await self._tab._stabilize("input_text", timeout=1.0, fallback_sleep=0.02)
         except Exception as exc:

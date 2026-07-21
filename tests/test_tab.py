@@ -103,13 +103,15 @@ class FakeElement:
             self.attrs.update(attrs)
         self.clicked = False
         self.cleared = False
+        self.clear_calls = []
         self.inputs = []
 
     def click(self) -> None:
         self.clicked = True
 
-    def clear(self) -> None:
+    def clear(self, by_js: bool = False) -> None:
         self.cleared = True
+        self.clear_calls.append(by_js)
 
     def input(self, text: str) -> None:
         self.inputs.append(text)
@@ -312,6 +314,7 @@ async def test_element_actions_and_readers() -> None:
 
     assert element.clicked is True
     assert element.cleared is True
+    assert element.clear_calls == [True]
     assert element.inputs == ["Ada", "Lovelace"]
     assert found == {
         "found": True,

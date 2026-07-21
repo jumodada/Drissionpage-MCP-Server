@@ -139,13 +139,13 @@ jobs:
         run: |
           python -m tests.evals.task_completion_benchmark \
             --iterations 10 \
-            --output benchmark-results/0.7.1-task-completion.json
+            --output benchmark-results/0.7.2-task-completion.json
       - name: Upload task-completion benchmark
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 0.7.1-task-completion-benchmark
-          path: benchmark-results/0.7.1-task-completion.json
+          name: 0.7.2-task-completion-benchmark
+          path: benchmark-results/0.7.2-task-completion.json
           if-no-files-found: warn
 
   coverage:
