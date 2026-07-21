@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-from inspect import Parameter, signature
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
+from ..compat import accepts_parameters
 from ..response_errors import ErrorCode
 
 if TYPE_CHECKING:
@@ -49,12 +49,12 @@ class DialogOperations:
         """Fail closed unless the attached runtime exposes the required lifecycle."""
 
         handler = getattr(self._page, "handle_alert", None)
-        if not callable(handler) or not _accepts_parameters(
+        if not callable(handler) or not accepts_parameters(
             handler, "accept", "send", "timeout", "next_one"
         ):
             raise DialogUnsupportedError("HANDLE_ALERT_API_UNAVAILABLE")
         bounded_handler = getattr(self._page, "_handle_alert", None)
-        if not callable(bounded_handler) or not _accepts_parameters(
+        if not callable(bounded_handler) or not accepts_parameters(
             bounded_handler, "accept", "send", "timeout", "next_one"
         ):
             raise DialogUnsupportedError("BOUNDED_HANDLE_ALERT_API_UNAVAILABLE")
@@ -141,13 +141,3 @@ class DialogOperations:
                     "Dialog response outcome is indeterminate after native invocation."
                 )
             await asyncio.sleep(min(0.01, max(0.001, deadline - monotonic())))
-
-
-def _accepts_parameters(callable_obj: Any, *names: str) -> bool:
-    try:
-        parameters = signature(callable_obj).parameters
-    except (TypeError, ValueError):
-        return False
-    if any(item.kind == Parameter.VAR_KEYWORD for item in parameters.values()):
-        return True
-    return all(name in parameters for name in names)

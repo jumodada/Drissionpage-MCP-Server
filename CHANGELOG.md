@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Separated the private task ledger from browser lifecycle management: `runtime.py` now owns operation keys, receipts, artifacts, capability state, and redacted action history while `context.py` remains the browser/tab facade.
+- Moved page-executed form and state scripts into focused flat modules under `browser/`; removed the ambiguous root-level `forms.py` and `page_scripts.py` modules without adding compatibility facades or one-file packages.
+- Split the click-download handler into explicit replay, preflight, claim, invoke, finalize, and cleanup phases while preserving its public schema and exactly-once behavior.
+- Replaced branch-heavy static recovery hints with a data table and consolidated identical DrissionPage callable capability checks in `compat.py`.
+- Kept the ordered public registry at 62 tools and the production-code delta relative to `e0b8805` within the pre-0.8 `+200` budget.
+
+### Verification
+- Added regression checks for runtime/browser ownership, browser-script imports and escaping, download cleanup/replay behavior, shared capability inspection, and README directory documentation.
+- Ruff, public tool/schema contracts, task-runtime contracts, deterministic non-browser tests, and the headless page-understanding browser eval pass locally.
+
 ## [0.7.1] - 2026-07-20
 
 ### Fixed

@@ -40,6 +40,25 @@ def _arguments(options: FakeOptions) -> list[str]:
     return [args[0] for name, args, _kwargs in options.calls if name == "set_argument"]
 
 
+def test_accepts_parameters_handles_explicit_kwargs_and_uninspectable_callables(
+    monkeypatch,
+) -> None:
+    def explicit(*, button, count):
+        return button, count
+
+    def flexible(**kwargs):
+        return kwargs
+
+    assert compat.accepts_parameters(explicit, "button", "count") is True
+    assert compat.accepts_parameters(explicit, "missing") is False
+    assert compat.accepts_parameters(flexible, "anything") is True
+
+    monkeypatch.setattr(
+        compat.inspect, "signature", lambda _obj: (_ for _ in ()).throw(ValueError())
+    )
+    assert compat.accepts_parameters(explicit, "button") is False
+
+
 def test_new_chromium_options_uses_no_user_ini_when_supported(monkeypatch) -> None:
     monkeypatch.setattr(compat, "ChromiumOptions", FakeOptions)
 

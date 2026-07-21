@@ -268,12 +268,13 @@ Built with **clean, modular design**:
 ```
 DrissionMCP/
 ├── drissionpage_mcp/
-│   ├── cli.py              # Entry point
-│   ├── server.py           # MCP server
-│   ├── context.py          # Browser management
-│   ├── response.py         # Response formatting
-│   ├── tab.py              # Page operations
-│   └── tools/              # 62 automation, task-completion, tab/frame/shadow, page-understanding, and observability tools
+│   ├── cli.py              # Process entry point
+│   ├── server.py           # MCP transport and request routing
+│   ├── context.py          # Browser and tab lifecycle facade
+│   ├── runtime.py          # Operation keys, receipts, artifacts, and capability state
+│   ├── tool_outputs.py     # Typed public result and task-runtime contracts
+│   ├── browser/            # Focused DrissionPage capabilities, scripts, and bounded workflows
+│   └── tools/              # 62 typed MCP tool definitions and thin adapters
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```

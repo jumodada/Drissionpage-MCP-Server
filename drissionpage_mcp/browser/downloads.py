@@ -8,11 +8,11 @@ import mimetypes
 import os
 import shutil
 import stat
-from inspect import Parameter, signature
 from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Any, TypeVar
 
+from ..compat import accepts_parameters
 from ..response_errors import ErrorCode
 
 if TYPE_CHECKING:
@@ -69,7 +69,7 @@ class DownloadOperations:
             raise DownloadUnsupportedError("DOWNLOAD_MANAGER_UNAVAILABLE")
         clicker = getattr(element, "click", None)
         downloader = getattr(clicker, "to_download", None)
-        if not callable(downloader) or not _accepts_parameters(
+        if not callable(downloader) or not accepts_parameters(
             downloader, "save_path", "timeout"
         ):
             raise DownloadUnsupportedError("CLICK_TO_DOWNLOAD_API_UNAVAILABLE")
@@ -249,13 +249,3 @@ def _file_integrity(path: Path, *, approved_root: Path) -> tuple[Path, int, str]
         return resolved, after.st_size, digest.hexdigest()
     finally:
         os.close(descriptor)
-
-
-def _accepts_parameters(callable_obj: Any, *names: str) -> bool:
-    try:
-        parameters = signature(callable_obj).parameters
-    except (TypeError, ValueError):
-        return False
-    if any(item.kind == Parameter.VAR_KEYWORD for item in parameters.values()):
-        return True
-    return all(name in parameters for name in names)

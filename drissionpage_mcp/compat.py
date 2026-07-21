@@ -30,6 +30,18 @@ except Exception:  # pragma: no cover - defensive for unusual builds.
 logger = logging.getLogger(__name__)
 
 
+def accepts_parameters(callable_obj: Any, *names: str) -> bool:
+    """Return whether a runtime callable accepts all named keyword arguments."""
+
+    try:
+        parameters = inspect.signature(callable_obj).parameters
+    except (TypeError, ValueError):
+        return False
+    if any(item.kind == inspect.Parameter.VAR_KEYWORD for item in parameters.values()):
+        return True
+    return all(name in parameters for name in names)
+
+
 def _new_chromium_options() -> ChromiumOptions:
     """Create ChromiumOptions without reading a user ini when supported."""
 
@@ -136,4 +148,3 @@ def quit_browser(browser: Any) -> None:
         browser.quit()
     elif hasattr(browser, "close"):
         browser.close()
-

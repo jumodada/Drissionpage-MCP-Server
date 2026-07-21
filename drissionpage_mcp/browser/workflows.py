@@ -10,9 +10,12 @@ from collections.abc import Mapping
 from time import monotonic
 from typing import TYPE_CHECKING, Any
 
-from ..forms import build_form_inspect_script
-from ..page_scripts import (
-    _extract_links_script,
+from ..response_errors import ErrorCode
+from ..selector import normalize_selector
+from ..tool_outputs import ConditionEvaluation, Expectation
+from ._scripts import run_structured_script
+from .form_inspection_scripts import build_form_inspect_script
+from .form_scripts import (
     _form_fill_framework_script,
     _form_fill_observe_script,
     _form_fill_preview_script,
@@ -20,10 +23,7 @@ from ..page_scripts import (
     _form_submit_resolve_script,
     _form_submit_state_script,
 )
-from ..response_errors import ErrorCode
-from ..selector import normalize_selector
-from ..tool_outputs import ConditionEvaluation, Expectation
-from ._scripts import run_structured_script
+from .page_state_scripts import _extract_links_script
 
 if TYPE_CHECKING:
     from ..tab import PageTab

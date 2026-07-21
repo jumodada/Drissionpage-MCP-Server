@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+import ast
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
@@ -24,6 +26,28 @@ from drissionpage_mcp.tool_outputs import (
     Expectation,
     TaskContext,
 )
+
+
+def test_context_uses_drissionpage_free_task_runtime_boundary() -> None:
+    from drissionpage_mcp.runtime import TaskRuntime
+
+    assert issubclass(DrissionPageContext, TaskRuntime)
+
+    runtime_path = Path(__file__).parents[1] / "drissionpage_mcp" / "runtime.py"
+    tree = ast.parse(runtime_path.read_text(encoding="utf-8"))
+    imported_modules = {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    } | {
+        node.module or "" for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)
+    }
+
+    assert not any(
+        name == "DrissionPage" or name.startswith("DrissionPage.")
+        for name in imported_modules
+    )
 
 
 def _receipt(

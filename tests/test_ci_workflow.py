@@ -173,6 +173,21 @@ def test_readmes_publish_ci_and_codecov_badges() -> None:
         assert "codecov.io/gh/jumodada/Drissionpage-MCP-Server" in text
 
 
+def test_readme_architecture_matches_runtime_browser_tool_boundaries() -> None:
+    for readme in README_FILES:
+        text = readme.read_text(encoding="utf-8")
+        architecture = (
+            text.split("Architecture", maxsplit=1)[-1]
+            if readme.name == "README.md"
+            else text.split("架构", maxsplit=1)[-1]
+        )
+
+        assert "runtime.py" in architecture
+        assert "browser/" in architecture
+        assert "tools/" in architecture
+        assert "response.py" not in architecture
+
+
 def test_distribution_does_not_publish_src_compat_shim() -> None:
     """keeps the wheel focused on the canonical drissionpage_mcp package."""
 

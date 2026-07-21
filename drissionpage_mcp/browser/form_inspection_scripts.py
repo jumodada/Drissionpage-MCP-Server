@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 
-from .outline import ELEMENT_TEXT_CHARS, KNOWN_ATTRIBUTES
+from ..outline import ELEMENT_TEXT_CHARS, KNOWN_ATTRIBUTES
+from .script_fragments import css_text_helpers_script
 
 FORM_TEXT_CHARS = 500
 
@@ -28,25 +29,11 @@ def build_form_inspect_script(
   const fieldTextChars = {ELEMENT_TEXT_CHARS};
   const knownAttributes = {json.dumps(list(KNOWN_ATTRIBUTES))};
   const limits = {{max_forms: maxForms, max_fields_per_form: maxFieldsPerForm}};
-
-  function textOf(node) {{
-    return (node.innerText || node.textContent || '').replace(/\\s+/g, ' ').trim();
-  }}
+{css_text_helpers_script()}
 
   function truncate(value, limit) {{
     value = String(value || '');
     return value.length > limit ? value.slice(0, limit) : value;
-  }}
-
-  function cssIdent(value) {{
-    if (window.CSS && typeof window.CSS.escape === 'function') {{
-      return window.CSS.escape(value);
-    }}
-    return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\\\$&');
-  }}
-
-  function cssString(value) {{
-    return String(value).replace(/\\\\/g, '\\\\\\\\').replace(/"/g, '\\\\"');
   }}
 
   function attrMap(el, type) {{

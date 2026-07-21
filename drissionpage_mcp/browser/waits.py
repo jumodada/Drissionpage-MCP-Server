@@ -8,8 +8,8 @@ import re
 import time
 from typing import TYPE_CHECKING, Any
 
-from ..page_scripts import _selector_state_script
 from ..selector import SelectorPlan, normalize_selector
+from .page_state_scripts import _selector_state_script
 
 if TYPE_CHECKING:
     from ..tab import PageTab

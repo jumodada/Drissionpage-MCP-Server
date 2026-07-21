@@ -268,12 +268,13 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 ```
 DrissionMCP/
 ├── drissionpage_mcp/
-│   ├── cli.py              # 入口点
-│   ├── server.py           # MCP 服务器
-│   ├── context.py          # 浏览器管理
-│   ├── response.py         # 响应格式化
-│   ├── tab.py              # 页面操作
-│   └── tools/              # 62 个自动化、任务完成、标签页/iframe/shadow、页面理解与可观察性工具
+│   ├── cli.py              # 进程入口
+│   ├── server.py           # MCP 传输和请求路由
+│   ├── context.py          # 浏览器和标签页生命周期门面
+│   ├── runtime.py          # Operation key、receipt、artifact 和 capability 状态
+│   ├── tool_outputs.py     # 类型化公共结果和任务运行时合同
+│   ├── browser/            # 聚焦的 DrissionPage 能力、页面脚本和有限工作流
+│   └── tools/              # 62 个类型化 MCP 工具定义和薄适配层
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```

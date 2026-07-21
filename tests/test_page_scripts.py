@@ -2,11 +2,32 @@
 
 from __future__ import annotations
 
-from drissionpage_mcp.page_scripts import (
-    _extract_links_script,
+from pathlib import Path
+
+from drissionpage_mcp.browser.form_inspection_scripts import (
+    build_form_inspect_script,
+)
+from drissionpage_mcp.browser.form_scripts import (
     _form_fill_preview_script,
+    _form_fill_resolve_script,
+)
+from drissionpage_mcp.browser.page_state_scripts import (
+    _extract_links_script,
     _selector_state_script,
 )
+
+
+def test_page_script_builders_are_owned_by_browser_package() -> None:
+    package_root = Path(__file__).parents[1] / "drissionpage_mcp"
+
+    assert not (package_root / "forms.py").exists()
+    assert not (package_root / "page_scripts.py").exists()
+    assert "querySelectorAll('form')" in build_form_inspect_script(
+        selector="css:form",
+        include_values=False,
+        max_forms=2,
+        max_fields_per_form=4,
+    )
 
 
 def test_workflow_scripts_escape_css_literals() -> None:
@@ -33,7 +54,20 @@ def test_workflow_scripts_escape_css_literals() -> None:
     assert escaped_attribute_value in form_script
     assert escaped_identifier_replacement in links_script
     assert escaped_attribute_value in links_script
-    assert 'replace(/\\/g' not in form_script
+    assert "replace(/\\/g" not in form_script
+
+
+def test_shared_css_helpers_keep_form_resolution_fallback_escaped() -> None:
+    script = _form_fill_resolve_script(
+        form_locator="css:form",
+        fields={'field"with\\slashes': "value"},
+        redact_values=True,
+    )
+
+    assert r"replace(/[^a-zA-Z0-9_-]/g, '\\$&')" in script
+    assert r"""split('\\').join('\\\\').replace(/"/g, '\\"')""" in script
+    assert script.count("function cssIdent") == 1
+    assert script.count("function cssString") == 1
 
 
 def test_extract_links_script_uses_json_literals_for_flags_and_url() -> None:
@@ -47,10 +81,10 @@ def test_extract_links_script_uses_json_literals_for_flags_and_url() -> None:
     )
 
     assert 'const locator = "css:a[data-kind=\\"external\\"]";' in script
-    assert 'const limit = 3;' in script
-    assert 'const includeText = false;' in script
-    assert 'const sameOriginOnly = true;' in script
-    assert 'const absoluteUrls = false;' in script
+    assert "const limit = 3;" in script
+    assert "const includeText = false;" in script
+    assert "const sameOriginOnly = true;" in script
+    assert "const absoluteUrls = false;" in script
     assert 'const baseUrl = "https://example.test/path?x=\\"quoted\\"";' in script
 
 
@@ -75,7 +109,7 @@ def test_selector_state_script_uses_json_literals_for_css_and_xpath() -> None:
 
     assert 'const strategy = "css";' in css_script
     assert 'const raw = "#weird\\"id";' in css_script
-    assert 'document.querySelector(raw)' in css_script
+    assert "document.querySelector(raw)" in css_script
     assert 'const strategy = "xpath";' in xpath_script
-    assert 'const raw = "//button[contains(., \'Save\')]";' in xpath_script
+    assert "const raw = \"//button[contains(., 'Save')]\";" in xpath_script
     assert "XPathResult.FIRST_ORDERED_NODE_TYPE" in xpath_script

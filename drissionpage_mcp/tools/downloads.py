@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import math
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from time import monotonic
@@ -20,7 +21,8 @@ from ..browser.downloads import (
 from ..limits import MAX_WAIT_SECONDS
 from ..policy import PolicyDeniedError, SafetyPolicy
 from ..response_errors import ErrorCode
-from ..selector import normalize_selector
+from ..runtime import OperationClaim
+from ..selector import SelectorPlan, normalize_selector
 from ..tool_outputs import (
     ActionReceipt,
     ArtifactRef,
@@ -31,6 +33,7 @@ from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
+    from ..tab import PageTab
 
 
 OperationKey = Annotated[
@@ -86,6 +89,30 @@ class ElementClickAndDownloadInput(ToolInput):
         return self
 
 
+@dataclass(slots=True)
+class _DownloadPreflight:
+    root: Path
+    tab: "PageTab"
+    deadline: float
+    plan: SelectorPlan
+    element: Any
+    action_id: str
+    operation_key: str
+    fingerprint: str
+
+
+@dataclass(slots=True)
+class _ClaimedDownload:
+    preflight: _DownloadPreflight
+    artifact_id: str
+    download_dir: Path
+    claim: OperationClaim
+    started_at: datetime
+    target_fingerprint: str
+    reserved: bool = True
+    committed: bool = False
+
+
 @define_tool(
     name="element_click_and_download",
     title="Click And Download",
@@ -100,7 +127,37 @@ async def element_click_and_download(
 ) -> "ToolOutcome":
     """Execute one download boundary after all non-side-effect preconditions."""
 
-    outcome = ToolOutcome()
+    action_id, operation_key, fingerprint = _download_identity(context, args)
+    replay = _download_replay_outcome(context, operation_key, fingerprint)
+    if replay is not None:
+        return replay
+
+    try:
+        policy = SafetyPolicy.from_env()
+        policy.validate_external_download()
+        root = policy.validate_download_root()
+    except PolicyDeniedError as exc:
+        outcome = ToolOutcome()
+        outcome.add_error(
+            str(exc), ErrorCode.POLICY_DENIED, rule=exc.rule, value=exc.value
+        )
+        return outcome
+
+    preflight = await _download_preflight(
+        context,
+        args,
+        root=root,
+        action_id=action_id,
+        operation_key=operation_key,
+        fingerprint=fingerprint,
+    )
+    claimed = await _claim_download(context, preflight)
+    return await _execute_claimed_download(context, args, claimed)
+
+
+def _download_identity(
+    context: "DrissionPageContext", args: ElementClickAndDownloadInput
+) -> tuple[str | None, str, str]:
     action_id: str | None = None
     operation_key = args.operation_key
     if operation_key is None:
@@ -116,32 +173,40 @@ async def element_click_and_download(
             "expected_mime_type": args.expected_mime_type,
         }
     )
-    replay = context.preview_operation(operation_key, fingerprint)
-    if replay is not None:
-        if replay.cached_result is None:
-            raise RuntimeError("Cached download operation has no frozen result.")
-        if replay.cached_result.get("status") == "success":
-            outcome.add_code("# replay cached element_click_and_download result")
-            outcome.set_result(
-                f"Replayed completed download for operation key {operation_key}",
-                replay.cached_result,
-            )
-            return outcome
-        return _failure_outcome(
-            replay.cached_result,
-            _download_error_from_status(str(replay.cached_result.get("status"))),
-        )
+    return action_id, operation_key, fingerprint
 
-    policy = SafetyPolicy.from_env()
-    try:
-        policy.validate_external_download()
-        root = policy.validate_download_root()
-    except PolicyDeniedError as exc:
-        outcome.add_error(
-            str(exc), ErrorCode.POLICY_DENIED, rule=exc.rule, value=exc.value
+
+def _download_replay_outcome(
+    context: "DrissionPageContext", operation_key: str, fingerprint: str
+) -> ToolOutcome | None:
+    replay = context.preview_operation(operation_key, fingerprint)
+    if replay is None:
+        return None
+    if replay.cached_result is None:
+        raise RuntimeError("Cached download operation has no frozen result.")
+    if replay.cached_result.get("status") == "success":
+        outcome = ToolOutcome()
+        outcome.add_code("# replay cached element_click_and_download result")
+        outcome.set_result(
+            f"Replayed completed download for operation key {operation_key}",
+            replay.cached_result,
         )
         return outcome
+    return _failure_outcome(
+        replay.cached_result,
+        _download_error_from_status(str(replay.cached_result.get("status"))),
+    )
 
+
+async def _download_preflight(
+    context: "DrissionPageContext",
+    args: ElementClickAndDownloadInput,
+    *,
+    root: Path,
+    action_id: str | None,
+    operation_key: str,
+    fingerprint: str,
+) -> _DownloadPreflight:
     _validate_download_capability(context)
     tab = context.current_tab_or_die()
     deadline = monotonic() + args.timeout
@@ -154,188 +219,267 @@ async def element_click_and_download(
         context.record_capability_probe(_download_probe("unsupported", exc.reason_code))
         raise
     _validate_task_download_directory(root, context.task_id)
+    return _DownloadPreflight(
+        root=root,
+        tab=tab,
+        deadline=deadline,
+        plan=plan,
+        element=element,
+        action_id=action_id or context.new_action_id(),
+        operation_key=operation_key,
+        fingerprint=fingerprint,
+    )
 
-    if action_id is None:
-        action_id = context.new_action_id()
+
+async def _claim_download(
+    context: "DrissionPageContext", preflight: _DownloadPreflight
+) -> _ClaimedDownload:
     artifact_id = context.new_artifact_id()
     reserved = False
     download_dir: Path | None = None
     try:
         context.reserve_artifact_slot(artifact_id)
         reserved = True
-        download_dir = _allocate_download_dir(root, context.task_id, action_id)
-        claim = context.claim_operation(operation_key, fingerprint)
+        download_dir = _allocate_download_dir(
+            preflight.root,
+            context.task_id,
+            preflight.action_id,
+        )
+        claim = context.claim_operation(
+            preflight.operation_key,
+            preflight.fingerprint,
+        )
     except Exception:
         if reserved:
             context.release_artifact_slot(artifact_id)
-            reserved = False
-        rollback_cancellation: asyncio.CancelledError | None = None
-        if download_dir is not None:
-            cleanup = asyncio.create_task(tab.downloads.cleanup(download_dir))
-            rollback_cancellation = await _drain_cleanup(cleanup)
+        rollback_cancellation = await _cleanup_download_dir(
+            preflight.tab,
+            download_dir,
+        )
         if rollback_cancellation is not None:
             raise rollback_cancellation
         raise
-    started_at = datetime.now(timezone.utc)
+
     target_fingerprint = context.request_fingerprint(
         {
-            "tab_id": tab.mcp_tab_id or "untracked-tab",
-            "selector": plan.locator,
-            "url": tab.url,
+            "tab_id": preflight.tab.mcp_tab_id or "untracked-tab",
+            "selector": preflight.plan.locator,
+            "url": preflight.tab.url,
         }
     )
-    committed = False
-    try:
-        remaining = deadline - monotonic()
-        if remaining <= 0:
-            raise TimeoutError("Download deadline expired before native invocation.")
-        result = await tab.downloads.click_and_wait(
-            element,
-            download_dir=download_dir,
-            timeout=remaining,
-        )
-        if (
-            args.expected_filename is not None
-            and result["filename"] != args.expected_filename
-        ):
-            raise DownloadValidationError(
-                "Downloaded filename did not match the requested constraint."
-            )
-        if (
-            args.expected_mime_type is not None
-            and result["mime_type"] != args.expected_mime_type
-        ):
-            raise DownloadValidationError(
-                "Downloaded MIME type did not match the requested constraint."
-            )
+    return _ClaimedDownload(
+        preflight=preflight,
+        artifact_id=artifact_id,
+        download_dir=download_dir,
+        claim=claim,
+        started_at=datetime.now(timezone.utc),
+        target_fingerprint=target_fingerprint,
+    )
 
-        safe_relative_path = result["path"].relative_to(root.resolve()).as_posix()
-        artifact = ArtifactRef(
-            artifact_id=artifact_id,
-            task_id=context.task_id,
-            producing_action_id=action_id,
-            kind="download",
-            filename=result["filename"],
-            mime_type=result["mime_type"],
-            size_bytes=result["size_bytes"],
-            sha256=result["sha256"],
-            safe_relative_path=safe_relative_path,
-            source_url=result["source_url"],
-            created_at=datetime.now(timezone.utc),
-        )
-        receipt = _receipt(
-            context=context,
-            action_id=action_id,
-            operation_key=operation_key,
-            fingerprint=fingerprint,
-            tab_id=tab.mcp_tab_id or "untracked-tab",
-            target_fingerprint=target_fingerprint,
-            started_at=started_at,
-            status="success",
-            artifact_ids=(artifact_id,),
-        )
-        data = {
-            "status": "success",
-            "operation_key": operation_key,
-            **plan.metadata(),
-            "artifact": artifact.model_dump(mode="json"),
-            "receipt": receipt.model_dump(mode="json"),
-        }
-        data = ElementClickAndDownloadData.model_validate(data).model_dump(mode="json")
-        context.complete_artifact_operation(
-            claim,
-            receipt,
-            artifact,
-            result=data,
-        )
-        reserved = False
-        committed = True
-        try:
-            context.record_capability_probe(_download_probe("supported"))
-        except Exception:
-            pass
-        outcome.add_code(
-            f"page.ele({plan.locator!r}).click.to_download(save_path='<approved-root>')"
-        )
-        outcome.set_result("Downloaded one integrity-checked artifact", data)
-        outcome.set_include_snapshot(True)
-        return outcome
+
+async def _execute_claimed_download(
+    context: "DrissionPageContext",
+    args: ElementClickAndDownloadInput,
+    state: _ClaimedDownload,
+) -> ToolOutcome:
+    try:
+        result = await _invoke_download(args, state)
+        return _complete_download_success(context, state, result)
     except asyncio.CancelledError:
-        if reserved:
-            context.release_artifact_slot(artifact_id)
-            reserved = False
-        if download_dir is not None:
-            cleanup = asyncio.create_task(tab.downloads.cleanup(download_dir))
-            await _drain_cleanup(cleanup)
-        receipt = _receipt(
-            context=context,
-            action_id=action_id,
-            operation_key=operation_key,
-            fingerprint=fingerprint,
-            tab_id=tab.mcp_tab_id or "untracked-tab",
-            target_fingerprint=target_fingerprint,
-            started_at=started_at,
-            status="indeterminate",
-            error_code="DOWNLOAD_INDETERMINATE",
-        )
-        failure_data = {
-            "status": "indeterminate",
-            "operation_key": operation_key,
-            **plan.metadata(),
-            "artifact": None,
-            "receipt": receipt.model_dump(mode="json"),
-        }
-        failure_data = ElementClickAndDownloadData.model_validate(
-            failure_data
-        ).model_dump(mode="json")
-        context.complete_operation(claim, receipt, result=failure_data)
+        await _complete_cancelled_download(context, state)
         raise
     except Exception as exc:
-        if committed:
+        if state.committed:
             raise
-        if reserved:
-            context.release_artifact_slot(artifact_id)
-            reserved = False
-        failure_cancellation: asyncio.CancelledError | None = None
-        if download_dir is not None:
-            cleanup = asyncio.create_task(tab.downloads.cleanup(download_dir))
-            failure_cancellation = await _drain_cleanup(cleanup)
-        status: Literal["failed", "validation_failed", "indeterminate"]
-        if failure_cancellation is not None:
-            status = "indeterminate"
-        elif isinstance(exc, DownloadValidationError):
-            status = "validation_failed"
-        elif isinstance(exc, (DownloadIndeterminateError, TimeoutError)):
-            status = "indeterminate"
-        elif isinstance(exc, (DownloadFailedError, DownloadUnsupportedError)):
-            status = "failed"
-        else:
-            status = "indeterminate"
-        receipt = _receipt(
-            context=context,
-            action_id=action_id,
-            operation_key=operation_key,
-            fingerprint=fingerprint,
-            tab_id=tab.mcp_tab_id or "untracked-tab",
-            target_fingerprint=target_fingerprint,
-            started_at=started_at,
-            status=status,
-            error_code=f"DOWNLOAD_{status.upper()}",
+        return await _complete_failed_download(context, state, exc)
+
+
+async def _invoke_download(
+    args: ElementClickAndDownloadInput,
+    state: _ClaimedDownload,
+) -> dict[str, Any]:
+    remaining = state.preflight.deadline - monotonic()
+    if remaining <= 0:
+        raise TimeoutError("Download deadline expired before native invocation.")
+    result = await state.preflight.tab.downloads.click_and_wait(
+        state.preflight.element,
+        download_dir=state.download_dir,
+        timeout=remaining,
+    )
+    if (
+        args.expected_filename is not None
+        and result["filename"] != args.expected_filename
+    ):
+        raise DownloadValidationError(
+            "Downloaded filename did not match the requested constraint."
         )
-        failure_data = {
-            "status": status,
-            "operation_key": operation_key,
-            **plan.metadata(),
-            "artifact": None,
-            "receipt": receipt.model_dump(mode="json"),
-        }
-        failure_data = ElementClickAndDownloadData.model_validate(
-            failure_data
-        ).model_dump(mode="json")
-        context.complete_operation(claim, receipt, result=failure_data)
-        if failure_cancellation is not None:
-            raise failure_cancellation
-        return _failure_outcome(failure_data, exc)
+    if (
+        args.expected_mime_type is not None
+        and result["mime_type"] != args.expected_mime_type
+    ):
+        raise DownloadValidationError(
+            "Downloaded MIME type did not match the requested constraint."
+        )
+    return result
+
+
+def _complete_download_success(
+    context: "DrissionPageContext",
+    state: _ClaimedDownload,
+    result: dict[str, Any],
+) -> ToolOutcome:
+    preflight = state.preflight
+    artifact = ArtifactRef(
+        artifact_id=state.artifact_id,
+        task_id=context.task_id,
+        producing_action_id=preflight.action_id,
+        kind="download",
+        filename=result["filename"],
+        mime_type=result["mime_type"],
+        size_bytes=result["size_bytes"],
+        sha256=result["sha256"],
+        safe_relative_path=result["path"]
+        .relative_to(preflight.root.resolve())
+        .as_posix(),
+        source_url=result["source_url"],
+        created_at=datetime.now(timezone.utc),
+    )
+    receipt = _download_receipt_for_state(
+        context,
+        state,
+        status="success",
+        artifact_ids=(state.artifact_id,),
+    )
+    data = _download_data(state, receipt, artifact=artifact)
+    context.complete_artifact_operation(
+        state.claim,
+        receipt,
+        artifact,
+        result=data,
+    )
+    state.reserved = False
+    state.committed = True
+    try:
+        context.record_capability_probe(_download_probe("supported"))
+    except Exception:
+        pass
+
+    outcome = ToolOutcome()
+    outcome.add_code(
+        f"page.ele({preflight.plan.locator!r}).click.to_download(save_path='<approved-root>')"
+    )
+    outcome.set_result("Downloaded one integrity-checked artifact", data)
+    outcome.set_include_snapshot(True)
+    return outcome
+
+
+async def _complete_cancelled_download(
+    context: "DrissionPageContext", state: _ClaimedDownload
+) -> None:
+    await _release_and_cleanup_download(context, state)
+    receipt = _download_receipt_for_state(
+        context,
+        state,
+        status="indeterminate",
+        error_code="DOWNLOAD_INDETERMINATE",
+    )
+    failure_data = _download_data(state, receipt)
+    context.complete_operation(state.claim, receipt, result=failure_data)
+
+
+async def _complete_failed_download(
+    context: "DrissionPageContext",
+    state: _ClaimedDownload,
+    exc: Exception,
+) -> ToolOutcome:
+    cleanup_cancellation = await _release_and_cleanup_download(context, state)
+    status = _download_failure_status(exc, cleanup_cancellation)
+    receipt = _download_receipt_for_state(
+        context,
+        state,
+        status=status,
+        error_code=f"DOWNLOAD_{status.upper()}",
+    )
+    failure_data = _download_data(state, receipt)
+    context.complete_operation(state.claim, receipt, result=failure_data)
+    if cleanup_cancellation is not None:
+        raise cleanup_cancellation
+    return _failure_outcome(failure_data, exc)
+
+
+async def _release_and_cleanup_download(
+    context: "DrissionPageContext", state: _ClaimedDownload
+) -> asyncio.CancelledError | None:
+    if state.reserved:
+        context.release_artifact_slot(state.artifact_id)
+        state.reserved = False
+    return await _cleanup_download_dir(state.preflight.tab, state.download_dir)
+
+
+async def _cleanup_download_dir(
+    tab: "PageTab", download_dir: Path | None
+) -> asyncio.CancelledError | None:
+    if download_dir is None:
+        return None
+    cleanup = asyncio.create_task(tab.downloads.cleanup(download_dir))
+    return await _drain_cleanup(cleanup)
+
+
+def _download_failure_status(
+    exc: Exception,
+    cleanup_cancellation: asyncio.CancelledError | None,
+) -> Literal["failed", "validation_failed", "indeterminate"]:
+    if cleanup_cancellation is not None:
+        return "indeterminate"
+    if isinstance(exc, DownloadValidationError):
+        return "validation_failed"
+    if isinstance(exc, (DownloadFailedError, DownloadUnsupportedError)):
+        return "failed"
+    return "indeterminate"
+
+
+def _download_receipt_for_state(
+    context: "DrissionPageContext",
+    state: _ClaimedDownload,
+    *,
+    status: Literal["success", "failed", "validation_failed", "indeterminate"],
+    artifact_ids: tuple[str, ...] = (),
+    error_code: str | None = None,
+) -> ActionReceipt:
+    preflight = state.preflight
+    return _receipt(
+        context=context,
+        action_id=preflight.action_id,
+        operation_key=preflight.operation_key,
+        fingerprint=preflight.fingerprint,
+        tab_id=preflight.tab.mcp_tab_id or "untracked-tab",
+        target_fingerprint=state.target_fingerprint,
+        started_at=state.started_at,
+        status=status,
+        artifact_ids=artifact_ids,
+        error_code=error_code,
+    )
+
+
+def _download_data(
+    state: _ClaimedDownload,
+    receipt: ActionReceipt,
+    *,
+    artifact: ArtifactRef | None = None,
+) -> dict[str, Any]:
+    data = {
+        "status": receipt.status,
+        "operation_key": state.preflight.operation_key,
+        **state.preflight.plan.metadata(),
+        "artifact": (
+            artifact.model_dump(mode="json") if artifact is not None else None
+        ),
+        "receipt": receipt.model_dump(mode="json"),
+    }
+    validated: dict[str, Any] = ElementClickAndDownloadData.model_validate(
+        data
+    ).model_dump(mode="json")
+    return validated
 
 
 async def _drain_cleanup(

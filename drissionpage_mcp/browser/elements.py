@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
-from inspect import Parameter, signature
 from typing import TYPE_CHECKING, Any
 
 from DrissionPage.errors import ElementNotFoundError
 
+from ..compat import accepts_parameters
 from ..outline import summarize_elements
 from ..response_errors import ErrorCode
 from ..selector import normalize_selector
@@ -64,12 +64,12 @@ class ElementOperations:
                 right()
             elif button == "left" and click_count == 2:
                 multi = getattr(clicker, "multi", None)
-                if not callable(multi) or not _accepts_parameters(multi, "times"):
+                if not callable(multi) or not accepts_parameters(multi, "times"):
                     raise ClickUnsupportedError("MULTI_CLICK_UNAVAILABLE")
                 multi(times=2)
             else:
                 at = getattr(clicker, "at", None)
-                if not callable(at) or not _accepts_parameters(at, "button", "count"):
+                if not callable(at) or not accepts_parameters(at, "button", "count"):
                     raise ClickUnsupportedError("BUTTON_COUNT_CLICK_UNAVAILABLE")
                 at(button=button, count=click_count)
             await self._tab._stabilize(
@@ -223,15 +223,3 @@ class ElementOperations:
         except Exception as exc:
             logger.error("Failed to upload file into %s: %s", selector, exc)
             raise
-
-
-def _accepts_parameters(callable_obj: Any, *names: str) -> bool:
-    """Return whether a runtime callable explicitly accepts the required arguments."""
-
-    try:
-        parameters = signature(callable_obj).parameters
-    except (TypeError, ValueError):
-        return False
-    if any(item.kind == Parameter.VAR_KEYWORD for item in parameters.values()):
-        return True
-    return all(name in parameters for name in names)
