@@ -25,7 +25,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 62
+    assert len(tools) == 58
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -39,9 +39,6 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "tab_switch",
         "tab_close",
         "element_find_all",
-        "form_inspect",
-        "form_fill",
-        "form_submit",
         "page_dialog_respond",
         "element_click_and_download",
         "element_get_text",
@@ -58,7 +55,6 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "storage_get",
         "browser_open_and_snapshot",
         "browser_extract_links",
-        "form_fill_preview",
         "network_listen_start",
         "network_listen_wait",
         "network_listen_stop",
@@ -72,9 +68,12 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         assert isinstance(tool.annotations.readOnlyHint, bool)
         assert isinstance(tool.annotations.destructiveHint, bool)
         assert isinstance(tool.annotations.idempotentHint, bool)
-    form_submit_tool = next(tool for tool in tools if tool.name == "form_submit")
-    assert form_submit_tool.annotations is not None
-    assert form_submit_tool.annotations.idempotentHint is False
+    assert {
+        "form_inspect",
+        "form_fill",
+        "form_submit",
+        "form_fill_preview",
+    }.isdisjoint(tool.name for tool in tools)
 
 
 @pytest.mark.asyncio
@@ -176,7 +175,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 62
+            assert len(tools.tools) == 58
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -187,9 +186,6 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "page_snapshot",
                 "tab_list",
                 "element_find_all",
-                "form_inspect",
-                "form_fill",
-                "form_submit",
                 "page_dialog_respond",
                 "element_click_and_download",
                 "wait_until",
@@ -199,13 +195,18 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "storage_get",
                 "browser_open_and_snapshot",
                 "browser_extract_links",
-                "form_fill_preview",
                 "network_listen_start",
                 "network_listen_wait",
                 "network_listen_stop",
             }
             assert "element_input_text" not in {tool.name for tool in tools.tools}
             assert "wait_sleep" not in {tool.name for tool in tools.tools}
+            assert {
+                "form_inspect",
+                "form_fill",
+                "form_submit",
+                "form_fill_preview",
+            }.isdisjoint(tool.name for tool in tools.tools)
 
             wait_result = await session.call_tool("wait_time", {"seconds": 0})
             assert wait_result.isError is not True
@@ -273,36 +274,6 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
         "elements"
         in schemas["element_find_all"]["oneOf"][0]["properties"]["data"]["required"]
     )
-    assert schemas["form_inspect"]["oneOf"][0]["properties"]["data"]["title"] == (
-        "FormInspectData"
-    )
-    assert (
-        "forms" in schemas["form_inspect"]["oneOf"][0]["properties"]["data"]["required"]
-    )
-    assert schemas["form_fill"]["oneOf"][0]["properties"]["data"]["title"] == (
-        "FormFillData"
-    )
-    assert {
-        "form_selector",
-        "form_found",
-        "field_count",
-        "requested_count",
-        "filled_count",
-        "failed_count",
-        "verified_count",
-        "fields",
-        "receipt",
-    } <= set(schemas["form_fill"]["oneOf"][0]["properties"]["data"]["required"])
-    assert schemas["form_submit"]["oneOf"][0]["properties"]["data"]["title"] == (
-        "FormSubmitData"
-    )
-    assert {
-        "status",
-        "operation_key",
-        "postconditions",
-        "duplicate_prevention",
-        "receipt",
-    } <= set(schemas["form_submit"]["oneOf"][0]["properties"]["data"]["required"])
     assert schemas["page_dialog_respond"]["oneOf"][0]["properties"]["data"][
         "title"
     ] == ("PageDialogRespondData")
@@ -346,9 +317,6 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     assert schemas["browser_extract_links"]["oneOf"][0]["properties"]["data"][
         "title"
     ] == ("BrowserExtractLinksData")
-    assert schemas["form_fill_preview"]["oneOf"][0]["properties"]["data"]["title"] == (
-        "FormFillPreviewData"
-    )
     assert schemas["network_listen_wait"]["oneOf"][0]["properties"]["data"][
         "title"
     ] == ("NetworkListenWaitData")

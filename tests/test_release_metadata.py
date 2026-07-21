@@ -1,4 +1,4 @@
-"""Release metadata checks for 0.7.1."""
+"""Release metadata checks for 0.7.2."""
 
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_7_1() -> None:
+def test_package_version_metadata_is_0_7_2() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.7.1"
-    assert drissionpage_mcp.__version__ == "0.7.1"
+    assert pyproject["project"]["version"] == "0.7.2"
+    assert drissionpage_mcp.__version__ == "0.7.2"
 
 
 def test_changelog_describes_breaking_alias_removal() -> None:
@@ -28,7 +28,7 @@ def test_changelog_describes_breaking_alias_removal() -> None:
     assert "wait_sleep" in changelog
 
 
-def test_readmes_and_changelog_publish_latest_0_7_1_summary() -> None:
+def test_readmes_and_changelog_publish_latest_0_7_2_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
@@ -41,29 +41,29 @@ def test_readmes_and_changelog_publish_latest_0_7_1_summary() -> None:
     assert "website/public/og-browser-lab.png" not in readme_cn
     assert "Watch the original natural pointer demo" not in readme
     assert "观看原始自然指针演示" not in readme_cn
-    assert "## 🆕 Latest Version: v0.7.1" in readme
-    assert "Released on 2026-07-20" in readme
-    assert "form_fill" in readme
-    assert "form_submit" in readme
+    assert "## 🆕 Latest Version: v0.7.2" in readme
+    assert "Released on 2026-07-21" in readme
+    assert "58 Powerful Tools" in readme
+    assert "Form Operations" not in readme
     assert "page_dialog_respond" in readme
     assert "element_click_and_download" in readme
-    assert "public registry remains at 62 tools" in readme
+    assert "optional Skill" in readme
     assert "### 🌐 Navigation (4 tools)" in readme
     assert "### 🎯 Element Interaction & Extraction (14 tools)" in readme
-    assert "### 🧾 Form Operations (3 tools)" in readme
     assert "### 📸 Page Operations (18 tools)" in readme
-    assert "## 🆕 最新版本：v0.7.1" in readme_cn
-    assert "发布日期：2026-07-20" in readme_cn
-    assert "form_fill" in readme_cn
-    assert "form_submit" in readme_cn
+    assert "## 🆕 最新版本：v0.7.2" in readme_cn
+    assert "发布日期：2026-07-21" in readme_cn
+    assert "58 个强大工具" in readme_cn
+    assert "表单工具（3 个）" not in readme_cn
     assert "page_dialog_respond" in readme_cn
     assert "element_click_and_download" in readme_cn
-    assert "公开工具数保持 62 个" in readme_cn
+    assert "可选 Skill" in readme_cn
     assert "### 🌐 导航工具（4 个）" in readme_cn
     assert "### 🎯 元素交互与提取（14 个）" in readme_cn
-    assert "### 🧾 表单工具（3 个）" in readme_cn
     assert "### 📸 页面操作（18 个）" in readme_cn
-    assert "## [0.7.1] - 2026-07-20" in changelog
+    assert "## [0.7.2] - 2026-07-21" in changelog
+    assert "58 generic tools" in changelog
+    assert "No compatibility aliases" in changelog
     assert "ActionReceipt" in changelog
     assert "ArtifactRef" in changelog
     assert "ten-run" in changelog
@@ -75,7 +75,11 @@ def test_readmes_and_changelog_publish_latest_0_7_1_summary() -> None:
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.1...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.2...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.7.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.1...v0.7.2"
         in changelog
     )
     assert (

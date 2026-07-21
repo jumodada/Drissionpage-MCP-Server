@@ -46,12 +46,17 @@ def test_eval_task_completion_catalog_covers_eight_workloads() -> None:
 
 def test_eval_task_completion_enforces_declared_public_tool_path() -> None:
     assert _missing_required_tools(
-        "W04", ["page_navigate", "form_fill", "form_submit"]
+        "W04", ["page_navigate", "element_type", "element_click"]
     ) == ["element_upload_file"]
     assert (
         _missing_required_tools(
             "W04",
-            ["page_navigate", "form_fill", "element_upload_file", "form_submit"],
+            [
+                "page_navigate",
+                "element_type",
+                "element_upload_file",
+                "element_click",
+            ],
         )
         == []
     )
@@ -169,9 +174,9 @@ def test_eval_task_completion_console_report_includes_failed_run_evidence() -> N
         "failure_category": "workload_failure",
         "tool_calls": [
             "page_navigate",
-            "form_fill",
+            "element_type",
             "element_upload_file",
-            "form_submit",
+            "element_click",
         ],
         "side_effect_counts": {"upload_attempted_requests": 1},
         "duplicate_count": 0,

@@ -6,7 +6,6 @@ import asyncio
 import base64
 import json
 import os
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
@@ -14,7 +13,6 @@ from urllib.request import urlopen
 
 import pytest
 
-from drissionpage_mcp.browser.workflows import WorkflowOperations
 from drissionpage_mcp.server import DrissionPageMCPServer
 from drissionpage_mcp.tools.base import ToolOutcome
 from tests.fixtures.http_fixture import (
@@ -97,21 +95,25 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
         )
         _skip_if_browser_unavailable(navigate)
         assert "Successfully navigated" in navigate
-        _content, forms_payload = await _execute_tool(
-            server,
-            "form_inspect",
-            {"selector": "#profile-form", "include_values": True},
+        _content, snapshot_payload = await _execute_tool(
+            server, "page_snapshot", {"max_elements": 40}
         )
-        assert forms_payload["ok"] is True
-        assert forms_payload["data"]["count"] == 1
-        form = forms_payload["data"]["forms"][0]
-        assert form["selector"] == "#profile-form"
-        assert form["method"] == "post"
-        assert form["action"].endswith("/api/echo.json")
-        fields = {field["selector"]: field for field in form["fields"]}
-        assert fields["#name"]["value"] == "initial"
-        assert fields["#mode"]["tag"] == "select"
-        assert fields["#agree"]["type"] == "checkbox"
+        assert snapshot_payload["ok"] is True
+        assert snapshot_payload["data"]["counts"]["forms"] >= 1
+        _content, form_payload = await _execute_tool(
+            server, "element_find", {"selector": "#profile-form"}
+        )
+        assert form_payload["data"]["element"]["tag"] == "form"
+        _content, name_payload = await _execute_tool(
+            server,
+            "element_get_property",
+            {"selector": "#name", "property": "value"},
+        )
+        assert name_payload["data"]["value"] == "initial"
+        _content, mode_payload = await _execute_tool(
+            server, "element_find", {"selector": "#mode"}
+        )
+        assert mode_payload["data"]["element"]["tag"] == "select"
 
         _content, center_payload = await _execute_tool(
             server,
@@ -812,743 +814,6 @@ async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
         await server.cleanup()
 
 
-@pytest.mark.asyncio
-async def test_mcp_form_inspect_extracts_form_controls() -> None:
-    """inspects forms with labels and safe default value handling."""
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            assert "Successfully navigated" in navigate
-            _content, payload = await _execute_tool(server, "form_inspect", {})
-            assert payload["ok"] is True
-            data = payload["data"]
-            assert data["count"] == 1
-            assert data["returned"] == 1
-            form = data["forms"][0]
-            assert form["selector"] == "#fixture-form"
-            assert form["method"] == "get"
-            assert form["action"].endswith("/form")
-            fields = {field["selector"]: field for field in form["fields"]}
-            assert fields["#name"]["label"] == "Name"
-            assert fields["#name"]["name"] == "name"
-            assert fields["#name"]["type"] == "text"
-            assert fields["#name"]["value"] is None
-            assert fields["#secret"]["label"] == "Secret"
-            assert fields["#secret"]["type"] == "password"
-            assert fields["#secret"]["value"] is None
-            assert fields["#submit"]["tag"] == "button"
-            assert fields["#submit"]["type"] == "submit"
-            _content, values_payload = await _execute_tool(
-                server,
-                "form_inspect",
-                {"selector": "#fixture-form", "include_values": True},
-            )
-            value_fields = {
-                field["selector"]: field
-                for field in values_payload["data"]["forms"][0]["fields"]
-            }
-            assert value_fields["#name"]["value"] == ""
-            assert value_fields["#secret"]["value"] is None
-            assert "value" not in value_fields["#secret"]["attributes"]
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_inspect_exposes_rich_control_capabilities() -> None:
-    """exposes editable, role, selection, validity, and redacted value metadata."""
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-rich"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, payload = await _execute_tool(
-                server,
-                "form_inspect",
-                {
-                    "selector": "#profile-form",
-                    "include_values": True,
-                    "max_fields_per_form": 40,
-                },
-            )
-            assert payload["ok"] is True
-            fields = {
-                field["selector"]: field
-                for field in payload["data"]["forms"][0]["fields"]
-            }
-            assert fields["#bio"]["type"] == "contenteditable"
-            assert fields["#bio"]["editable"] is True
-            assert fields["#bio"]["capabilities"]["text_input"] is True
-            assert fields["#office"]["role"] == "combobox"
-            assert fields["#office"]["capabilities"]["option_input"] is True
-            assert fields["#skills"]["multiple"] is True
-            assert fields["#skills"]["selected_values"] == []
-            assert fields["#start-date"]["capabilities"]["date_time_input"] is True
-            assert fields["#employee-id"]["readonly"] is True
-            assert fields["#employee-id"]["editable"] is False
-            assert fields["#archived-reason"]["disabled"] is True
-            assert fields["#archived-reason"]["capabilities"]["fill"] is False
-            assert fields["#access-code"]["type"] == "password"
-            assert fields["#access-code"]["value"] is None
-            assert "value" not in fields["#access-code"]["attributes"]
-            assert fields["#full-name"]["validity"]["value_missing"] is True
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_fill_completes_native_and_rich_controls_with_receipt() -> None:
-    """fills rich controls through the typed public tool and verifies DOM evidence."""
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-rich"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, payload = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#profile-form",
-                    "redact_values": False,
-                    "verify": True,
-                    "fields": {
-                        "#full-name": "Ada Lovelace",
-                        "alias-id": "Countess",
-                        "contact_name": "ada-contact",
-                        "Business unit": "Research",
-                        "Preferred nickname": "Enchantress",
-                        '[data-testid="explicit-css-field"]': "explicit-value",
-                        "Receive updates": True,
-                        "Start date": "2026-07-16",
-                        "Start time": "09:30",
-                        "Skills": ["writing", "analysis"],
-                        "Bio": "First programmer",
-                        "Office": "Shanghai",
-                        "Access code": "top-secret-value",
-                    },
-                },
-            )
-            assert payload["ok"] is True
-            data = payload["data"]
-            assert data["form_found"] is True
-            assert data["requested_count"] == 13
-            assert data["filled_count"] == 13, data["fields"]
-            assert data["failed_count"] == 0
-            assert data["verified_count"] == 13
-            results = {field["key"]: field for field in data["fields"]}
-            assert results["#full-name"]["matched_by"] == "selector"
-            assert results["alias-id"]["matched_by"] == "id"
-            assert results["contact_name"]["matched_by"] == "name"
-            assert results["Business unit"]["matched_by"] == "label"
-            assert results["Preferred nickname"]["matched_by"] == "placeholder"
-            assert results['[data-testid="explicit-css-field"]']["matched_by"] == (
-                "explicit_css"
-            )
-            for key, result in results.items():
-                assert result["success"] is True, key
-                assert result["verified"] is True, key
-            assert results["Skills"]["observed_value"] == ["writing", "analysis"]
-            assert results["Receive updates"]["observed_value"] is True
-            secret_result = results["Access code"]
-            assert secret_result["requested_value"] == "<redacted>"
-            assert secret_result["observed_value"] == "<redacted>"
-            assert secret_result["redacted"] is True
-            serialized = json.dumps(data)
-            assert "top-secret-value" not in serialized
-            receipt = data["receipt"]
-            assert receipt["kind"] == "form_fill"
-            assert receipt["side_effect"] == "local_ui_mutation"
-            assert receipt["status"] == "success"
-            assert receipt["redacted"] is True
-            assert receipt["action_id"].startswith("action-")
-            assert receipt["task_id"].startswith("task-")
-            assert server.context is not None
-            task_summary = server.context.task_summary()
-            assert task_summary.operation_count == 1
-            assert task_summary.receipt_count == 1
-            assert task_summary.action_count == 1
-            inventory = [
-                item.model_dump(mode="json")
-                for item in server.context.receipt_inventory()
-            ]
-            assert inventory == [receipt]
-
-            _content, inspect_payload = await _execute_tool(
-                server,
-                "form_inspect",
-                {"selector": "#profile-form", "include_values": True},
-            )
-            inspected = {
-                field["selector"]: field
-                for field in inspect_payload["data"]["forms"][0]["fields"]
-            }
-            assert inspected["#full-name"]["value"] == "Ada Lovelace"
-            assert inspected["#department"]["value"] == "Research"
-            assert inspected["#updates"]["value"] is True
-            assert inspected["#start-date"]["value"] == "2026-07-16"
-            assert inspected["#start-time"]["value"] == "09:30"
-            assert inspected["#skills"]["selected_values"] == ["writing", "analysis"]
-            assert inspected["#bio"]["value"] == "First programmer"
-            assert inspected["#office"]["value"] == "Shanghai"
-            assert inspected["#access-code"]["value"] is None
-            _content, event_payload = await _execute_tool(
-                server, "element_get_text", {"selector": "#form-event-state"}
-            )
-            event_text = event_payload["data"]["text"]
-            assert "full-name:input" in event_text
-            assert "department:change" in event_text
-            assert "skills:change" in event_text
-            assert "bio:input" in event_text
-            assert "office:change" in event_text
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_fill_recovers_when_native_date_time_input_does_not_stick(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """falls back only after native date/time input fails live verification."""
-
-    original_apply = WorkflowOperations._apply_native_form_value
-
-    def drop_native_date_time_value(self: WorkflowOperations, **kwargs: Any) -> None:
-        target = kwargs["target"]
-        if target["control_type"] in {"date", "time"}:
-            return
-        original_apply(self, **kwargs)
-
-    monkeypatch.setattr(
-        WorkflowOperations,
-        "_apply_native_form_value",
-        drop_native_date_time_value,
-    )
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-rich"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, payload = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#profile-form",
-                    "redact_values": False,
-                    "fields": {
-                        "Start date": "2026-07-16",
-                        "Start time": "09:30",
-                    },
-                },
-            )
-
-            fields = {item["key"]: item for item in payload["data"]["fields"]}
-            assert fields["Start date"]["observed_value"] == "2026-07-16"
-            assert fields["Start date"]["success"] is True
-            assert fields["Start time"]["observed_value"] == "09:30"
-            assert fields["Start time"]["success"] is True
-            _content, event_payload = await _execute_tool(
-                server, "element_get_text", {"selector": "#form-event-state"}
-            )
-            event_text = event_payload["data"]["text"]
-            assert "start-date:input" in event_text
-            assert "start-date:change" in event_text
-            assert "start-time:input" in event_text
-            assert "start-time:change" in event_text
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_fill_reports_stable_field_failures_without_mutation() -> None:
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-rich"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, payload = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#profile-form",
-                    "redact_values": False,
-                    "fields": {
-                        "Employee ID": "EMP-999",
-                        "Archived reason": "changed",
-                        "Unknown field": "ignored",
-                    },
-                },
-            )
-            assert payload["ok"] is True
-            data = payload["data"]
-            assert data["requested_count"] == 3
-            assert data["filled_count"] == 0
-            assert data["failed_count"] == 3
-            assert data["verified_count"] == 0
-            results = {field["key"]: field for field in data["fields"]}
-            assert results["Employee ID"]["reason"] == "FIELD_READONLY"
-            assert results["Archived reason"]["reason"] == "FIELD_DISABLED"
-            assert results["Unknown field"]["reason"] == "FIELD_NOT_MATCHED"
-            assert all(result["success"] is False for result in results.values())
-            assert all(result["verified"] is False for result in results.values())
-            assert data["receipt"]["kind"] == "form_fill"
-            assert data["receipt"]["status"] == "failed"
-            _content, readonly_payload = await _execute_tool(
-                server,
-                "element_get_property",
-                {"selector": "#employee-id", "property": "value"},
-            )
-            _content, disabled_payload = await _execute_tool(
-                server,
-                "element_get_property",
-                {"selector": "#archived-reason", "property": "value"},
-            )
-            assert readonly_payload["data"]["value"] == "EMP-000"
-            assert disabled_payload["data"]["value"] == "n/a"
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_fill_updates_controlled_state_and_validation_evidence() -> None:
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-controlled"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, controlled_payload = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#controlled-form",
-                    "fields": {"Display name": "Ada Controlled"},
-                    "redact_values": False,
-                },
-            )
-            assert controlled_payload["ok"] is True
-            controlled = controlled_payload["data"]["fields"][0]
-            assert controlled["success"] is True, controlled
-            assert controlled["verified"] is True
-            assert controlled["observed_value"] == "Ada Controlled"
-            _content, rendered_payload = await _execute_tool(
-                server, "element_get_text", {"selector": "#controlled-rendered"}
-            )
-            rendered = rendered_payload["data"]["text"]
-            assert rendered.startswith("Ada Controlled;")
-            counts = re.search(r"input=(\d+); change=(\d+)", rendered)
-            assert counts is not None
-            assert int(counts.group(1)) >= 1
-            assert int(counts.group(2)) >= 1
-
-            _content, navigate_payload = await _execute_tool(
-                server, "page_navigate", {"url": base_url + "/form-validation"}
-            )
-            assert navigate_payload["ok"] is True
-            _content, invalid_payload = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#validation-form",
-                    "fields": {"Employee code": "wrong"},
-                    "redact_values": False,
-                },
-            )
-            invalid_field = invalid_payload["data"]["fields"][0]
-            assert invalid_field["success"] is True, invalid_field
-            assert invalid_field["verified"] is True
-            assert invalid_field["observed_value"] == "wrong"
-            _content, invalid_inspect = await _execute_tool(
-                server,
-                "form_inspect",
-                {"selector": "#validation-form", "include_values": True},
-            )
-            invalid_meta = invalid_inspect["data"]["forms"][0]["fields"][0]
-            assert invalid_meta["value"] == "wrong"
-            assert invalid_meta["validity"]["valid"] is False
-            assert invalid_meta["validity"]["pattern_mismatch"] is True
-
-            _content, corrected_payload = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#validation-form",
-                    "fields": {"Employee code": "DP-070"},
-                    "redact_values": False,
-                },
-            )
-            corrected = corrected_payload["data"]["fields"][0]
-            assert corrected["success"] is True, corrected
-            assert corrected["verified"] is True
-            assert corrected["observed_value"] == "DP-070"
-            _content, valid_inspect = await _execute_tool(
-                server,
-                "form_inspect",
-                {"selector": "#validation-form", "include_values": True},
-            )
-            valid_meta = valid_inspect["data"]["forms"][0]["fields"][0]
-            assert valid_meta["validity"]["valid"] is True
-            assert valid_meta["validity"]["pattern_mismatch"] is False
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_submit_success_replays_after_form_disappears_without_resubmit() -> (
-    None
-):
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-rich"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, fill_payload = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#profile-form",
-                    "fields": {
-                        "Full name": "Ada Lovelace",
-                        "Business unit": "Research",
-                    },
-                },
-            )
-            assert fill_payload["ok"] is True
-            submit_args = {
-                "form_selector": "#profile-form",
-                "submit_selector": "#profile-submit",
-                "operation_key": "rich-submit-1",
-                "expect": {
-                    "conditions": [
-                        {"kind": "selector_visible", "selector": "#business-id"}
-                    ],
-                    "timeout": 3,
-                },
-            }
-
-            _content, first = await _execute_tool(server, "form_submit", submit_args)
-            assert first["ok"] is True
-            assert first["data"]["status"] == "success"
-            assert first["data"]["current_url"].endswith("/task/form-rich")
-            assert first["data"]["duplicate_prevention"] == {
-                "scope": "live_server_task",
-                "guarantee": "at_most_once_browser_invocation",
-                "replayed": False,
-                "browser_invoked": True,
-            }
-            assert first["data"]["receipt"]["status"] == "success"
-            assert first["data"]["receipt"]["side_effect"] == ("external_submission")
-            _content, missing_form = await _execute_tool(
-                server, "element_find", {"selector": "#profile-form", "timeout": 0}
-            )
-            assert missing_form["ok"] is False
-
-            _content, replay = await _execute_tool(server, "form_submit", submit_args)
-            assert replay["ok"] is True
-            assert replay["data"]["status"] == "success"
-            assert replay["data"]["receipt"] == first["data"]["receipt"]
-            assert replay["data"]["duplicate_prevention"]["replayed"] is True
-            assert replay["data"]["duplicate_prevention"]["browser_invoked"] is False
-            changed = dict(submit_args)
-            changed["expect"] = {
-                "conditions": [{"kind": "url_changed"}],
-                "timeout": 3,
-            }
-            _content, conflict = await _execute_tool(server, "form_submit", changed)
-            assert conflict["ok"] is False
-            assert conflict["error"]["code"] == "OPERATION_KEY_CONFLICT"
-            state = _json(base_url + "/__fixture__/state")
-            assert state["counters"] == {
-                "form_rich_accepted_requests": 1,
-                "form_rich_attempted_requests": 1,
-            }
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_submit_classifies_client_and_server_validation_then_recovers() -> (
-    None
-):
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-validation"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, invalid_fill = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#validation-form",
-                    "fields": {"Employee code": "bad"},
-                    "redact_values": False,
-                },
-            )
-            assert invalid_fill["ok"] is True
-            _content, client_failure = await _execute_tool(
-                server,
-                "form_submit",
-                {
-                    "form_selector": "#validation-form",
-                    "operation_key": "validation-client-1",
-                    "expect": {
-                        "conditions": [{"kind": "url_changed"}],
-                        "timeout": 1,
-                    },
-                },
-            )
-            assert client_failure["ok"] is True
-            assert client_failure["data"]["status"] == "validation_failed"
-            assert client_failure["data"]["receipt"]["status"] == ("validation_failed")
-            assert any(
-                message["source"] == "client" and message["name"] == "employee_code"
-                for message in client_failure["data"]["validation_messages"]
-            )
-            assert _json(base_url + "/__fixture__/state")["counters"] == {}
-
-            _content, server_fill = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#validation-form",
-                    "fields": {"Employee code": "DP-071"},
-                    "redact_values": False,
-                },
-            )
-            assert server_fill["ok"] is True
-            assert server_fill["data"]["fields"][0]["success"] is True, server_fill[
-                "data"
-            ]["fields"][0]
-            _content, server_failure = await _execute_tool(
-                server,
-                "form_submit",
-                {
-                    "form_selector": "#validation-form",
-                    "operation_key": "validation-server-1",
-                    "expect": {
-                        "conditions": [
-                            {"kind": "selector_visible", "selector": "#business-id"}
-                        ],
-                        "timeout": 2,
-                    },
-                },
-            )
-            assert server_failure["ok"] is True
-            assert server_failure["data"]["status"] == "validation_failed"
-            assert any(
-                message["source"] == "server" and message["code"] == "SERVER_VALIDATION"
-                for message in server_failure["data"]["validation_messages"]
-            ), server_failure["data"]["validation_messages"]
-            assert _json(base_url + "/__fixture__/state")["counters"] == {
-                "validation_attempted_requests": 1
-            }
-
-            _content, corrected_fill = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#validation-form",
-                    "fields": {"Employee code": "DP-070"},
-                    "redact_values": False,
-                },
-            )
-            assert corrected_fill["ok"] is True
-            _content, success = await _execute_tool(
-                server,
-                "form_submit",
-                {
-                    "form_selector": "#validation-form",
-                    "operation_key": "validation-success-1",
-                    "expect": {
-                        "conditions": [
-                            {"kind": "selector_visible", "selector": "#business-id"}
-                        ],
-                        "timeout": 3,
-                    },
-                },
-            )
-            assert success["ok"] is True
-            assert success["data"]["status"] == "success"
-            state = _json(base_url + "/__fixture__/state")
-            assert state["counters"] == {
-                "validation_accepted_requests": 1,
-                "validation_attempted_requests": 2,
-            }
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_submit_timeout_is_indeterminate_and_replay_does_not_resubmit() -> (
-    None
-):
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-rich"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, fill_payload = await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#profile-form",
-                    "fields": {
-                        "Full name": "Ada Lovelace",
-                        "Business unit": "Research",
-                    },
-                },
-            )
-            assert fill_payload["ok"] is True
-            submit_args = {
-                "form_selector": "#profile-form",
-                "operation_key": "ambiguous-submit-1",
-                "expect": {
-                    "conditions": [
-                        {"kind": "selector_visible", "selector": "#never-created"}
-                    ],
-                    "timeout": 1,
-                },
-            }
-
-            _content, first = await _execute_tool(server, "form_submit", submit_args)
-            assert first["ok"] is True
-            assert first["data"]["status"] == "indeterminate"
-            assert first["data"]["receipt"]["status"] == "indeterminate"
-            assert "Do not resubmit automatically" in first["data"]["recovery"]
-            _content, replay = await _execute_tool(server, "form_submit", submit_args)
-            assert replay["ok"] is True
-            assert replay["data"]["status"] == "indeterminate"
-            assert replay["data"]["duplicate_prevention"]["replayed"] is True
-            assert replay["data"]["duplicate_prevention"]["browser_invoked"] is False
-            assert _json(base_url + "/__fixture__/state")["counters"] == {
-                "form_rich_accepted_requests": 1,
-                "form_rich_attempted_requests": 1,
-            }
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_submit_ambiguous_submitter_fails_before_operation_claim() -> (
-    None
-):
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form-rich"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, injected = await _execute_tool(
-                server,
-                "page_evaluate",
-                {
-                    "script": "const button = document.createElement('button'); button.type = 'submit'; button.id = 'second-submit'; button.textContent = 'Submit again'; document.querySelector('#profile-form').appendChild(button); return true;"
-                },
-            )
-            assert injected["data"]["result"] is True
-            _content, payload = await _execute_tool(
-                server,
-                "form_submit",
-                {
-                    "form_selector": "#profile-form",
-                    "operation_key": "ambiguous-target-1",
-                },
-            )
-
-            assert payload["ok"] is False
-            assert payload["error"]["code"] == "PRECONDITION_FAILED"
-            assert "SUBMITTER_AMBIGUOUS" in payload["message"]
-            assert server.context is not None
-            task = server.context.task_summary()
-            assert task.operation_count == 0
-            assert task.receipt_count == 0
-            assert _json(base_url + "/__fixture__/state")["counters"] == {}
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_form_submit_redacts_url_query_and_server_secret_echo() -> None:
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/form"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            await _execute_tool(
-                server,
-                "form_fill",
-                {
-                    "form_selector": "#fixture-form",
-                    "fields": {"Name": "Ada", "Secret": "url-secret-070"},
-                },
-            )
-            _content, get_submit = await _execute_tool(
-                server,
-                "form_submit",
-                {
-                    "form_selector": "#fixture-form",
-                    "operation_key": "get-secret-1",
-                    "expect": {
-                        "conditions": [{"kind": "url_changed"}],
-                        "timeout": 3,
-                    },
-                },
-            )
-            encoded_get = json.dumps(get_submit, ensure_ascii=False)
-            assert get_submit["data"]["status"] == "success"
-            assert get_submit["data"]["current_url"] == base_url + "/form"
-            assert "url-secret-070" not in encoded_get
-            assert "?" not in get_submit["data"]["current_url"]
-
-            await _execute_tool(
-                server,
-                "page_navigate",
-                {"url": base_url + "/form-secret-validation"},
-            )
-            _content, secret_failure = await _execute_tool(
-                server,
-                "form_submit",
-                {
-                    "form_selector": "#secret-validation-form",
-                    "operation_key": "secret-validation-1",
-                    "expect": {
-                        "conditions": [
-                            {"kind": "selector_visible", "selector": "#never-created"}
-                        ],
-                        "timeout": 3,
-                    },
-                },
-            )
-            encoded_failure = json.dumps(secret_failure, ensure_ascii=False)
-            assert secret_failure["data"]["status"] == "validation_failed"
-            assert secret_failure["data"]["validation_messages"][0]["message"] == (
-                "Password <redacted> is rejected"
-            )
-            assert "fixture-password" not in encoded_failure
-    finally:
-        await server.cleanup()
-
 
 @pytest.mark.asyncio
 async def test_mcp_page_dialog_respond_handles_alert_confirm_and_redacted_prompt() -> (
@@ -1980,6 +1245,93 @@ async def test_mcp_browser_tools_complete_form_submission_flow() -> None:
             )
             assert submitted_payload["ok"] is True
             assert submitted_payload["data"]["text"] == "Ada Lovelace"
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_atomic_tools_handle_event_driven_and_aria_widgets() -> None:
+    """Prove generic element tools operate stateful inputs and page-level widgets."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/form-controlled"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            _content, typed = await _execute_tool(
+                server,
+                "element_type",
+                {
+                    "selector": "#controlled-name",
+                    "text": "Atomic input",
+                    "clear": True,
+                    "timeout": 2,
+                },
+            )
+            assert typed["ok"] is True
+            _content, value = await _execute_tool(
+                server,
+                "element_get_property",
+                {"selector": "#controlled-name", "property": "value"},
+            )
+            assert value["data"]["value"] == "Atomic input"
+            _content, rendered = await _execute_tool(
+                server, "element_get_text", {"selector": "#controlled-rendered"}
+            )
+            assert rendered["data"]["text"].startswith("Atomic input; input=")
+
+            _content, navigate_payload = await _execute_tool(
+                server, "page_navigate", {"url": base_url + "/interactions"}
+            )
+            assert navigate_payload["ok"] is True
+            _content, editor = await _execute_tool(
+                server,
+                "element_type",
+                {
+                    "selector": "#editable-notes",
+                    "text": "Framework-neutral notes",
+                    "clear": True,
+                    "timeout": 2,
+                },
+            )
+            assert editor["ok"] is True
+            _content, editor_text = await _execute_tool(
+                server, "element_get_text", {"selector": "#editable-notes"}
+            )
+            assert editor_text["data"]["text"] == "Framework-neutral notes"
+
+            _content, switch = await _execute_tool(
+                server, "element_click", {"selector": "#mode-switch", "timeout": 2}
+            )
+            assert switch["ok"] is True
+            _content, checked = await _execute_tool(
+                server,
+                "element_get_attribute",
+                {"selector": "#mode-switch", "attribute": "aria-checked"},
+            )
+            assert checked["data"]["value"] == "true"
+
+            _content, opened = await _execute_tool(
+                server, "element_click", {"selector": "#city-picker", "timeout": 2}
+            )
+            assert opened["ok"] is True
+            _content, selected = await _execute_tool(
+                server,
+                "element_click",
+                {
+                    "selector": '#city-options [data-value="Shanghai"]',
+                    "timeout": 2,
+                },
+            )
+            assert selected["ok"] is True
+            _content, city = await _execute_tool(
+                server,
+                "element_get_property",
+                {"selector": "#city-picker", "property": "value"},
+            )
+            assert city["data"]["value"] == "Shanghai"
     finally:
         await server.cleanup()
 
@@ -2438,7 +1790,7 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
 
 @pytest.mark.asyncio
 async def test_mcp_0_5_6_open_and_snapshot_workflow_uses_local_fixture() -> None:
-    """opens a page and returns snapshot/forms/console in one workflow call."""
+    """opens a page and returns snapshot/console in one workflow call."""
     server = DrissionPageMCPServer()
     try:
         with local_http_fixture() as base_url:
@@ -2449,7 +1801,6 @@ async def test_mcp_0_5_6_open_and_snapshot_workflow_uses_local_fixture() -> None
                     "url": base_url + "/workflow-form",
                     "wait_condition": "visible",
                     "selector": "#workflow-form",
-                    "include_forms": True,
                     "include_console": True,
                     "max_elements": 20,
                     "max_text_chars": 1000,
@@ -2464,7 +1815,7 @@ async def test_mcp_0_5_6_open_and_snapshot_workflow_uses_local_fixture() -> None
             assert data["final_url"].endswith("/workflow-form")
             assert data["snapshot"]["title"] == "Fixture Workflow Form"
             assert "Workflow Form" in data["snapshot"]["text_excerpt"]
-            assert data["forms"]["count"] == 1
+            assert data["snapshot"]["counts"]["forms"] == 1
             assert data["wait"]["matched"] is True
             assert data["meta"]["json_chars"] > 0
     finally:
@@ -2501,52 +1852,6 @@ async def test_mcp_0_5_6_extract_links_returns_bounded_absolute_urls() -> None:
     finally:
         await server.cleanup()
 
-
-@pytest.mark.asyncio
-async def test_mcp_0_5_6_form_fill_preview_does_not_submit_or_echo_secrets() -> None:
-    """prefills fields without submitting and keeps sensitive values redacted."""
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/workflow-form"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, payload = await _execute_tool(
-                server,
-                "form_fill_preview",
-                {
-                    "form_selector": "#workflow-form",
-                    "fields": {
-                        "name": "Ada Lovelace",
-                        "secret": "super-secret",
-                        "mode": "advanced",
-                        "agree": True,
-                    },
-                },
-            )
-            assert payload["ok"] is True
-            data = payload["data"]
-            assert data["requires_confirmation"] is True
-            assert data["submitted"] is False
-            assert data["filled_count"] == 4
-            assert "Ada Lovelace" not in json.dumps(data)
-            assert "super-secret" not in json.dumps(data)
-            _content, state_payload = await _execute_tool(
-                server,
-                "page_evaluate",
-                {
-                    "script": "return {name: document.querySelector('#wf-name').value,secret: document.querySelector('#wf-secret').value,mode: document.querySelector('#wf-mode').value,agree: document.querySelector('#wf-agree').checked,url: location.href};"
-                },
-            )
-            state = state_payload["data"]["result"]
-            assert state["name"] == "Ada Lovelace"
-            assert state["secret"] == "super-secret"
-            assert state["mode"] == "advanced"
-            assert state["agree"] is True
-            assert state["url"].endswith("/workflow-form")
-    finally:
-        await server.cleanup()
 
 
 @pytest.mark.asyncio

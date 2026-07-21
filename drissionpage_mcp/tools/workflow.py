@@ -1,18 +1,15 @@
 """High-level workflow tools for common browser automation tasks."""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Dict, Literal
-from pydantic import Field, field_validator
+from typing import TYPE_CHECKING, Literal
+
+from pydantic import Field
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
 from ..policy import PolicyDeniedError, validate_navigation
 from ..response_errors import ErrorCode
 from .base import ToolInput, ToolType, define_tool, ToolOutcome
-from ..tool_outputs import (
-    BrowserOpenAndSnapshotData,
-    BrowserExtractLinksData,
-    FormFillPreviewData,
-)
+from ..tool_outputs import BrowserExtractLinksData, BrowserOpenAndSnapshotData
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -54,10 +51,6 @@ class BrowserOpenAndSnapshotInput(ToolInput):
         default=False,
         description="Include bounded HTML excerpts in the nested page snapshot.",
     )
-    include_forms: bool = Field(
-        default=False,
-        description="Also include safe form metadata without field values.",
-    )
     include_console: bool = Field(
         default=False, description="Also include recent console messages from the page."
     )
@@ -95,40 +88,10 @@ class BrowserExtractLinksInput(ToolInput):
     )
 
 
-class FormFillPreviewInput(ToolInput):
-    """Input schema for safe form prefill without submission."""
-
-    form_selector: str = Field(
-        default="form",
-        description="CSS/XPath/DrissionPage locator for a form or form container.",
-    )
-    fields: Dict[str, Any] = Field(
-        ...,
-        min_length=1,
-        description="Map of field selectors, ids, names, labels, or placeholders to values. Values are redacted from output by default.",
-    )
-    submit: bool = Field(
-        default=False,
-        description="Must remain false; this preview tool never submits forms.",
-    )
-    redact_values: bool = Field(
-        default=True, description="Redact submitted field values from tool output."
-    )
-
-    @field_validator("submit")
-    @classmethod
-    def _reject_submit(cls, value: bool) -> bool:
-        if value:
-            raise ValueError(
-                "form_fill_preview never submits; use element_click after review"
-            )
-        return value
-
-
 @define_tool(
     name="browser_open_and_snapshot",
     title="Open and Snapshot",
-    description="Open a URL, optionally wait for a page condition, then return a bounded snapshot plus optional form and console context.",
+    description="Open a URL, optionally wait for a page condition, then return a bounded snapshot plus optional HTML and console context.",
     input_schema=BrowserOpenAndSnapshotInput,
     tool_type=ToolType.DESTRUCTIVE,
     output_model=BrowserOpenAndSnapshotData,
@@ -159,7 +122,6 @@ async def browser_open_and_snapshot(
         wait_value=args.wait_value,
         wait_timeout=args.wait_timeout,
         include_html=args.include_html,
-        include_forms=args.include_forms,
         include_console=args.include_console,
         max_elements=args.max_elements,
         max_text_chars=args.max_text_chars,
@@ -201,39 +163,4 @@ async def browser_extract_links(
         f"Extracted {result['returned']} of {result['count']} links",
         **with_response_meta(result),
     )
-    return outcome
-
-
-@define_tool(
-    name="form_fill_preview",
-    title="Fill Form Preview",
-    description="Prefill matched form controls without submitting. Returns a redacted review payload and requires explicit confirmation before submit.",
-    input_schema=FormFillPreviewInput,
-    tool_type=ToolType.DESTRUCTIVE,
-    output_model=FormFillPreviewData,
-    failure_message=lambda args, exc: "Failed to fill form preview: " + str(exc),
-)
-async def form_fill_preview(
-    context: "DrissionPageContext", args: FormFillPreviewInput
-) -> "ToolOutcome":
-    """Fill a form without submitting and return a review payload."""
-    outcome = ToolOutcome()
-    if args.submit:
-        outcome.add_error(
-            "form_fill_preview never submits forms; review preview then click explicitly.",
-            ErrorCode.MCP_ARGUMENT_INVALID,
-            tool_name="form_fill_preview",
-        )
-        return outcome
-    tab = context.current_tab_or_die()
-    result = await tab.workflows.form_fill_preview(
-        form_selector=args.form_selector,
-        fields=args.fields,
-        redact_values=args.redact_values,
-    )
-    outcome.add_code("page.run_js(<safe form prefill script; no submit>)")
-    outcome.add_result(
-        f"Prepared {result['filled_count']} form fields for review", **result
-    )
-    outcome.set_include_snapshot(True)
     return outcome

@@ -14,7 +14,6 @@ from drissionpage_mcp.response_errors import ErrorCode
 from drissionpage_mcp.tools.base import ToolOutcome
 from drissionpage_mcp.tools.common import ScreenshotSaveInput, screenshot_save
 from drissionpage_mcp.tools.files import UploadFileInput, element_upload_file
-from drissionpage_mcp.tools.forms import FormSubmitInput, form_submit
 from drissionpage_mcp.tools.navigate import NavigateInput, navigate
 from drissionpage_mcp.tools.workflow import (
     BrowserOpenAndSnapshotInput,
@@ -215,37 +214,6 @@ def test_upload_root_policy_allows_existing_child_files(monkeypatch, tmp_path) -
     assert paths == [candidate.resolve()]
 
 
-@pytest.mark.asyncio
-async def test_external_submission_policy_denies_before_tab_or_operation_claim(
-    monkeypatch,
-) -> None:
-    _clear_policy_env(monkeypatch)
-    monkeypatch.setenv("DP_MCP_DENY_EXTERNAL_SUBMISSION", "1")
-    context = DrissionPageContext()
-
-    outcome = await form_submit.execute(
-        context,
-        FormSubmitInput(
-            form_selector="#profile-form",
-            operation_key="profile-submit-1",
-        ),
-    )
-
-    assert outcome.is_error is True
-    payload = outcome.structured_content()
-    assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
-    assert payload["error"]["details"]["rule"] == ("DP_MCP_DENY_EXTERNAL_SUBMISSION")
-    task = context.task_summary()
-    assert task.operation_count == 0
-    assert task.receipt_count == 0
-    assert task.action_count == 0
-    assert context.receipt_inventory() == []
-    assert context.is_active() is False
-    assert SafetyPolicy.from_env().control_flags()["deny_external_submission"] is True
-    summary = SafetyPolicy.from_env().public_summary()
-    assert summary["controls"]["deny_external_submission"] is True
-
-
 def test_download_policy_summary_redacts_root_and_exposes_deny_flag(
     monkeypatch, tmp_path
 ) -> None:
@@ -275,6 +243,5 @@ def _clear_policy_env(monkeypatch) -> None:
         "DP_MCP_UPLOAD_ROOT",
         "DP_MCP_DOWNLOAD_ROOT",
         "DP_MCP_DENY_DOWNLOAD",
-        "DP_MCP_DENY_EXTERNAL_SUBMISSION",
     ):
         monkeypatch.delenv(name, raising=False)

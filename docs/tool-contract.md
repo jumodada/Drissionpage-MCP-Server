@@ -124,9 +124,8 @@ The server marks tools with MCP annotations:
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
-| `browser_open_and_snapshot` | Destructive | `url` | Open a URL, optionally wait for a condition, and return snapshot/forms/console context in one call. Optional: `wait_condition`, `selector`, `wait_value`, `include_forms`, `include_console`, `max_elements`, `max_text_chars`. |
+| `browser_open_and_snapshot` | Destructive | `url` | Open a URL, optionally wait for a condition, and return snapshot/console context in one call. Optional: `wait_condition`, `selector`, `wait_value`, `include_console`, `max_elements`, `max_text_chars`. |
 | `browser_extract_links` | Read-only | none | Extract bounded links with text, href, normalized URL, selector, rel, target, truncation metadata, and optional same-origin filtering. Optional: `selector`, `limit`, `include_text`, `same_origin_only`, `absolute_urls`. |
-| `form_fill_preview` | Destructive | `fields` | Prefill matched form controls without submitting. Values are redacted by default and output includes `requires_confirmation=true`. Optional: `form_selector`, `redact_values`. |
 
 ### Network Listener Beta
 
@@ -224,9 +223,6 @@ The server marks tools with MCP annotations:
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
-| `form_inspect` | Read-only | none | Inspect forms and controls with labels, selectors, methods/actions, required/disabled/read-only state, select options, and safe optional values. Optional: `selector`, `include_values`, `max_forms`, `max_fields_per_form`. Password values are never returned. |
-| `form_fill` | Destructive | `fields` | Fill native and supported rich controls without submitting. Returns per-field match strategy, control type, verification, redacted values, and a local UI mutation receipt. Optional: `form_selector`, `timeout`, `redact_values`, `verify`. |
-| `form_submit` | Destructive | none | Submit one authorized form action and classify success, validation, pending, or indeterminate behavior with an `ActionReceipt`. Optional: `form_selector`, `submit_selector`, `operation_key`, `expect`. Reusing the same operation key and request replays the frozen live-task result without another submit. |
 
 ### Wait Operations
 
@@ -270,7 +266,6 @@ The server exposes user-controlled workflow prompts:
 | `drissionpage_mcp_usage_playbook` | Explain the safe default tool flow for an MCP-connected model. |
 | `browser_navigate_and_summarize` | Navigate with `browser_open_and_snapshot`, inspect bounded page context, and summarize with source URL. |
 | `browser_extract_structured_data` | Navigate with workflow helpers, inspect bounded text/HTML only as needed, and return schema-shaped JSON. |
-| `browser_fill_form_safely` | Use `form_fill_preview` for preview-only requests or complete a clearly authorized task through `form_fill` and `form_submit` without redundant confirmation. Ambiguous results stop for fresh evidence. |
 | `browser_vision_guided_interaction` | Teach selector-first visual interaction, viewport screenshot coordinate mapping, `natural`/`precise`/`direct` profile choice, bounded verification, and stale-coordinate recovery. |
 | `browser_debug_page_issue` | Gather workflow-first page evidence for debugging. |
 
@@ -278,12 +273,9 @@ The server exposes user-controlled workflow prompts:
 
 - Selectors are normalized before calling DrissionPage: bare selectors are treated as CSS (`h1` -> `css:h1`, `input[name=q]` -> `css:input[name=q]`), XPath-looking strings are prefixed as XPath (`//h1` -> `xpath://h1`), and explicit DrissionPage forms such as `tag:h1`, `text:Submit`, `css:...`, `xpath:...`, and `@name=value` are preserved.
 - Tool responses include selector metadata: `selector`, `locator`, `selector_strategy`, and `selector_normalized`.
-- `page_snapshot`, `element_find_all`, and `form_inspect` include `meta.approx_tokens`, `meta.json_chars`, and `meta.truncated` so clients can narrow later calls when a response is large.
+- `page_snapshot` and `element_find_all` include `meta.approx_tokens`, `meta.json_chars`, and `meta.truncated` so clients can narrow later calls when a response is large.
 - `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
-- `form_inspect` is read-only. It returns field values only when `include_values=true`, and password values are always returned as `null`.
-- `form_fill_preview` remains a compatibility tool that never submits and returns `requires_confirmation=true`. Use it for preview-only or fill-only requests.
-- `form_fill` mutates local form state but never submits. Password values are always redacted, and supported controls return field-level verification rather than silent omission.
-- `form_submit` may proceed without redundant confirmation only when the user's task already authorizes submission. An `operation_key` provides at-most-once invocation within the live server task, not restart-safe or remote exactly-once semantics. `submitted_pending` and `indeterminate` require fresh evidence and never trigger an implicit resubmit.
+- Form and component workflows are composed from element discovery, type/select/check/click/keyboard, upload, wait, and state-read tools. The core does not classify widget libraries or infer business submission intent.
 - `page_dialog_respond` handles one currently pending JavaScript dialog. Capability gaps return `UNSUPPORTED_OPERATION`; prompt text and dialog messages are redacted from public history where required.
 - `element_click_and_download` requires an approved `DP_MCP_DOWNLOAD_ROOT`. A successful response includes one checksum-verified regular file, safe relative path, sanitized HTTP(S) source URL, `ArtifactRef`, and correlated `ActionReceipt`. Replaying the same operation key does not click again; failure and indeterminate results contain no artifact.
 - `tab_list` synchronizes with browser tabs opened by normal page behavior, including `target="_blank"` links.
@@ -313,7 +305,6 @@ By default, DrissionPage MCP remains a local stdio browser automation server wit
 | `DP_MCP_SCREENSHOT_ROOT` | Required root directory for `page_screenshot_save` file writes. |
 | `DP_MCP_UPLOAD_ROOT` | Required root directory for `element_upload_file` input files. |
 | `DP_MCP_DOWNLOAD_ROOT` | Required approved root for `element_click_and_download` artifacts. Public results expose safe relative paths only. |
-| `DP_MCP_DENY_EXTERNAL_SUBMISSION` | Deny `form_submit` before an operation claim or browser side effect. |
 | `DP_MCP_DENY_DOWNLOAD` | Deny `element_click_and_download` before the native click or filesystem allocation. |
 
 Denied navigation is checked before `context.ensure_tab()`, so policy rejection does not start or initialize a browser.

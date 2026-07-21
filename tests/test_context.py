@@ -284,7 +284,7 @@ def test_action_history_is_bounded_and_redacts_sensitive_arguments() -> None:
     assert action["args"]["nested"]["items"][1] == ["plain", "tuple"]
 
     context.record_action(
-        "form_fill_preview",
+        "element_type",
         {
             "fields": {"name": "Ada", "password": "secret"},
             "headers": {"authorization": "Bearer secret"},

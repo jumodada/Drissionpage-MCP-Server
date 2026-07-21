@@ -7,16 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-07-21
+
+### Removed
+- Removed `form_inspect`, `form_fill`, `form_submit`, and `form_fill_preview` from the public registry. These component- and workflow-specific behaviors were incomplete across modern UI libraries and did not belong in the core browser capability layer.
+- Deleted the form-only browser scripts, schemas, prompt, submission policy flag, local mutation receipts, and package tests. No compatibility aliases or placeholder tools were added.
+
 ### Changed
-- Separated the private task ledger from browser lifecycle management: `runtime.py` now owns operation keys, receipts, artifacts, capability state, and redacted action history while `context.py` remains the browser/tab facade.
-- Moved page-executed form and state scripts into focused flat modules under `browser/`; removed the ambiguous root-level `forms.py` and `page_scripts.py` modules without adding compatibility facades or one-file packages.
-- Split the click-download handler into explicit replay, preflight, claim, invoke, finalize, and cleanup phases while preserving its public schema and exactly-once behavior.
-- Replaced branch-heavy static recovery hints with a data table and consolidated identical DrissionPage callable capability checks in `compat.py`.
-- Kept the ordered public registry at 62 tools and the production-code delta relative to `e0b8805` within the pre-0.8 `+200` budget.
+- Narrowed the ordered public registry to 58 generic tools. Form and component workflows now compose `page_snapshot`, element discovery, type/select/check/click/keyboard, wait, upload, and state-read tools.
+- Kept `element_click_and_download` and `page_dialog_respond` because their event timing and side-effect correlation cannot be reproduced safely as separate calls.
+- Reworked W01-W04 to complete controlled inputs, contenteditable, ARIA widgets, native controls, uploads, and submission with retained atomic tools.
+- Moved reusable form orchestration guidance to an optional Skill outside the Python wheel and sdist.
 
 ### Verification
-- Added regression checks for runtime/browser ownership, browser-script imports and escaping, download cleanup/replay behavior, shared capability inspection, and README directory documentation.
-- Ruff, public tool/schema contracts, task-runtime contracts, deterministic non-browser tests, and the headless page-understanding browser eval pass locally.
+- Added browser-backed regression coverage for framework-driven input events, contenteditable, ARIA switch and popup behavior, select/check/upload, and explicit submission verification.
+- Regenerated the public tool schema snapshot and retained download/dialog receipt, replay, artifact, protocol, and packaging gates.
 
 ## [0.7.1] - 2026-07-20
 
@@ -405,7 +410,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.1...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.2...HEAD
+[0.7.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...v0.7.0
 [0.6.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.1...v0.6.2

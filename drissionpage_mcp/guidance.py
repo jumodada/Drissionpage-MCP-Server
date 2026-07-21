@@ -48,11 +48,10 @@ def server_instructions(version: str = __version__) -> str:
     return f"""DrissionPage MCP {version} provides structured and vision-guided browser automation for DrissionPage 4.x.
 Compatibility: use {SUPPORTED_DRISSIONPAGE_RANGE}; do not assume DrissionPage 5 beta/internal builds are supported.
 Discovery: when tool choice or arguments are uncertain, read drissionpage://guide/model-usage for workflow decisions and drissionpage://tools/catalog for compact input guidance; use tools/list for complete JSON Schemas.
-Tool choice: prefer the highest-level matching workflow, then reliable selector-based element tools. Use browser_open_and_snapshot for navigate+inspect, browser_extract_links for link discovery, page_snapshot for more selectors/content, and page_navigate only for navigation without immediate context.
+Tool choice: compose reliable selector-based observation and atomic interaction tools. Use a bounded workflow only when its timing or side-effect boundary cannot be reproduced safely from separate calls. Use page_snapshot for selectors/content and page_navigate for navigation.
 Selector-first drag: when the source and destination have stable CSS/XPath selectors, use page_pointer_drag_element. Use destination kind=track_ratio for a known thumb and track; geometry is resolved immediately before the action, with one same-origin iframe supported and CSS paths required inside nested open Shadow DOM. Closed Shadow DOM and cross-origin iframe internals are not promised.
 Vision fallback: when no reliable selector exists, use page_screenshot with full_page=false and identify viewport CSS coordinates. Use page_pointer_move with profile=natural for hover/reveal/inspection, page_click_xy when activation requires a click, or page_pointer_drag for one bounded coordinate drag; add waypoints only when the gesture must follow a multi-segment path. Then verify a bounded state change. Never pass full-page document coordinates or resized image pixels directly; use page_evaluate viewport dimensions to correct client-side image scaling.
 Pointer profiles: natural is the default visual UI profile and held drags use distance-aware duration, acceleration/deceleration, correlated event intervals, bounded jitter, reaction/grip/release delays, optional micro-pauses, and exact-target correction; precise reduces jitter and disables overshoot; direct is only for explicitly immediate deterministic movement. Supply start_x and start_y together only when the pointer origin is known.
-Forms: use form_inspect, then form_fill for verified local mutation. When the user's task clearly authorizes submission, call form_submit with an operation_key and bounded expect evidence without asking for redundant confirmation. Preserve form_fill_preview for fill-only or preview requests. Never echo field secrets, and never resubmit an indeterminate result without fresh evidence and a new authorized operation.
 Dialogs and downloads: use page_dialog_respond only for a currently pending browser dialog. Use element_click_and_download for one correlated click and download under DP_MCP_DOWNLOAD_ROOT; reuse its operation_key to replay the frozen result without another click.
 Autonomous verification workflow: page_detect_challenges performs read-only signal detection; use a fresh viewport screenshot, choose page_pointer_drag_element for stable selector paths or page_pointer_move/page_click_xy/page_click_xy_batch/page_pointer_drag by visual intent, then page_wait_challenge_result or wait_until for bounded classification and retry with fresh evidence. These are general capabilities for authorized automation and technical exchange; bypassing human-verification systems is not recommended and completion is not guaranteed.
 Network: use network_listen_start before the triggering action, network_listen_wait for bounded HTTP/XHR/Fetch metadata, then network_listen_stop; this is observation only, not interception or request mutation.
@@ -79,11 +78,10 @@ def usage_playbook_text(*, task: str = "", version: str = __version__) -> str:
 {task_line}Core rules:
 - Target {SUPPORTED_DRISSIONPAGE_RANGE}; DrissionPage 5 beta/internal builds are unsupported.
 - If tool choice is uncertain, read drissionpage://guide/model-usage. For argument recovery, read drissionpage://tools/catalog for compact input guidance or tools/list for complete JSON Schemas.
-- Prefer workflow helpers before low-level primitives when they match the task.
+- Compose atomic observation and interaction tools; use a workflow helper only for an inseparable timing or side-effect boundary.
 - For page summary or inspection, start with browser_open_and_snapshot; use page_navigate only when you intentionally do not need immediate page context.
 - Use page_snapshot for selectors/content, page_observe after actions, and wait_until for dynamic UI instead of fixed sleeps.
-- For authorized form completion, call form_inspect, form_fill, then form_submit with a stable operation_key and bounded expect evidence. Do not ask for redundant confirmation when the user's task already authorizes submission. Use form_fill_preview when the request is preview-only or does not authorize submit; never echo secrets.
-- Treat validation_failed as correctable, but treat submitted_pending or indeterminate as a stop-and-inspect state. Never blindly resubmit after ambiguity.
+- For editable controls, use explicit type, select, check, click, or keyboard actions and verify with property, attribute, text, URL, or wait tools. Do not infer a framework or widget library from appearance alone.
 - For downloads, call element_click_and_download with DP_MCP_DOWNLOAD_ROOT configured and reuse the same operation_key for replay. For a pending alert, confirm, or prompt, use page_dialog_respond.
 - For links, use browser_extract_links with bounded limit and same_origin_only when useful.
 - For network observation, call network_listen_start, trigger the page action, call network_listen_wait, then network_listen_stop. This is observation only.
@@ -130,7 +128,7 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
             ],
         },
         "tool_selection": {
-            "default": "workflow helper or reliable selector-based element tool",
+            "default": "reliable selector-based observation and atomic interaction tools",
             "selector_drag": "page_pointer_drag_element resolves source and destination geometry immediately before dragging; use track_ratio for a known thumb and track",
             "vision_fallback": "page_pointer_move for visual hover/reveal, page_click_xy for visual activation, or page_pointer_drag for a bounded visual drag when no reliable selector exists",
             "rules": list(VISION_DECISION_RULES),
@@ -149,21 +147,6 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
                 "task": "link_discovery",
                 "preferred_sequence": ["browser_extract_links"],
                 "use_when": "Need bounded link text and URLs from the current page.",
-            },
-            {
-                "task": "authorized_form_completion",
-                "preferred_sequence": [
-                    "form_inspect",
-                    "form_fill",
-                    "form_submit with operation_key and expect evidence",
-                    "inspect fresh evidence if status is submitted_pending or indeterminate",
-                ],
-                "use_when": "The user's task clearly authorizes filling and submitting a form without a redundant confirmation round.",
-            },
-            {
-                "task": "form_preview_only",
-                "preferred_sequence": ["form_inspect", "form_fill_preview"],
-                "use_when": "The request is fill-only, preview-only, or does not authorize submission.",
             },
             {
                 "task": "download_delivery",
@@ -238,16 +221,6 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
             ],
             "boundary": "General autonomous capabilities for authorized automation and technical exchange. Users can compose them independently; bypassing human-verification systems is not recommended and no completion guarantee is made.",
         },
-        "forms": {
-            "flow": [
-                "form_inspect",
-                "form_fill",
-                "form_submit with operation_key and bounded expect evidence",
-                "fresh evidence inspection for submitted_pending or indeterminate",
-            ],
-            "preview_flow": ["form_inspect", "form_fill_preview"],
-            "boundary": "A clearly authorized task may submit without redundant confirmation. form_fill_preview remains the no-submit compatibility path. Never automatically resubmit an indeterminate outcome.",
-        },
         "downloads": {
             "flow": [
                 "configure an approved DP_MCP_DOWNLOAD_ROOT",
@@ -281,8 +254,8 @@ def model_usage_payload(version: str = __version__) -> dict[str, Any]:
             "evidence": [
                 "browser_open_and_snapshot local fixture",
                 "browser_extract_links local fixture",
-                "form_fill_preview no-submit redaction fixture",
-                "form_fill and form_submit task-completion fixtures",
+                "atomic input, selection, check, click, upload, and state-read fixtures",
+                "W01-W04 task completion through retained atomic tools",
                 "dialog response and enriched click fixtures",
                 "integrity-checked download and replay fixtures",
                 "network listener local Fetch/XHR fixture",

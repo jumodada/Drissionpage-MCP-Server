@@ -600,11 +600,6 @@ async def test_observable_helpers_raise_on_invalid_page_results() -> None:
             InvalidScriptPage("invalid"), FakeContext()
         ).observation.snapshot()
 
-    with pytest.raises(RuntimeError, match="form inspect script returned"):
-        await PageTab(
-            InvalidScriptPage("invalid"), FakeContext()
-        ).workflows.inspect_forms()
-
     with pytest.raises(RuntimeError, match="page observe script returned"):
         await PageTab(InvalidScriptPage("invalid"), FakeContext()).observation.observe()
 

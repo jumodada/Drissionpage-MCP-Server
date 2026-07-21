@@ -28,10 +28,12 @@ from tests.fixtures.http_fixture import (
 
 
 WORKLOAD_TOOL_REQUIREMENTS = {
-    "W01": frozenset({"form_fill", "form_submit"}),
-    "W02": frozenset({"form_fill", "form_submit"}),
-    "W03": frozenset({"form_fill", "form_submit"}),
-    "W04": frozenset({"element_upload_file", "form_fill", "form_submit"}),
+    "W01": frozenset(
+        {"element_type", "element_select", "element_check", "element_click"}
+    ),
+    "W02": frozenset({"element_type", "element_get_property", "element_click"}),
+    "W03": frozenset({"element_type", "element_get_property", "element_click"}),
+    "W04": frozenset({"element_upload_file", "element_type", "element_click"}),
     "W05": frozenset({"element_click", "page_dialog_respond"}),
     "W06": frozenset({"element_click", "tab_list", "tab_switch"}),
     "W07": frozenset({"element_click_and_download"}),
@@ -81,37 +83,36 @@ class BenchmarkClient:
 
 
 async def _w01_rich_form(
-    client: BenchmarkClient, base_url: str, run_id: str, _root: Path
+    client: BenchmarkClient, base_url: str, _run_id: str, _root: Path
 ) -> dict[str, Any]:
     await client.call("page_navigate", {"url": base_url + "/form-rich"})
-    filled = await client.call(
-        "form_fill",
-        {
-            "form_selector": "#profile-form",
-            "redact_values": False,
-            "fields": {
-                "#full-name": "Ada Lovelace",
-                "alias-id": "Countess",
-                "contact_name": "ada-contact",
-                "Business unit": "Research",
-                "Preferred nickname": "Enchantress",
-                '[data-testid="explicit-css-field"]': "explicit-value",
-                "Receive updates": True,
-                "Start date": "2026-07-16",
-                "Start time": "09:30",
-                "Skills": ["writing", "analysis"],
-                "Bio": "First programmer",
-                "Office": "Shanghai",
-                "Access code": "benchmark-secret",
-            },
-        },
+    for selector, value in (
+        ("#full-name", "Ada Lovelace"),
+        ("#alias-id", "Countess"),
+        ("#contact-name", "ada-contact"),
+        ("#nickname", "Enchantress"),
+        ('[data-testid="explicit-css-field"]', "explicit-value"),
+        ("#access-code", "benchmark-secret"),
+    ):
+        await _type_and_verify(client, selector, value)
+    await client.call(
+        "element_type",
+        {"selector": "#bio", "text": "First programmer", "clear": True},
     )
-    _require(filled["data"]["filled_count"] == 13, "W01 did not fill 13 fields")
-    submitted = await client.call(
-        "form_submit",
-        _submit_args("#profile-form", f"{run_id}-submit", "#business-id"),
+    bio = await client.call("element_get_text", {"selector": "#bio"})
+    _require(bio["data"]["text"] == "First programmer", "W01 bio mismatch")
+    await client.call(
+        "element_select",
+        {"selector": "#department", "value": "Research", "by": "value"},
     )
-    _require(submitted["data"]["status"] == "success", "W01 submit failed")
+    await client.call("element_check", {"selector": "#updates", "checked": True})
+    await client.call("element_click", {"selector": "#office"})
+    await client.call(
+        "element_click", {"selector": '#office-options [data-value="Shanghai"]'}
+    )
+    await client.call("element_click", {"selector": "#profile-submit"})
+    business_id = await _wait_for_business_id(client)
+    _require(business_id == "PROFILE-0001", "W01 submit result mismatch")
     state = await _fixture_state(base_url)
     _require_counter(state, "form_rich_attempted_requests", 1)
     _require_counter(state, "form_rich_accepted_requests", 1)
@@ -119,26 +120,14 @@ async def _w01_rich_form(
 
 
 async def _w02_controlled_form(
-    client: BenchmarkClient, base_url: str, run_id: str, _root: Path
+    client: BenchmarkClient, base_url: str, _run_id: str, _root: Path
 ) -> dict[str, Any]:
     await client.call("page_navigate", {"url": base_url + "/form-controlled"})
     for value in ("Ada Initial", "Ada Controlled"):
-        filled = await client.call(
-            "form_fill",
-            {
-                "form_selector": "#controlled-form",
-                "redact_values": False,
-                "fields": {"Display name": value},
-            },
-        )
-        field = filled["data"]["fields"][0]
-        _require(field["success"] is True, f"W02 failed to write {value!r}")
-        _require(field["observed_value"] == value, "W02 observed stale input state")
-    submitted = await client.call(
-        "form_submit",
-        _submit_args("#controlled-form", f"{run_id}-submit", "#business-id"),
-    )
-    _require(submitted["data"]["status"] == "success", "W02 submit failed")
+        await _type_and_verify(client, "#controlled-name", value)
+    await client.call("element_click", {"selector": "#controlled-submit"})
+    business_id = await _wait_for_business_id(client)
+    _require(business_id == "CONTROLLED-0001", "W02 submit result mismatch")
     state = await _fixture_state(base_url)
     _require_counter(state, "form_controlled_attempted_requests", 1)
     _require_counter(state, "form_controlled_accepted_requests", 1)
@@ -146,21 +135,18 @@ async def _w02_controlled_form(
 
 
 async def _w03_validation_recovery(
-    client: BenchmarkClient, base_url: str, run_id: str, _root: Path
+    client: BenchmarkClient, base_url: str, _run_id: str, _root: Path
 ) -> dict[str, Any]:
     await client.call("page_navigate", {"url": base_url + "/form-validation"})
     await _fill_employee_code(client, "bad")
-    client_failure = await client.call(
-        "form_submit",
-        {
-            "form_selector": "#validation-form",
-            "operation_key": f"{run_id}-client",
-            "expect": {"conditions": [{"kind": "url_changed"}], "timeout": 1},
-        },
+    await client.call("element_click", {"selector": "#validation-form button"})
+    client_validation = await client.call(
+        "element_get_property",
+        {"selector": "#employee-code", "property": "validationMessage"},
     )
     _require(
-        client_failure["data"]["status"] == "validation_failed",
-        "W03 client validation was not classified",
+        bool(client_validation["data"]["value"]),
+        "W03 client validation evidence was not observable",
     )
     _require(
         (await _fixture_state(base_url))["counters"] == {},
@@ -168,21 +154,22 @@ async def _w03_validation_recovery(
     )
 
     await _fill_employee_code(client, "DP-071")
+    await client.call("element_click", {"selector": "#validation-form button"})
+    await client.call(
+        "wait_for_element", {"selector": "#employee-code-server-error", "timeout": 3}
+    )
     server_failure = await client.call(
-        "form_submit",
-        _submit_args("#validation-form", f"{run_id}-server", "#business-id"),
+        "element_get_text", {"selector": "#employee-code-server-error"}
     )
     _require(
-        server_failure["data"]["status"] == "validation_failed",
-        "W03 server validation was not classified",
+        server_failure["data"]["text"] == "Employee code must be DP-070",
+        "W03 server validation evidence mismatch",
     )
 
     await _fill_employee_code(client, "DP-070")
-    success = await client.call(
-        "form_submit",
-        _submit_args("#validation-form", f"{run_id}-success", "#business-id"),
-    )
-    _require(success["data"]["status"] == "success", "W03 correction did not recover")
+    await client.call("element_click", {"selector": "#validation-form button"})
+    business_id = await _wait_for_business_id(client)
+    _require(business_id == "VALIDATED-0001", "W03 correction did not recover")
     state = await _fixture_state(base_url)
     _require_counter(state, "validation_attempted_requests", 2)
     _require_counter(state, "validation_accepted_requests", 1)
@@ -190,26 +177,18 @@ async def _w03_validation_recovery(
 
 
 async def _w04_upload_submit(
-    client: BenchmarkClient, base_url: str, run_id: str, root: Path
+    client: BenchmarkClient, base_url: str, _run_id: str, root: Path
 ) -> dict[str, Any]:
     upload_file = root / "uploads" / "fixture-note.txt"
     await client.call("page_navigate", {"url": base_url + "/form-upload-submit"})
-    await client.call(
-        "form_fill",
-        {
-            "form_selector": "#upload-submit-form",
-            "fields": {"Case name": "Quarterly notes"},
-        },
-    )
+    await _type_and_verify(client, "#case-name", "Quarterly notes")
     await client.call(
         "element_upload_file",
         {"selector": "#attachment", "paths": [str(upload_file)]},
     )
-    submitted = await client.call(
-        "form_submit",
-        _submit_args("#upload-submit-form", f"{run_id}-submit", "#business-id"),
-    )
-    _require(submitted["data"]["status"] == "success", "W04 submit failed")
+    await client.call("element_click", {"selector": "#upload-submit"})
+    business_id = await _wait_for_business_id(client)
+    _require(business_id == "UPLOAD-0001", "W04 submit result mismatch")
     state = await _fixture_state(base_url)
     _require_counter(state, "upload_attempted_requests", 1)
     _require_counter(state, "upload_accepted_requests", 1)
@@ -491,28 +470,30 @@ def _browser_evidence_complete(runtimes: list[dict[str, Any]]) -> bool:
 
 
 async def _fill_employee_code(client: BenchmarkClient, value: str) -> None:
-    payload = await client.call(
-        "form_fill",
-        {
-            "form_selector": "#validation-form",
-            "redact_values": False,
-            "fields": {"Employee code": value},
-        },
+    await _type_and_verify(client, "#employee-code", value)
+
+
+async def _type_and_verify(client: BenchmarkClient, selector: str, value: str) -> None:
+    await client.call(
+        "element_type", {"selector": selector, "text": value, "clear": True}
     )
-    field = payload["data"]["fields"][0]
-    _require(field["success"] is True, f"employee code {value!r} was not written")
-    _require(field["observed_value"] == value, "employee code observation was stale")
+    observed = await client.call(
+        "element_get_property", {"selector": selector, "property": "value"}
+    )
+    if observed["data"]["value"] is None:
+        observed = await client.call("element_get_text", {"selector": selector})
+        actual = observed["data"]["text"]
+    else:
+        actual = observed["data"]["value"]
+    _require(actual == value, f"{selector} expected {value!r}, observed {actual!r}")
 
 
-def _submit_args(form: str, operation_key: str, selector: str) -> dict[str, Any]:
-    return {
-        "form_selector": form,
-        "operation_key": operation_key,
-        "expect": {
-            "conditions": [{"kind": "selector_visible", "selector": selector}],
-            "timeout": 3,
-        },
-    }
+async def _wait_for_business_id(client: BenchmarkClient) -> str:
+    await client.call("wait_for_element", {"selector": "#business-id", "timeout": 3})
+    payload = await client.call(
+        "element_get_attribute", {"selector": "#business-id", "attribute": "value"}
+    )
+    return str(payload["data"]["value"] or "")
 
 
 def _require(condition: bool, message: str) -> None:

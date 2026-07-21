@@ -58,7 +58,6 @@ async def test_list_resources_is_deterministic_and_json_typed() -> None:
 async def test_read_session_and_policy_resources_do_not_initialize_browser(
     monkeypatch,
 ) -> None:
-    monkeypatch.delenv("DP_MCP_DENY_EXTERNAL_SUBMISSION", raising=False)
     monkeypatch.delenv("DP_MCP_DENY_DOWNLOAD", raising=False)
     monkeypatch.delenv("DP_MCP_DOWNLOAD_ROOT", raising=False)
     monkeypatch.delenv("CHROME_PATH", raising=False)
@@ -66,7 +65,6 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     monkeypatch.delenv("DP_USER_DATA_PATH", raising=False)
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "example.com,allowed.test")
     monkeypatch.setenv("DP_MCP_BLOCK_PRIVATE_NETWORK", "1")
-    monkeypatch.setenv("DP_MCP_DENY_EXTERNAL_SUBMISSION", "1")
 
     server = DrissionPageMCPServer()
 
@@ -97,8 +95,7 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
                 "screenshot_root": False,
                 "upload_root": False,
                 "download_root": False,
-                "deny_external_submission": True,
-                "deny_download": False,
+                    "deny_download": False,
             },
         },
     }
@@ -119,13 +116,10 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
     assert config_payload["environment"]["browser_path"]["value"] == ""
     assert config_payload["policy"]["profile"] == "restricted"
     assert guide_payload["available"] is True
-    assert guide_payload["version"] == "0.7.1"
+    assert guide_payload["version"] == "0.7.2"
     assert "DrissionPage>=4.1.1.4,<5" in guide_payload["instructions"]
-    assert "form_fill_preview" in guide_payload["instructions"]
-    assert "form_fill" in guide_payload["instructions"]
-    assert "form_submit" in guide_payload["instructions"]
+    assert "atomic interaction" in guide_payload["instructions"]
     assert "element_click_and_download" in guide_payload["instructions"]
-    assert "indeterminate" in guide_payload["instructions"]
     assert "network_listen_start" in guide_payload["instructions"]
     assert "page_click_xy" in guide_payload["instructions"]
     assert "page_pointer_drag_element" in guide_payload["instructions"]
@@ -151,10 +145,8 @@ async def test_read_session_and_policy_resources_do_not_initialize_browser(
         "values": "<redacted>",
     }
     assert policy_payload["controls"]["block_private_network"] is True
-    assert policy_payload["controls"]["deny_external_submission"] is True
     assert policy_payload["controls"]["download_root"] == {"configured": False}
     assert policy_payload["controls"]["deny_download"] is False
-    assert config_payload["policy"]["controls"]["deny_external_submission"] is True
     assert config_payload["policy"]["controls"]["download_root"] == {
         "configured": False
     }
@@ -411,7 +403,7 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
 
     assert "tools/list" in payload["schema_source"]
     names = [tool["name"] for tool in payload["tools"]]
-    assert len(names) == 62
+    assert len(names) == 58
     assert names == list(server.tools.keys())
     assert "page_snapshot" in names
     assert "page_observe" in names
@@ -419,7 +411,6 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert "page_evaluate" in names
     assert "page_screenshot_save" in names
     assert "element_find_all" in names
-    assert "form_inspect" in names
     assert "wait_until" in names
     assert "element_upload_file" in names
     assert "page_scroll" in names
@@ -428,9 +419,6 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert "storage_get" in names
     assert "browser_open_and_snapshot" in names
     assert "browser_extract_links" in names
-    assert "form_fill_preview" in names
-    assert "form_fill" in names
-    assert "form_submit" in names
     assert "page_dialog_respond" in names
     assert "element_click_and_download" in names
     assert "network_listen_start" in names
@@ -439,22 +427,24 @@ async def test_tools_catalog_matches_public_tools_and_excludes_aliases() -> None
     assert {"tab_list", "tab_switch", "tab_close"} <= set(names)
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
+    assert {
+        "form_inspect",
+        "form_fill",
+        "form_submit",
+        "form_fill_preview",
+    }.isdisjoint(names)
     schema_by_name = {tool["name"]: tool["output_schema"] for tool in payload["tools"]}
     assert schema_by_name["page_snapshot"] == "PageSnapshotData"
     assert schema_by_name["page_observe"] == "PageObservation"
     assert schema_by_name["page_console_logs"] == "ConsoleLogsData"
     assert schema_by_name["page_evaluate"] == "PageEvaluateData"
     assert schema_by_name["element_find_all"] == "ElementFindAllData"
-    assert schema_by_name["form_inspect"] == "FormInspectData"
     assert schema_by_name["wait_until"] == "WaitUntilData"
     assert schema_by_name["element_upload_file"] == "ElementUploadFileData"
     assert schema_by_name["frame_snapshot"] == "FrameSnapshotData"
     assert schema_by_name["storage_get"] == "StorageGetData"
     assert schema_by_name["browser_open_and_snapshot"] == "BrowserOpenAndSnapshotData"
     assert schema_by_name["browser_extract_links"] == "BrowserExtractLinksData"
-    assert schema_by_name["form_fill_preview"] == "FormFillPreviewData"
-    assert schema_by_name["form_fill"] == "FormFillData"
-    assert schema_by_name["form_submit"] == "FormSubmitData"
     assert schema_by_name["page_dialog_respond"] == "PageDialogRespondData"
     assert schema_by_name["element_click_and_download"] == (
         "ElementClickAndDownloadData"
@@ -494,18 +484,8 @@ async def test_model_usage_guide_exposes_workflow_first_routes() -> None:
         "page_snapshot",
     ]
     assert routes["link_discovery"]["preferred_sequence"] == ["browser_extract_links"]
-    assert routes["authorized_form_completion"]["preferred_sequence"][:2] == [
-        "form_inspect",
-        "form_fill",
-    ]
-    assert (
-        "form_submit with operation_key"
-        in routes["authorized_form_completion"]["preferred_sequence"][2]
-    )
-    assert routes["form_preview_only"]["preferred_sequence"] == [
-        "form_inspect",
-        "form_fill_preview",
-    ]
+    assert "authorized_form_completion" not in routes
+    assert "form_preview_only" not in routes
     assert routes["download_delivery"]["preferred_sequence"][-1] == (
         "reuse the same operation_key to replay without another click"
     )
@@ -562,10 +542,9 @@ async def test_tools_catalog_exposes_descriptions_for_ai_tool_choice() -> None:
     assert (
         "Extract bounded link data" in by_name["browser_extract_links"]["description"]
     )
-    assert "without submitting" in by_name["form_fill_preview"]["description"]
-    assert "without submitting" in by_name["form_fill"]["description"]
-    assert "verify live values" in by_name["form_fill"]["description"]
-    assert "at most once" in by_name["form_submit"]["description"]
+    assert "Type text" in by_name["element_type"]["description"]
+    assert "Select" in by_name["element_select"]["description"]
+    assert "checkbox" in by_name["element_check"]["description"].lower()
     assert "dialog" in by_name["page_dialog_respond"]["description"].lower()
     assert "download" in by_name["element_click_and_download"]["description"].lower()
     assert "without clicking" in by_name["page_pointer_move"]["description"]
@@ -590,18 +569,9 @@ async def test_tools_catalog_exposes_descriptions_for_ai_tool_choice() -> None:
     assert "viewport" in click["input_fields"]["x"]["description"].lower()
 
     assert by_name["browser_open_and_snapshot"]["required_input"] == ["url"]
-    assert by_name["form_fill_preview"]["required_input"] == ["fields"]
-    assert by_name["form_fill"]["required_input"] == ["fields"]
-    assert {
-        "form_selector",
-        "timeout",
-        "redact_values",
-        "verify",
-    } <= set(by_name["form_fill"]["optional_input"])
-    assert by_name["form_submit"]["required_input"] == []
-    assert {"form_selector", "submit_selector", "operation_key", "expect"} <= set(
-        by_name["form_submit"]["optional_input"]
-    )
+    assert by_name["element_type"]["required_input"] == ["selector", "text"]
+    assert by_name["element_select"]["required_input"] == ["selector", "value"]
+    assert by_name["element_check"]["required_input"] == ["selector"]
     assert by_name["page_dialog_respond"]["required_input"] == ["action"]
     assert {"prompt_text", "timeout"} <= set(
         by_name["page_dialog_respond"]["optional_input"]
