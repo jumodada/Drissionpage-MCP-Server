@@ -19,34 +19,25 @@ class MotionResult:
     def to_dict(self) -> dict[str, object]:
         if not self.drag:
             return {
-                "profile": "natural",
+                "profile": "direct",
                 "start_x": 0,
                 "start_y": 0,
                 "target_x": 10,
                 "target_y": 20,
-                "steps": 20,
-                "planned_duration_ms": 300,
+                "steps": 1,
+                "planned_duration_ms": 0,
             }
         return {
-            "profile": "natural",
+            "profile": "direct",
             "button": "left",
             "start_x": 10,
             "start_y": 20,
             "target_x": 100,
             "target_y": 20,
-            "approach_steps": 20,
-            "drag_steps": 24,
-            "main_drag_steps": 24,
-            "overshoot_steps": 0,
-            "correction_steps": 0,
-            "micro_pause_count": 0,
-            "overshoot_px": 0,
-            "reaction_delay_ms": 100,
-            "grip_delay_ms": 50,
-            "movement_duration_ms": 400,
-            "micro_pause_duration_ms": 0,
-            "release_delay_ms": 60,
-            "planned_duration_ms": 900,
+            "approach_steps": 1,
+            "drag_steps": 1,
+            "waypoint_count": 0,
+            "planned_duration_ms": 0,
         }
 
 
@@ -66,17 +57,15 @@ class FakePointer:
         self.calls.append(("click", args, kwargs))
         result = MotionResult()
         result.to_dict = lambda: {
-            "profile": "natural",
+            "profile": "direct",
             "button": "left",
             "start_x": 0,
             "start_y": 0,
             "target_x": 10,
             "target_y": 20,
-            "steps": 20,
-            "reaction_delay_ms": 100,
+            "steps": 1,
             "delay_before_press_ms": 0,
-            "hold_duration_ms": 50,
-            "planned_duration_ms": 400,
+            "planned_duration_ms": 0,
         }
         return result
 
@@ -138,10 +127,23 @@ async def test_coordinate_pointer_tools_delegate_to_pointer_capability() -> None
         ctx, pointer.ClickCoordinatesInput(x=10, y=20)
     )
 
-    assert move.structured_content()["data"]["motion"]["steps"] == 20
-    assert drag.structured_content()["data"]["motion"]["main_drag_steps"] == 24
-    assert click.structured_content()["data"]["motion"]["hold_duration_ms"] == 50
+    assert move.structured_content()["data"]["motion"]["steps"] == 1
+    assert drag.structured_content()["data"]["motion"]["drag_steps"] == 1
+    assert click.structured_content()["data"]["motion"]["delay_before_press_ms"] == 0
     assert [call[0] for call in ctx.tab.pointer.calls] == ["move", "drag", "click"]
+
+    for _, _, kwargs in ctx.tab.pointer.calls:
+        assert kwargs["profile"] == "direct"
+
+
+def test_pointer_profiles_are_bounded_to_direct_and_natural() -> None:
+    natural = pointer.ClickCoordinatesInput(x=10, y=20, profile="natural")
+
+    assert natural.profile == "natural"
+    with pytest.raises(ValidationError):
+        pointer.ClickCoordinatesInput.model_validate(
+            {"x": 10, "y": 20, "profile": "human_like"}
+        )
 
 
 def test_pointer_drag_waypoints_are_bounded_and_strict() -> None:
@@ -216,8 +218,9 @@ async def test_element_drag_supports_all_destination_modes(kind: str) -> None:
     call = ctx.tab.pointer.calls[-1]
     assert call[0] == "drag"
     if kind == "track_ratio":
-        assert call[2]["axis"] == "x"
         assert data["destination"]["track"]["selector"] == "#track"
+        assert data["destination"]["axis"] == "x"
+        assert call[2]["axis"] == "x"
     elif kind == "element":
         assert data["destination"]["target"]["selector"] == "#target"
     else:

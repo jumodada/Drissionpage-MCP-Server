@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from ..browser.motion import Point
+from ..browser.motion import Point, PointerProfile
 from ..browser.targeting import ElementTarget
 from ..tool_outputs import (
     PageClickXYData,
@@ -21,33 +21,21 @@ if TYPE_CHECKING:
 
 
 class PointerCoordinatesInput(ToolInput):
-    """Shared input schema for vision-directed viewport pointer movement."""
+    """Shared input schema for bounded viewport pointer movement."""
 
     x: float = Field(..., ge=0, description="Viewport X coordinate in CSS pixels")
     y: float = Field(..., ge=0, description="Viewport Y coordinate in CSS pixels")
-    start_x: float | None = Field(
-        default=None, ge=0, description="Optional known pointer start X coordinate"
-    )
-    start_y: float | None = Field(
-        default=None, ge=0, description="Optional known pointer start Y coordinate"
-    )
     element: str = Field(
         "", description="Human-readable element or interaction description"
     )
-    profile: Literal["natural", "precise", "direct"] = Field(
-        default="natural",
+    profile: PointerProfile = Field(
+        default="direct",
         description=(
-            "Pointer movement profile; natural uses 20–35 cubic Bézier steps, "
-            "8–25ms intervals, ±0.5px jitter, 100–300ms reaction delay, and "
-            "50–120ms button hold; precise lowers jitter; direct is one-step."
+            "Movement profile: direct emits one exact move; natural emits a "
+            "deterministic 24-step eased cubic Bezier path with bounded 8-14ms "
+            "intervals and an exact endpoint"
         ),
     )
-
-    @model_validator(mode="after")
-    def _paired_start(self) -> "PointerCoordinatesInput":
-        if (self.start_x is None) != (self.start_y is None):
-            raise ValueError("start_x and start_y must be provided together")
-        return self
 
 
 class PointerWaypointInput(BaseModel):
@@ -76,12 +64,11 @@ class PointerDragInput(ToolInput):
     element: str = Field(
         "", description="Human-readable draggable element or interaction description"
     )
-    profile: Literal["natural", "precise", "direct"] = Field(
-        default="natural",
+    profile: PointerProfile = Field(
+        default="direct",
         description=(
-            "Held-drag profile. natural uses distance-aware timing, acceleration and "
-            "deceleration, correlated intervals, bounded jitter, optional micro-pause, "
-            "and exact-target correction."
+            "Movement profile for the approach and every held segment: direct or "
+            "deterministic bounded natural motion"
         ),
     )
     button: Literal["left", "right", "middle"] = Field(
@@ -155,7 +142,7 @@ class PointerDragElementInput(ToolInput):
 
     source: ElementTargetInput
     destination: PointerElementDestination
-    profile: Literal["natural", "precise", "direct"] = "natural"
+    profile: PointerProfile = "direct"
     button: Literal["left", "right", "middle"] = "left"
 
 
@@ -170,7 +157,7 @@ class ClickCoordinatesInput(PointerCoordinatesInput):
         ge=0,
         le=10000,
         description=(
-            "Optional additional delay after natural arrival and before mousePressed. "
+            "Optional delay after pointer arrival and before mousePressed. "
             "This is timing control, not target-stability detection; moving targets "
             "require a fresh screenshot or selector-first action."
         ),
@@ -181,8 +168,8 @@ class ClickCoordinatesInput(PointerCoordinatesInput):
     name="page_pointer_move",
     title="Move Pointer to Coordinates",
     description=(
-        "Move the viewport pointer along the selected Bézier/eased profile without "
-        "clicking, for visual hover, reveal, canvas, and inspection workflows."
+        "Move the viewport pointer to exact CSS pixel coordinates without pressing "
+        "a button, using either one direct move or a bounded natural trajectory."
     ),
     input_schema=PointerCoordinatesInput,
     tool_type=ToolType.DESTRUCTIVE,
@@ -200,11 +187,8 @@ async def pointer_move(
     result = await tab.pointer.move_to(
         args.x,
         args.y,
-        start_x=args.start_x,
-        start_y=args.start_y,
         profile=args.profile,
     )
-    outcome.add_code("page.run_cdp(<pointer move sequence>)")
     outcome.add_result(
         f"Successfully moved pointer to coordinates ({args.x:g}, {args.y:g})",
         x=args.x,
@@ -213,7 +197,6 @@ async def pointer_move(
         url=tab.url,
         motion=result.to_dict(),
     )
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -222,9 +205,8 @@ async def pointer_move(
     title="Drag Pointer Between Coordinates",
     description=(
         "Perform one failure-safe viewport drag through optional ordered waypoints "
-        "with distance-aware timing, acceleration/deceleration, correlated intervals, "
-        "bounded jitter, optional micro-pauses and exact final correction. Always "
-        "releases the button."
+        "using direct or bounded natural movement while the button remains pressed. "
+        "Always releases the button."
     ),
     input_schema=PointerDragInput,
     tool_type=ToolType.DESTRUCTIVE,
@@ -249,7 +231,6 @@ async def pointer_drag(
         button=args.button,
         waypoints=tuple(Point(point.x, point.y) for point in args.waypoints),
     )
-    outcome.add_code("page.run_cdp(<pointer move/press/held-move/release sequence>)")
     outcome.add_result(
         "Successfully completed pointer drag",
         start_x=args.start_x,
@@ -260,7 +241,6 @@ async def pointer_drag(
         url=tab.url,
         motion=result.to_dict(),
     )
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -291,8 +271,8 @@ async def pointer_drag_element(
         targets["track"] = args.destination.track.to_target()
     resolved = tab.targeting.resolve_many(targets)
     source = resolved["source"]
-    axis = None
     destination_data: dict[str, object]
+    drag_axis: Literal["x", "y"] | None = None
     if isinstance(args.destination, ElementDestinationInput):
         target = resolved["target"]
         end_x, end_y = target.point.x, target.point.y
@@ -315,6 +295,7 @@ async def pointer_drag_element(
     else:
         track = resolved["track"]
         axis = args.destination.axis
+        drag_axis = axis
         if axis == "x":
             travel = max(0.0, track.width - source.width)
             end_x = track.left + source.width / 2 + travel * args.destination.ratio
@@ -340,9 +321,8 @@ async def pointer_drag_element(
         end_y,
         profile=args.profile,
         button=args.button,
-        axis=axis,
+        axis=drag_axis,
     )
-    outcome.add_code("resolve selector geometry; page.run_cdp(<held drag sequence>)")
     outcome.add_result(
         "Successfully resolved and dragged element",
         source=source.to_dict(),
@@ -350,7 +330,6 @@ async def pointer_drag_element(
         url=tab.url,
         motion=motion.to_dict(),
     )
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -358,9 +337,9 @@ async def pointer_drag_element(
     name="page_click_xy",
     title="Click Coordinates",
     description=(
-        "Move the viewport pointer to coordinates and click. The natural profile uses "
-        "a cubic Bézier path, smoothstep easing, bounded jitter, reaction delay, and "
-        "realistic button hold time."
+        "Move the viewport pointer to exact CSS pixel coordinates using a direct or "
+        "bounded natural trajectory, optionally wait for an explicit delay, then "
+        "press and release one mouse button."
     ),
     input_schema=ClickCoordinatesInput,
     tool_type=ToolType.DESTRUCTIVE,
@@ -378,13 +357,10 @@ async def click_coordinates(
     result = await tab.pointer.click_at(
         args.x,
         args.y,
-        start_x=args.start_x,
-        start_y=args.start_y,
         profile=args.profile,
         button=args.button,
         delay_before_press_ms=args.delay_before_press_ms,
     )
-    outcome.add_code("page.run_cdp(<pointer move/press/release sequence>)")
     outcome.add_result(
         f"Successfully clicked at coordinates ({args.x:g}, {args.y:g})",
         x=args.x,
@@ -393,5 +369,4 @@ async def click_coordinates(
         url=tab.url,
         motion=result.to_dict(),
     )
-    outcome.set_include_snapshot(True)
     return outcome

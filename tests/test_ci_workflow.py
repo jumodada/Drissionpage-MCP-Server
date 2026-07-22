@@ -154,7 +154,7 @@ def test_ci_uploads_xml_coverage_to_codecov() -> None:
 
 
 def test_ci_checks_wheel_package_contents() -> None:
-    """prevents broad compatibility shim packages from leaking into wheels."""
+    """prevents private guidance, Skills, and deleted modules from shipping."""
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     package_job = workflow.split("  package:\n", maxsplit=1)[1]
@@ -162,6 +162,16 @@ def test_ci_checks_wheel_package_contents() -> None:
     assert "Check wheel package contents" in package_job
     assert 'top_level == ["drissionpage_mcp"]' in package_job
     assert 'name.startswith("src/")' in package_job
+    assert "tarfile.open" in package_job
+    assert "/AGENTS.md" in package_job
+    assert "/SKILL.md" in package_job
+    assert "/docs/core-and-skills-strategy.md" in package_job
+    assert "/docs/0.7.3-to-0.8.0-capability-plan.md" in package_job
+    assert '"/skills/" in ("/" + name)' in package_job
+    assert '"/.omx/" in ("/" + name)' in package_job
+    assert "/drissionpage_mcp/prompts.py" in package_job
+    assert "/drissionpage_mcp/browser/vision.py" in package_job
+    assert "/drissionpage_mcp/tools/workflow.py" in package_job
 
 
 def test_readmes_publish_ci_and_codecov_badges() -> None:
@@ -255,11 +265,11 @@ def test_release_versions_are_in_sync() -> None:
         assert f"DrissionPage MCP {version}" in text
 
 
-def test_ci_runs_0_4_0_resource_prompt_and_eval_gates() -> None:
+def test_ci_runs_resource_and_eval_gates() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
     assert "tests/test_mcp_resources.py" in workflow
-    assert "tests/test_mcp_prompts.py" in workflow
+    assert "tests/test_mcp_prompts.py" not in workflow
     assert "python -m pytest tests/evals -q" in workflow
     assert "tests.evals.task_completion_benchmark" in workflow
     assert "--iterations 10" in workflow

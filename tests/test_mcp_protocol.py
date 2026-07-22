@@ -9,7 +9,13 @@ from typing import Any, Dict
 import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from mcp.types import CallToolRequest, CallToolRequestParams, ListToolsRequest
+from mcp.types import (
+    CallToolRequest,
+    CallToolRequestParams,
+    GetPromptRequest,
+    ListPromptsRequest,
+    ListToolsRequest,
+)
 
 import drissionpage_mcp
 from drissionpage_mcp.server import DrissionPageMCPServer
@@ -25,7 +31,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 58
+    assert len(tools) == 53
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -53,8 +59,6 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "shadow_find",
         "browser_cookies_get",
         "storage_get",
-        "browser_open_and_snapshot",
-        "browser_extract_links",
         "network_listen_start",
         "network_listen_wait",
         "network_listen_stop",
@@ -73,7 +77,19 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "form_fill",
         "form_submit",
         "form_fill_preview",
+        "page_detect_challenges",
+        "page_click_xy_batch",
+        "page_wait_challenge_result",
+        "browser_open_and_snapshot",
+        "browser_extract_links",
     }.isdisjoint(tool.name for tool in tools)
+
+
+def test_server_exposes_no_prompt_capability_or_handlers() -> None:
+    server = DrissionPageMCPServer()
+
+    assert ListPromptsRequest not in server.server.request_handlers
+    assert GetPromptRequest not in server.server.request_handlers
 
 
 @pytest.mark.asyncio
@@ -107,8 +123,7 @@ async def test_call_tool_handler_rejects_unknown_arguments_before_browser_startu
 
     result = await handler(_call_tool_request("page_screenshot", {"fullPage": True}))
 
-    assert server.context is not None
-    assert server.context.is_active() is False
+    assert server.context is None
     assert result.root.isError is True
     assert result.root.structuredContent["error"]["code"] == "MCP_ARGUMENT_INVALID"
     assert "fullPage" in result.root.structuredContent["message"]
@@ -175,7 +190,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 58
+            assert len(tools.tools) == 53
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -193,8 +208,6 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "frame_list",
                 "shadow_find",
                 "storage_get",
-                "browser_open_and_snapshot",
-                "browser_extract_links",
                 "network_listen_start",
                 "network_listen_wait",
                 "network_listen_stop",
@@ -206,6 +219,11 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "form_fill",
                 "form_submit",
                 "form_fill_preview",
+                "page_detect_challenges",
+                "page_click_xy_batch",
+                "page_wait_challenge_result",
+                "browser_open_and_snapshot",
+                "browser_extract_links",
             }.isdisjoint(tool.name for tool in tools.tools)
 
             wait_result = await session.call_tool("wait_time", {"seconds": 0})
@@ -311,12 +329,6 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     assert schemas["storage_get"]["oneOf"][0]["properties"]["data"]["title"] == (
         "StorageGetData"
     )
-    assert schemas["browser_open_and_snapshot"]["oneOf"][0]["properties"]["data"][
-        "title"
-    ] == ("BrowserOpenAndSnapshotData")
-    assert schemas["browser_extract_links"]["oneOf"][0]["properties"]["data"][
-        "title"
-    ] == ("BrowserExtractLinksData")
     assert schemas["network_listen_wait"]["oneOf"][0]["properties"]["data"][
         "title"
     ] == ("NetworkListenWaitData")

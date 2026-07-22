@@ -129,18 +129,16 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
     )
     assert not_initialized_hints[0] == {
         "action": "navigate_first",
-        "message": "Open a page with the workflow helper when you need immediate page context; use page_navigate only for navigation-only retries.",
-        "tool": "browser_open_and_snapshot",
+        "message": "Open a page with page_navigate, then inspect it with page_snapshot or another read-only tool.",
+        "tool": "page_navigate",
     }
     assert argument_hints[0]["action"] == "check_input_schema"
     catalog_hint = next(
-        hint for hint in argument_hints if hint["action"] == "inspect_tools_catalog"
+        hint for hint in argument_hints if hint["action"] == "inspect_tool_schema"
     )
-    assert "compact required/default field guidance" in catalog_hint["message"]
     assert "tools/list" in catalog_hint["message"]
     assert "complete JSON Schema" in catalog_hint["message"]
     assert not_found_hints[0]["action"] == "list_available_tools"
-    assert any((hint["action"] == "read_model_usage_guide" for hint in not_found_hints))
     assert any(
         (
             hint.get("env") == "DP_MCP_SCREENSHOT_ROOT"
@@ -363,7 +361,6 @@ def test_page_dialog_respond_output_schema_validates_redacted_receipt() -> None:
         "finished_at": "2026-07-17T00:00:01Z",
         "tab_id": "t0",
         "target_fingerprint": "e" * 64,
-        "retry_of": None,
         "artifact_ids": [],
         "error_code": None,
         "redacted": True,
@@ -413,7 +410,6 @@ def test_click_and_download_output_schema_validates_artifact_receipt_link() -> N
         "finished_at": "2026-07-17T00:00:01Z",
         "tab_id": "t0",
         "target_fingerprint": "a" * 64,
-        "retry_of": None,
         "artifact_ids": ["artifact-000001"],
         "error_code": None,
         "redacted": True,
@@ -494,7 +490,6 @@ def _click_and_download_error_payload() -> dict[str, object]:
                 "finished_at": "2026-07-17T00:00:01Z",
                 "tab_id": "t0",
                 "target_fingerprint": "a" * 64,
-                "retry_of": None,
                 "artifact_ids": [],
                 "error_code": "DOWNLOAD_FAILED",
                 "redacted": True,
@@ -578,7 +573,6 @@ def test_click_and_download_output_schema_rejects_contradictory_shapes(
         "finished_at": "2026-07-17T00:00:01Z",
         "tab_id": "t0",
         "target_fingerprint": "a" * 64,
-        "retry_of": None,
         "artifact_ids": artifact_ids,
         "error_code": None,
         "redacted": True,
@@ -639,7 +633,6 @@ def test_click_and_download_output_schema_rejects_wrong_receipt_contract(
         "finished_at": "2026-07-17T00:00:01Z",
         "tab_id": "t0",
         "target_fingerprint": "a" * 64,
-        "retry_of": None,
         "artifact_ids": ["artifact-000001"],
         "error_code": None,
         "redacted": True,
@@ -789,48 +782,7 @@ def test_observable_action_output_schemas_validate_success_payloads() -> None:
     validate(wait_payload, tool_result_output_schema("wait_until"))
 
 
-def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
-    open_payload = ToolResult.success(
-        "Opened page",
-        url="https://example.test/workflow",
-        final_url="https://example.test/workflow",
-        title="Workflow",
-        wait={
-            "condition": "visible",
-            "selector": "#app",
-            "value": "",
-            "matched": True,
-            "timeout": 5.0,
-        },
-        snapshot={"title": "Workflow", "links": []},
-        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
-    ).to_dict()
-    links_payload = ToolResult.success(
-        "Extracted links",
-        selector="a",
-        locator="css:a",
-        selector_strategy="css",
-        selector_normalized=True,
-        include_text=True,
-        same_origin_only=False,
-        absolute_urls=True,
-        count=1,
-        returned=1,
-        limit=50,
-        truncated=False,
-        links=[
-            {
-                "index": 0,
-                "text": "Docs",
-                "href": "/docs",
-                "url": "https://example.test/docs",
-                "selector": "#docs-link",
-                "rel": "",
-                "target": "",
-            }
-        ],
-        meta={"approx_tokens": 10, "json_chars": 35, "truncated": False},
-    ).to_dict()
+def test_network_schemas_validate_success_payloads() -> None:
     start_payload = ToolResult.success(
         "Started network listener",
         listening=True,
@@ -872,8 +824,6 @@ def test_0_5_6_workflow_and_network_schemas_validate_success_payloads() -> None:
     stop_payload = ToolResult.success(
         "Stopped network listener", listening=False, was_listening=True, cleared=True
     ).to_dict()
-    validate(open_payload, tool_result_output_schema("browser_open_and_snapshot"))
-    validate(links_payload, tool_result_output_schema("browser_extract_links"))
     validate(start_payload, tool_result_output_schema("network_listen_start"))
     validate(wait_payload, tool_result_output_schema("network_listen_wait"))
     validate(stop_payload, tool_result_output_schema("network_listen_stop"))
@@ -893,10 +843,12 @@ def test_screenshot_metadata_handles_non_inline_and_malformed_images(tmp_path) -
     png_path = tmp_path / "screen.png"
     png_path.write_bytes(raw_png)
     assert build_screenshot_metadata(raw_png, full_page=True)["width"] == 1
-    assert build_screenshot_metadata(path=str(png_path), inline=False) == {
+    assert build_screenshot_metadata(
+        path=str(png_path), safe_relative_path="screen.png", inline=False
+    ) == {
         "mime_type": "image/png",
         "inline": False,
-        "path": str(png_path),
+        "safe_relative_path": "screen.png",
         "bytes": len(raw_png),
         "width": 1,
         "height": 1,
@@ -908,10 +860,12 @@ def test_screenshot_metadata_handles_non_inline_and_malformed_images(tmp_path) -
         "encoding": "base64",
         "full_page": False,
     }
-    missing_file = build_screenshot_metadata(path=str(tmp_path / "missing.png"))
+    missing_file = build_screenshot_metadata(
+        path=str(tmp_path / "missing.png"), safe_relative_path="missing.png"
+    )
     assert missing_file == {
         "mime_type": "image/png",
-        "path": str(tmp_path / "missing.png"),
+        "safe_relative_path": "missing.png",
     }
     assert build_screenshot_metadata(b"short") == {
         "mime_type": "image/png",

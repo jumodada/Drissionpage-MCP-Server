@@ -49,7 +49,6 @@ async def shadow_find(
     result = await tab.frames.shadow_find(
         host_selector=args.host_selector, selector=args.selector, timeout=args.timeout
     )
-    outcome.add_code("page.ele(<host>).shadow_root.ele(<selector>)")
     outcome.add_result(f"Found shadow element: {args.selector}", **result)
     return outcome
 
@@ -77,7 +76,6 @@ async def shadow_find_all(
         limit=args.limit,
         include_html=args.include_html,
     )
-    outcome.add_code("page.ele(<host>).shadow_root.eles(<selector>)")
     outcome.add_result(
         f"Found {result['returned']} of {result['count']} shadow elements",
         **with_response_meta(result),

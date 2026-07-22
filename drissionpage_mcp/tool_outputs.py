@@ -125,7 +125,6 @@ class ActionReceipt(ContractData):
     finished_at: datetime
     tab_id: Annotated[str, StringConstraints(min_length=1, max_length=128)]
     target_fingerprint: Sha256Hex | None = None
-    retry_of: ContractId | None = None
     artifact_ids: Annotated[tuple[ContractId, ...], Field(max_length=16)] = Field(
         default_factory=tuple
     )
@@ -232,40 +231,6 @@ class CapabilitySet(ContractData):
     )
 
 
-class PolicyControl(ContractData):
-    """One redacted policy feature flag in a stable public summary."""
-
-    name: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{1,99}$")]
-    enabled: bool
-
-
-class TaskContext(ContractData):
-    """Immutable public summary of the mutable live-process task runtime."""
-
-    schema_version: Literal["1"] = "1"
-    task_id: ContractId
-    state: Literal["active", "closed"] = "active"
-    created_at: datetime
-    autonomy_mode: Literal["fully_autonomous"] = "fully_autonomous"
-    lifetime: Literal["server_process"] = "server_process"
-    policy_profile: Annotated[str, StringConstraints(min_length=1, max_length=100)]
-    policy_controls: Annotated[tuple[PolicyControl, ...], Field(max_length=32)]
-    active_tab_ids: Annotated[tuple[str, ...], Field(max_length=32)] = Field(
-        default_factory=tuple
-    )
-    current_tab_id: Annotated[str, StringConstraints(max_length=128)] = ""
-    action_count: Annotated[int, Field(ge=0)] = 0
-    retry_count: Annotated[int, Field(ge=0)] = 0
-    operation_count: Annotated[int, Field(ge=0)] = 0
-    receipt_count: Annotated[int, Field(ge=0)] = 0
-    artifact_count: Annotated[int, Field(ge=0)] = 0
-    operation_limit: Annotated[int, Field(ge=1)]
-    artifact_limit: Annotated[int, Field(ge=1)]
-    retry_limit: Annotated[int, Field(ge=0, description="Reserved; no auto-retry.")]
-    last_action_id: ContractId | None = None
-    last_verified_action_id: ContractId | None = None
-
-
 class PageNavigateData(ToolData):
     url: str
     final_url: str
@@ -353,7 +318,7 @@ class PageEvaluateData(ToolData):
 
 
 class PointerMoveData(ToolData):
-    profile: Literal["natural", "precise", "direct"]
+    profile: Literal["direct", "natural"]
     start_x: float
     start_y: float
     target_x: float
@@ -364,15 +329,7 @@ class PointerMoveData(ToolData):
 
 class PointerMotionData(PointerMoveData):
     button: Literal["left", "right", "middle"]
-    start_x: float
-    start_y: float
-    target_x: float
-    target_y: float
-    steps: int
-    reaction_delay_ms: int
     delay_before_press_ms: int
-    hold_duration_ms: int
-    planned_duration_ms: int
 
 
 class PagePointerMoveData(ToolData):
@@ -384,7 +341,7 @@ class PagePointerMoveData(ToolData):
 
 
 class PointerDragData(ToolData):
-    profile: Literal["natural", "precise", "direct"]
+    profile: Literal["direct", "natural"]
     button: Literal["left", "right", "middle"]
     start_x: float
     start_y: float
@@ -392,16 +349,7 @@ class PointerDragData(ToolData):
     target_y: float
     approach_steps: int
     drag_steps: int
-    main_drag_steps: int
-    overshoot_steps: int
-    correction_steps: int
-    micro_pause_count: int
-    overshoot_px: float
-    reaction_delay_ms: int
-    grip_delay_ms: int
-    movement_duration_ms: int
-    micro_pause_duration_ms: int
-    release_delay_ms: int
+    waypoint_count: int
     planned_duration_ms: int
 
 
@@ -846,32 +794,6 @@ class WaitUntilData(ToolData):
     state: dict[str, Any]
 
 
-class BrowserOpenAndSnapshotData(ToolData):
-    url: str
-    final_url: str
-    title: str
-    wait: dict[str, Any]
-    snapshot: dict[str, Any]
-    console: dict[str, Any] | None = None
-    meta: dict[str, Any]
-
-
-class BrowserExtractLinksData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
-    include_text: bool
-    same_origin_only: bool
-    absolute_urls: bool
-    count: int
-    returned: int
-    limit: int
-    truncated: bool
-    links: list[dict[str, Any]]
-    meta: dict[str, Any]
-
-
 class NetworkListenStartData(ToolData):
     listening: bool
     filters: dict[str, Any]
@@ -943,54 +865,3 @@ def tool_outcome_schema(output_model: type[ToolData]) -> dict[str, Any]:
     if definitions:
         schema["$defs"] = definitions
     return schema
-
-
-class ChallengeSignalData(ToolData):
-    source: str
-    provider_hint: str
-    matched_signal: str
-    frame_index: int | None
-
-
-class DetectChallengesData(ToolData):
-    detected: bool
-    challenge_types: list[str]
-    signals: list[dict[str, Any]]
-    iframes: list[dict[str, Any]]
-    page_state: dict[str, str]
-    suggestions: list[str]
-    screenshot_attached: bool
-
-
-class BatchClickResultData(ToolData):
-    index: int
-    x: float
-    y: float
-    label: str
-    success: bool
-    error: str | None
-    motion: PointerMotionData | None
-
-
-class BatchClickData(ToolData):
-    total_targets: int
-    clicks_completed: int
-    results: list[BatchClickResultData]
-    aborted: bool
-    abort_index: int | None
-    initial_url: str
-    final_url: str
-
-
-class WaitChallengeData(ToolData):
-    status: Literal[
-        "passed", "needs_retry", "new_challenge", "pending", "timeout", "indeterminate"
-    ]
-    passed: bool
-    needs_retry: bool
-    new_challenge: bool
-    token_present: bool
-    token_length: int
-    matched_selector: str
-    elapsed_ms: int
-    observations: int

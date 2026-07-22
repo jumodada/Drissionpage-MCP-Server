@@ -4,28 +4,21 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections import deque
 from copy import deepcopy
-from datetime import datetime, timezone
 from secrets import token_hex
 from threading import Lock
-from typing import Any, Deque, Mapping, Sequence
+from typing import Any, Mapping
 
-from .observation import safe_int
 from .response_errors import ErrorCode
 from .tool_outputs import (
     ActionReceipt,
     ArtifactRef,
     CapabilityProbe,
     CapabilitySet,
-    PolicyControl,
-    TaskContext,
-    sanitize_public_url,
 )
 
 DEFAULT_OPERATION_LIMIT = 80
 DEFAULT_ARTIFACT_LIMIT = 80
-DEFAULT_RETRY_LIMIT = 3
 
 
 class OperationKeyConflictError(ValueError):
@@ -73,60 +66,22 @@ class OperationClaim:
         return self.cached_receipt is None
 
 
-SENSITIVE_HISTORY_KEYS = {
-    "password",
-    "passwd",
-    "pwd",
-    "secret",
-    "token",
-    "api_key",
-    "apikey",
-    "authorization",
-    "cookie",
-    "cookies",
-    "text",
-    "prompt_text",
-    "value",
-    "values",
-    "fields",
-    "body",
-    "headers",
-    "request_headers",
-    "response_headers",
-    "request_body",
-    "response_body",
-    "post_data",
-    "postdata",
-    "set-cookie",
-    "proxy-authorization",
-}
-
-
 class TaskRuntime:
-    """Own bounded task history, operation receipts, artifacts, and capabilities."""
+    """Own bounded operation receipts, artifacts, and capabilities."""
 
     def __init__(
         self,
         *,
-        history_limit: int = 100,
         operation_limit: int = DEFAULT_OPERATION_LIMIT,
         artifact_limit: int = DEFAULT_ARTIFACT_LIMIT,
-        retry_limit: int = DEFAULT_RETRY_LIMIT,
     ) -> None:
         if operation_limit < 1:
             raise ValueError("operation_limit must be at least 1")
         if artifact_limit < 1:
             raise ValueError("artifact_limit must be at least 1")
-        if retry_limit < 0:
-            raise ValueError("retry_limit must be non-negative")
-
-        self._history_limit = history_limit
-        self._action_history: Deque[dict[str, Any]] = deque(maxlen=history_limit)
         self._task_id = f"task-{token_hex(8)}"
-        self._task_created_at = datetime.now(timezone.utc)
         self._operation_limit = operation_limit
         self._artifact_limit = artifact_limit
-        self._retry_limit = retry_limit
         self._task_lock = Lock()
         self._operation_fingerprints: dict[str, str] = {}
         self._in_flight_operations: set[str] = set()
@@ -134,47 +89,9 @@ class TaskRuntime:
         self._operation_results: dict[str, dict[str, Any]] = {}
         self._artifacts: dict[str, ArtifactRef] = {}
         self._artifact_reservations: set[str] = set()
-        self._action_count = 0
-        self._retry_count = 0
-        self._last_action_id: str | None = None
-        self._last_verified_action_id: str | None = None
         self._next_action_index = 1
         self._next_artifact_index = 1
         self._capability_set = CapabilitySet()
-
-    def record_action(
-        self,
-        tool: str,
-        args: Mapping[str, Any],
-        result: Mapping[str, Any],
-        *,
-        url_before: str = "",
-        url_after: str = "",
-        tab_id: str = "",
-    ) -> None:
-        """Append a redacted tool action to the session history."""
-
-        self._action_history.append(
-            {
-                "time": datetime.now(timezone.utc).isoformat(),
-                "tool": tool,
-                "args": _redact_history_value(dict(args)),
-                "result": _summarize_result(result),
-                "url_before": _redact_history_url(url_before),
-                "url_after": _redact_history_url(url_after),
-                "tab_id": tab_id,
-            }
-        )
-
-    def action_history(self) -> dict[str, Any]:
-        """Return bounded action history for the MCP resource surface."""
-
-        return {
-            "available": True,
-            "limit": self._history_limit,
-            "count": len(self._action_history),
-            "actions": list(self._action_history),
-        }
 
     def claim_operation(
         self, operation_key: str, request_fingerprint: str
@@ -287,7 +204,6 @@ class TaskRuntime:
             if result is not None:
                 self._operation_results[claim.operation_key] = deepcopy(dict(result))
             self._in_flight_operations.remove(claim.operation_key)
-            self._advance_receipt_state(receipt)
             return receipt
 
     def operation_result(self, operation_key: str) -> dict[str, Any] | None:
@@ -359,7 +275,6 @@ class TaskRuntime:
             self._operation_receipts[claim.operation_key] = receipt
             self._operation_results[claim.operation_key] = deepcopy(dict(result))
             self._in_flight_operations.remove(claim.operation_key)
-            self._advance_receipt_state(receipt)
             return receipt
 
     def _validate_receipt_claim(
@@ -379,14 +294,6 @@ class TaskRuntime:
     def _ensure_active_claim_locked(self, claim: OperationClaim) -> None:
         if claim.operation_key not in self._in_flight_operations:
             raise OperationKeyConflictError("operation claim is not active")
-
-    def _advance_receipt_state(self, receipt: ActionReceipt) -> None:
-        self._action_count += 1
-        if receipt.retry_of is not None:
-            self._retry_count += 1
-        self._last_action_id = receipt.action_id
-        if receipt.status == "success":
-            self._last_verified_action_id = receipt.action_id
 
     def reserve_artifact_slot(self, artifact_id: str) -> None:
         """Reserve one named artifact slot before a browser download starts."""
@@ -418,50 +325,6 @@ class TaskRuntime:
             raise TaskLedgerFullError(
                 "artifact ledger limit reached; start a new server task"
             )
-
-    def runtime_summary(
-        self,
-        *,
-        active_tab_ids: Sequence[str] = (),
-        current_tab_id: str = "",
-    ) -> TaskContext:
-        """Return an immutable public summary without browser ownership."""
-
-        policy = _task_policy_snapshot()
-        with self._task_lock:
-            return TaskContext(
-                task_id=self._task_id,
-                created_at=self._task_created_at,
-                policy_profile=policy["profile"],
-                policy_controls=tuple(
-                    PolicyControl(name=name, enabled=enabled)
-                    for name, enabled in sorted(policy["controls"].items())
-                ),
-                active_tab_ids=tuple(active_tab_ids),
-                current_tab_id=current_tab_id,
-                action_count=self._action_count,
-                retry_count=self._retry_count,
-                operation_count=self._operation_count_locked(),
-                receipt_count=len(self._operation_receipts),
-                artifact_count=len(self._artifacts),
-                operation_limit=self._operation_limit,
-                artifact_limit=self._artifact_limit,
-                retry_limit=self._retry_limit,
-                last_action_id=self._last_action_id,
-                last_verified_action_id=self._last_verified_action_id,
-            )
-
-    def receipt_inventory(self) -> list[ActionReceipt]:
-        """Return receipts in stable insertion order for resource serialization."""
-
-        with self._task_lock:
-            return list(self._operation_receipts.values())
-
-    def artifact_inventory(self) -> list[ArtifactRef]:
-        """Return artifacts in stable insertion order for resource serialization."""
-
-        with self._task_lock:
-            return list(self._artifacts.values())
 
     def capability_set(self) -> CapabilitySet:
         """Return the latest explicit capability snapshot without probing."""
@@ -523,103 +386,9 @@ def _operation_identity(
     return key, fingerprint
 
 
-def _redact_history_value(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        redacted = {}
-        for key, item in value.items():
-            key_text = str(key).lower()
-            if key_text in SENSITIVE_HISTORY_KEYS or any(
-                marker in key_text
-                for marker in (
-                    "password",
-                    "secret",
-                    "token",
-                    "cookie",
-                    "api_key",
-                    "authorization",
-                    "body",
-                    "header",
-                    "field",
-                    "value",
-                )
-            ):
-                redacted[key] = "<redacted>"
-            elif key_text == "url" or key_text.endswith("_url"):
-                redacted[key] = _redact_history_url(item)
-            else:
-                redacted[key] = _redact_history_value(item)
-        return redacted
-    if isinstance(value, list):
-        return [_redact_history_value(item) for item in value]
-    if isinstance(value, tuple):
-        return [_redact_history_value(item) for item in value]
-    return value
-
-
-def _summarize_result(result: Mapping[str, Any]) -> dict[str, Any]:
-    payload: dict[str, Any] = {"ok": bool(result.get("ok"))}
-    if result.get("message"):
-        payload["message"] = str(result["message"])[:300]
-    error = result.get("error")
-    if isinstance(error, Mapping):
-        payload["error_code"] = error.get("code")
-    data = result.get("data")
-    if isinstance(data, Mapping):
-        for key in ("url", "final_url", "tab_id", "active_tab_id"):
-            if key in data:
-                payload[key] = (
-                    _redact_history_url(data[key])
-                    if key in {"url", "final_url"}
-                    else data[key]
-                )
-        changes = data.get("changes")
-        if isinstance(changes, Mapping):
-            payload["changes"] = {
-                "url_changed": bool(changes.get("url_changed")),
-                "title_changed": bool(changes.get("title_changed")),
-                "appeared_texts": list(changes.get("appeared_texts") or [])[:3],
-                "removed_texts": list(changes.get("removed_texts") or [])[:3],
-                "console_errors_added": safe_int(
-                    changes.get("console_errors_added"), 0
-                ),
-                "console_warnings_added": safe_int(
-                    changes.get("console_warnings_added"), 0
-                ),
-                "new_console_messages": [
-                    _summarize_console_message(item)
-                    for item in list(changes.get("new_console_messages") or [])[:3]
-                    if isinstance(item, Mapping)
-                ],
-            }
-    return payload
-
-
-def _summarize_console_message(message: Mapping[str, Any]) -> dict[str, Any]:
-    return {
-        "level": str(message.get("level") or ""),
-        "text": str(message.get("text") or "")[:200],
-    }
-
-
-def _redact_history_url(value: Any) -> str:
-    return sanitize_public_url(value)
-
-
-def _task_policy_snapshot() -> dict[str, Any]:
-    from .policy import SafetyPolicy
-
-    policy = SafetyPolicy.from_env()
-    controls = policy.control_flags()
-    return {
-        "profile": policy.profile(),
-        "controls": {str(key): bool(value) for key, value in controls.items()},
-    }
-
-
 __all__ = [
     "DEFAULT_ARTIFACT_LIMIT",
     "DEFAULT_OPERATION_LIMIT",
-    "DEFAULT_RETRY_LIMIT",
     "OperationClaim",
     "OperationInFlightError",
     "OperationKeyConflictError",

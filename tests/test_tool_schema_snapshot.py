@@ -37,12 +37,17 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
         )
 
     names = [tool["name"] for tool in tools]
-    assert len(tools) == 58
+    assert len(tools) == 53
     assert {
         "form_inspect",
         "form_fill",
         "form_submit",
         "form_fill_preview",
+        "page_detect_challenges",
+        "page_click_xy_batch",
+        "page_wait_challenge_result",
+        "browser_open_and_snapshot",
+        "browser_extract_links",
     }.isdisjoint(names)
     assert names.count("page_dialog_respond") == 1
     assert names.count("element_click_and_download") == 1

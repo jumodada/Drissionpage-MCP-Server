@@ -41,11 +41,9 @@ class EmptyInput(ToolInput):
 
 @dataclass(slots=True)
 class ToolOutcome:
-    """Complete tool execution result, including MCP presentation metadata."""
+    """Structured tool result plus MCP text or image content."""
 
     _content: list[Union[TextContent, ImageContent]] = field(default_factory=list)
-    _code_snippets: list[str] = field(default_factory=list)
-    _include_snapshot: bool = False
     _is_error: bool = False
     _message: str = ""
     _data: dict[str, Any] = field(default_factory=dict)
@@ -88,9 +86,6 @@ class ToolOutcome:
         self._message = message
         self._data = data
 
-    def add_code(self, code: str) -> None:
-        self._code_snippets.append(code)
-
     def add_image(self, image_data: str | bytes, mime_type: str = "image/png") -> None:
         if isinstance(image_data, bytes):
             image_data = base64.b64encode(image_data).decode()
@@ -110,9 +105,6 @@ class ToolOutcome:
             screenshot_metadata.update(metadata)
         self._message = "Screenshot taken."
         self._data = {"screenshot": screenshot_metadata}
-
-    def set_include_snapshot(self, include: bool = True) -> None:
-        self._include_snapshot = include
 
     def structured_content(self) -> dict[str, Any]:
         if self._is_error:
@@ -137,11 +129,6 @@ class ToolOutcome:
 
     def content(self) -> list[Union[TextContent, ImageContent]]:
         content = list(self._content)
-        if self._code_snippets:
-            code_text = (
-                "### Code\n```python\n" + "\n".join(self._code_snippets) + "\n```"
-            )
-            content.insert(0, TextContent(type="text", text=code_text))
         if not content:
             heading = "Error" if self._is_error else "Result"
             message = self._message or (
@@ -162,11 +149,6 @@ class ToolOutcome:
     @property
     def is_error(self) -> bool:
         return self._is_error
-
-    @property
-    def include_snapshot(self) -> bool:
-        return self._include_snapshot
-
 
 ToolHandler = Callable[["DrissionPageContext", InputT], Awaitable[ToolOutcome]]
 

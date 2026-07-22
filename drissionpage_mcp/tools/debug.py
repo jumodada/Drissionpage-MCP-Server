@@ -49,7 +49,6 @@ async def page_console_logs(
     result = await tab.observation.console_logs(
         level=args.level, since=args.since, limit=args.limit
     )
-    outcome.add_code("page.console.messages")
     outcome.add_result(
         f"Read {result['count']} console log{('' if result['count'] == 1 else 's')}",
         **result,

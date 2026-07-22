@@ -23,8 +23,15 @@ from drissionpage_mcp.tool_outputs import (
     CapabilityProbe,
     CapabilitySet,
     ElementClickAndDownloadData,
-    TaskContext,
 )
+
+
+def _receipts(context: DrissionPageContext) -> list[ActionReceipt]:
+    return list(context._operation_receipts.values())
+
+
+def _artifacts(context: DrissionPageContext) -> list[ArtifactRef]:
+    return list(context._artifacts.values())
 
 
 def test_context_uses_drissionpage_free_task_runtime_boundary() -> None:
@@ -114,7 +121,6 @@ def _download_receipt(
     [
         {"operation_limit": 0},
         {"artifact_limit": 0},
-        {"retry_limit": -1},
     ],
 )
 def test_task_context_rejects_invalid_ledger_limits(kwargs: dict[str, int]) -> None:
@@ -122,15 +128,7 @@ def test_task_context_rejects_invalid_ledger_limits(kwargs: dict[str, int]) -> N
         DrissionPageContext(**kwargs)
 
 
-def test_shared_contracts_are_strict_frozen_and_bounded() -> None:
-    task = DrissionPageContext().task_summary()
-
-    assert task.lifetime == "server_process"
-    with pytest.raises(ValidationError):
-        TaskContext.model_validate({**task.model_dump(), "unexpected": True})
-    with pytest.raises(ValidationError):
-        task.action_count = 1  # type: ignore[misc]
-
+def test_receipt_contract_is_strict_frozen_and_bounded() -> None:
     receipt_payload = _dialog_receipt(
         DrissionPageContext(), "dialog-1", "a" * 64
     ).model_dump()
@@ -475,12 +473,8 @@ def test_complete_operation_rejects_mismatched_or_inactive_claims() -> None:
             claim, receipt.model_copy(update={"task_id": "task-other"})
         )
 
-    retried_receipt = receipt.model_copy(update={"retry_of": "action-000000"})
-    completed = context.complete_operation(
-        claim, retried_receipt, result={"nested": {"x": 1}}
-    )
-    assert context.complete_operation(claim, retried_receipt) is completed
-    assert context.task_summary().retry_count == 1
+    completed = context.complete_operation(claim, receipt, result={"nested": {"x": 1}})
+    assert context.complete_operation(claim, receipt) is completed
     cached = context.operation_result("dialog-1")
     assert cached == {"nested": {"x": 1}}
     assert cached is not None
@@ -515,7 +509,7 @@ def test_artifact_guards_and_atomic_completion_contract() -> None:
     download_artifact = _artifact(operation_context, "artifact-000001")
     receipt = _download_receipt(
         operation_context, "download-1", fingerprint, download_artifact.artifact_id
-    ).model_copy(update={"retry_of": "action-000000"})
+    )
     operation_context.reserve_artifact_slot(download_artifact.artifact_id)
 
     mismatch_cases = [
@@ -554,7 +548,6 @@ def test_artifact_guards_and_atomic_completion_contract() -> None:
         )
         is completed
     )
-    assert operation_context.task_summary().retry_count == 1
 
     inactive_context = DrissionPageContext()
     inactive_artifact = _artifact(inactive_context, "artifact-000002")
@@ -607,7 +600,7 @@ def test_preview_operation_replays_without_reserving_new_key() -> None:
     context = DrissionPageContext()
     fingerprint = "a" * 64
     assert context.preview_operation("dialog-1", fingerprint) is None
-    assert context.task_summary().operation_count == 0
+    assert context._operation_fingerprints == {}
     claim = context.claim_operation("dialog-1", fingerprint)
     receipt = context.complete_operation(
         claim,
@@ -650,10 +643,10 @@ def test_operation_and_artifact_caps_never_evict_dedupe_evidence() -> None:
         context.record_artifact(_artifact(context, "artifact-000002"))
 
     assert context.claim_operation("dialog-1", fingerprint).cached_receipt == receipt
-    assert len(context.artifact_inventory()) == 1
+    assert len(_artifacts(context)) == 1
 
 
-def test_consequential_receipts_share_one_bounded_inventory() -> None:
+def test_consequential_receipts_share_one_bounded_ledger() -> None:
     context = DrissionPageContext(operation_limit=2)
     first_fingerprint = context.request_fingerprint(
         {"tool": "page_dialog_respond", "accept": True}
@@ -662,12 +655,8 @@ def test_consequential_receipts_share_one_bounded_inventory() -> None:
     first = context.complete_operation(
         first_claim, _dialog_receipt(context, "dialog-1", first_fingerprint)
     )
-    after_first = context.task_summary()
-
-    assert after_first.operation_count == 1
-    assert after_first.receipt_count == 1
-    assert after_first.action_count == 1
-    assert context.receipt_inventory() == [first]
+    assert len(context._operation_fingerprints) == 1
+    assert _receipts(context) == [first]
 
     second_fingerprint = context.request_fingerprint(
         {"tool": "page_dialog_respond", "accept": False}
@@ -676,28 +665,20 @@ def test_consequential_receipts_share_one_bounded_inventory() -> None:
     second = context.complete_operation(
         second_claim, _dialog_receipt(context, "dialog-2", second_fingerprint)
     )
-    full = context.task_summary()
-
-    assert full.operation_count == 2
-    assert full.receipt_count == 2
-    assert full.action_count == 2
-    assert context.receipt_inventory() == [first, second]
+    assert len(context._operation_fingerprints) == 2
+    assert _receipts(context) == [first, second]
     assert (
         context.claim_operation("dialog-2", second_fingerprint).cached_receipt
         == second
     )
     with pytest.raises(TaskLedgerFullError):
         context.claim_operation("dialog-3", "b" * 64)
-    assert context.receipt_inventory() == [first, second]
+    assert _receipts(context) == [first, second]
 
 
 def test_preflight_denial_by_convention_creates_no_claim_or_receipt() -> None:
     context = DrissionPageContext()
 
-    # Policy/capability adapters must run before claim_operation. G001 proves
-    # that untouched runtime state has no implicit receipt or dedupe entry.
-    summary = context.task_summary()
-
-    assert summary.operation_count == 0
-    assert summary.receipt_count == 0
-    assert context.receipt_inventory() == []
+    # Policy/capability adapters must run before claim_operation.
+    assert context._operation_fingerprints == {}
+    assert _receipts(context) == []

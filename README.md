@@ -6,58 +6,56 @@
 
 [![DrissionPage MCP interactive Browser Lab](https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/drissionpage-mcp-browser-lab.gif)](https://drissionpage-mcp.vercel.app)
 
-**[Open the interactive Browser Lab](https://drissionpage-mcp.vercel.app)** to track rotating targets, replay natural clicks, drag sliders, and verify observable state.
+**[Open the interactive Browser Lab](https://drissionpage-mcp.vercel.app)** to replay bounded natural pointer motion, drag controls, and verify observable state.
 
 **Official Repositories**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
-## 🖱️ Vision-Guided Human–Computer Interaction
+## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.7.2 focuses the core on 58 accurate browser primitives:** the W01-W08 benchmark completes controlled inputs, rich widgets, uploads, submissions, dialogs, popups, and downloads by composing atomic tools.
+**DrissionPage MCP 0.7.2 exposes 53 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
 
-> **One MCP call connects visual understanding to real browser interaction.** The model identifies where to act; DrissionPage MCP handles how the pointer gets there and performs the click.
+> **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
 ```text
 Screenshot / page observation
         ↓
 Multimodal model identifies viewport coordinates
         ↓
-page_click_xy(profile="natural")
+page_click_xy(x=442, y=369, profile="natural")
         ↓
-Cubic Bézier motion → reaction pause → press → hold → release
+24-step eased cubic path → exact target → press → release
         ↓
 Observe and verify the resulting page state
 ```
 
-### What makes this interaction layer different?
+### Core interaction guarantees
 
-- **Natural pointer dynamics**: 20–35 cubic Bézier movement steps instead of coordinate teleportation.
-- **Human-like timing**: 8–25ms point intervals, smoothstep ease-in-out, and a 100–300ms reaction pause after arrival.
-- **Physical click semantics**: 50–120ms press duration with correct Chromium CDP button state for left, right, and middle clicks.
-- **Controlled micro-motion**: bounded ±0.5 CSS-pixel intermediate jitter while the final point remains exact.
-- **Failure-safe execution**: a pressed button is always released if the action chain is interrupted.
-- **Model-readable evidence**: results include the chosen profile, start and target coordinates, step count, reaction delay, hold duration, and planned duration.
+- **Two bounded profiles**: `direct` emits one exact move; `natural` emits a deterministic 24-step eased cubic path with reproducible 8-14ms intervals and exact final arrival.
+- **No hidden randomness**: the same start, target, and profile produce the same path; there is no jitter, overshoot, or anti-detection logic.
+- **Explicit sequences**: click is the selected move profile, optional caller-specified delay, press, release; drag keeps one press across the selected path and ordered waypoints.
+- **Failure-safe input**: a pressed pointer button is released if execution fails after the press.
+- **Fresh browser evidence**: selector geometry is resolved immediately before selector-backed drag operations.
+- **Typed results**: outputs report the executed coordinates, button, step count, and explicit delay metadata.
 
-This makes vision-guided operation practical for canvas controls, visual editors, maps, charts, non-semantic widgets, responsive interfaces, and other surfaces where selectors or accessibility metadata are incomplete. Structured DOM automation remains the preferred path when reliable selectors are available; the vision interaction layer expands what an MCP agent can operate when they are not.
+Use structured DOM targets when reliable selectors exist. Use coordinates, `natural` motion, and explicit drag waypoints for canvas controls, editors, maps, charts, and other visual-only surfaces. Component-specific target discovery, challenge observation, multi-click sequencing, login procedures, and other business policy belong in the client or an optional Skill.
 
 ```json
 {
   "x": 442,
   "y": 369,
-  "start_x": 100,
-  "start_y": 100,
   "profile": "natural",
   "button": "left",
   "element": "visually identified control"
 }
 ```
 
-Designed for legitimate UI automation, testing, accessibility workflows, and technical research. Security or anti-automation challenge completion is not offered as a guaranteed supported capability.
+Designed for authorized browser automation, testing, accessibility workflows, and technical research. The core does not provide challenge-specific or site-specific workflows.
 
 ## 🧭 Client Setup Navigation
 
-- [Vision-guided human–computer interaction](#vision-guided-humancomputer-interaction)
+- [Atomic browser control](#-atomic-browser-control-with-natural-pointer-motion)
 - [Install + screenshot walkthrough](#-first-success-path)
 - [Codex CLI/IDE quick setup](#-setup-in-codex-cliide-30-seconds)
 - [Codex CLI/IDE integration example](#codex-cli--ide)
@@ -72,13 +70,13 @@ Designed for legitimate UI automation, testing, accessibility workflows, and tec
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-Structured, deterministic automation remains the default through 58 tools plus MCP Resources/Prompts. Version 0.7.2 removes form- and framework-specific orchestration from the server: models compose type, select, check, click, keyboard, wait, and state-read primitives, while reusable form recipes live in an optional Skill outside the distribution. When selectors or accessibility metadata are insufficient, the optional **vision-guided human–computer interaction layer** converts viewport coordinates and bounded drag paths into natural Chromium pointer action chains, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 53 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.2 removes form-, component-, challenge-, and convenience-workflow orchestration from the server. Models compose type, select, check, click, keyboard, pointer, wait, and state-read primitives, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
 - **Structured-First, Vision-Ready**: Uses DOM structure when available and multimodal coordinates when visual interaction is the better tool
 - **Deterministic**: Reliable element selection with CSS/XPath normalization for LLM-friendly selectors
-- **Vision-Ready Interaction**: Converts multimodal model coordinates into natural pointer movement and physically timed clicks
+- **Natural Pointer Motion**: Offers exact direct movement and a bounded deterministic 24-step eased trajectory from the same atomic tools
 - **Fast & Lightweight**: Built on DrissionPage's efficient engine with minimal overhead
 - **Type-Safe**: Full type hints and Pydantic validation for all tools
 - **Open-source Friendly**: Includes compatibility notes, troubleshooting, and CI checks for maintainable contributions
@@ -88,7 +86,7 @@ Structured, deterministic automation remains the default through 58 tools plus M
 
 DrissionPage MCP is backed by a strict regression suite and browser-backed scenario checks:
 
-- **Strict automated tests**: unit, protocol, schema snapshot, response-contract, resource/prompt, release-metadata, security-policy, browser-integration, and coverage checks run in CI.
+- **Strict automated tests**: unit, protocol, schema snapshot, response-contract, resource, release-metadata, security-policy, browser-integration, and coverage checks run in CI.
 - **95% coverage floor**: CI enforces the current 95% coverage threshold and uploads coverage reports.
 - **Real browser verification**: Chrome/Chromium-backed integration tests exercise the same MCP tools exposed to clients.
 - **Scenario validation**: the playground MCP Lab covers realistic forms, commerce pages, social feeds, timelines, dynamic waits, iframe cases, and recovery paths without depending on public demo websites.
@@ -166,7 +164,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 58 Powerful Tools + MCP Resources/Prompts
+## 🛠️ 53 Typed Browser Tools
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -195,7 +193,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `element_get_property` - Get a live DOM property such as an input value
 - `element_get_html` - Get element or page HTML
 
-### 📸 Page Operations (18 tools)
+### 📸 Page Operations (15 tools)
 - `page_screenshot` - Capture an inline full-page or viewport screenshot
 - `page_screenshot_save` - Save a screenshot under `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
@@ -204,13 +202,10 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_scroll` - Scroll the page by direction or to a position
 - `keyboard_press` - Send keys to the active element/page
 - `page_resize` - Adjust browser window
-- `page_pointer_move` - Move to vision-model viewport coordinates with a natural Bézier path without clicking
-- `page_pointer_drag` - Perform one failure-safe coordinate drag through up to six optional ordered waypoints with distance-aware timing and exact final correction
+- `page_pointer_move` - Move to exact viewport CSS coordinates with `direct` or bounded deterministic `natural` motion
+- `page_pointer_drag` - Perform one failure-safe coordinate drag through up to six optional ordered waypoints with the selected profile
 - `page_pointer_drag_element` - Resolve source and destination geometry immediately before dragging; supports CSS/XPath in the top document or one same-origin iframe, plus CSS paths through nested open Shadow DOM hosts
-- `page_detect_challenges` - Read-only detection of verification-widget signals for autonomous model routing
-- `page_click_xy_batch` - Execute multiple visual coordinate clicks in one bounded autonomous call
-- `page_wait_challenge_result` - Poll token length and configurable success/retry/challenge signals without exposing token values
-- `page_click_xy` - Convert vision-model viewport coordinates into natural Bézier pointer movement and physically timed clicks
+- `page_click_xy` - Move with `direct` or `natural` motion, optionally wait for an explicit delay, then press and release at the exact target
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
 - `page_dialog_respond` - Accept or dismiss one pending alert, confirm, or prompt through a capability-probed native path
@@ -237,9 +232,16 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `wait_until` - Wait for observable conditions such as clickable, hidden, stable, text, or URL matches
 - `wait_time` - Delay execution
 
-### 🧩 MCP Resources and Prompts
-- Resources: `drissionpage://session/summary`, `drissionpage://session/history`, `drissionpage://session/state`, `drissionpage://session/config`, `drissionpage://guide/model-usage`, `drissionpage://page/current`, `drissionpage://tools/catalog`, `drissionpage://policy/summary`
-- Prompts: `drissionpage_mcp_usage_playbook`, `browser_navigate_and_summarize`, `browser_extract_structured_data`, `browser_vision_guided_interaction`, `browser_debug_page_issue`
+### 🌐 Network Observation (3 tools)
+- `network_listen_start` - Start bounded HTTP/XHR/Fetch observation through DrissionPage
+- `network_listen_wait` - Wait for bounded packet metadata with optional redacted headers or body excerpts
+- `network_listen_stop` - Stop observation and optionally clear queued packets
+
+### 🧩 Optional Skills Discovery
+- Resource: `drissionpage://skills/catalog`
+- Prompts: none
+- Repository convention: `skills/<skill-name>/SKILL.md`, for example `skills/drissionpage-visual-workflows/SKILL.md`
+- Skills are optional and separately published; the MCP server remains fully usable without them.
 
 ---
 
@@ -266,9 +268,9 @@ DrissionMCP/
 │   ├── server.py           # MCP transport and request routing
 │   ├── context.py          # Browser and tab lifecycle facade
 │   ├── runtime.py          # Operation keys, receipts, artifacts, and capability state
-│   ├── tool_outputs.py     # Typed public result and task-runtime contracts
-│   ├── browser/            # Focused DrissionPage capabilities, scripts, and bounded workflows
-│   └── tools/              # 62 typed MCP tool definitions and thin adapters
+│   ├── tool_outputs.py     # Typed public result contracts
+│   ├── browser/            # Focused DrissionPage capabilities and page scripts
+│   └── tools/              # 53 typed MCP tool definitions and thin adapters
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -456,7 +458,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 ## 🗺️ Roadmap
 
 ### Current (v0.7.2)
-- [x] 58 atomic automation, tab/frame/shadow, page-understanding, bounded workflow, network-listener, session-state, and console-observability tools
+- [x] 53 atomic navigation, tab/frame/shadow, observation, interaction, network, storage, wait, and console tools
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -466,18 +468,18 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
 - [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
 - [x] Console observability with `page_console_logs`, console summary in `page_observe`, and console change fields in `observe=true`
-- [x] Bounded workflow helpers remain only where they add generic value: `browser_open_and_snapshot` and `browser_extract_links`
-- [x] Form discovery/fill/submit orchestration moved to an optional Skill and is excluded from wheel and sdist packages
+- [x] Form, component-library, challenge, and convenience workflows remain outside the MCP core
+- [x] Optional Skills are discoverable through one static resource and excluded from wheel and sdist packages
 - [x] Capability-probed `page_dialog_respond`, additive double/context click behavior, and `element_click_and_download` with safe `ArtifactRef` metadata
 - [x] Reproducible W01-W08 public-tool benchmark with ten isolated runs per workload, machine-readable evidence, and zero duplicate side effects
 - [x] Network listener beta with `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation
-- [x] Natural `page_pointer_move`, `page_pointer_drag`, and `page_click_xy` action chains with cubic Bézier motion, smoothstep easing, bounded jitter, reaction delay, and realistic button hold time
+- [x] `direct` and deterministic bounded `natural` profiles for `page_pointer_move`, `page_pointer_drag`, and `page_click_xy`, with exact endpoints and failure-safe release
 - [x] Optional bounded `page_pointer_drag.waypoints` for one held multi-segment canvas, map, box-selection, or visual-editor gesture
 - [x] File upload, scrolling, hover, select/check, keyboard, iframe, shadow DOM, cookie, and storage tools for DrissionPage 4.x
 - [x] Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` is reserved for restricted container/root environments
-- [x] Redacted session history resource and response size metadata for bounded outputs
+- [x] No retained action history, generated code snippets, or absolute screenshot paths in public results
 - [x] Opt-in local safety policy for navigation and screenshot paths
-- [x] Resources, prompts, eval harness, compatibility, and troubleshooting documentation
+- [x] One optional-Skills catalog resource, zero prompts, plus eval, compatibility, and troubleshooting documentation
 - [x] PyPI distribution
 
 ---
@@ -617,7 +619,10 @@ If you find this project useful, please consider:
 
 Released on 2026-07-21. This release narrows the core to accurate, composable browser capabilities:
 
-- Removed `form_inspect`, `form_fill`, `form_submit`, and `form_fill_preview` instead of maintaining incomplete component-library heuristics.
+- Reduced the public surface to 53 typed browser tools, zero prompts, and one static optional-Skills catalog resource.
+- Removed form, component-library, challenge, and convenience-workflow orchestration instead of maintaining incomplete heuristics in the core.
 - W01-W08 now use retained atomic tools for controlled inputs, contenteditable, ARIA widgets, native select/check, uploads, submissions, dialogs, popups, and downloads.
 - Kept timing-critical generic boundaries such as `element_click_and_download` and `page_dialog_respond` with correlated receipts.
-- Form orchestration is available as an optional Skill recipe and is not included in the Python distribution.
+- Pointer primitives expose exact `direct` movement and a deterministic 24-step `natural` trajectory without adding a separate workflow tool.
+- Challenge observation, verified multi-click sequences, and business decisions live under the external `skills/<skill-name>/SKILL.md` convention.
+- Skills are optional, separately published, and not included in the Python distribution.

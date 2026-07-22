@@ -1,8 +1,8 @@
 {
   "schema_version": "1",
   "release": "0.7.2",
-  "started_at": "2026-07-21T07:35:33.790077+00:00",
-  "finished_at": "2026-07-21T07:36:50.004966+00:00",
+  "started_at": "2026-07-22T02:21:47.779831+00:00",
+  "finished_at": "2026-07-22T02:23:03.894287+00:00",
   "iterations": 10,
   "required_successes_per_workload": 9,
   "environment": {
@@ -152,7 +152,7 @@
       "workload_id": "W01",
       "iteration": 1,
       "success": true,
-      "duration_ms": 2396,
+      "duration_ms": 2440,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -190,7 +190,7 @@
       "workload_id": "W02",
       "iteration": 1,
       "success": true,
-      "duration_ms": 379,
+      "duration_ms": 371,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -214,7 +214,7 @@
       "workload_id": "W03",
       "iteration": 1,
       "success": true,
-      "duration_ms": 996,
+      "duration_ms": 1126,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -245,7 +245,7 @@
       "workload_id": "W04",
       "iteration": 1,
       "success": true,
-      "duration_ms": 446,
+      "duration_ms": 358,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -268,7 +268,7 @@
       "workload_id": "W05",
       "iteration": 1,
       "success": true,
-      "duration_ms": 495,
+      "duration_ms": 489,
       "tool_calls": [
         "page_navigate",
         "page_dialog_respond",
@@ -286,7 +286,7 @@
       "workload_id": "W06",
       "iteration": 1,
       "success": true,
-      "duration_ms": 631,
+      "duration_ms": 627,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -307,7 +307,7 @@
       "workload_id": "W07",
       "iteration": 1,
       "success": true,
-      "duration_ms": 1281,
+      "duration_ms": 1284,
       "tool_calls": [
         "page_navigate",
         "element_click_and_download",
@@ -348,398 +348,6 @@
       "workload_id": "W01",
       "iteration": 2,
       "success": true,
-      "duration_ms": 1762,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_text",
-        "element_select",
-        "element_check",
-        "element_click",
-        "element_click",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 22,
-      "side_effect_counts": {
-        "form_rich_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "PROFILE-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W02",
-      "iteration": 2,
-      "success": true,
-      "duration_ms": 386,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 8,
-      "side_effect_counts": {
-        "form_controlled_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "CONTROLLED-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W03",
-      "iteration": 2,
-      "success": true,
-      "duration_ms": 1023,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_text",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 15,
-      "side_effect_counts": {
-        "validation_attempted_requests": 2
-      },
-      "duplicate_count": 0,
-      "business_result": "VALIDATED-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W04",
-      "iteration": 2,
-      "success": true,
-      "duration_ms": 372,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_upload_file",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 7,
-      "side_effect_counts": {
-        "upload_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "UPLOAD-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W05",
-      "iteration": 2,
-      "success": true,
-      "duration_ms": 498,
-      "tool_calls": [
-        "page_navigate",
-        "page_dialog_respond",
-        "element_click",
-        "element_get_text"
-      ],
-      "tool_call_count": 4,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "confirm accepted",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W06",
-      "iteration": 2,
-      "success": true,
-      "duration_ms": 619,
-      "tool_calls": [
-        "page_navigate",
-        "element_click",
-        "tab_list",
-        "tab_switch",
-        "element_click",
-        "element_get_text",
-        "tab_close"
-      ],
-      "tool_call_count": 7,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "popup work complete",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W07",
-      "iteration": 2,
-      "success": true,
-      "duration_ms": 1321,
-      "tool_calls": [
-        "page_navigate",
-        "element_click_and_download",
-        "element_click_and_download",
-        "page_navigate",
-        "element_click_and_download"
-      ],
-      "tool_call_count": 5,
-      "side_effect_counts": {
-        "download_requests": 1,
-        "download_fail_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "artifact-000001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W08",
-      "iteration": 2,
-      "success": true,
-      "duration_ms": 92,
-      "tool_calls": [
-        "page_navigate",
-        "element_click",
-        "element_click",
-        "keyboard_press",
-        "element_get_text"
-      ],
-      "tool_call_count": 5,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "shortcut; click=1; dblclick=1; contextmenu=1; shortcut=1",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W01",
-      "iteration": 3,
-      "success": true,
-      "duration_ms": 1796,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_text",
-        "element_select",
-        "element_check",
-        "element_click",
-        "element_click",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 22,
-      "side_effect_counts": {
-        "form_rich_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "PROFILE-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W02",
-      "iteration": 3,
-      "success": true,
-      "duration_ms": 384,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 8,
-      "side_effect_counts": {
-        "form_controlled_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "CONTROLLED-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W03",
-      "iteration": 3,
-      "success": true,
-      "duration_ms": 1005,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_text",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 15,
-      "side_effect_counts": {
-        "validation_attempted_requests": 2
-      },
-      "duplicate_count": 0,
-      "business_result": "VALIDATED-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W04",
-      "iteration": 3,
-      "success": true,
-      "duration_ms": 452,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_upload_file",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 7,
-      "side_effect_counts": {
-        "upload_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "UPLOAD-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W05",
-      "iteration": 3,
-      "success": true,
-      "duration_ms": 489,
-      "tool_calls": [
-        "page_navigate",
-        "page_dialog_respond",
-        "element_click",
-        "element_get_text"
-      ],
-      "tool_call_count": 4,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "confirm accepted",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W06",
-      "iteration": 3,
-      "success": true,
-      "duration_ms": 628,
-      "tool_calls": [
-        "page_navigate",
-        "element_click",
-        "tab_list",
-        "tab_switch",
-        "element_click",
-        "element_get_text",
-        "tab_close"
-      ],
-      "tool_call_count": 7,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "popup work complete",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W07",
-      "iteration": 3,
-      "success": true,
-      "duration_ms": 1285,
-      "tool_calls": [
-        "page_navigate",
-        "element_click_and_download",
-        "element_click_and_download",
-        "page_navigate",
-        "element_click_and_download"
-      ],
-      "tool_call_count": 5,
-      "side_effect_counts": {
-        "download_requests": 1,
-        "download_fail_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "artifact-000001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W08",
-      "iteration": 3,
-      "success": true,
-      "duration_ms": 82,
-      "tool_calls": [
-        "page_navigate",
-        "element_click",
-        "element_click",
-        "keyboard_press",
-        "element_get_text"
-      ],
-      "tool_call_count": 5,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "shortcut; click=1; dblclick=1; contextmenu=1; shortcut=1",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W01",
-      "iteration": 4,
-      "success": true,
       "duration_ms": 1737,
       "tool_calls": [
         "page_navigate",
@@ -776,9 +384,401 @@
     },
     {
       "workload_id": "W02",
+      "iteration": 2,
+      "success": true,
+      "duration_ms": 373,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 8,
+      "side_effect_counts": {
+        "form_controlled_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "CONTROLLED-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W03",
+      "iteration": 2,
+      "success": true,
+      "duration_ms": 1124,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_text",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 15,
+      "side_effect_counts": {
+        "validation_attempted_requests": 2
+      },
+      "duplicate_count": 0,
+      "business_result": "VALIDATED-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W04",
+      "iteration": 2,
+      "success": true,
+      "duration_ms": 348,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_upload_file",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 7,
+      "side_effect_counts": {
+        "upload_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "UPLOAD-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W05",
+      "iteration": 2,
+      "success": true,
+      "duration_ms": 494,
+      "tool_calls": [
+        "page_navigate",
+        "page_dialog_respond",
+        "element_click",
+        "element_get_text"
+      ],
+      "tool_call_count": 4,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "confirm accepted",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W06",
+      "iteration": 2,
+      "success": true,
+      "duration_ms": 624,
+      "tool_calls": [
+        "page_navigate",
+        "element_click",
+        "tab_list",
+        "tab_switch",
+        "element_click",
+        "element_get_text",
+        "tab_close"
+      ],
+      "tool_call_count": 7,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "popup work complete",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W07",
+      "iteration": 2,
+      "success": true,
+      "duration_ms": 588,
+      "tool_calls": [
+        "page_navigate",
+        "element_click_and_download",
+        "element_click_and_download",
+        "page_navigate",
+        "element_click_and_download"
+      ],
+      "tool_call_count": 5,
+      "side_effect_counts": {
+        "download_requests": 1,
+        "download_fail_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "artifact-000001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W08",
+      "iteration": 2,
+      "success": true,
+      "duration_ms": 101,
+      "tool_calls": [
+        "page_navigate",
+        "element_click",
+        "element_click",
+        "keyboard_press",
+        "element_get_text"
+      ],
+      "tool_call_count": 5,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "shortcut; click=1; dblclick=1; contextmenu=1; shortcut=1",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W01",
+      "iteration": 3,
+      "success": true,
+      "duration_ms": 1855,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_text",
+        "element_select",
+        "element_check",
+        "element_click",
+        "element_click",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 22,
+      "side_effect_counts": {
+        "form_rich_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "PROFILE-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W02",
+      "iteration": 3,
+      "success": true,
+      "duration_ms": 360,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 8,
+      "side_effect_counts": {
+        "form_controlled_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "CONTROLLED-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W03",
+      "iteration": 3,
+      "success": true,
+      "duration_ms": 950,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_text",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 15,
+      "side_effect_counts": {
+        "validation_attempted_requests": 2
+      },
+      "duplicate_count": 0,
+      "business_result": "VALIDATED-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W04",
+      "iteration": 3,
+      "success": true,
+      "duration_ms": 487,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_upload_file",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 7,
+      "side_effect_counts": {
+        "upload_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "UPLOAD-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W05",
+      "iteration": 3,
+      "success": true,
+      "duration_ms": 495,
+      "tool_calls": [
+        "page_navigate",
+        "page_dialog_respond",
+        "element_click",
+        "element_get_text"
+      ],
+      "tool_call_count": 4,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "confirm accepted",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W06",
+      "iteration": 3,
+      "success": true,
+      "duration_ms": 625,
+      "tool_calls": [
+        "page_navigate",
+        "element_click",
+        "tab_list",
+        "tab_switch",
+        "element_click",
+        "element_get_text",
+        "tab_close"
+      ],
+      "tool_call_count": 7,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "popup work complete",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W07",
+      "iteration": 3,
+      "success": true,
+      "duration_ms": 1287,
+      "tool_calls": [
+        "page_navigate",
+        "element_click_and_download",
+        "element_click_and_download",
+        "page_navigate",
+        "element_click_and_download"
+      ],
+      "tool_call_count": 5,
+      "side_effect_counts": {
+        "download_requests": 1,
+        "download_fail_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "artifact-000001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W08",
+      "iteration": 3,
+      "success": true,
+      "duration_ms": 81,
+      "tool_calls": [
+        "page_navigate",
+        "element_click",
+        "element_click",
+        "keyboard_press",
+        "element_get_text"
+      ],
+      "tool_call_count": 5,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "shortcut; click=1; dblclick=1; contextmenu=1; shortcut=1",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W01",
       "iteration": 4,
       "success": true,
-      "duration_ms": 375,
+      "duration_ms": 1806,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_text",
+        "element_select",
+        "element_check",
+        "element_click",
+        "element_click",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 22,
+      "side_effect_counts": {
+        "form_rich_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "PROFILE-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W02",
+      "iteration": 4,
+      "success": true,
+      "duration_ms": 363,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -802,7 +802,7 @@
       "workload_id": "W03",
       "iteration": 4,
       "success": true,
-      "duration_ms": 1041,
+      "duration_ms": 1053,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -833,7 +833,7 @@
       "workload_id": "W04",
       "iteration": 4,
       "success": true,
-      "duration_ms": 474,
+      "duration_ms": 430,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -856,7 +856,7 @@
       "workload_id": "W05",
       "iteration": 4,
       "success": true,
-      "duration_ms": 502,
+      "duration_ms": 488,
       "tool_calls": [
         "page_navigate",
         "page_dialog_respond",
@@ -874,7 +874,7 @@
       "workload_id": "W06",
       "iteration": 4,
       "success": true,
-      "duration_ms": 627,
+      "duration_ms": 618,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -895,7 +895,7 @@
       "workload_id": "W07",
       "iteration": 4,
       "success": true,
-      "duration_ms": 1306,
+      "duration_ms": 1370,
       "tool_calls": [
         "page_navigate",
         "element_click_and_download",
@@ -917,7 +917,7 @@
       "workload_id": "W08",
       "iteration": 4,
       "success": true,
-      "duration_ms": 85,
+      "duration_ms": 257,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -936,7 +936,7 @@
       "workload_id": "W01",
       "iteration": 5,
       "success": true,
-      "duration_ms": 1774,
+      "duration_ms": 1769,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -974,7 +974,7 @@
       "workload_id": "W02",
       "iteration": 5,
       "success": true,
-      "duration_ms": 363,
+      "duration_ms": 355,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1029,7 +1029,7 @@
       "workload_id": "W04",
       "iteration": 5,
       "success": true,
-      "duration_ms": 474,
+      "duration_ms": 499,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1070,7 +1070,7 @@
       "workload_id": "W06",
       "iteration": 5,
       "success": true,
-      "duration_ms": 635,
+      "duration_ms": 623,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -1091,7 +1091,7 @@
       "workload_id": "W07",
       "iteration": 5,
       "success": true,
-      "duration_ms": 602,
+      "duration_ms": 625,
       "tool_calls": [
         "page_navigate",
         "element_click_and_download",
@@ -1113,7 +1113,7 @@
       "workload_id": "W08",
       "iteration": 5,
       "success": true,
-      "duration_ms": 85,
+      "duration_ms": 104,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -1132,7 +1132,7 @@
       "workload_id": "W01",
       "iteration": 6,
       "success": true,
-      "duration_ms": 1762,
+      "duration_ms": 1761,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1170,7 +1170,7 @@
       "workload_id": "W02",
       "iteration": 6,
       "success": true,
-      "duration_ms": 361,
+      "duration_ms": 367,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1194,7 +1194,7 @@
       "workload_id": "W03",
       "iteration": 6,
       "success": true,
-      "duration_ms": 1045,
+      "duration_ms": 1028,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1225,7 +1225,7 @@
       "workload_id": "W04",
       "iteration": 6,
       "success": true,
-      "duration_ms": 439,
+      "duration_ms": 459,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1248,7 +1248,7 @@
       "workload_id": "W05",
       "iteration": 6,
       "success": true,
-      "duration_ms": 495,
+      "duration_ms": 490,
       "tool_calls": [
         "page_navigate",
         "page_dialog_respond",
@@ -1266,7 +1266,7 @@
       "workload_id": "W06",
       "iteration": 6,
       "success": true,
-      "duration_ms": 623,
+      "duration_ms": 586,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -1287,7 +1287,7 @@
       "workload_id": "W07",
       "iteration": 6,
       "success": true,
-      "duration_ms": 1294,
+      "duration_ms": 1295,
       "tool_calls": [
         "page_navigate",
         "element_click_and_download",
@@ -1309,7 +1309,7 @@
       "workload_id": "W08",
       "iteration": 6,
       "success": true,
-      "duration_ms": 95,
+      "duration_ms": 98,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -1328,7 +1328,7 @@
       "workload_id": "W01",
       "iteration": 7,
       "success": true,
-      "duration_ms": 1774,
+      "duration_ms": 1849,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1366,7 +1366,7 @@
       "workload_id": "W02",
       "iteration": 7,
       "success": true,
-      "duration_ms": 383,
+      "duration_ms": 356,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1390,7 +1390,7 @@
       "workload_id": "W03",
       "iteration": 7,
       "success": true,
-      "duration_ms": 1071,
+      "duration_ms": 1027,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1421,7 +1421,7 @@
       "workload_id": "W04",
       "iteration": 7,
       "success": true,
-      "duration_ms": 371,
+      "duration_ms": 451,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1462,7 +1462,7 @@
       "workload_id": "W06",
       "iteration": 7,
       "success": true,
-      "duration_ms": 624,
+      "duration_ms": 618,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -1483,7 +1483,7 @@
       "workload_id": "W07",
       "iteration": 7,
       "success": true,
-      "duration_ms": 1350,
+      "duration_ms": 1297,
       "tool_calls": [
         "page_navigate",
         "element_click_and_download",
@@ -1505,7 +1505,7 @@
       "workload_id": "W08",
       "iteration": 7,
       "success": true,
-      "duration_ms": 167,
+      "duration_ms": 94,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -1523,398 +1523,6 @@
     {
       "workload_id": "W01",
       "iteration": 8,
-      "success": true,
-      "duration_ms": 1766,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_text",
-        "element_select",
-        "element_check",
-        "element_click",
-        "element_click",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 22,
-      "side_effect_counts": {
-        "form_rich_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "PROFILE-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W02",
-      "iteration": 8,
-      "success": true,
-      "duration_ms": 371,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 8,
-      "side_effect_counts": {
-        "form_controlled_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "CONTROLLED-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W03",
-      "iteration": 8,
-      "success": true,
-      "duration_ms": 1135,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_text",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 15,
-      "side_effect_counts": {
-        "validation_attempted_requests": 2
-      },
-      "duplicate_count": 0,
-      "business_result": "VALIDATED-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W04",
-      "iteration": 8,
-      "success": true,
-      "duration_ms": 379,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_upload_file",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 7,
-      "side_effect_counts": {
-        "upload_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "UPLOAD-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W05",
-      "iteration": 8,
-      "success": true,
-      "duration_ms": 500,
-      "tool_calls": [
-        "page_navigate",
-        "page_dialog_respond",
-        "element_click",
-        "element_get_text"
-      ],
-      "tool_call_count": 4,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "confirm accepted",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W06",
-      "iteration": 8,
-      "success": true,
-      "duration_ms": 629,
-      "tool_calls": [
-        "page_navigate",
-        "element_click",
-        "tab_list",
-        "tab_switch",
-        "element_click",
-        "element_get_text",
-        "tab_close"
-      ],
-      "tool_call_count": 7,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "popup work complete",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W07",
-      "iteration": 8,
-      "success": true,
-      "duration_ms": 1302,
-      "tool_calls": [
-        "page_navigate",
-        "element_click_and_download",
-        "element_click_and_download",
-        "page_navigate",
-        "element_click_and_download"
-      ],
-      "tool_call_count": 5,
-      "side_effect_counts": {
-        "download_requests": 1,
-        "download_fail_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "artifact-000001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W08",
-      "iteration": 8,
-      "success": true,
-      "duration_ms": 96,
-      "tool_calls": [
-        "page_navigate",
-        "element_click",
-        "element_click",
-        "keyboard_press",
-        "element_get_text"
-      ],
-      "tool_call_count": 5,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "shortcut; click=1; dblclick=1; contextmenu=1; shortcut=1",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W01",
-      "iteration": 9,
-      "success": true,
-      "duration_ms": 1768,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_text",
-        "element_select",
-        "element_check",
-        "element_click",
-        "element_click",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 22,
-      "side_effect_counts": {
-        "form_rich_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "PROFILE-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W02",
-      "iteration": 9,
-      "success": true,
-      "duration_ms": 379,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 8,
-      "side_effect_counts": {
-        "form_controlled_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "CONTROLLED-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W03",
-      "iteration": 9,
-      "success": true,
-      "duration_ms": 1024,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "element_get_property",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_text",
-        "element_type",
-        "element_get_property",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 15,
-      "side_effect_counts": {
-        "validation_attempted_requests": 2
-      },
-      "duplicate_count": 0,
-      "business_result": "VALIDATED-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W04",
-      "iteration": 9,
-      "success": true,
-      "duration_ms": 365,
-      "tool_calls": [
-        "page_navigate",
-        "element_type",
-        "element_get_property",
-        "element_upload_file",
-        "element_click",
-        "wait_for_element",
-        "element_get_attribute"
-      ],
-      "tool_call_count": 7,
-      "side_effect_counts": {
-        "upload_attempted_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "UPLOAD-0001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W05",
-      "iteration": 9,
-      "success": true,
-      "duration_ms": 493,
-      "tool_calls": [
-        "page_navigate",
-        "page_dialog_respond",
-        "element_click",
-        "element_get_text"
-      ],
-      "tool_call_count": 4,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "confirm accepted",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W06",
-      "iteration": 9,
-      "success": true,
-      "duration_ms": 650,
-      "tool_calls": [
-        "page_navigate",
-        "element_click",
-        "tab_list",
-        "tab_switch",
-        "element_click",
-        "element_get_text",
-        "tab_close"
-      ],
-      "tool_call_count": 7,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "popup work complete",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W07",
-      "iteration": 9,
-      "success": true,
-      "duration_ms": 1307,
-      "tool_calls": [
-        "page_navigate",
-        "element_click_and_download",
-        "element_click_and_download",
-        "page_navigate",
-        "element_click_and_download"
-      ],
-      "tool_call_count": 5,
-      "side_effect_counts": {
-        "download_requests": 1,
-        "download_fail_requests": 1
-      },
-      "duplicate_count": 0,
-      "business_result": "artifact-000001",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W08",
-      "iteration": 9,
-      "success": true,
-      "duration_ms": 87,
-      "tool_calls": [
-        "page_navigate",
-        "element_click",
-        "element_click",
-        "keyboard_press",
-        "element_get_text"
-      ],
-      "tool_call_count": 5,
-      "side_effect_counts": {},
-      "duplicate_count": 0,
-      "business_result": "shortcut; click=1; dblclick=1; contextmenu=1; shortcut=1",
-      "error": "",
-      "failure_category": ""
-    },
-    {
-      "workload_id": "W01",
-      "iteration": 10,
       "success": true,
       "duration_ms": 1754,
       "tool_calls": [
@@ -1952,9 +1560,401 @@
     },
     {
       "workload_id": "W02",
+      "iteration": 8,
+      "success": true,
+      "duration_ms": 372,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 8,
+      "side_effect_counts": {
+        "form_controlled_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "CONTROLLED-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W03",
+      "iteration": 8,
+      "success": true,
+      "duration_ms": 1036,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_text",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 15,
+      "side_effect_counts": {
+        "validation_attempted_requests": 2
+      },
+      "duplicate_count": 0,
+      "business_result": "VALIDATED-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W04",
+      "iteration": 8,
+      "success": true,
+      "duration_ms": 462,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_upload_file",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 7,
+      "side_effect_counts": {
+        "upload_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "UPLOAD-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W05",
+      "iteration": 8,
+      "success": true,
+      "duration_ms": 529,
+      "tool_calls": [
+        "page_navigate",
+        "page_dialog_respond",
+        "element_click",
+        "element_get_text"
+      ],
+      "tool_call_count": 4,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "confirm accepted",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W06",
+      "iteration": 8,
+      "success": true,
+      "duration_ms": 593,
+      "tool_calls": [
+        "page_navigate",
+        "element_click",
+        "tab_list",
+        "tab_switch",
+        "element_click",
+        "element_get_text",
+        "tab_close"
+      ],
+      "tool_call_count": 7,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "popup work complete",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W07",
+      "iteration": 8,
+      "success": true,
+      "duration_ms": 1302,
+      "tool_calls": [
+        "page_navigate",
+        "element_click_and_download",
+        "element_click_and_download",
+        "page_navigate",
+        "element_click_and_download"
+      ],
+      "tool_call_count": 5,
+      "side_effect_counts": {
+        "download_requests": 1,
+        "download_fail_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "artifact-000001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W08",
+      "iteration": 8,
+      "success": true,
+      "duration_ms": 89,
+      "tool_calls": [
+        "page_navigate",
+        "element_click",
+        "element_click",
+        "keyboard_press",
+        "element_get_text"
+      ],
+      "tool_call_count": 5,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "shortcut; click=1; dblclick=1; contextmenu=1; shortcut=1",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W01",
+      "iteration": 9,
+      "success": true,
+      "duration_ms": 1812,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_text",
+        "element_select",
+        "element_check",
+        "element_click",
+        "element_click",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 22,
+      "side_effect_counts": {
+        "form_rich_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "PROFILE-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W02",
+      "iteration": 9,
+      "success": true,
+      "duration_ms": 378,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 8,
+      "side_effect_counts": {
+        "form_controlled_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "CONTROLLED-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W03",
+      "iteration": 9,
+      "success": true,
+      "duration_ms": 1037,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_text",
+        "element_type",
+        "element_get_property",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 15,
+      "side_effect_counts": {
+        "validation_attempted_requests": 2
+      },
+      "duplicate_count": 0,
+      "business_result": "VALIDATED-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W04",
+      "iteration": 9,
+      "success": true,
+      "duration_ms": 457,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_upload_file",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 7,
+      "side_effect_counts": {
+        "upload_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "UPLOAD-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W05",
+      "iteration": 9,
+      "success": true,
+      "duration_ms": 490,
+      "tool_calls": [
+        "page_navigate",
+        "page_dialog_respond",
+        "element_click",
+        "element_get_text"
+      ],
+      "tool_call_count": 4,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "confirm accepted",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W06",
+      "iteration": 9,
+      "success": true,
+      "duration_ms": 620,
+      "tool_calls": [
+        "page_navigate",
+        "element_click",
+        "tab_list",
+        "tab_switch",
+        "element_click",
+        "element_get_text",
+        "tab_close"
+      ],
+      "tool_call_count": 7,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "popup work complete",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W07",
+      "iteration": 9,
+      "success": true,
+      "duration_ms": 1280,
+      "tool_calls": [
+        "page_navigate",
+        "element_click_and_download",
+        "element_click_and_download",
+        "page_navigate",
+        "element_click_and_download"
+      ],
+      "tool_call_count": 5,
+      "side_effect_counts": {
+        "download_requests": 1,
+        "download_fail_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "artifact-000001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W08",
+      "iteration": 9,
+      "success": true,
+      "duration_ms": 92,
+      "tool_calls": [
+        "page_navigate",
+        "element_click",
+        "element_click",
+        "keyboard_press",
+        "element_get_text"
+      ],
+      "tool_call_count": 5,
+      "side_effect_counts": {},
+      "duplicate_count": 0,
+      "business_result": "shortcut; click=1; dblclick=1; contextmenu=1; shortcut=1",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W01",
       "iteration": 10,
       "success": true,
-      "duration_ms": 374,
+      "duration_ms": 1934,
+      "tool_calls": [
+        "page_navigate",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_property",
+        "element_type",
+        "element_get_text",
+        "element_select",
+        "element_check",
+        "element_click",
+        "element_click",
+        "element_click",
+        "wait_for_element",
+        "element_get_attribute"
+      ],
+      "tool_call_count": 22,
+      "side_effect_counts": {
+        "form_rich_attempted_requests": 1
+      },
+      "duplicate_count": 0,
+      "business_result": "PROFILE-0001",
+      "error": "",
+      "failure_category": ""
+    },
+    {
+      "workload_id": "W02",
+      "iteration": 10,
+      "success": true,
+      "duration_ms": 469,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -1978,7 +1978,7 @@
       "workload_id": "W03",
       "iteration": 10,
       "success": true,
-      "duration_ms": 1030,
+      "duration_ms": 1047,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -2009,7 +2009,7 @@
       "workload_id": "W04",
       "iteration": 10,
       "success": true,
-      "duration_ms": 353,
+      "duration_ms": 361,
       "tool_calls": [
         "page_navigate",
         "element_type",
@@ -2032,7 +2032,7 @@
       "workload_id": "W05",
       "iteration": 10,
       "success": true,
-      "duration_ms": 491,
+      "duration_ms": 489,
       "tool_calls": [
         "page_navigate",
         "page_dialog_respond",
@@ -2050,7 +2050,7 @@
       "workload_id": "W06",
       "iteration": 10,
       "success": true,
-      "duration_ms": 630,
+      "duration_ms": 615,
       "tool_calls": [
         "page_navigate",
         "element_click",
@@ -2071,7 +2071,7 @@
       "workload_id": "W07",
       "iteration": 10,
       "success": true,
-      "duration_ms": 1302,
+      "duration_ms": 1278,
       "tool_calls": [
         "page_navigate",
         "element_click_and_download",
@@ -2093,7 +2093,7 @@
       "workload_id": "W08",
       "iteration": 10,
       "success": true,
-      "duration_ms": 81,
+      "duration_ms": 84,
       "tool_calls": [
         "page_navigate",
         "element_click",

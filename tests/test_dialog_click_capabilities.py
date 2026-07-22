@@ -225,7 +225,7 @@ async def test_dialog_response_returns_only_redacted_metadata_and_receipt() -> N
     assert receipt["side_effect"] == "dialog_response"
     assert receipt["status"] == "success"
     assert receipt["redacted"] is True
-    assert context.task_summary().receipt_count == 1
+    assert len(context._operation_receipts) == 1
     assert context.capability_set().capabilities[0].status == "supported"
     assert len(fake_dialogs.responses) == 1
     response_args = fake_dialogs.responses[0]
@@ -271,8 +271,8 @@ async def test_dialog_unsupported_fails_before_response_claim_or_receipt() -> No
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "UNSUPPORTED_OPERATION"
     assert fake_dialogs.response_calls == 0
-    assert context.task_summary().operation_count == 0
-    assert context.task_summary().receipt_count == 0
+    assert len(context._operation_fingerprints) == 0
+    assert len(context._operation_receipts) == 0
     capability = context.capability_set().capabilities[0]
     assert capability.name == "dialog.respond"
     assert capability.status == "unsupported"
@@ -309,8 +309,8 @@ async def test_prompt_text_for_non_prompt_fails_before_claim_or_response() -> No
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "PRECONDITION_FAILED"
     assert dialogs.response_calls == 0
-    assert context.task_summary().operation_count == 0
-    assert context.task_summary().receipt_count == 0
+    assert len(context._operation_fingerprints) == 0
+    assert len(context._operation_receipts) == 0
 
 
 @pytest.mark.asyncio
@@ -337,8 +337,8 @@ async def test_recorded_dialog_denial_happens_before_tab_access() -> None:
 
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "UNSUPPORTED_OPERATION"
-    assert context.task_summary().operation_count == 0
-    assert context.task_summary().receipt_count == 0
+    assert len(context._operation_fingerprints) == 0
+    assert len(context._operation_receipts) == 0
 
 
 @pytest.mark.asyncio
@@ -370,7 +370,7 @@ async def test_dialog_native_error_is_redacted_and_indeterminate() -> None:
     encoded = json.dumps(outcome.structured_content(), ensure_ascii=False)
     assert outcome.is_error is True
     assert secret not in encoded
-    receipt = context.receipt_inventory()[0]
+    receipt = list(context._operation_receipts.values())[0]
     assert receipt.status == "indeterminate"
     assert receipt.error_code == "DIALOG_RESPONSE_INDETERMINATE"
 

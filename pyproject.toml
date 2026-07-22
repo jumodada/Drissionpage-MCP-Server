@@ -63,6 +63,7 @@ Documentation = "https://github.com/jumodada/Drissionpage-MCP-Server#readme"
 Repository = "https://github.com/jumodada/Drissionpage-MCP-Server"
 Issues = "https://github.com/jumodada/Drissionpage-MCP-Server/issues"
 Changelog = "https://github.com/jumodada/Drissionpage-MCP-Server/blob/main/CHANGELOG.md"
+Skills = "https://github.com/jumodada/skills-manager"
 
 [project.scripts]
 drissionpage-mcp = "drissionpage_mcp.cli:main"

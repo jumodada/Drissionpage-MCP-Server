@@ -57,7 +57,6 @@ async def navigate(
     before = await maybe_observe(tab, args.observe)
     await tab.navigation.navigate(args.url)
     changes = await observed_changes(tab, before)
-    outcome.add_code(f"page.get({args.url!r})")
     data = {
         "url": args.url,
         "final_url": tab.url,
@@ -67,7 +66,6 @@ async def navigate(
     if changes is not None:
         data["changes"] = changes
     outcome.add_result(f"Successfully navigated to: {args.url}", **data)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -85,9 +83,7 @@ async def go_back(context: "DrissionPageContext", args: EmptyInput) -> "ToolOutc
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     await tab.navigation.back()
-    outcome.add_code("page.back()")
     outcome.add_result("Successfully went back to previous page", url=tab.url)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -105,9 +101,7 @@ async def go_forward(context: "DrissionPageContext", args: EmptyInput) -> "ToolO
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     await tab.navigation.forward()
-    outcome.add_code("page.forward()")
     outcome.add_result("Successfully went forward to next page", url=tab.url)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -125,9 +119,7 @@ async def refresh(context: "DrissionPageContext", args: EmptyInput) -> "ToolOutc
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     await tab.navigation.refresh()
-    outcome.add_code("page.refresh()")
     outcome.add_result("Successfully refreshed page", url=tab.url)
-    outcome.set_include_snapshot(True)
     return outcome
 
 

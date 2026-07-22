@@ -92,7 +92,6 @@ jobs:
           python -m pytest \
             tests/test_mcp_protocol.py \
             tests/test_mcp_resources.py \
-            tests/test_mcp_prompts.py
 
   evals:
     name: MCP eval harness
@@ -274,19 +273,43 @@ jobs:
         run: |
           python - <<'PY'
           import glob
+          import tarfile
           import zipfile
 
           wheels = glob.glob("dist/*.whl")
+          sdists = glob.glob("dist/*.tar.gz")
           assert len(wheels) == 1, wheels
+          assert len(sdists) == 1, sdists
           with zipfile.ZipFile(wheels[0]) as wheel:
-              names = wheel.namelist()
+              wheel_names = wheel.namelist()
               top_level_file = next(
-                  name for name in names if name.endswith(".dist-info/top_level.txt")
+                  name for name in wheel_names if name.endswith(".dist-info/top_level.txt")
               )
               top_level = wheel.read(top_level_file).decode().splitlines()
+          with tarfile.open(sdists[0], "r:gz") as sdist:
+              sdist_names = sdist.getnames()
 
           assert top_level == ["drissionpage_mcp"], top_level
-          assert not any(name == "src/" or name.startswith("src/") for name in names)
+          assert not any(name == "src/" or name.startswith("src/") for name in wheel_names)
+
+          forbidden_suffixes = (
+              "/AGENTS.md",
+              "/SKILL.md",
+              "/docs/core-and-skills-strategy.md",
+              "/docs/0.7.3-to-0.8.0-capability-plan.md",
+              "/drissionpage_mcp/prompts.py",
+              "/drissionpage_mcp/browser/vision.py",
+              "/drissionpage_mcp/browser/workflows.py",
+              "/drissionpage_mcp/tools/vision.py",
+              "/drissionpage_mcp/tools/workflow.py",
+          )
+          for names in (wheel_names, sdist_names):
+              assert not any(
+                  ("/" + name).endswith(forbidden_suffixes)
+                  or "/skills/" in ("/" + name)
+                  or "/.omx/" in ("/" + name)
+                  for name in names
+              ), names
           PY
       - name: Check package metadata
         run: python -m twine check dist/*

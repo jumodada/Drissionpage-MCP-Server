@@ -35,7 +35,6 @@ async def tab_list(context: "DrissionPageContext", args: EmptyInput) -> "ToolOut
     await context.sync_tabs()
     summaries = context.tab_summaries()
     active_tab = next((tab for tab in summaries if tab.get("active")), None)
-    outcome.add_code("browser.get_tabs()")
     outcome.add_result(
         f"Found {len(summaries)} browser tabs",
         tabs=summaries,
@@ -65,7 +64,6 @@ async def tab_switch(context: "DrissionPageContext", args: TabIdInput) -> "ToolO
         (item for item in summaries if item.get("id") == tab.mcp_tab_id),
         tab.summary(active=True),
     )
-    outcome.add_code(f"browser.activate_tab({tab.native_tab_id or args.tab_id!r})")
     outcome.add_result(
         f"Switched to tab: {tab.mcp_tab_id}",
         tab=active,
@@ -92,7 +90,6 @@ async def tab_close(context: "DrissionPageContext", args: TabIdInput) -> "ToolOu
     await context.close_tab_by_id(args.tab_id)
     summaries = context.tab_summaries()
     active_tab = next((tab for tab in summaries if tab.get("active")), None)
-    outcome.add_code(f"browser.close_tabs({args.tab_id!r})")
     outcome.add_result(
         f"Closed tab: {args.tab_id}",
         closed=True,

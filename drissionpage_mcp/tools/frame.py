@@ -57,7 +57,6 @@ async def frame_list(
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.frames.list_frames(limit=args.limit)
-    outcome.add_code("page.get_frames()")
     outcome.add_result(f"Found {result['count']} frame(s)", **result)
     return outcome
 
@@ -85,7 +84,6 @@ async def frame_snapshot(
         max_text_chars=args.max_text_chars,
         timeout=args.timeout,
     )
-    outcome.add_code("frame.run_js(<bounded page outline script>)")
     outcome.add_result("Captured frame snapshot", **with_response_meta(result))
     return outcome
 
@@ -113,6 +111,5 @@ async def frame_find(
         frame_index=args.frame_index,
         timeout=args.timeout,
     )
-    outcome.add_code("frame.ele(<selector>)")
     outcome.add_result(f"Found frame element: {args.selector}", **result)
     return outcome

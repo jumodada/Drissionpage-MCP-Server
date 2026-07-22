@@ -63,7 +63,7 @@ Tools return MCP content blocks plus a stable machine-readable result payload:
 - Successful results use `ok: true`; tool-execution failures use `ok: false` with `error.code` and `error.message`.
 - Failure details may include `hints`: a list of machine-readable next steps with
   stable `action` identifiers and optional `tool`, `command`, or `env` fields.
-- Human-readable MCP text content still follows as `### Result`, `### Error`, and optional `### Code` blocks.
+- Human-readable MCP text content still follows as `### Result` or `### Error` blocks.
 - Screenshots include `ImageContent` with PNG data plus the JSON result block.
 - Tool input schemas reject unknown fields. Typos such as `fullPage` instead of
   `full_page` return `MCP_ARGUMENT_INVALID` instead of being silently ignored.
@@ -119,13 +119,8 @@ The server marks tools with MCP annotations:
 
 ## Tool Inventory
 
-
-### Workflow Helpers
-
-| Tool | Type | Required input | Description |
-| --- | --- | --- | --- |
-| `browser_open_and_snapshot` | Destructive | `url` | Open a URL, optionally wait for a condition, and return snapshot/console context in one call. Optional: `wait_condition`, `selector`, `wait_value`, `include_console`, `max_elements`, `max_text_chars`. |
-| `browser_extract_links` | Read-only | none | Extract bounded links with text, href, normalized URL, selector, rel, target, truncation metadata, and optional same-origin filtering. Optional: `selector`, `limit`, `include_text`, `same_origin_only`, `absolute_urls`. |
+The 0.7.2 registry contains 53 typed browser tools. Site, component, challenge,
+and business workflows are composed by clients or optional external Skills.
 
 ### Network Listener Beta
 
@@ -164,13 +159,10 @@ The server marks tools with MCP annotations:
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
 | `page_scroll` | Destructive | none | Scroll the page by direction or to a position. Optional: `direction`, `pixels`, `x`, `y`. |
 | `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Optional: `interval`. |
-| `page_pointer_move` | Destructive | `x`, `y` | Move along the selected natural/precise/direct viewport path without pressing a button. Optional: `start_x` + `start_y`, `element`, `profile`. |
-| `page_pointer_drag` | Destructive | `start_x`, `start_y`, `end_x`, `end_y` | Perform one failure-safe coordinate drag with distance-aware timing and exact final correction. Optional: up to six ordered `waypoints`, `element`, `profile`, `button`. |
-| `page_pointer_drag_element` | Destructive | `source`, `destination` | Resolve CSS/XPath geometry immediately before an element, offset, or track-ratio drag. Supports one same-origin iframe and CSS paths through nested open Shadow DOM hosts. Optional: `profile`, `button`. |
-| `page_detect_challenges` | Read-only | none | Detect verification-widget signals; optional: `keywords`, `include_screenshot`. |
-| `page_click_xy_batch` | Destructive | `targets` | Execute ordered viewport clicks from one stable visual state with fail-fast and URL-change controls. |
-| `page_wait_challenge_result` | Read-only | none | Poll configurable token-length and result selectors without returning token values. |
-| `page_click_xy` | Destructive | `x`, `y` | Move and click at viewport CSS coordinates. Defaults to a natural cubic Bézier pointer profile; optional: `start_x` + `start_y`, `element`, `profile`, and `button`. |
+| `page_pointer_move` | Destructive | `x`, `y` | Move to exact viewport CSS coordinates without pressing a button. Optional: `profile` (`direct` default or deterministic 24-step `natural`) and `element`. |
+| `page_pointer_drag` | Destructive | `start_x`, `start_y`, `end_x`, `end_y` | Perform one failure-safe held drag with exact endpoints. Optional: up to six ordered `waypoints`, `profile` (`direct` or `natural`), `element`, and `button`. |
+| `page_pointer_drag_element` | Destructive | `source`, `destination` | Resolve CSS/XPath geometry immediately before an element, offset, or track-ratio drag. Supports one same-origin iframe and CSS paths through nested open Shadow DOM hosts. Optional: `profile` and `button`. |
+| `page_click_xy` | Destructive | `x`, `y` | Move with the `direct` or deterministic bounded `natural` profile, optionally wait for `delay_before_press_ms`, then press and release at the exact viewport target. Optional: `profile`, `element`, and `button`. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |
 | `page_dialog_respond` | Destructive | `action` | Accept or dismiss one currently pending alert, confirm, or prompt through a capability-probed native path. Optional: `prompt_text`, `timeout`. Prompt text is never returned. |
@@ -230,39 +222,22 @@ The server marks tools with MCP annotations:
 
 ## Resources
 
-The server exposes deterministic JSON resources:
+The server exposes one deterministic JSON resource that does not initialize a
+browser or perform a network request:
 
 | URI | Purpose |
 | --- | --- |
-| `drissionpage://session/summary` | Browser/session activity, tab count, current URL, and policy flags. |
-| `drissionpage://session/history` | Redacted recent tool actions for recovering long-session context. |
-| `drissionpage://session/state` | Redacted current-tab cookie names and local/session storage keys. |
-| `drissionpage://session/config` | Redacted browser/profile configuration including headless, browser path configured, `DP_USER_DATA_PATH` configured, sandbox, and policy state. |
-| `drissionpage://guide/model-usage` | Compact model-facing guidance for choosing DrissionPage MCP tools safely. |
-| `drissionpage://page/current` | Bounded current page title, URL, text excerpt, and HTML excerpt. |
-| `drissionpage://tools/catalog` | Public tool catalog with annotations, descriptions, and output data schema names. |
-| `drissionpage://policy/summary` | Redacted local safety policy summary. |
-| `drissionpage://task/current` | Bounded current `TaskContext` identifiers, counters, receipts, and operation state. |
-| `drissionpage://artifacts/inventory` | Bounded download artifact inventory with safe relative paths and sanitized public source URLs. |
-| `drissionpage://runtime/capabilities` | Runtime-probed support evidence for dialog, click-variant, and download capabilities. |
+| `drissionpage://skills/catalog` | Versioned discovery metadata for optional Skills published outside the Python distribution. It declares the `skills/` catalog path and `skills/<skill-name>/SKILL.md` entrypoint convention. |
 
 Resource caps:
 
-- page text excerpt: 4000 characters
-- page HTML excerpt: 8000 characters
-- resource JSON payload target maximum: 12000 characters
+- Skills catalog JSON maximum: 4000 characters
 
 ## Prompts
 
-The server exposes user-controlled workflow prompts:
-
-| Prompt | Purpose |
-| --- | --- |
-| `drissionpage_mcp_usage_playbook` | Explain the safe default tool flow for an MCP-connected model. |
-| `browser_navigate_and_summarize` | Navigate with `browser_open_and_snapshot`, inspect bounded page context, and summarize with source URL. |
-| `browser_extract_structured_data` | Navigate with workflow helpers, inspect bounded text/HTML only as needed, and return schema-shaped JSON. |
-| `browser_vision_guided_interaction` | Teach selector-first visual interaction, viewport screenshot coordinate mapping, `natural`/`precise`/`direct` profile choice, bounded verification, and stale-coordinate recovery. |
-| `browser_debug_page_issue` | Gather workflow-first page evidence for debugging. |
+DrissionPage MCP 0.7.2 exposes no MCP prompts. `tools/list`, typed schemas, and
+typed errors describe the standalone core; procedural guidance belongs in
+optional Skills.
 
 ## Compatibility Notes
 
@@ -271,7 +246,7 @@ The server exposes user-controlled workflow prompts:
 - `page_snapshot` and `element_find_all` include `meta.approx_tokens`, `meta.json_chars`, and `meta.truncated` so clients can narrow later calls when a response is large.
 - `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
 - Form and component workflows are composed from element discovery, type/select/check/click/keyboard, upload, wait, and state-read tools. The core does not classify widget libraries or infer business submission intent.
-- `page_dialog_respond` handles one currently pending JavaScript dialog. Capability gaps return `UNSUPPORTED_OPERATION`; prompt text and dialog messages are redacted from public history where required.
+- `page_dialog_respond` handles one currently pending JavaScript dialog. Capability gaps return `UNSUPPORTED_OPERATION`; prompt text and dialog messages are not retained in action history.
 - `element_click_and_download` requires an approved `DP_MCP_DOWNLOAD_ROOT`. A successful response includes one checksum-verified regular file, safe relative path, sanitized HTTP(S) source URL, `ArtifactRef`, and correlated `ActionReceipt`. Replaying the same operation key does not click again; failure and indeterminate results contain no artifact.
 - `tab_list` synchronizes with browser tabs opened by normal page behavior, including `target="_blank"` links.
 - `page_observe` is designed for compact state checks. Use `page_snapshot` when you need selectors and structured page outline details. Its `console` field summarizes recent current-tab console messages when DrissionPage console capture is available.
@@ -284,7 +259,14 @@ The server exposes user-controlled workflow prompts:
 - `storage_set` does not echo the stored value in its success payload.
 - `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.
-- A browser tab must exist before read-only page/element tools can inspect content. In a fresh session, use `browser_open_and_snapshot` when you need immediate page context after opening a URL; use `page_navigate` when you intentionally need navigation-only behavior and will inspect separately.
+- Pointer tools default to `profile="direct"`. `profile="natural"` uses a fixed,
+  reproducible 24-step eased cubic path with bounded 8-14ms intervals and an exact final
+  point. It changes one pointer action's execution semantics; it does not decide
+  targets, challenges, or business workflow progression.
+- A browser tab must exist before read-only page/element tools can inspect content. In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` as a separate explicit step.
+- Challenge observation, verified multi-click sequences, and site/business rules
+  belong in external `skills/<skill-name>/SKILL.md` procedures and must use public
+  MCP tools only.
 - `element_input_text` and `wait_sleep` were removed in 0.4.0. Use
   `element_type` and `wait_time`.
 

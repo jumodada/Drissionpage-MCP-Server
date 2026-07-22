@@ -1612,10 +1612,10 @@
       "readOnlyHint": false,
       "title": "Move Pointer to Coordinates"
     },
-    "description": "Move the viewport pointer along the selected Bézier/eased profile without clicking, for visual hover, reveal, canvas, and inspection workflows.",
+    "description": "Move the viewport pointer to exact CSS pixel coordinates without pressing a button, using either one direct move or a bounded natural trajectory.",
     "inputSchema": {
       "additionalProperties": false,
-      "description": "Shared input schema for vision-directed viewport pointer movement.",
+      "description": "Shared input schema for bounded viewport pointer movement.",
       "properties": {
         "element": {
           "default": "",
@@ -1624,43 +1624,14 @@
           "type": "string"
         },
         "profile": {
-          "default": "natural",
-          "description": "Pointer movement profile; natural uses 20–35 cubic Bézier steps, 8–25ms intervals, ±0.5px jitter, 100–300ms reaction delay, and 50–120ms button hold; precise lowers jitter; direct is one-step.",
+          "default": "direct",
+          "description": "Movement profile: direct emits one exact move; natural emits a deterministic 24-step eased cubic Bezier path with bounded 8-14ms intervals and an exact endpoint",
           "enum": [
-            "natural",
-            "precise",
-            "direct"
+            "direct",
+            "natural"
           ],
           "title": "Profile",
           "type": "string"
-        },
-        "start_x": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional known pointer start X coordinate",
-          "title": "Start X"
-        },
-        "start_y": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional known pointer start Y coordinate",
-          "title": "Start Y"
         },
         "x": {
           "description": "Viewport X coordinate in CSS pixels",
@@ -1694,9 +1665,8 @@
             },
             "profile": {
               "enum": [
-                "natural",
-                "precise",
-                "direct"
+                "direct",
+                "natural"
               ],
               "title": "Profile",
               "type": "string"
@@ -1840,7 +1810,7 @@
       "readOnlyHint": false,
       "title": "Drag Pointer Between Coordinates"
     },
-    "description": "Perform one failure-safe viewport drag through optional ordered waypoints with distance-aware timing, acceleration/deceleration, correlated intervals, bounded jitter, optional micro-pauses and exact final correction. Always releases the button.",
+    "description": "Perform one failure-safe viewport drag through optional ordered waypoints using direct or bounded natural movement while the button remains pressed. Always releases the button.",
     "inputSchema": {
       "$defs": {
         "PointerWaypointInput": {
@@ -1901,12 +1871,11 @@
           "type": "number"
         },
         "profile": {
-          "default": "natural",
-          "description": "Held-drag profile. natural uses distance-aware timing, acceleration and deceleration, correlated intervals, bounded jitter, optional micro-pause, and exact-target correction.",
+          "default": "direct",
+          "description": "Movement profile for the approach and every held segment: direct or deterministic bounded natural motion",
           "enum": [
-            "natural",
-            "precise",
-            "direct"
+            "direct",
+            "natural"
           ],
           "title": "Profile",
           "type": "string"
@@ -1961,40 +1930,8 @@
               "title": "Button",
               "type": "string"
             },
-            "correction_steps": {
-              "title": "Correction Steps",
-              "type": "integer"
-            },
             "drag_steps": {
               "title": "Drag Steps",
-              "type": "integer"
-            },
-            "grip_delay_ms": {
-              "title": "Grip Delay Ms",
-              "type": "integer"
-            },
-            "main_drag_steps": {
-              "title": "Main Drag Steps",
-              "type": "integer"
-            },
-            "micro_pause_count": {
-              "title": "Micro Pause Count",
-              "type": "integer"
-            },
-            "micro_pause_duration_ms": {
-              "title": "Micro Pause Duration Ms",
-              "type": "integer"
-            },
-            "movement_duration_ms": {
-              "title": "Movement Duration Ms",
-              "type": "integer"
-            },
-            "overshoot_px": {
-              "title": "Overshoot Px",
-              "type": "number"
-            },
-            "overshoot_steps": {
-              "title": "Overshoot Steps",
               "type": "integer"
             },
             "planned_duration_ms": {
@@ -2003,20 +1940,11 @@
             },
             "profile": {
               "enum": [
-                "natural",
-                "precise",
-                "direct"
+                "direct",
+                "natural"
               ],
               "title": "Profile",
               "type": "string"
-            },
-            "reaction_delay_ms": {
-              "title": "Reaction Delay Ms",
-              "type": "integer"
-            },
-            "release_delay_ms": {
-              "title": "Release Delay Ms",
-              "type": "integer"
             },
             "start_x": {
               "title": "Start X",
@@ -2033,6 +1961,10 @@
             "target_y": {
               "title": "Target Y",
               "type": "number"
+            },
+            "waypoint_count": {
+              "title": "Waypoint Count",
+              "type": "integer"
             }
           },
           "required": [
@@ -2044,16 +1976,7 @@
             "target_y",
             "approach_steps",
             "drag_steps",
-            "main_drag_steps",
-            "overshoot_steps",
-            "correction_steps",
-            "micro_pause_count",
-            "overshoot_px",
-            "reaction_delay_ms",
-            "grip_delay_ms",
-            "movement_duration_ms",
-            "micro_pause_duration_ms",
-            "release_delay_ms",
+            "waypoint_count",
             "planned_duration_ms"
           ],
           "title": "PointerDragData",
@@ -2366,11 +2289,10 @@
           "title": "Destination"
         },
         "profile": {
-          "default": "natural",
+          "default": "direct",
           "enum": [
-            "natural",
-            "precise",
-            "direct"
+            "direct",
+            "natural"
           ],
           "title": "Profile",
           "type": "string"
@@ -2405,40 +2327,8 @@
               "title": "Button",
               "type": "string"
             },
-            "correction_steps": {
-              "title": "Correction Steps",
-              "type": "integer"
-            },
             "drag_steps": {
               "title": "Drag Steps",
-              "type": "integer"
-            },
-            "grip_delay_ms": {
-              "title": "Grip Delay Ms",
-              "type": "integer"
-            },
-            "main_drag_steps": {
-              "title": "Main Drag Steps",
-              "type": "integer"
-            },
-            "micro_pause_count": {
-              "title": "Micro Pause Count",
-              "type": "integer"
-            },
-            "micro_pause_duration_ms": {
-              "title": "Micro Pause Duration Ms",
-              "type": "integer"
-            },
-            "movement_duration_ms": {
-              "title": "Movement Duration Ms",
-              "type": "integer"
-            },
-            "overshoot_px": {
-              "title": "Overshoot Px",
-              "type": "number"
-            },
-            "overshoot_steps": {
-              "title": "Overshoot Steps",
               "type": "integer"
             },
             "planned_duration_ms": {
@@ -2447,20 +2337,11 @@
             },
             "profile": {
               "enum": [
-                "natural",
-                "precise",
-                "direct"
+                "direct",
+                "natural"
               ],
               "title": "Profile",
               "type": "string"
-            },
-            "reaction_delay_ms": {
-              "title": "Reaction Delay Ms",
-              "type": "integer"
-            },
-            "release_delay_ms": {
-              "title": "Release Delay Ms",
-              "type": "integer"
             },
             "start_x": {
               "title": "Start X",
@@ -2477,6 +2358,10 @@
             "target_y": {
               "title": "Target Y",
               "type": "number"
+            },
+            "waypoint_count": {
+              "title": "Waypoint Count",
+              "type": "integer"
             }
           },
           "required": [
@@ -2488,16 +2373,7 @@
             "target_y",
             "approach_steps",
             "drag_steps",
-            "main_drag_steps",
-            "overshoot_steps",
-            "correction_steps",
-            "micro_pause_count",
-            "overshoot_px",
-            "reaction_delay_ms",
-            "grip_delay_ms",
-            "movement_duration_ms",
-            "micro_pause_duration_ms",
-            "release_delay_ms",
+            "waypoint_count",
             "planned_duration_ms"
           ],
           "title": "PointerDragData",
@@ -2816,7 +2692,7 @@
       "readOnlyHint": false,
       "title": "Click Coordinates"
     },
-    "description": "Move the viewport pointer to coordinates and click. The natural profile uses a cubic Bézier path, smoothstep easing, bounded jitter, reaction delay, and realistic button hold time.",
+    "description": "Move the viewport pointer to exact CSS pixel coordinates using a direct or bounded natural trajectory, optionally wait for an explicit delay, then press and release one mouse button.",
     "inputSchema": {
       "additionalProperties": false,
       "description": "Input schema for a vision-directed viewport click.",
@@ -2834,7 +2710,7 @@
         },
         "delay_before_press_ms": {
           "default": 0,
-          "description": "Optional additional delay after natural arrival and before mousePressed. This is timing control, not target-stability detection; moving targets require a fresh screenshot or selector-first action.",
+          "description": "Optional delay after pointer arrival and before mousePressed. This is timing control, not target-stability detection; moving targets require a fresh screenshot or selector-first action.",
           "maximum": 10000,
           "minimum": 0,
           "title": "Delay Before Press Ms",
@@ -2847,43 +2723,14 @@
           "type": "string"
         },
         "profile": {
-          "default": "natural",
-          "description": "Pointer movement profile; natural uses 20–35 cubic Bézier steps, 8–25ms intervals, ±0.5px jitter, 100–300ms reaction delay, and 50–120ms button hold; precise lowers jitter; direct is one-step.",
+          "default": "direct",
+          "description": "Movement profile: direct emits one exact move; natural emits a deterministic 24-step eased cubic Bezier path with bounded 8-14ms intervals and an exact endpoint",
           "enum": [
-            "natural",
-            "precise",
-            "direct"
+            "direct",
+            "natural"
           ],
           "title": "Profile",
           "type": "string"
-        },
-        "start_x": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional known pointer start X coordinate",
-          "title": "Start X"
-        },
-        "start_y": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "description": "Optional known pointer start Y coordinate",
-          "title": "Start Y"
         },
         "x": {
           "description": "Viewport X coordinate in CSS pixels",
@@ -2924,26 +2771,17 @@
               "title": "Delay Before Press Ms",
               "type": "integer"
             },
-            "hold_duration_ms": {
-              "title": "Hold Duration Ms",
-              "type": "integer"
-            },
             "planned_duration_ms": {
               "title": "Planned Duration Ms",
               "type": "integer"
             },
             "profile": {
               "enum": [
-                "natural",
-                "precise",
-                "direct"
+                "direct",
+                "natural"
               ],
               "title": "Profile",
               "type": "string"
-            },
-            "reaction_delay_ms": {
-              "title": "Reaction Delay Ms",
-              "type": "integer"
             },
             "start_x": {
               "title": "Start X",
@@ -2975,9 +2813,7 @@
             "steps",
             "planned_duration_ms",
             "button",
-            "reaction_delay_ms",
-            "delay_before_press_ms",
-            "hold_duration_ms"
+            "delay_before_press_ms"
           ],
           "title": "PointerMotionData",
           "type": "object"
@@ -3079,714 +2915,6 @@
       "type": "object"
     },
     "title": "Click Coordinates"
-  },
-  {
-    "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true,
-      "title": "Detect Interactive Challenges"
-    },
-    "description": "Read-only detection of verification-widget signals in frames, scripts, DOM containers, and hidden fields. Provides autonomous next-step suggestions but performs no interaction. General capability for authorized testing and technical research.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "include_screenshot": {
-          "default": false,
-          "description": "Attach an inline viewport screenshot for multimodal analysis.",
-          "title": "Include Screenshot",
-          "type": "boolean"
-        },
-        "keywords": {
-          "description": "Iframe, script, and DOM signal keywords used for read-only verification-widget detection.",
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 50,
-          "title": "Keywords",
-          "type": "array"
-        }
-      },
-      "title": "DetectChallengesInput",
-      "type": "object"
-    },
-    "name": "page_detect_challenges",
-    "outputSchema": {
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": false,
-              "properties": {
-                "challenge_types": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "title": "Challenge Types",
-                  "type": "array"
-                },
-                "detected": {
-                  "title": "Detected",
-                  "type": "boolean"
-                },
-                "iframes": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Iframes",
-                  "type": "array"
-                },
-                "page_state": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Page State",
-                  "type": "object"
-                },
-                "screenshot_attached": {
-                  "title": "Screenshot Attached",
-                  "type": "boolean"
-                },
-                "signals": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Signals",
-                  "type": "array"
-                },
-                "suggestions": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "title": "Suggestions",
-                  "type": "array"
-                }
-              },
-              "required": [
-                "detected",
-                "challenge_types",
-                "signals",
-                "iframes",
-                "page_state",
-                "suggestions",
-                "screenshot_attached"
-              ],
-              "title": "DetectChallengesData",
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": true
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "data"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "error": {
-              "additionalProperties": false,
-              "properties": {
-                "code": {
-                  "type": "string"
-                },
-                "details": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "code",
-                "message"
-              ],
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": false
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "error"
-          ],
-          "type": "object"
-        }
-      ],
-      "type": "object"
-    },
-    "title": "Detect Interactive Challenges"
-  },
-  {
-    "annotations": {
-      "destructiveHint": true,
-      "idempotentHint": false,
-      "openWorldHint": true,
-      "readOnlyHint": false,
-      "title": "Batch Click Coordinates"
-    },
-    "description": "Click an ordered set of viewport CSS coordinates in one autonomous call using natural pointer motion between targets. Intended as a general visual UI primitive; all coordinates must come from one stable page state.",
-    "inputSchema": {
-      "$defs": {
-        "ClickTarget": {
-          "properties": {
-            "label": {
-              "default": "",
-              "description": "Optional target label",
-              "maxLength": 200,
-              "title": "Label",
-              "type": "string"
-            },
-            "x": {
-              "description": "Viewport X coordinate in CSS pixels",
-              "minimum": 0,
-              "title": "X",
-              "type": "number"
-            },
-            "y": {
-              "description": "Viewport Y coordinate in CSS pixels",
-              "minimum": 0,
-              "title": "Y",
-              "type": "number"
-            }
-          },
-          "required": [
-            "x",
-            "y"
-          ],
-          "title": "ClickTarget",
-          "type": "object"
-        }
-      },
-      "additionalProperties": false,
-      "properties": {
-        "button": {
-          "default": "left",
-          "enum": [
-            "left",
-            "right",
-            "middle"
-          ],
-          "title": "Button",
-          "type": "string"
-        },
-        "continue_on_error": {
-          "default": false,
-          "description": "Continue after a failed target; false avoids unsafe partial-state continuation.",
-          "title": "Continue On Error",
-          "type": "boolean"
-        },
-        "inter_click_delay_max_ms": {
-          "default": 500,
-          "maximum": 5000,
-          "minimum": 0,
-          "title": "Inter Click Delay Max Ms",
-          "type": "integer"
-        },
-        "inter_click_delay_min_ms": {
-          "default": 200,
-          "maximum": 5000,
-          "minimum": 0,
-          "title": "Inter Click Delay Min Ms",
-          "type": "integer"
-        },
-        "profile": {
-          "default": "natural",
-          "enum": [
-            "natural",
-            "precise",
-            "direct"
-          ],
-          "title": "Profile",
-          "type": "string"
-        },
-        "stop_on_url_change": {
-          "default": true,
-          "description": "Abort remaining coordinates if a click changes the page URL.",
-          "title": "Stop On Url Change",
-          "type": "boolean"
-        },
-        "targets": {
-          "description": "Ordered viewport targets derived from one stable visual state.",
-          "items": {
-            "$ref": "#/$defs/ClickTarget"
-          },
-          "maxItems": 25,
-          "minItems": 1,
-          "title": "Targets",
-          "type": "array"
-        }
-      },
-      "required": [
-        "targets"
-      ],
-      "title": "BatchClickInput",
-      "type": "object"
-    },
-    "name": "page_click_xy_batch",
-    "outputSchema": {
-      "$defs": {
-        "BatchClickResultData": {
-          "additionalProperties": false,
-          "properties": {
-            "error": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Error"
-            },
-            "index": {
-              "title": "Index",
-              "type": "integer"
-            },
-            "label": {
-              "title": "Label",
-              "type": "string"
-            },
-            "motion": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/PointerMotionData"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "success": {
-              "title": "Success",
-              "type": "boolean"
-            },
-            "x": {
-              "title": "X",
-              "type": "number"
-            },
-            "y": {
-              "title": "Y",
-              "type": "number"
-            }
-          },
-          "required": [
-            "index",
-            "x",
-            "y",
-            "label",
-            "success",
-            "error",
-            "motion"
-          ],
-          "title": "BatchClickResultData",
-          "type": "object"
-        },
-        "PointerMotionData": {
-          "additionalProperties": false,
-          "properties": {
-            "button": {
-              "enum": [
-                "left",
-                "right",
-                "middle"
-              ],
-              "title": "Button",
-              "type": "string"
-            },
-            "delay_before_press_ms": {
-              "title": "Delay Before Press Ms",
-              "type": "integer"
-            },
-            "hold_duration_ms": {
-              "title": "Hold Duration Ms",
-              "type": "integer"
-            },
-            "planned_duration_ms": {
-              "title": "Planned Duration Ms",
-              "type": "integer"
-            },
-            "profile": {
-              "enum": [
-                "natural",
-                "precise",
-                "direct"
-              ],
-              "title": "Profile",
-              "type": "string"
-            },
-            "reaction_delay_ms": {
-              "title": "Reaction Delay Ms",
-              "type": "integer"
-            },
-            "start_x": {
-              "title": "Start X",
-              "type": "number"
-            },
-            "start_y": {
-              "title": "Start Y",
-              "type": "number"
-            },
-            "steps": {
-              "title": "Steps",
-              "type": "integer"
-            },
-            "target_x": {
-              "title": "Target X",
-              "type": "number"
-            },
-            "target_y": {
-              "title": "Target Y",
-              "type": "number"
-            }
-          },
-          "required": [
-            "profile",
-            "start_x",
-            "start_y",
-            "target_x",
-            "target_y",
-            "steps",
-            "planned_duration_ms",
-            "button",
-            "reaction_delay_ms",
-            "delay_before_press_ms",
-            "hold_duration_ms"
-          ],
-          "title": "PointerMotionData",
-          "type": "object"
-        }
-      },
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": false,
-              "properties": {
-                "abort_index": {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "title": "Abort Index"
-                },
-                "aborted": {
-                  "title": "Aborted",
-                  "type": "boolean"
-                },
-                "clicks_completed": {
-                  "title": "Clicks Completed",
-                  "type": "integer"
-                },
-                "final_url": {
-                  "title": "Final Url",
-                  "type": "string"
-                },
-                "initial_url": {
-                  "title": "Initial Url",
-                  "type": "string"
-                },
-                "results": {
-                  "items": {
-                    "$ref": "#/$defs/BatchClickResultData"
-                  },
-                  "title": "Results",
-                  "type": "array"
-                },
-                "total_targets": {
-                  "title": "Total Targets",
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "total_targets",
-                "clicks_completed",
-                "results",
-                "aborted",
-                "abort_index",
-                "initial_url",
-                "final_url"
-              ],
-              "title": "BatchClickData",
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": true
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "data"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "error": {
-              "additionalProperties": false,
-              "properties": {
-                "code": {
-                  "type": "string"
-                },
-                "details": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "code",
-                "message"
-              ],
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": false
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "error"
-          ],
-          "type": "object"
-        }
-      ],
-      "type": "object"
-    },
-    "title": "Batch Click Coordinates"
-  },
-  {
-    "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true,
-      "title": "Wait For Challenge Result"
-    },
-    "description": "Autonomously poll bounded observable token, success, retry, and challenge-state signals. Returns status without exposing token values or promising verification completion.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "properties": {
-        "challenge_selectors": {
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 20,
-          "title": "Challenge Selectors",
-          "type": "array"
-        },
-        "poll_interval_s": {
-          "default": 0.5,
-          "maximum": 5,
-          "minimum": 0.1,
-          "title": "Poll Interval S",
-          "type": "number"
-        },
-        "retry_selectors": {
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 20,
-          "title": "Retry Selectors",
-          "type": "array"
-        },
-        "success_selectors": {
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 20,
-          "title": "Success Selectors",
-          "type": "array"
-        },
-        "timeout_s": {
-          "default": 10,
-          "maximum": 60,
-          "minimum": 0.1,
-          "title": "Timeout S",
-          "type": "number"
-        },
-        "token_selectors": {
-          "description": "Token fields; only non-empty length is returned, never the token value.",
-          "items": {
-            "type": "string"
-          },
-          "maxItems": 20,
-          "title": "Token Selectors",
-          "type": "array"
-        }
-      },
-      "title": "WaitChallengeInput",
-      "type": "object"
-    },
-    "name": "page_wait_challenge_result",
-    "outputSchema": {
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": false,
-              "properties": {
-                "elapsed_ms": {
-                  "title": "Elapsed Ms",
-                  "type": "integer"
-                },
-                "matched_selector": {
-                  "title": "Matched Selector",
-                  "type": "string"
-                },
-                "needs_retry": {
-                  "title": "Needs Retry",
-                  "type": "boolean"
-                },
-                "new_challenge": {
-                  "title": "New Challenge",
-                  "type": "boolean"
-                },
-                "observations": {
-                  "title": "Observations",
-                  "type": "integer"
-                },
-                "passed": {
-                  "title": "Passed",
-                  "type": "boolean"
-                },
-                "status": {
-                  "enum": [
-                    "passed",
-                    "needs_retry",
-                    "new_challenge",
-                    "pending",
-                    "timeout",
-                    "indeterminate"
-                  ],
-                  "title": "Status",
-                  "type": "string"
-                },
-                "token_length": {
-                  "title": "Token Length",
-                  "type": "integer"
-                },
-                "token_present": {
-                  "title": "Token Present",
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "status",
-                "passed",
-                "needs_retry",
-                "new_challenge",
-                "token_present",
-                "token_length",
-                "matched_selector",
-                "elapsed_ms",
-                "observations"
-              ],
-              "title": "WaitChallengeData",
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": true
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "data"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "error": {
-              "additionalProperties": false,
-              "properties": {
-                "code": {
-                  "type": "string"
-                },
-                "details": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "code",
-                "message"
-              ],
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": false
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "error"
-          ],
-          "type": "object"
-        }
-      ],
-      "type": "object"
-    },
-    "title": "Wait For Challenge Result"
   },
   {
     "annotations": {
@@ -4093,19 +3221,6 @@
               "pattern": "^[0-9a-f]{64}$",
               "title": "Request Fingerprint",
               "type": "string"
-            },
-            "retry_of": {
-              "anyOf": [
-                {
-                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Retry Of"
             },
             "schema_version": {
               "const": "1",
@@ -4640,19 +3755,6 @@
               "title": "Request Fingerprint",
               "type": "string"
             },
-            "retry_of": {
-              "anyOf": [
-                {
-                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Retry Of"
-            },
             "schema_version": {
               "const": "1",
               "default": "1",
@@ -4822,19 +3924,6 @@
               "title": "Request Fingerprint",
               "type": "string"
             },
-            "retry_of": {
-              "anyOf": [
-                {
-                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Retry Of"
-            },
             "schema_version": {
               "const": "1",
               "default": "1",
@@ -5002,19 +4091,6 @@
               "pattern": "^[0-9a-f]{64}$",
               "title": "Request Fingerprint",
               "type": "string"
-            },
-            "retry_of": {
-              "anyOf": [
-                {
-                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Retry Of"
             },
             "schema_version": {
               "const": "1",
@@ -5185,19 +4261,6 @@
               "pattern": "^[0-9a-f]{64}$",
               "title": "Request Fingerprint",
               "type": "string"
-            },
-            "retry_of": {
-              "anyOf": [
-                {
-                  "pattern": "^[a-z][a-z0-9_-]{2,127}$",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "default": null,
-              "title": "Retry Of"
             },
             "schema_version": {
               "const": "1",
@@ -9632,413 +8695,6 @@
       "type": "object"
     },
     "title": "Wait Until"
-  },
-  {
-    "annotations": {
-      "destructiveHint": true,
-      "idempotentHint": false,
-      "openWorldHint": true,
-      "readOnlyHint": false,
-      "title": "Open and Snapshot"
-    },
-    "description": "Open a URL, optionally wait for a page condition, then return a bounded snapshot plus optional HTML and console context.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "description": "Input schema for opening a page and immediately capturing context.",
-      "properties": {
-        "include_console": {
-          "default": false,
-          "description": "Also include recent console messages from the page.",
-          "title": "Include Console",
-          "type": "boolean"
-        },
-        "include_html": {
-          "default": false,
-          "description": "Include bounded HTML excerpts in the nested page snapshot.",
-          "title": "Include Html",
-          "type": "boolean"
-        },
-        "max_elements": {
-          "default": 50,
-          "description": "Maximum summarized elements in the nested snapshot.",
-          "maximum": 200,
-          "minimum": 1,
-          "title": "Max Elements",
-          "type": "integer"
-        },
-        "max_text_chars": {
-          "default": 4000,
-          "description": "Maximum page text excerpt characters in the nested snapshot.",
-          "maximum": 20000,
-          "minimum": 0,
-          "title": "Max Text Chars",
-          "type": "integer"
-        },
-        "selector": {
-          "default": "",
-          "description": "Selector used by element/text wait conditions.",
-          "title": "Selector",
-          "type": "string"
-        },
-        "url": {
-          "description": "URL to open in the active browser tab.",
-          "title": "Url",
-          "type": "string"
-        },
-        "wait_condition": {
-          "default": "",
-          "description": "Optional wait condition before snapshot capture.",
-          "enum": [
-            "",
-            "present",
-            "visible",
-            "hidden",
-            "detached",
-            "clickable",
-            "stable",
-            "url_contains",
-            "url_matches",
-            "text_contains",
-            "text_matches"
-          ],
-          "title": "Wait Condition",
-          "type": "string"
-        },
-        "wait_timeout": {
-          "default": 5.0,
-          "description": "Maximum seconds for the optional wait condition.",
-          "maximum": 120,
-          "minimum": 0,
-          "title": "Wait Timeout",
-          "type": "number"
-        },
-        "wait_value": {
-          "default": "",
-          "description": "Value used by URL/text wait conditions.",
-          "title": "Wait Value",
-          "type": "string"
-        }
-      },
-      "required": [
-        "url"
-      ],
-      "title": "BrowserOpenAndSnapshotInput",
-      "type": "object"
-    },
-    "name": "browser_open_and_snapshot",
-    "outputSchema": {
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": false,
-              "properties": {
-                "console": {
-                  "anyOf": [
-                    {
-                      "additionalProperties": true,
-                      "type": "object"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "default": null,
-                  "title": "Console"
-                },
-                "final_url": {
-                  "title": "Final Url",
-                  "type": "string"
-                },
-                "meta": {
-                  "additionalProperties": true,
-                  "title": "Meta",
-                  "type": "object"
-                },
-                "snapshot": {
-                  "additionalProperties": true,
-                  "title": "Snapshot",
-                  "type": "object"
-                },
-                "title": {
-                  "title": "Title",
-                  "type": "string"
-                },
-                "url": {
-                  "title": "Url",
-                  "type": "string"
-                },
-                "wait": {
-                  "additionalProperties": true,
-                  "title": "Wait",
-                  "type": "object"
-                }
-              },
-              "required": [
-                "url",
-                "final_url",
-                "title",
-                "wait",
-                "snapshot",
-                "meta"
-              ],
-              "title": "BrowserOpenAndSnapshotData",
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": true
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "data"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "error": {
-              "additionalProperties": false,
-              "properties": {
-                "code": {
-                  "type": "string"
-                },
-                "details": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "code",
-                "message"
-              ],
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": false
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "error"
-          ],
-          "type": "object"
-        }
-      ],
-      "type": "object"
-    },
-    "title": "Open and Snapshot"
-  },
-  {
-    "annotations": {
-      "destructiveHint": false,
-      "idempotentHint": true,
-      "openWorldHint": true,
-      "readOnlyHint": true,
-      "title": "Extract Links"
-    },
-    "description": "Extract bounded link data from the current page with optional origin filtering and URL normalization.",
-    "inputSchema": {
-      "additionalProperties": false,
-      "description": "Input schema for bounded link extraction.",
-      "properties": {
-        "absolute_urls": {
-          "default": true,
-          "description": "Return absolute URLs in the url field when possible.",
-          "title": "Absolute Urls",
-          "type": "boolean"
-        },
-        "include_text": {
-          "default": true,
-          "description": "Include bounded visible link text.",
-          "title": "Include Text",
-          "type": "boolean"
-        },
-        "limit": {
-          "default": 50,
-          "description": "Maximum links to return.",
-          "maximum": 200,
-          "minimum": 1,
-          "title": "Limit",
-          "type": "integer"
-        },
-        "same_origin_only": {
-          "default": false,
-          "description": "Return only links whose absolute URL has the current page origin.",
-          "title": "Same Origin Only",
-          "type": "boolean"
-        },
-        "selector": {
-          "default": "a",
-          "description": "CSS/XPath/DrissionPage locator selecting links or containers.",
-          "title": "Selector",
-          "type": "string"
-        }
-      },
-      "title": "BrowserExtractLinksInput",
-      "type": "object"
-    },
-    "name": "browser_extract_links",
-    "outputSchema": {
-      "oneOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": false,
-              "properties": {
-                "absolute_urls": {
-                  "title": "Absolute Urls",
-                  "type": "boolean"
-                },
-                "count": {
-                  "title": "Count",
-                  "type": "integer"
-                },
-                "include_text": {
-                  "title": "Include Text",
-                  "type": "boolean"
-                },
-                "limit": {
-                  "title": "Limit",
-                  "type": "integer"
-                },
-                "links": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Links",
-                  "type": "array"
-                },
-                "locator": {
-                  "title": "Locator",
-                  "type": "string"
-                },
-                "meta": {
-                  "additionalProperties": true,
-                  "title": "Meta",
-                  "type": "object"
-                },
-                "returned": {
-                  "title": "Returned",
-                  "type": "integer"
-                },
-                "same_origin_only": {
-                  "title": "Same Origin Only",
-                  "type": "boolean"
-                },
-                "selector": {
-                  "title": "Selector",
-                  "type": "string"
-                },
-                "selector_normalized": {
-                  "title": "Selector Normalized",
-                  "type": "boolean"
-                },
-                "selector_strategy": {
-                  "title": "Selector Strategy",
-                  "type": "string"
-                },
-                "truncated": {
-                  "title": "Truncated",
-                  "type": "boolean"
-                }
-              },
-              "required": [
-                "selector",
-                "locator",
-                "selector_strategy",
-                "selector_normalized",
-                "include_text",
-                "same_origin_only",
-                "absolute_urls",
-                "count",
-                "returned",
-                "limit",
-                "truncated",
-                "links",
-                "meta"
-              ],
-              "title": "BrowserExtractLinksData",
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": true
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "data"
-          ],
-          "type": "object"
-        },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "data": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "error": {
-              "additionalProperties": false,
-              "properties": {
-                "code": {
-                  "type": "string"
-                },
-                "details": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "message": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "code",
-                "message"
-              ],
-              "type": "object"
-            },
-            "message": {
-              "type": "string"
-            },
-            "ok": {
-              "const": false
-            }
-          },
-          "required": [
-            "ok",
-            "message",
-            "error"
-          ],
-          "type": "object"
-        }
-      ],
-      "type": "object"
-    },
-    "title": "Extract Links"
   },
   {
     "annotations": {

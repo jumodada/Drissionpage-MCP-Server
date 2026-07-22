@@ -19,9 +19,7 @@ from .browser import (
     PointerOperations,
     StorageOperations,
     TargetResolver,
-    WorkflowOperations,
     WaitOperations,
-    VisionOperations,
 )
 from .selector import SelectorPlan
 
@@ -60,8 +58,6 @@ class PageTab:
         self.storage = StorageOperations(self)
         self.targeting = TargetResolver(self)
         self.waits = WaitOperations(self)
-        self.vision = VisionOperations(self)
-        self.workflows = WorkflowOperations(self)
 
     @property
     def native_tab_id(self) -> str:
