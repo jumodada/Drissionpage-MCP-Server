@@ -95,7 +95,7 @@ Then verify:
 The current tool registry should load 53 tools.
 
 
-## Task Completion / Pointer / Network 0.7.2 Checks
+## Task Completion / Pointer / Network 0.7.3 Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to `profile="direct"`; set `profile="natural"` for a deterministic 24-step eased trajectory with an exact endpoint.
 - In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` explicitly.
@@ -114,7 +114,7 @@ For the release reliability gate, run the deterministic public-tool benchmark:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.7.2-task-completion.json
+  --output benchmark-results/0.7.3-task-completion.json
 ```
 
 The report is workload-scoped. Every W01-W08 workload must reach at least 9/10;

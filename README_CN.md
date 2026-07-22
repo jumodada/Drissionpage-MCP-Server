@@ -14,7 +14,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.7.2 提供 53 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
+**DrissionPage MCP 0.7.3 提供 53 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -70,7 +70,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 53 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.2 从服务端删除表单、组件库、验证挑战与便利工作流编排：模型组合输入、选择、勾选、点击、键盘、指针、等待和状态读取原语，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 53 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.2 从服务端删除了表单、组件库、验证挑战与便利工作流编排；0.7.3 在不增加工具或组件专用分支的前提下，强化跨平台输入和文档边界证据。模型组合输入、选择、勾选、点击、键盘、指针、等待和状态读取原语，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -423,7 +423,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.7.2`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.7.3`。
 
 ### 浏览器问题？
 ```bash
@@ -452,13 +452,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.7.2 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.7.3 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.7.2)
+### 当前版本 (v0.7.3)
 - [x] 53 个原子导航、标签页/frame/shadow、观察、交互、网络、存储、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -477,6 +477,8 @@ which chromium         # macOS
 - [x] `page_pointer_move`、`page_pointer_drag` 与 `page_click_xy` 提供 `direct` 和有界、确定性的 `natural` profile，终点精确且失败安全释放
 - [x] 有界的可选 `page_pointer_drag.waypoints`，在一次按住手势中完成画布路径、地图操作、框选或可视化编辑器连线
 - [x] 文件上传、滚动、hover、select/check、键盘、iframe、shadow DOM、cookie 和 storage 工具，面向 DrissionPage 4.x
+- [x] 在受支持浏览器矩阵中通过原生 DrissionPage 输入完成受控输入与验证输入的十轮替换回归
+- [x] `frame_*` 读取跨源 OOPIF、DrissionPage 支持的 `shadow_*` 查找 closed Shadow DOM，并单独记录更窄的指针目标边界
 - [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
 - [x] 不保留动作历史，不生成代码片段，公开截图结果不暴露绝对路径
 - [x] 针对导航和截图路径的可选本地安全策略
@@ -616,14 +618,13 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.7.2
+## 🆕 最新版本：v0.7.3
 
-发布日期：2026-07-21。本次发布将核心收敛为准确、可组合的浏览器能力：
+发布日期：2026-07-22。本次补丁版本强化输入可靠性与文档边界证据，核心仍保持 53 个原子工具：
 
-- 公共能力收敛为 53 个类型化浏览器工具、零个 prompts 和一个静态可选 Skills 目录 resource。
-- 删除表单、组件库、验证挑战和便利工作流编排，不在核心中维护不完整的启发式。
-- W01-W08 改用保留的原子工具覆盖受控输入、contenteditable、ARIA 组件、原生选择/勾选、上传、提交、弹窗、popup 与下载。
-- 保留 `element_click_and_download`、`page_dialog_respond` 等具有不可分割时序边界的通用能力及关联 receipt。
-- 指针原语同时提供精确 `direct` 移动与确定性的 24 步 `natural` 轨迹，不新增工作流工具。
-- 挑战观察、逐步验证的多次点击和业务判断遵循外部 `skills/<skill-name>/SKILL.md` 目录约定。
-- Skills 独立发布且完全可选，不进入 Python 发行包。
+- 增加受控输入与验证输入通过原生 DrissionPage 输入连续替换十轮的浏览器回归覆盖。
+- 证明公共 `frame_*` 可遍历已附加的跨源 OOPIF，`shadow_*` 可查找页面 JavaScript 无法访问的 closed Shadow DOM。
+- 修正 frame/shadow 文档，同时保持基于 selector 的指针目标仅支持一个同源 iframe 和嵌套 open Shadow DOM 路径。
+- 增加 Ubuntu、macOS、Windows 三平台浏览器边界矩阵。
+- 保留确定性的 24 步 `natural` 指针契约，同时从 fixture 验收中移除浏览器调度抖动依赖。
+- 不新增公共工具、组件库分支、站点工作流、prompt 或进入发行包的 Skill。

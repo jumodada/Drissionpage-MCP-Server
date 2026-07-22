@@ -119,7 +119,7 @@ The server marks tools with MCP annotations:
 
 ## Tool Inventory
 
-The 0.7.2 registry contains 53 typed browser tools. Site, component, challenge,
+The 0.7.3 registry contains 53 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Network Listener Beta
@@ -235,7 +235,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.7.2 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.7.3 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 

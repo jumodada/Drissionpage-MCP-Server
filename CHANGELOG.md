@@ -7,12 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-07-22
+
 ### Changed
 - Corrected the `shadow_find` and `shadow_find_all` descriptions: supported DrissionPage 4.x runtimes expose both tested open roots and closed roots that page JavaScript cannot access. Pointer element targeting remains limited to same-origin iframe and open-shadow paths.
+- Kept the public registry at 53 generic browser tools with no component-library, site-specific, or business-workflow branches.
 
 ### Verification
 - Added a deterministic cross-origin OOPIF and closed Shadow DOM fixture, public-MCP regression coverage, and a focused Ubuntu/macOS/Windows browser-boundary CI matrix.
 - Added ten-cycle clear-before-native-input regression coverage for controlled and validation inputs without introducing form or component-library branches.
+- Stabilized the strict natural-drag fixture by keeping deterministic planned-delay coverage separate from browser event-scheduling jitter while retaining held-move, duration, endpoint, bounded-step, and eased-path acceptance checks.
 
 ## [0.7.2] - 2026-07-21
 
@@ -422,7 +426,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.3...HEAD
+[0.7.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.6.2...v0.7.0

@@ -14,7 +14,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.7.2 exposes 53 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
+**DrissionPage MCP 0.7.3 exposes 53 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
 
 > **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
@@ -70,7 +70,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 53 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.2 removes form-, component-, challenge-, and convenience-workflow orchestration from the server. Models compose type, select, check, click, keyboard, pointer, wait, and state-read primitives, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 53 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.2 removed form-, component-, challenge-, and convenience-workflow orchestration from the server; 0.7.3 strengthens cross-platform input and document-boundary evidence without adding tools or component-specific branches. Models compose type, select, check, click, keyboard, pointer, wait, and state-read primitives, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -423,7 +423,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.7.2`.
+Should output the installed package version, for example `drissionpage-mcp 0.7.3`.
 
 ### Browser Issues?
 ```bash
@@ -452,13 +452,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.7.2 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.7.3 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.7.2)
+### Current (v0.7.3)
 - [x] 53 atomic navigation, tab/frame/shadow, observation, interaction, network, storage, wait, and console tools
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -477,6 +477,8 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] `direct` and deterministic bounded `natural` profiles for `page_pointer_move`, `page_pointer_drag`, and `page_click_xy`, with exact endpoints and failure-safe release
 - [x] Optional bounded `page_pointer_drag.waypoints` for one held multi-segment canvas, map, box-selection, or visual-editor gesture
 - [x] File upload, scrolling, hover, select/check, keyboard, iframe, shadow DOM, cookie, and storage tools for DrissionPage 4.x
+- [x] Ten-cycle controlled and validation input replacement through native DrissionPage input on the supported browser matrix
+- [x] Cross-origin OOPIF reads through `frame_*` and closed Shadow DOM lookup through DrissionPage-backed `shadow_*`, with narrower pointer targeting documented separately
 - [x] Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` is reserved for restricted container/root environments
 - [x] No retained action history, generated code snippets, or absolute screenshot paths in public results
 - [x] Opt-in local safety policy for navigation and screenshot paths
@@ -616,14 +618,13 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.7.2
+## 🆕 Latest Version: v0.7.3
 
-Released on 2026-07-21. This release narrows the core to accurate, composable browser capabilities:
+Released on 2026-07-22. This patch release strengthens input reliability and document-boundary evidence while keeping the core unchanged at 53 atomic tools:
 
-- Reduced the public surface to 53 typed browser tools, zero prompts, and one static optional-Skills catalog resource.
-- Removed form, component-library, challenge, and convenience-workflow orchestration instead of maintaining incomplete heuristics in the core.
-- W01-W08 now use retained atomic tools for controlled inputs, contenteditable, ARIA widgets, native select/check, uploads, submissions, dialogs, popups, and downloads.
-- Kept timing-critical generic boundaries such as `element_click_and_download` and `page_dialog_respond` with correlated receipts.
-- Pointer primitives expose exact `direct` movement and a deterministic 24-step `natural` trajectory without adding a separate workflow tool.
-- Challenge observation, verified multi-click sequences, and business decisions live under the external `skills/<skill-name>/SKILL.md` convention.
-- Skills are optional, separately published, and not included in the Python distribution.
+- Added ten-cycle browser regression coverage for controlled and validation input replacement through native DrissionPage input.
+- Proved public `frame_*` traversal against an attached cross-origin OOPIF and `shadow_*` lookup against a closed Shadow DOM root that page JavaScript cannot access.
+- Corrected frame/shadow documentation while keeping selector-backed pointer targeting limited to one same-origin iframe and nested open Shadow DOM paths.
+- Added a focused Ubuntu, macOS, and Windows browser-boundary matrix.
+- Kept the deterministic 24-step `natural` pointer contract while removing browser scheduler jitter from the fixture's acceptance decision.
+- Added no public tool, component-library branch, site workflow, prompt, or packaged Skill.
