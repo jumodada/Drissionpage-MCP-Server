@@ -9,7 +9,6 @@ from .limits import MAX_WAIT_SECONDS
 from .runtime import (
     DEFAULT_ARTIFACT_LIMIT,
     DEFAULT_OPERATION_LIMIT,
-    DEFAULT_RETRY_LIMIT,
     OperationClaim,
     OperationInFlightError,
     OperationKeyConflictError,
@@ -17,7 +16,6 @@ from .runtime import (
     TaskRuntime,
 )
 from .tab import PageTab
-from .tool_outputs import TaskContext
 
 logger = logging.getLogger(__name__)
 
@@ -28,16 +26,12 @@ class DrissionPageContext(TaskRuntime):
     def __init__(
         self,
         *,
-        history_limit: int = 100,
         operation_limit: int = DEFAULT_OPERATION_LIMIT,
         artifact_limit: int = DEFAULT_ARTIFACT_LIMIT,
-        retry_limit: int = DEFAULT_RETRY_LIMIT,
     ) -> None:
         super().__init__(
-            history_limit=history_limit,
             operation_limit=operation_limit,
             artifact_limit=artifact_limit,
-            retry_limit=retry_limit,
         )
         self._browser: Optional[Any] = None
         self._current_tab: Optional[PageTab] = None
@@ -228,20 +222,6 @@ class DrissionPageContext(TaskRuntime):
     def browser(self) -> Optional[Any]:
         """Return the underlying DrissionPage browser object."""
         return self._browser
-
-    def task_summary(self) -> TaskContext:
-        """Return task state plus the browser tab identifiers owned by context."""
-
-        current_tab_id = self._current_tab.mcp_tab_id if self._current_tab else ""
-        active_tab_ids = tuple(
-            str(item.get("tab_id") or "")
-            for item in self.tab_summaries()
-            if item.get("tab_id")
-        )
-        return self.runtime_summary(
-            active_tab_ids=active_tab_ids,
-            current_tab_id=current_tab_id,
-        )
 
     def _wrap_page(self, page: Any) -> PageTab:
         tab = PageTab(page, self, mcp_tab_id=f"t{self._next_tab_index}")

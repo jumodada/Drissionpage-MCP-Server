@@ -96,7 +96,6 @@ async def network_listen_start(
         resource_type=args.resource_type,
         clear=args.clear,
     )
-    outcome.add_code("page.listen.start(targets=..., method=..., res_type=...)")
     outcome.add_result("Started network listener", **result)
     return outcome
 
@@ -123,7 +122,6 @@ async def network_listen_wait(
         include_body=args.include_body,
         max_body_chars=args.max_body_chars,
     )
-    outcome.add_code("page.listen.wait(count=..., timeout=..., fit_count=False)")
     outcome.add_result(
         f"Captured {result['count']} network packet{('' if result['count'] == 1 else 's')}",
         **with_response_meta(result),
@@ -147,6 +145,5 @@ async def network_listen_stop(
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.network.stop(clear=args.clear)
-    outcome.add_code("page.listen.stop()")
     outcome.add_result("Stopped network listener", **result)
     return outcome

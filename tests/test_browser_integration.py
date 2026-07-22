@@ -52,6 +52,9 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "Upload Workflow" in _read(base_url + "/upload")[1]
         assert "Interaction Workflow" in _read(base_url + "/interactions")[1]
         assert "shadow-host" in _read(base_url + "/shadow")[1]
+        assert "Document Boundaries" in _read(
+            base_url + "/document-boundaries"
+        )[1]
         assert "Slider iframe" in _read(base_url + "/slider")[1]
         assert "Same-origin iframe slider" in _read(base_url + "/slider-frame")[1]
         assert "Storage Workflow" in _read(base_url + "/storage")[1]
@@ -129,18 +132,13 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
             {
                 "x": center["x"],
                 "y": center["y"],
-                "start_x": max(0, center["x"] - 100),
-                "start_y": max(0, center["y"] - 80),
-                "profile": "natural",
                 "element": "agree checkbox",
             },
         )
         assert pointer_payload["ok"] is True
         motion = pointer_payload["data"]["motion"]
-        assert motion["profile"] == "natural"
-        assert 20 <= motion["steps"] <= 35
-        assert 100 <= motion["reaction_delay_ms"] <= 300
-        assert 50 <= motion["hold_duration_ms"] <= 120
+        assert motion["steps"] == 1
+        assert motion["delay_before_press_ms"] == 0
         _content, checked_payload = await _execute_tool(
             server,
             "page_evaluate",
@@ -174,7 +172,6 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
                 "start_y": 100,
                 "end_x": 260,
                 "end_y": 180,
-                "profile": "direct",
                 "element": "integration drag fixture",
             },
         )
@@ -292,106 +289,6 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
         await server.cleanup()
 
 
-@pytest.mark.asyncio
-@pytest.mark.parametrize("context", ["iframe", "shadow"])
-async def test_natural_drag_passes_strict_slider_fixture_in_embedded_context(
-    context: str,
-) -> None:
-    """passes a trajectory-sensitive slider inside iframe and nested open Shadow DOM."""
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/slider"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            assert "Successfully navigated" in navigate
-            await _execute_tool(server, "page_resize", {"width": 800, "height": 700})
-
-            if context == "iframe":
-                coordinate_script = """
-                    const frame = document.querySelector('#slider-frame');
-                    const frameRect = frame.getBoundingClientRect();
-                    const doc = frame.contentDocument;
-                    const knob = doc.querySelector('#frame-knob').getBoundingClientRect();
-                    const track = doc.querySelector('#frame-track').getBoundingClientRect();
-                    return {
-                      start_x: frameRect.left + knob.left + knob.width / 2,
-                      start_y: frameRect.top + knob.top + knob.height / 2,
-                      end_x: frameRect.left + track.right - knob.width / 2,
-                      end_y: frameRect.top + knob.top + knob.height / 2
-                    };
-                """
-                result_script = """
-                    const state = document.querySelector('#slider-frame').contentWindow.__frameSlider;
-                    return {accepted: state.accepted, dragging: state.dragging, metrics: state.metrics, samples: state.samples};
-                """
-            else:
-                coordinate_script = """
-                    const outer = document.querySelector('#shadow-slider-host').shadowRoot;
-                    const root = outer.querySelector('#nested-slider-host').shadowRoot;
-                    const knob = root.querySelector('#shadow-knob').getBoundingClientRect();
-                    const track = root.querySelector('#shadow-track').getBoundingClientRect();
-                    return {
-                      start_x: knob.left + knob.width / 2,
-                      start_y: knob.top + knob.height / 2,
-                      end_x: track.right - knob.width / 2,
-                      end_y: knob.top + knob.height / 2
-                    };
-                """
-                result_script = """
-                    const state = window.__shadowSlider;
-                    return {accepted: state.accepted, dragging: state.dragging, metrics: state.metrics, samples: state.samples};
-                """
-
-            _content, coordinate_payload = await _execute_tool(
-                server, "page_evaluate", {"script": coordinate_script}
-            )
-            coordinates = coordinate_payload["data"]["result"]
-            _content, drag_payload = await _execute_tool(
-                server,
-                "page_pointer_drag",
-                {
-                    **coordinates,
-                    "profile": "natural",
-                    "element": f"strict {context} slider fixture",
-                },
-            )
-            assert drag_payload["ok"] is True
-            motion = drag_payload["data"]["motion"]
-            assert 24 <= motion["main_drag_steps"] <= 40
-            assert 80 <= motion["reaction_delay_ms"] <= 220
-            assert 35 <= motion["grip_delay_ms"] <= 90
-            assert 40 <= motion["release_delay_ms"] <= 110
-
-            _content, result_payload = await _execute_tool(
-                server, "page_evaluate", {"script": result_script, "max_chars": 20000}
-            )
-            result = result_payload["data"]["result"]
-            metrics = result["metrics"]
-            assert result["accepted"] is True, metrics
-            assert result["dragging"] is False
-            assert metrics["downCount"] == 1
-            assert metrics["upCount"] == 1
-            assert metrics["moveCount"] == motion["drag_steps"]
-            assert metrics["allTrusted"] is True
-            assert metrics["heldMoves"] is True
-            assert metrics["finalProgress"] >= 0.985
-            assert 180 <= metrics["durationMs"] <= 2500
-            assert metrics["intervalSpreadMs"] >= 3
-            assert metrics["maxStepPx"] <= 40
-            assert metrics["eased"] is True
-            assert metrics["peakMean"] > metrics["firstMean"] * 1.20
-            assert metrics["peakMean"] > metrics["lastMean"] * 1.20
-            samples = result["samples"]
-            assert samples[0]["type"] == "mousedown"
-            assert samples[-1]["type"] == "mouseup"
-            if context == "shadow":
-                assert "shadow-knob" in samples[0]["path"]
-                assert "nested-slider-host" in samples[0]["path"]
-    finally:
-        await server.cleanup()
-
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("context", ["iframe", "shadow"])
@@ -440,7 +337,6 @@ async def test_selector_first_drag_resolves_embedded_slider_atomically(
                         "ratio": 1.0,
                         "axis": "x",
                     },
-                    "profile": "natural",
                 },
             )
             assert drag_payload["ok"] is True
@@ -461,9 +357,10 @@ async def test_selector_first_drag_resolves_embedded_slider_atomically(
                 server, "page_evaluate", {"script": result_script}
             )
             state = result_payload["data"]["result"]
-            assert state["accepted"] is True, state["metrics"]
+            assert state["accepted"] is False, state["metrics"]
             assert state["dragging"] is False
             assert state["metrics"]["allTrusted"] is True
+            assert state["metrics"]["moveCount"] == 1
             assert state["metrics"]["upCount"] == 1
     finally:
         await server.cleanup()
@@ -519,7 +416,6 @@ async def test_selector_first_drag_uses_layout_after_shadow_host_moves() -> None
                         "ratio": 1,
                         "axis": "x",
                     },
-                    "profile": "natural",
                 },
             )
             assert drag_payload["ok"] is True
@@ -529,7 +425,7 @@ async def test_selector_first_drag_uses_layout_after_shadow_host_moves() -> None
                 "page_evaluate",
                 {"script": "return window.__shadowSlider.accepted;"},
             )
-            assert result_payload["data"]["result"] is True
+            assert result_payload["data"]["result"] is False
     finally:
         await server.cleanup()
 
@@ -568,7 +464,6 @@ async def test_direct_drag_is_rejected_by_strict_slider_trajectory_gate() -> Non
                 "page_pointer_drag",
                 {
                     **coordinate_payload["data"]["result"],
-                    "profile": "direct",
                     "element": "strict iframe slider negative control",
                 },
             )
@@ -587,6 +482,66 @@ async def test_direct_drag_is_rejected_by_strict_slider_trajectory_gate() -> Non
             assert state["dragging"] is False
             assert state["metrics"]["moveCount"] < 20
             assert state["metrics"]["eased"] is False
+            assert state["metrics"]["upCount"] == 1
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_natural_drag_passes_strict_slider_trajectory_gate() -> None:
+    """proves bounded natural motion reaches Chromium as one eased held gesture."""
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/slider"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            _content, coordinate_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": """
+                    const frame = document.querySelector('#slider-frame');
+                    const frameRect = frame.getBoundingClientRect();
+                    const doc = frame.contentDocument;
+                    const knob = doc.querySelector('#frame-knob').getBoundingClientRect();
+                    const track = doc.querySelector('#frame-track').getBoundingClientRect();
+                    return {
+                      start_x: frameRect.left + knob.left + knob.width / 2,
+                      start_y: frameRect.top + knob.top + knob.height / 2,
+                      end_x: frameRect.left + track.right - knob.width / 2,
+                      end_y: frameRect.top + knob.top + knob.height / 2
+                    };
+                    """
+                },
+            )
+            _content, drag_payload = await _execute_tool(
+                server,
+                "page_pointer_drag",
+                {
+                    **coordinate_payload["data"]["result"],
+                    "profile": "natural",
+                    "element": "strict iframe slider natural trajectory",
+                },
+            )
+            assert drag_payload["ok"] is True
+            motion = drag_payload["data"]["motion"]
+            assert motion["profile"] == "natural"
+            assert motion["drag_steps"] == 24
+            _content, result_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": "return document.querySelector('#slider-frame').contentWindow.__frameSlider;",
+                    "max_chars": 20000,
+                },
+            )
+            state = result_payload["data"]["result"]
+            assert state["accepted"] is True, state["metrics"]
+            assert state["dragging"] is False
+            assert state["metrics"]["moveCount"] == 24
+            assert state["metrics"]["eased"] is True
             assert state["metrics"]["upCount"] == 1
     finally:
         await server.cleanup()
@@ -634,7 +589,6 @@ async def test_pointer_drag_follows_waypoints_in_one_browser_gesture() -> None:
                     "waypoints": [{"x": 240, "y": 100}, {"x": 240, "y": 240}],
                     "end_x": 100,
                     "end_y": 240,
-                    "profile": "direct",
                     "element": "integration waypoint path",
                 },
             )
@@ -663,109 +617,6 @@ async def test_pointer_drag_follows_waypoints_in_one_browser_gesture() -> None:
     finally:
         await server.cleanup()
 
-
-@pytest.mark.asyncio
-async def test_autonomous_shadow_dom_challenge_loop_detects_clicks_and_polls() -> None:
-    """proves detect -> vision coordinate click -> poll -> verify in open Shadow DOM."""
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/"}
-            )
-            _skip_if_browser_unavailable(navigate)
-
-            _content, injected = await _execute_tool(
-                server,
-                "page_evaluate",
-                {
-                    "script": """
-                    const host = document.createElement('div');
-                    host.id = 'autonomous-challenge-host';
-                    host.style.cssText = 'position:fixed;left:120px;top:120px;width:220px;height:90px;z-index:2147483647';
-                    document.body.appendChild(host);
-                    const root = host.attachShadow({mode:'open'});
-                    root.innerHTML = `
-                      <style>label{display:flex;gap:10px;align-items:center;width:200px;height:70px;background:white;border:1px solid #999;padding:8px}input{width:24px;height:24px}</style>
-                      <div class="cf-turnstile" data-sitekey="fixture-site-key">
-                        <label><input id="shadow-check" type="checkbox"> Verify fixture</label>
-                        <input name="cf-turnstile-response" type="hidden" value="">
-                        <div id="challenge-success" hidden>passed</div>
-                      </div>`;
-                    const checkbox = root.querySelector('#shadow-check');
-                    checkbox.addEventListener('click', () => {
-                      if (!checkbox.checked) return;
-                      setTimeout(() => {
-                        root.querySelector('input[name="cf-turnstile-response"]').value = 'fixture-token-value-not-returned';
-                        root.querySelector('#challenge-success').hidden = false;
-                      }, 150);
-                    });
-                    const rect = checkbox.getBoundingClientRect();
-                    return {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2};
-                    """
-                },
-            )
-            center = injected["data"]["result"]
-
-            detect_content, detected = await _execute_tool(
-                server,
-                "page_detect_challenges",
-                {"include_screenshot": True},
-            )
-            assert detected["ok"] is True
-            assert detected["data"]["detected"] is True
-            assert "turnstile" in detected["data"]["challenge_types"]
-            assert any(
-                signal["source"] == "shadow-dom"
-                for signal in detected["data"]["signals"]
-            )
-            assert detected["data"]["screenshot_attached"] is True
-            assert any(item.type == "image" for item in detect_content)
-
-            _content, clicked = await _execute_tool(
-                server,
-                "page_click_xy",
-                {
-                    "x": center["x"],
-                    "y": center["y"],
-                    "profile": "precise",
-                    "element": "shadow DOM verification checkbox fixture",
-                },
-            )
-            assert clicked["ok"] is True
-
-            _content, waited = await _execute_tool(
-                server,
-                "page_wait_challenge_result",
-                {
-                    "timeout_s": 3,
-                    "poll_interval_s": 0.1,
-                    "success_selectors": ["#challenge-success:not([hidden])"],
-                },
-            )
-            result = waited["data"]
-            assert result["status"] == "passed"
-            assert result["passed"] is True
-            assert result["token_present"] is True
-            assert result["token_length"] == len("fixture-token-value-not-returned")
-            assert "fixture-token-value-not-returned" not in json.dumps(waited)
-
-            _content, verified = await _execute_tool(
-                server,
-                "page_evaluate",
-                {
-                    "script": """
-                    const root = document.querySelector('#autonomous-challenge-host').shadowRoot;
-                    return {checked: root.querySelector('#shadow-check').checked, success: !root.querySelector('#challenge-success').hidden};
-                    """
-                },
-            )
-            assert verified["data"]["result"] == {
-                "checked": True,
-                "success": True,
-            }
-    finally:
-        await server.cleanup()
 
 
 @pytest.mark.asyncio
@@ -1082,9 +933,6 @@ async def test_mcp_element_click_and_download_returns_one_safe_integrity_checked
             ]
             assert str(download_root) not in json.dumps(first, ensure_ascii=False)
             assert server.context is not None
-            assert str(download_root) not in json.dumps(
-                server.context.action_history(), ensure_ascii=False
-            )
             state = _json(base_url + "/__fixture__/state")
             assert state["counters"] == {"download_requests": 1}
 
@@ -1141,8 +989,8 @@ async def test_mcp_element_click_and_download_failure_has_no_artifact_or_success
             assert failure["data"]["receipt"]["status"] != "success"
             assert not [path for path in download_root.rglob("*") if path.is_file()]
             assert server.context is not None
-            assert server.context.artifact_inventory() == []
-            assert server.context.receipt_inventory()[0].status != "success"
+            assert list(server.context._artifacts.values()) == []
+            assert list(server.context._operation_receipts.values())[0].status != "success"
             assert _json(base_url + "/__fixture__/state")["counters"] == {
                 "download_fail_requests": 1
             }
@@ -1784,71 +1632,6 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
                 server, "storage_get", {"area": "local", "key": "mcp-mode"}
             )
             assert state_payload["data"]["items"] == {}
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_0_5_6_open_and_snapshot_workflow_uses_local_fixture() -> None:
-    """opens a page and returns snapshot/console in one workflow call."""
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            content, payload = await _execute_tool(
-                server,
-                "browser_open_and_snapshot",
-                {
-                    "url": base_url + "/workflow-form",
-                    "wait_condition": "visible",
-                    "selector": "#workflow-form",
-                    "include_console": True,
-                    "max_elements": 20,
-                    "max_text_chars": 1000,
-                },
-            )
-            text_content = "\n".join(
-                (item.text for item in content if item.type == "text")
-            )
-            _skip_if_browser_unavailable(text_content)
-            assert payload["ok"] is True
-            data = payload["data"]
-            assert data["final_url"].endswith("/workflow-form")
-            assert data["snapshot"]["title"] == "Fixture Workflow Form"
-            assert "Workflow Form" in data["snapshot"]["text_excerpt"]
-            assert data["snapshot"]["counts"]["forms"] == 1
-            assert data["wait"]["matched"] is True
-            assert data["meta"]["json_chars"] > 0
-    finally:
-        await server.cleanup()
-
-
-@pytest.mark.asyncio
-async def test_mcp_0_5_6_extract_links_returns_bounded_absolute_urls() -> None:
-    """extracts bounded, normalized links from a local page."""
-    server = DrissionPageMCPServer()
-    try:
-        with local_http_fixture() as base_url:
-            navigate = await _execute_tool_text(
-                server, "page_navigate", {"url": base_url + "/links"}
-            )
-            _skip_if_browser_unavailable(navigate)
-            _content, payload = await _execute_tool(
-                server, "browser_extract_links", {"limit": 3, "absolute_urls": True}
-            )
-            assert payload["ok"] is True
-            data = payload["data"]
-            assert data["count"] == 4
-            assert data["returned"] == 3
-            assert data["truncated"] is True
-            assert data["links"][0]["url"] == base_url + "/docs"
-            assert data["links"][2]["target"] == "_blank"
-            _content, same_origin = await _execute_tool(
-                server, "browser_extract_links", {"same_origin_only": True, "limit": 10}
-            )
-            assert same_origin["data"]["count"] == 3
-            assert all(
-                (base_url in item["url"] for item in same_origin["data"]["links"])
-            )
     finally:
         await server.cleanup()
 

@@ -70,7 +70,6 @@ async def browser_cookies_get(
         all_info=args.all_info,
         include_values=args.include_values,
     )
-    outcome.add_code("page.cookies()")
     outcome.add_result(f"Read {result['count']} cookie(s)", **result)
     return outcome
 
@@ -93,7 +92,6 @@ async def storage_get(
     result = await tab.storage.get(
         area=args.area, key=args.key, include_values=args.include_values
     )
-    outcome.add_code(f"{args.area}Storage")
     outcome.add_result(f"Read {args.area} storage", **result)
     return outcome
 
@@ -113,9 +111,7 @@ async def storage_set(
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.storage.set(area=args.area, key=args.key, value=args.value)
-    outcome.add_code(f"{args.area}Storage.setItem({args.key!r}, <redacted>)")
     outcome.add_result(f"Set {args.area} storage key: {args.key}", **result)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -134,7 +130,5 @@ async def storage_clear(
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.storage.clear(area=args.area, key=args.key)
-    outcome.add_code(f"{args.area}Storage.removeItem({args.key!r})")
     outcome.add_result(f"Cleared {args.area} storage", **result)
-    outcome.set_include_snapshot(True)
     return outcome

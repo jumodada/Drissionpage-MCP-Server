@@ -120,7 +120,7 @@ POLICY_UPLOAD|configure_upload_root|Upload files from DP_MCP_UPLOAD_ROOT and pas
 POLICY_SCREENSHOT|configure_screenshot_root|Save screenshots under DP_MCP_SCREENSHOT_ROOT or choose an allowed path.|||DP_MCP_SCREENSHOT_ROOT
 UNSUPPORTED|check_drissionpage_version|Use a supported DrissionPage 4.x release that exposes this browser API.||python -m drissionpage_mcp.cli doctor|
 UNSUPPORTED|run_doctor|Run diagnostics from the same environment as the MCP client.||drissionpage-mcp doctor --launch-browser|
-UNSUPPORTED|fallback_to_primitives|Use lower-level page or element tools when the workflow helper is unavailable.|||
+UNSUPPORTED|use_available_primitives|Use tools/list to choose another atomic page or element capability.|||
 UNSUPPORTED_LISTENER|verify_listener_api|Check that the current DrissionPage 4.x tab exposes tab.listen.start/wait/stop.|||
 BROWSER_START_FAILED|run_doctor|Run browser diagnostics from the same environment as the MCP client.||drissionpage-mcp doctor --launch-browser|
 BROWSER_START_FAILED|configure_browser_path|Set an explicit Chrome/Chromium executable path when GUI clients cannot see shell PATH.|||CHROME_PATH
@@ -132,12 +132,10 @@ SCREENSHOT_FAILED|check_screenshot_path|If saving to disk, use a writable absolu
 PAGE_NAVIGATION_FAILED|check_url|Verify the URL is reachable from the MCP client environment.|||
 PAGE_NAVIGATION_FAILED|run_doctor|Run browser diagnostics if navigation failed because the browser could not start.||drissionpage-mcp doctor --launch-browser|
 PAGE_NAVIGATION_FAILED|inspect_current_page|If a previous page is still open, inspect the current URL before retrying.|page_get_url||
-BROWSER_NOT_INITIALIZED|navigate_first|Open a page with the workflow helper when you need immediate page context; use page_navigate only for navigation-only retries.|browser_open_and_snapshot||
-BROWSER_NOT_INITIALIZED|navigation_only_retry|Use page_navigate when you only need to navigate and will inspect the page separately.|page_navigate||
+BROWSER_NOT_INITIALIZED|navigate_first|Open a page with page_navigate, then inspect it with page_snapshot or another read-only tool.|page_navigate||
 MCP_ARGUMENT_INVALID|check_input_schema|Use exact snake_case argument names from the tool input schema.|||
-MCP_ARGUMENT_INVALID|inspect_tools_catalog|Read drissionpage://tools/catalog for compact required/default field guidance or tools/list for the complete JSON Schema before retrying.|||
+MCP_ARGUMENT_INVALID|inspect_tool_schema|Call tools/list and inspect the tool's complete JSON Schema before retrying.|||
 TOOL_NOT_FOUND|list_available_tools|Call tools/list and use one of the public tool names.|||
-TOOL_NOT_FOUND|read_model_usage_guide|Read drissionpage://guide/model-usage to choose workflow helpers before low-level primitives.|||
 """
 
 

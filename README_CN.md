@@ -6,58 +6,56 @@
 
 [![DrissionPage MCP 交互式 Browser Lab](https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/drissionpage-mcp-browser-lab.gif)](https://drissionpage-mcp.vercel.app)
 
-**[打开交互式 Browser Lab](https://drissionpage-mcp.vercel.app)**，追踪旋转目标、重放自然点击、拖动滑块并验证可观察状态。
+**[打开交互式 Browser Lab](https://drissionpage-mcp.vercel.app)**，重放有界自然指针轨迹、拖动控件并验证可观察状态。
 
 **官方仓库**: [GitHub](https://github.com/jumodada/Drissionpage-MCP-Server) | [GitCode](https://gitcode.com/g1879/DrissionMCP)
 
 [English Version](README.md) | [中文版本](README_CN.md)
 
-## 🖱️ 视觉驱动的人机交互
+## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.7.2 将核心收敛为 58 个准确的浏览器原子能力：** W01-W08 通过组合原子工具完成受控输入、富组件、上传、提交、弹窗、popup 和下载。
+**DrissionPage MCP 0.7.2 提供 53 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
 
-> **一次 MCP 调用即可连接视觉理解与真实浏览器交互。** 模型负责判断“在哪里操作”，DrissionPage MCP 负责决定“鼠标如何移动过去并完成点击”。
+> **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
 ```text
 截图 / 页面观察
         ↓
 多模态模型识别 viewport 坐标
         ↓
-page_click_xy(profile="natural")
+page_click_xy(x=442, y=369, profile="natural")
         ↓
-三次贝塞尔移动 → 反应停顿 → 按下 → 保持 → 释放
+24 步缓动三次曲线 → 精确终点 → 按下 → 释放
         ↓
 观察并验证页面状态变化
 ```
 
-### 这层人机交互能力有什么不同？
+### 核心交互保证
 
-- **自然指针动力学**：使用 20–35 个三次贝塞尔移动点，不再是坐标瞬移。
-- **符合人手节奏的时间模型**：8–25ms 点间隔、smoothstep 先加速后减速，到位后停顿 100–300ms。
-- **真实点击语义**：按下后保持 50–120ms，并为左键、右键和中键提供正确的 Chromium CDP 按键状态。
-- **有界微运动**：中间点加入 ±0.5 CSS 像素微抖，最终点仍精确落在目标坐标。
-- **失败安全**：动作链被中断时也会保证释放已经按下的鼠标按钮。
-- **模型可读的执行证据**：结果会返回 profile、起点、目标点、移动步数、反应延迟、按键时长和计划总时长。
+- **两种有界 profile**：`direct` 发出一次精确移动；`natural` 发出确定性的 24 步缓动三次曲线，使用可复现的 8-14ms 间隔，并精确到达终点。
+- **没有隐藏随机性**：相同起点、终点和 profile 生成相同轨迹，不包含抖动、overshoot 或反检测逻辑。
+- **显式动作序列**：点击是选定的移动 profile、可选调用方延迟、按下、释放；拖拽在选定轨迹和有序路径点之间保持一次按下。
+- **失败安全**：按下之后执行失败时，仍会尝试释放鼠标按钮。
+- **新鲜浏览器证据**：基于 selector 的拖拽会在动作前即时解析几何位置。
+- **类型化结果**：输出记录实际坐标、按键、步骤数和显式延迟。
 
-这让 AI 可以操作 canvas 控件、可视化编辑器、地图、图表、缺少语义信息的组件、响应式界面，以及 selector 或 accessibility metadata 不完整的交互表面。存在可靠 selector 时仍优先使用结构化 DOM 自动化；视觉人机交互层的价值，是扩展 MCP agent 在结构化信息不足时仍然可以操作的范围。
+存在可靠 selector 时优先使用结构化 DOM 目标。对于 canvas、编辑器、地图、图表等视觉界面，使用坐标、`natural` 轨迹和显式路径点。组件目标识别、挑战观察、多步点击、登录流程和其他业务策略属于客户端或可选 Skill。
 
 ```json
 {
   "x": 442,
   "y": 369,
-  "start_x": 100,
-  "start_y": 100,
   "profile": "natural",
   "button": "left",
   "element": "视觉识别出的控件"
 }
 ```
 
-该能力用于合法的普通 UI 自动化、测试、无障碍工作流和技术研究；安全验证或反自动化挑战的完成不作为保证支持的产品能力。
+该能力用于获得授权的浏览器自动化、测试、无障碍工作流和技术研究；核心不提供验证挑战或站点专用工作流。
 
 ## 🧭 客户端安装导航
 
-- [视觉驱动的人机交互](#视觉驱动的人机交互)
+- [原子化浏览器控制](#-带自然指针轨迹的原子化浏览器控制)
 - [安装与截图指引](#-首次成功路径)
 - [Codex CLI/IDE 快速配置](#-在-codex-cliide-中配置30-秒)
 - [Codex CLI/IDE 集成示例](#codex-cli--ide)
@@ -72,13 +70,13 @@ page_click_xy(profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-项目仍以 58 个工具和 MCP Resources/Prompts 提供的**结构化、确定性自动化**为默认路径。0.7.2 从服务端删除表单和组件库特定编排：模型组合输入、选择、勾选、点击、键盘、等待和状态读取原语，可复用表单流程放在发行包外的可选 Skill 中；当 selector 或 accessibility metadata 不足时，可选的**视觉驱动人机交互层**会把 viewport 坐标和有界拖拽路径转换为自然的 Chromium 指针动作链，并由高性能浏览器自动化框架 [DrissionPage](https://github.com/g1879/DrissionPage) 执行。
+独立服务提供 53 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.2 从服务端删除表单、组件库、验证挑战与便利工作流编排：模型组合输入、选择、勾选、点击、键盘、指针、等待和状态读取原语，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
 - **结构化优先、视觉就绪**：有可靠 DOM 时使用结构化信息，需要视觉操作时接收多模态模型坐标
 - **确定性**：通过 CSS/XPath 归一化实现适合 LLM 的可靠元素选择
-- **视觉交互能力**：把多模态模型输出的坐标转换为自然指针移动和具有真实时长的点击
+- **自然指针轨迹**：同一组原子工具同时提供精确直达和有界、确定性的 24 步缓动轨迹
 - **快速轻量**：基于 DrissionPage 高效引擎构建，开销最小
 - **类型安全**：所有工具都具有完整的类型提示和 Pydantic 验证
 - **开源友好**：包含兼容性说明、故障排除和 CI 检查，便于维护和贡献
@@ -88,9 +86,10 @@ page_click_xy(profile="natural")
 
 DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 
-- **严格自动化测试**：CI 会运行单元、协议、schema snapshot、响应合同、资源/提示词、发布元数据、安全策略、浏览器集成和覆盖率检查。
+- **严格自动化测试**：CI 会运行单元、协议、schema snapshot、响应合同、资源、发布元数据、安全策略、浏览器集成和覆盖率检查。
 - **95% 覆盖率底线**：CI 强制执行当前 95% 覆盖率门槛，并上传覆盖率报告。
 - **真实浏览器验证**：Chrome/Chromium 集成测试会直接调用暴露给客户端的 MCP 工具。
+- **文档边界验证**：聚焦浏览器测试证明公共工具可读取跨域 OOPIF 和 DrissionPage 暴露的 closed Shadow DOM，不使用 JavaScript 穿透 fallback。
 - **场景化验证**：playground MCP Lab 覆盖表单、电商页面、社交 feed、时间线、动态等待、iframe 和失败恢复等场景，不依赖公共演示网站。
 
 ---
@@ -166,7 +165,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 58 个强大工具 + MCP Resources/Prompts
+## 🛠️ 53 个类型化浏览器工具
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
@@ -195,7 +194,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `element_get_property` - 获取实时 DOM property，例如输入框当前 value
 - `element_get_html` - 获取元素或整页 HTML
 
-### 📸 页面操作（18 个）
+### 📸 页面操作（15 个）
 - `page_screenshot` - 捕获完整页面或视口
 - `page_screenshot_save` - 保存截图到 `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - 返回有界页面 outline，包括标题、链接、按钮、输入框、表单和 selector 推荐
@@ -204,13 +203,10 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_scroll` - 按方向或坐标滚动页面
 - `keyboard_press` - 向当前焦点元素/页面发送键盘输入
 - `page_resize` - 调整浏览器窗口
-- `page_pointer_move` - 沿自然贝塞尔轨迹移动到视觉模型识别出的 viewport 坐标，但不点击
-- `page_pointer_drag` - 执行失败安全的坐标拖拽，可经过最多六个可选有序路径点，并保留距离驱动时长和精确终点修正
+- `page_pointer_move` - 使用 `direct` 或有界、确定性的 `natural` 轨迹移动到精确 viewport CSS 坐标
+- `page_pointer_drag` - 使用选定 profile 执行失败安全的坐标拖拽，可经过最多六个可选有序路径点
 - `page_pointer_drag_element` - 在动作前即时解析 source 与目标几何；支持顶层文档或一个同源 iframe 中的 CSS/XPath，以及嵌套 open Shadow DOM 中的 CSS 路径
-- `page_detect_challenges` - 只读检测验证组件信号，供模型自主路由
-- `page_click_xy_batch` - 在一次有界自主调用内执行多个视觉坐标点击
-- `page_wait_challenge_result` - 轮询 token 长度和可配置成功/重试/挑战信号，不返回 token 内容
-- `page_click_xy` - 将视觉模型识别出的 viewport 坐标转换为自然贝塞尔指针移动和真实时长点击
+- `page_click_xy` - 使用 `direct` 或 `natural` 移动，可选等待显式延迟，然后在精确终点按下并释放
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
 - `page_dialog_respond` - 通过能力探测后的原生路径接受或取消一个待处理 alert、confirm 或 prompt
@@ -219,8 +215,8 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `frame_list` - 列出 iframe/frame，不改变全局 frame 状态
 - `frame_snapshot` - 对指定 iframe 返回有界 outline
 - `frame_find` - 在指定 iframe 内查找元素
-- `shadow_find` - 在 open shadow root 内查找单个元素
-- `shadow_find_all` - 在 open shadow root 内提取重复元素
+- `shadow_find` - 在当前受支持 DrissionPage 运行时暴露的 shadow root 内查找单个元素，包括已验证的 closed root
+- `shadow_find_all` - 从 DrissionPage 暴露的 shadow root 内提取重复元素
 
 ### 🍪 Cookie 与 Storage（4 个）
 - `browser_cookies_get` - 读取归一化 cookie，默认脱敏 value
@@ -237,9 +233,16 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `wait_until` - 等待可观察条件，例如 clickable、hidden、stable、文本或 URL 匹配
 - `wait_time` - 延迟执行
 
-### 🧩 MCP Resources 和 Prompts
-- Resources：`drissionpage://session/summary`、`drissionpage://session/history`、`drissionpage://session/state`、`drissionpage://session/config`、`drissionpage://guide/model-usage`、`drissionpage://page/current`、`drissionpage://tools/catalog`、`drissionpage://policy/summary`
-- Prompts：`drissionpage_mcp_usage_playbook`、`browser_navigate_and_summarize`、`browser_extract_structured_data`、`browser_vision_guided_interaction`、`browser_debug_page_issue`
+### 🌐 网络观察（3 个）
+- `network_listen_start` - 通过 DrissionPage 启动有界 HTTP/XHR/Fetch 观察
+- `network_listen_wait` - 等待有界 packet metadata，可选返回脱敏 header 或 body 摘要
+- `network_listen_stop` - 停止观察，并可选清理排队 packet
+
+### 🧩 可选 Skills 发现
+- Resource：`drissionpage://skills/catalog`
+- Prompts：无
+- 仓库目录约定：`skills/<skill-name>/SKILL.md`，例如 `skills/drissionpage-visual-workflows/SKILL.md`
+- Skills 独立发布且完全可选；不安装 Skill 也不影响 MCP 服务使用。
 
 ---
 
@@ -266,9 +269,9 @@ DrissionMCP/
 │   ├── server.py           # MCP 传输和请求路由
 │   ├── context.py          # 浏览器和标签页生命周期门面
 │   ├── runtime.py          # Operation key、receipt、artifact 和 capability 状态
-│   ├── tool_outputs.py     # 类型化公共结果和任务运行时合同
-│   ├── browser/            # 聚焦的 DrissionPage 能力、页面脚本和有限工作流
-│   └── tools/              # 58 个类型化 MCP 工具定义和薄适配层
+│   ├── tool_outputs.py     # 类型化公共结果合同
+│   ├── browser/            # 聚焦的 DrissionPage 能力和页面脚本
+│   └── tools/              # 53 个类型化 MCP 工具定义和薄适配层
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -456,7 +459,7 @@ which chromium         # macOS
 ## 🗺️ 路线图
 
 ### 当前版本 (v0.7.2)
-- [x] 58 个原子自动化、标签页/iframe/shadow、页面理解、有界工作流、网络监听、会话状态与 console 可观察性工具
+- [x] 53 个原子导航、标签页/frame/shadow、观察、交互、网络、存储、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -466,18 +469,18 @@ which chromium         # macOS
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
 - [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
-- [x] 只保留具有通用价值的有界工作流：`browser_open_and_snapshot` 与 `browser_extract_links`
-- [x] 表单发现、填写与提交编排迁移到可选 Skill，不进入 wheel 和 sdist
+- [x] 表单、组件库、验证挑战和便利工作流留在 MCP 核心之外
+- [x] 可选 Skills 通过单一静态 resource 发现，不进入 wheel 和 sdist
 - [x] 能力探测后的 `page_dialog_respond`、兼容扩展的双击/右键语义，以及返回安全 `ArtifactRef` 的 `element_click_and_download`
 - [x] 可复现的 W01-W08 公共工具 benchmark，每个工作负载运行十轮，保存机器可读证据且重复副作用为零
 - [x] Network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，用于 HTTP/XHR/Fetch 观察
-- [x] `page_pointer_move`、`page_pointer_drag` 与 `page_click_xy` 自然指针动作链：三次贝塞尔轨迹、smoothstep 缓动、有界抖动、反应延迟和真实按键停留
+- [x] `page_pointer_move`、`page_pointer_drag` 与 `page_click_xy` 提供 `direct` 和有界、确定性的 `natural` profile，终点精确且失败安全释放
 - [x] 有界的可选 `page_pointer_drag.waypoints`，在一次按住手势中完成画布路径、地图操作、框选或可视化编辑器连线
 - [x] 文件上传、滚动、hover、select/check、键盘、iframe、shadow DOM、cookie 和 storage 工具，面向 DrissionPage 4.x
 - [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
-- [x] 脱敏 session history resource，以及有界输出的响应大小 metadata
+- [x] 不保留动作历史，不生成代码片段，公开截图结果不暴露绝对路径
 - [x] 针对导航和截图路径的可选本地安全策略
-- [x] Resources、Prompts、eval harness、兼容性和故障排除文档
+- [x] 一个可选 Skills 目录 resource、零个 prompts，以及 eval、兼容性和故障排除文档
 - [x] PyPI 发布
 
 ---
@@ -617,7 +620,10 @@ codex mcp list
 
 发布日期：2026-07-21。本次发布将核心收敛为准确、可组合的浏览器能力：
 
-- 删除 `form_inspect`、`form_fill`、`form_submit` 和 `form_fill_preview`，不在核心中维护不完整的组件库启发式。
+- 公共能力收敛为 53 个类型化浏览器工具、零个 prompts 和一个静态可选 Skills 目录 resource。
+- 删除表单、组件库、验证挑战和便利工作流编排，不在核心中维护不完整的启发式。
 - W01-W08 改用保留的原子工具覆盖受控输入、contenteditable、ARIA 组件、原生选择/勾选、上传、提交、弹窗、popup 与下载。
 - 保留 `element_click_and_download`、`page_dialog_respond` 等具有不可分割时序边界的通用能力及关联 receipt。
-- 表单编排以可选 Skill 示例提供，不进入 Python 发行包。
+- 指针原语同时提供精确 `direct` 移动与确定性的 24 步 `natural` 轨迹，不新增工作流工具。
+- 挑战观察、逐步验证的多次点击和业务判断遵循外部 `skills/<skill-name>/SKILL.md` 目录约定。
+- Skills 独立发布且完全可选，不进入 Python 发行包。

@@ -107,9 +107,7 @@ async def page_scroll(
     result = await tab.interaction.scroll_page(
         direction=args.direction, pixels=args.pixels, x=args.x, y=args.y
     )
-    outcome.add_code(f"page.scroll.{args.direction}()")
     outcome.add_result(f"Scrolled page {args.direction}", **result)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -132,9 +130,7 @@ async def element_scroll_into_view(
     result = await tab.interaction.scroll_element_into_view(
         args.selector, center=args.center, timeout=args.timeout
     )
-    outcome.add_code(f"page.ele({result['locator']!r}).scroll.to_see()")
     outcome.add_result(f"Scrolled element into view: {args.selector}", **result)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -160,9 +156,7 @@ async def element_hover(
         offset_x=args.offset_x,
         offset_y=args.offset_y,
     )
-    outcome.add_code(f"page.ele({result['locator']!r}).hover()")
     outcome.add_result(f"Hovered element: {args.selector}", **result)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -181,9 +175,7 @@ async def keyboard_press(
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.interaction.keyboard_press(args.keys, interval=args.interval)
-    outcome.add_code(f"page.actions.type({args.keys!r})")
     outcome.add_result("Sent keyboard keys", **result)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -206,9 +198,7 @@ async def element_select(
     result = await tab.interaction.select_element(
         args.selector, value=args.value, by=args.by, timeout=args.timeout
     )
-    outcome.add_code(f"page.ele({result['locator']!r}).select.{args.by}()")
     outcome.add_result(f"Selected option in: {args.selector}", **result)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -231,7 +221,5 @@ async def element_check(
     result = await tab.interaction.check_element(
         args.selector, checked=args.checked, by_js=args.by_js, timeout=args.timeout
     )
-    outcome.add_code(f"page.ele({result['locator']!r}).check()")
     outcome.add_result(f"Set check state for: {args.selector}", **result)
-    outcome.set_include_snapshot(True)
     return outcome

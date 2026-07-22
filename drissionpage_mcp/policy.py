@@ -111,11 +111,15 @@ class SafetyPolicy:
                 value=url,
             )
 
-    def validate_screenshot_path(self, path: str) -> None:
+    def validate_screenshot_path(self, path: str) -> Path:
         """Validate an optional screenshot save path before writing files."""
 
         if not path:
-            return
+            raise PolicyDeniedError(
+                "Screenshot file saves require a non-empty path.",
+                rule=ENV_SCREENSHOT_ROOT,
+                value="<redacted>",
+            )
 
         if self.screenshot_root is None:
             raise PolicyDeniedError(
@@ -133,6 +137,7 @@ class SafetyPolicy:
                 rule=ENV_SCREENSHOT_ROOT,
                 value=path,
             ) from exc
+        return requested
 
     def validate_upload_paths(self, paths: Iterable[str]) -> list[Path]:
         """Validate file-upload paths before exposing them to the browser."""
@@ -263,10 +268,10 @@ def validate_navigation(url: str) -> None:
     SafetyPolicy.from_env().validate_navigation(url)
 
 
-def validate_screenshot_path(path: str) -> None:
+def validate_screenshot_path(path: str) -> Path:
     """Validate screenshot path against the current environment policy."""
 
-    SafetyPolicy.from_env().validate_screenshot_path(path)
+    return SafetyPolicy.from_env().validate_screenshot_path(path)
 
 
 def validate_external_download() -> None:

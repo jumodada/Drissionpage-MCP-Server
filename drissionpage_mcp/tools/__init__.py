@@ -16,8 +16,6 @@ from . import (
     storage,
     tabs,
     wait,
-    vision,
-    workflow,
 )
 from .base import ToolSpec, ToolType, define_tool
 
@@ -40,9 +38,6 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     pointer.pointer_drag,
     pointer.pointer_drag_element,
     pointer.click_coordinates,
-    vision.detect_challenges,
-    vision.click_xy_batch,
-    vision.wait_challenge_result,
     common.close,
     common.get_url,
     dialogs.page_dialog_respond,
@@ -76,8 +71,6 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     wait.wait_for_url,
     wait.wait_time,
     wait.wait_until,
-    workflow.browser_open_and_snapshot,
-    workflow.browser_extract_links,
     network.network_listen_start,
     network.network_listen_wait,
     network.network_listen_stop,

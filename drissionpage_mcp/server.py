@@ -1,5 +1,6 @@
 """MCP Server implementation for DrissionPage."""
 
+import asyncio
 import inspect
 import logging
 from typing import Any, Dict, List, Optional
@@ -10,8 +11,6 @@ from mcp.server.models import InitializationOptions
 from mcp.types import (
     CallToolRequest,
     CallToolResult,
-    GetPromptRequest,
-    ListPromptsRequest,
     ListResourcesRequest,
     ReadResourceRequest,
     ServerResult,
@@ -23,8 +22,6 @@ from pydantic import ValidationError
 from . import __version__
 from .context import DrissionPageContext
 from .guidance import server_instructions
-from .prompts import get_prompt as get_prompt_definition
-from .prompts import list_prompts as list_prompt_definitions
 from .resources import list_resources as list_resource_definitions
 from .resources import read_resource as read_resource_definition
 from .response_errors import ErrorCode, classify_error
@@ -48,6 +45,10 @@ class DrissionPageMCPServer:
         )
         self.context: Optional[DrissionPageContext] = None
         self.tools: Dict[str, DrissionTool] = {}
+        self._execution_lock = asyncio.Lock()
+        self._lifecycle_condition = asyncio.Condition()
+        self._active_tool_calls = 0
+        self._cleanup_active = False
 
         # Load tools
         self._load_tools()
@@ -77,31 +78,12 @@ class DrissionPageMCPServer:
         @self.server.read_resource()
         async def read_resource(uri):
             """Read an MCP resource without initializing the browser."""
-            return read_resource_definition(
-                str(uri),
-                context=self.context,
-                tools=self.tools,
-            )
-
-        @self.server.list_prompts()
-        async def list_prompts():
-            """List MCP prompts."""
-            return list_prompt_definitions()
-
-        @self.server.get_prompt()
-        async def get_prompt(name: str, arguments: Optional[Dict[str, str]] = None):
-            """Render an MCP prompt."""
-            return get_prompt_definition(name, arguments)
+            return read_resource_definition(str(uri))
 
         async def call_tool_impl(
             name: str, arguments: Optional[Dict[str, Any]] = None
         ) -> CallToolResult:
             """Execute a tool with given arguments and preserve isError semantics."""
-            # Ensure context is available
-            if not self.context:
-                self.context = DrissionPageContext()
-
-            # Find tool
             tool = self.tools.get(name)
             if not tool:
                 replacement = REMOVED_TOOL_REPLACEMENTS.get(name)
@@ -115,35 +97,7 @@ class DrissionPageMCPServer:
                 return self._call_result(outcome)
 
             try:
-                # Validate input
                 validated_args = tool.input_schema.model_validate(arguments or {})
-                current_tab = self.context.current_tab() if self.context else None
-                url_before = getattr(current_tab, "url", "") if current_tab else ""
-                tab_id_before = (
-                    getattr(current_tab, "mcp_tab_id", "") if current_tab else ""
-                )
-
-                # Execute tool
-                outcome = await tool.execute(self.context, validated_args)
-                payload = outcome.structured_content()
-                current_tab = self.context.current_tab() if self.context else None
-                url_after = getattr(current_tab, "url", "") if current_tab else ""
-                tab_id_after = (
-                    getattr(current_tab, "mcp_tab_id", "") if current_tab else ""
-                )
-                if self.context and hasattr(self.context, "record_action"):
-                    self.context.record_action(
-                        name,
-                        validated_args.model_dump(),
-                        payload,
-                        url_before=url_before,
-                        url_after=url_after,
-                        tab_id=tab_id_after or tab_id_before,
-                    )
-
-                # Return response content
-                return self._call_result(outcome)
-
             except ValidationError as e:
                 outcome = ToolOutcome()
                 outcome.add_error(
@@ -151,6 +105,17 @@ class DrissionPageMCPServer:
                     ErrorCode.MCP_ARGUMENT_INVALID,
                     tool_name=name,
                 )
+                return self._call_result(outcome)
+
+            call_started = False
+            try:
+                context = await self._begin_tool_call()
+                call_started = True
+                if name in _CONCURRENT_RESPONDER_TOOLS:
+                    outcome = await tool.execute(context, validated_args)
+                else:
+                    async with self._execution_lock:
+                        outcome = await tool.execute(context, validated_args)
                 return self._call_result(outcome)
             except Exception as e:
                 logger.exception(f"Error executing tool {name}")
@@ -160,13 +125,10 @@ class DrissionPageMCPServer:
                     classify_error(e, name),
                     tool_name=name,
                 )
-                if self.context and hasattr(self.context, "record_action"):
-                    self.context.record_action(
-                        name,
-                        arguments or {},
-                        outcome.structured_content(),
-                    )
                 return self._call_result(outcome)
+            finally:
+                if call_started:
+                    await self._end_tool_call()
 
         async def call_tool_handler(req: CallToolRequest) -> ServerResult:
             """MCP request handler for tool calls.
@@ -189,8 +151,6 @@ class DrissionPageMCPServer:
         _ = (
             ListResourcesRequest,
             ReadResourceRequest,
-            ListPromptsRequest,
-            GetPromptRequest,
         )
 
     def _tool_to_mcp_tool(self, tool: DrissionTool) -> Tool:
@@ -244,12 +204,41 @@ class DrissionPageMCPServer:
 
     async def cleanup(self) -> None:
         """Clean up resources."""
-        if self.context:
-            result = self.context.cleanup()
-            if inspect.isawaitable(result):
-                await result
+        async with self._lifecycle_condition:
+            while self._cleanup_active:
+                await self._lifecycle_condition.wait()
+            self._cleanup_active = True
+            while self._active_tool_calls:
+                await self._lifecycle_condition.wait()
+            context = self.context
             self.context = None
+        try:
+            if context:
+                result = context.cleanup()
+                if inspect.isawaitable(result):
+                    await result
+        finally:
+            async with self._lifecycle_condition:
+                self._cleanup_active = False
+                self._lifecycle_condition.notify_all()
         logger.info("Server cleanup completed")
+
+    async def _begin_tool_call(self) -> DrissionPageContext:
+        """Claim one context user without racing cleanup or lazy creation."""
+
+        async with self._lifecycle_condition:
+            while self._cleanup_active:
+                await self._lifecycle_condition.wait()
+            if self.context is None:
+                self.context = DrissionPageContext()
+            self._active_tool_calls += 1
+            return self.context
+
+    async def _end_tool_call(self) -> None:
+        async with self._lifecycle_condition:
+            self._active_tool_calls -= 1
+            if self._active_tool_calls == 0:
+                self._lifecycle_condition.notify_all()
 
 
 def _tool_supports_output_schema() -> bool:
@@ -268,3 +257,8 @@ REMOVED_TOOL_REPLACEMENTS = {
     "element_input_text": "element_type",
     "wait_sleep": "wait_time",
 }
+
+
+# A dialog trigger can block until another call accepts or dismisses the native
+# modal. Only the responder bypasses ordinary browser-operation serialization.
+_CONCURRENT_RESPONDER_TOOLS = frozenset({"page_dialog_respond"})

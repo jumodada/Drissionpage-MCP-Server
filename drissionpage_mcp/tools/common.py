@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any
 from pydantic import Field
 from ..metadata import with_response_meta
-from ..policy import PolicyDeniedError, validate_screenshot_path
+from ..policy import PolicyDeniedError, SafetyPolicy
 from ..response_errors import ErrorCode
 from ..response_media import build_screenshot_metadata
 from .base import EmptyInput, ToolInput, ToolType, define_tool, ToolOutcome
@@ -115,7 +115,6 @@ async def resize(context: "DrissionPageContext", args: ResizeInput) -> "ToolOutc
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     await tab.page_ops.resize(args.width, args.height)
-    outcome.add_code(f"page.set.window.size({args.width}, {args.height})")
     outcome.add_result(
         f"Successfully resized window to {args.width}x{args.height}",
         width=args.width,
@@ -141,9 +140,6 @@ async def screenshot(
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     screenshot_data = await tab.page_ops.screenshot(path=None, full_page=args.full_page)
-    outcome.add_code(
-        f"page.get_screenshot(as_base64=True, full_page={args.full_page!r})"
-    )
     outcome.add_screenshot(screenshot_data, {"full_page": args.full_page})
     return outcome
 
@@ -163,7 +159,8 @@ async def screenshot_save(
     """Save a screenshot to an approved local path."""
     outcome = ToolOutcome()
     try:
-        validate_screenshot_path(args.path)
+        policy = SafetyPolicy.from_env()
+        destination = policy.validate_screenshot_path(args.path)
     except PolicyDeniedError as exc:
         outcome.add_error(
             str(exc), ErrorCode.POLICY_DENIED, rule=exc.rule, value=exc.value
@@ -171,15 +168,17 @@ async def screenshot_save(
         return outcome
     tab = context.current_tab_or_die()
     screenshot_data = await tab.page_ops.screenshot(
-        path=args.path or None, full_page=args.full_page
+        path=str(destination), full_page=args.full_page
     )
-    outcome.add_code(
-        f"page.get_screenshot(path={args.path!r}, full_page={args.full_page!r})"
-    )
+    assert policy.screenshot_root is not None
+    safe_relative_path = destination.relative_to(policy.screenshot_root).as_posix()
     outcome.add_result(
-        f"Screenshot saved to: {screenshot_data}",
+        "Screenshot saved.",
         screenshot=build_screenshot_metadata(
-            path=screenshot_data, full_page=args.full_page, inline=False
+            path=screenshot_data,
+            safe_relative_path=safe_relative_path,
+            full_page=args.full_page,
+            inline=False,
         ),
     )
     return outcome
@@ -206,7 +205,6 @@ async def page_snapshot(
         max_elements=args.max_elements,
         max_text_chars=args.max_text_chars,
     )
-    outcome.add_code("page.run_js(<bounded page outline script>)")
     outcome.add_result("Captured page snapshot", **with_response_meta(snapshot))
     return outcome
 
@@ -230,7 +228,6 @@ async def page_observe(
     observation = await tab.observation.observe(
         max_texts=args.max_texts, max_text_chars=args.max_text_chars
     )
-    outcome.add_code("page.run_js(<compact page observation script>)")
     outcome.add_result("Observed page state", **observation)
     return outcome
 
@@ -253,7 +250,6 @@ async def page_evaluate(
     result = await tab.observation.evaluate(
         args.script, args=args.args, max_chars=args.max_chars
     )
-    outcome.add_code("page.run_js(<bounded user JavaScript>)")
     outcome.add_result("Evaluated JavaScript", **result)
     return outcome
 
@@ -273,7 +269,6 @@ async def close(context: "DrissionPageContext", args: EmptyInput) -> "ToolOutcom
     closed = await context.close_browser()
     if closed is False:
         raise RuntimeError("Browser close failed; local MCP state was cleared.")
-    outcome.add_code("page.quit()")
     outcome.add_result("Successfully closed browser", closed=True)
     return outcome
 
@@ -293,6 +288,5 @@ async def get_url(context: "DrissionPageContext", args: EmptyInput) -> "ToolOutc
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     url = tab.url
-    outcome.add_code("page.url")
     outcome.add_result(f"Current URL: {url}", url=url)
     return outcome

@@ -26,6 +26,21 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
 
+## Current Frame And Shadow Boundaries
+
+- `frame_list`, `frame_find`, and `frame_snapshot` use DrissionPage frame objects
+  and are regression-tested against an attached cross-origin OOPIF. The parent
+  page cannot read that fixture through `iframe.contentDocument`.
+- `shadow_find` and `shadow_find_all` use DrissionPage's native shadow-root object.
+  Supported DrissionPage 4.x runtimes are regression-tested against both open and
+  closed roots; the closed fixture remains invisible through page-JavaScript
+  `host.shadowRoot`.
+- These capabilities do not use JavaScript piercing fallbacks. An unsupported
+  runtime fails instead of returning an empty successful result.
+- Selector-backed pointer geometry remains narrower: one same-origin iframe and
+  nested open Shadow DOM paths only. Do not infer pointer support from the
+  broader read-only `frame_*` and `shadow_*` evidence.
+
 ## 0.7.0 to 0.7.1 Migration
 
 0.7.1 keeps the 62-tool public registry and does not add a new user-facing capability family.
@@ -37,7 +52,9 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 
 ## 0.7.1 to 0.7.2 Migration
 
-0.7.2 intentionally narrows the public registry from 62 to 58 generic browser tools. It removes component-library and form workflow heuristics from the core package.
+0.7.2 intentionally narrows the public registry from 62 to 53 generic browser
+tools. It removes component-library, challenge, and convenience-workflow
+orchestration from the core package.
 
 | Removed tool | Compose instead |
 | --- | --- |
@@ -45,11 +62,25 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 | `form_fill` | explicit `element_type`, `element_select`, `element_check`, `element_click`, and `keyboard_press`, followed by state reads |
 | `form_fill_preview` | the same atomic actions without the final activation step |
 | `form_submit` | explicit click or keyboard activation followed by `wait_until`, URL, DOM, text, or property verification |
+| `page_detect_challenges` | `page_observe`, `page_snapshot`, focused element reads, and optional Skill classification |
+| `page_click_xy_batch` | individual `element_click` or `page_click_xy` calls with fresh evidence and verification between actions |
+| `page_wait_challenge_result` | `wait_until` plus focused URL, text, attribute, or property postconditions |
+| `browser_open_and_snapshot` | `page_navigate`, then explicit `page_snapshot` or `page_observe` |
+| `browser_extract_links` | bounded `element_find_all` link discovery |
 
 - No aliases or placeholder tools are registered.
 - `DP_MCP_DENY_EXTERNAL_SUBMISSION` is removed because generic click and keyboard tools can also submit. Treating one named workflow as the only submission boundary created false assurance.
 - `ActionReceipt` remains for timing-critical downloads and native dialog responses. Ordinary DOM mutations are verified through explicit state reads.
-- Reusable form recipes are available as an optional Skill outside the wheel and sdist.
+- Pointer tools default to `profile="direct"`. The optional `natural` profile is a
+  deterministic 24-step eased cubic path with reproducible 8-14ms intervals and an exact target;
+  randomized jitter, overshoot, reaction/hold timing, `precise`, and explicit
+  synthetic start-coordinate fields are removed.
+- MCP prompts are removed. The only resource is the static
+  `drissionpage://skills/catalog`, which declares the external
+  `skills/<skill-name>/SKILL.md` directory convention without installing or
+  executing Skills.
+- Reusable form, challenge-observation, verified multi-click, and site/business
+  recipes are available as optional Skills outside the wheel and sdist.
 
 ## 0.6.2 to 0.7.0 Migration
 

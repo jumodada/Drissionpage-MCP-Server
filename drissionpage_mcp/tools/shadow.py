@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class ShadowFindInput(ToolInput):
-    """Input schema for finding one element inside an open shadow root."""
+    """Input schema for finding one element inside an exposed shadow root."""
 
     host_selector: str = Field(..., description="Selector for the shadow host element.")
     selector: str = Field(..., description="Selector inside the shadow root.")
@@ -21,7 +21,7 @@ class ShadowFindInput(ToolInput):
 
 
 class ShadowFindAllInput(ToolInput):
-    """Input schema for finding repeated elements inside an open shadow root."""
+    """Input schema for repeated elements inside an exposed shadow root."""
 
     host_selector: str = Field(..., description="Selector for the shadow host element.")
     selector: str = Field(..., description="Selector inside the shadow root.")
@@ -32,7 +32,7 @@ class ShadowFindAllInput(ToolInput):
 @define_tool(
     name="shadow_find",
     title="Find Shadow Element",
-    description="Find one element inside an open shadow root.",
+    description="Find one element inside a shadow root exposed by the supported DrissionPage runtime.",
     input_schema=ShadowFindInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
@@ -49,7 +49,6 @@ async def shadow_find(
     result = await tab.frames.shadow_find(
         host_selector=args.host_selector, selector=args.selector, timeout=args.timeout
     )
-    outcome.add_code("page.ele(<host>).shadow_root.ele(<selector>)")
     outcome.add_result(f"Found shadow element: {args.selector}", **result)
     return outcome
 
@@ -57,7 +56,7 @@ async def shadow_find(
 @define_tool(
     name="shadow_find_all",
     title="Find Shadow Elements",
-    description="Find repeated elements inside an open shadow root.",
+    description="Find repeated elements inside a shadow root exposed by the supported DrissionPage runtime.",
     input_schema=ShadowFindAllInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
@@ -77,7 +76,6 @@ async def shadow_find_all(
         limit=args.limit,
         include_html=args.include_html,
     )
-    outcome.add_code("page.ele(<host>).shadow_root.eles(<selector>)")
     outcome.add_result(
         f"Found {result['returned']} of {result['count']} shadow elements",
         **with_response_meta(result),

@@ -7,21 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Corrected the `shadow_find` and `shadow_find_all` descriptions: supported DrissionPage 4.x runtimes expose both tested open roots and closed roots that page JavaScript cannot access. Pointer element targeting remains limited to same-origin iframe and open-shadow paths.
+
+### Verification
+- Added a deterministic cross-origin OOPIF and closed Shadow DOM fixture, public-MCP regression coverage, and a focused Ubuntu/macOS/Windows browser-boundary CI matrix.
+- Added ten-cycle clear-before-native-input regression coverage for controlled and validation inputs without introducing form or component-library branches.
+
 ## [0.7.2] - 2026-07-21
 
 ### Removed
-- Removed `form_inspect`, `form_fill`, `form_submit`, and `form_fill_preview` from the public registry. These component- and workflow-specific behaviors were incomplete across modern UI libraries and did not belong in the core browser capability layer.
-- Deleted the form-only browser scripts, schemas, prompt, submission policy flag, local mutation receipts, and package tests. No compatibility aliases or placeholder tools were added.
+- Removed form, component-library, challenge, batch-action, and convenience-workflow tools from the public registry. These procedures compose safely from browser primitives and do not belong in the core capability layer.
+- Deleted the dedicated form, challenge, vision-workflow, and convenience-workflow scripts, schemas, prompts, policy flags, and tests. No compatibility aliases or placeholder tools were added.
+- Removed action-history retention, generic task/retry state, generated Python snippets, unused snapshot flags, and public runtime inventory resources.
 
 ### Changed
-- Narrowed the ordered public registry to 58 generic tools. Form and component workflows now compose `page_snapshot`, element discovery, type/select/check/click/keyboard, wait, upload, and state-read tools.
-- Kept `element_click_and_download` and `page_dialog_respond` because their event timing and side-effect correlation cannot be reproduced safely as separate calls.
+- Narrowed the ordered public registry to 53 generic browser tools. Form, challenge-observation, verified multi-click, and business workflows now compose observation, discovery, interaction, wait, upload, network, and state-read primitives in clients or external Skills.
+- Reduced the MCP guidance surface to zero prompts and one static, browser-independent `drissionpage://skills/catalog` resource. The catalog declares the external `skills/<skill-name>/SKILL.md` path convention; Skills remain optional and outside the Python distribution.
+- Simplified pointer execution to two atomic profiles: one-step exact `direct` movement and a reproducible 24-step eased cubic `natural` path. Both end at the exact target, drag holds one button across ordered waypoints, and failures after press still attempt release.
+- Serialized tool execution and cleanup around the shared browser context. Unknown tools and invalid arguments are rejected before browser initialization.
+- Saved screenshot results now expose only a normalized path relative to `DP_MCP_SCREENSHOT_ROOT`.
+- Kept `element_click_and_download` and `page_dialog_respond` with correlated `ActionReceipt` and safe `ArtifactRef` evidence because their event timing and side-effect correlation cannot be reproduced safely as separate calls.
 - Reworked W01-W04 to complete controlled inputs, contenteditable, ARIA widgets, native controls, uploads, and submission with retained atomic tools.
-- Moved reusable form orchestration guidance to an optional Skill outside the Python wheel and sdist.
+- Moved reusable form and visual workflow guidance to optional Skills outside the Python wheel and sdist.
 
 ### Verification
-- Added browser-backed regression coverage for framework-driven input events, contenteditable, ARIA switch and popup behavior, select/check/upload, and explicit submission verification.
-- Regenerated the public tool schema snapshot and retained download/dialog receipt, replay, artifact, protocol, and packaging gates.
+- Added regression coverage for serialized execution, no-history behavior, safe screenshot identifiers, direct/natural pointer semantics, optional-Skills discovery, and removed public surfaces.
+- Regenerated the public tool schema snapshot and retained the ten-run W01-W08, browser integration, download/dialog receipt, replay, artifact, protocol, and packaging gates.
 
 ## [0.7.1] - 2026-07-20
 

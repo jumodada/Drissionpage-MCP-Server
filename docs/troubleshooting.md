@@ -92,20 +92,21 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current tool registry should load 58 tools.
+The current tool registry should load 53 tools.
 
 
 ## Task Completion / Pointer / Network 0.7.2 Checks
 
-- For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to the `natural` profile; supply `start_x` and `start_y` together when the model knows the pointer origin. Use `direct` only when natural movement is not desired.
-- Use `browser_open_and_snapshot` when a client would otherwise call navigate, wait, snapshot, and console inspection separately.
+- For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to `profile="direct"`; set `profile="natural"` for a deterministic 24-step eased trajectory with an exact endpoint.
+- In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` explicitly.
 - Discover controls with `page_snapshot`, `element_find_all`, and `element_find`. Operate them with explicit type, select, check, click, keyboard, and upload calls, then verify live properties, attributes, text, URL, or bounded wait conditions.
 - The core does not infer component libraries or business submission intent. Keep library- or site-specific matching in a client Skill and always collect fresh evidence before retrying a consequential action.
-- Configure `DP_MCP_DOWNLOAD_ROOT` before `element_click_and_download`. A replay with the same operation key returns the frozen result without another click. Use `drissionpage://artifacts/inventory` for safe artifact metadata.
+- Configure `DP_MCP_DOWNLOAD_ROOT` before `element_click_and_download`. A replay with the same operation key returns the frozen result without another click; the successful tool result contains safe artifact metadata.
 - `page_dialog_respond` works only for a currently pending alert, confirm, or prompt. Capability gaps and unsupported click variants return `UNSUPPORTED_OPERATION` rather than another action.
 - Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.
-- Read `drissionpage://session/config` to confirm whether `DP_USER_DATA_PATH`, browser path, headless, sandbox, and policy controls are configured; paths are intentionally redacted.
-- If an AI client is choosing the wrong call sequence, read `drissionpage://guide/model-usage` for workflow routes and `drissionpage://tools/catalog` for public tool descriptions before retrying.
+- Use `drissionpage-mcp doctor` to inspect browser, headless, sandbox, and environment configuration without starting a workflow.
+- Use `tools/list` for the current typed core contract. Optional Skills are discovered through `drissionpage://skills/catalog` and follow the external `skills/<skill-name>/SKILL.md` path convention.
+- Keep challenge observation, repeated-click sequencing, and site/business decisions in an external Skill. Re-observe and verify between individual MCP actions instead of replaying stale coordinates.
 
 For the release reliability gate, run the deterministic public-tool benchmark:
 

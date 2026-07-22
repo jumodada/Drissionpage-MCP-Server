@@ -185,14 +185,10 @@ async def page_dialog_respond(
         "receipt": receipt.model_dump(mode="json"),
     }
     context.complete_operation(claim, receipt, result=data)
-    outcome.add_code(
-        f"page.handle_alert(accept={args.action == 'accept'!r}, send='<redacted>')"
-    )
     outcome.set_result(
         f"Handled pending {pending['dialog_type']} dialog with action {args.action}",
         data,
     )
-    outcome.set_include_snapshot(True)
     return outcome
 
 

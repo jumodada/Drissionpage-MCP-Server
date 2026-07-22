@@ -1,5 +1,6 @@
 """Test MCP server functionality."""
 
+import asyncio
 import json
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -24,17 +25,11 @@ class TestDrissionPageMCPServer:
         assert server.version == __version__
         assert server.context is None
         assert server.server.instructions
-        assert "DrissionPage>=4.1.1.4,<5" in server.server.instructions
-        assert "page_snapshot" in server.server.instructions
-        assert "atomic interaction" in server.server.instructions
-        assert "element_click_and_download" in server.server.instructions
-        assert "network_listen_start" in server.server.instructions
-        assert "page_click_xy" in server.server.instructions
-        assert "viewport CSS coordinates" in server.server.instructions
-        assert "full_page=false" in server.server.instructions
-        assert "natural is the default" in server.server.instructions
-        assert "stale coordinate actions" in server.server.instructions
-        assert "element_input_text" not in server.server.instructions
+        assert "standalone" in server.server.instructions.lower()
+        assert "atomic" in server.server.instructions.lower()
+        assert "drissionpage://skills/catalog" in server.server.instructions
+        assert "skills/<skill-name>/SKILL.md" in server.server.instructions
+        assert "optional" in server.server.instructions.lower()
 
     def test_server_custom_name_version(self):
         """Test server with custom name and version."""
@@ -97,9 +92,6 @@ class TestToolsIntegration:
         assert "page_pointer_move" in tool_names
         assert "page_pointer_drag" in tool_names
         assert "page_pointer_drag_element" in tool_names
-        assert "page_detect_challenges" in tool_names
-        assert "page_click_xy_batch" in tool_names
-        assert "page_wait_challenge_result" in tool_names
         assert "page_click_xy" in tool_names
         assert "page_close" in tool_names
         assert "page_get_url" in tool_names
@@ -128,8 +120,6 @@ class TestToolsIntegration:
         assert "storage_get" in tool_names
         assert "storage_set" in tool_names
         assert "storage_clear" in tool_names
-        assert "browser_open_and_snapshot" in tool_names
-        assert "browser_extract_links" in tool_names
         assert "page_dialog_respond" in tool_names
         assert "element_click_and_download" in tool_names
         assert "network_listen_start" in tool_names
@@ -146,7 +136,14 @@ class TestToolsIntegration:
             "form_submit",
             "form_fill_preview",
         }.isdisjoint(tool_names)
-        assert len(tool_names) == 58
+        assert {
+            "page_detect_challenges",
+            "page_click_xy_batch",
+            "page_wait_challenge_result",
+            "browser_open_and_snapshot",
+            "browser_extract_links",
+        }.isdisjoint(tool_names)
+        assert len(tool_names) == 53
 
 
 if __name__ == "__main__":
@@ -180,27 +177,249 @@ async def test_internal_call_tool_impl_success_path_uses_context() -> None:
         "data": {"waited_seconds": 0.0},
     }
     assert server.context is not None
-    history = server.context.action_history()
-    assert history["count"] == 1
-    assert history["actions"][0]["tool"] == "wait_time"
-    assert history["actions"][0]["result"]["ok"] is True
+    assert not hasattr(server.context, "action_history")
 
 
 @pytest.mark.asyncio
-async def test_internal_call_tool_impl_redacts_history_arguments() -> None:
+async def test_internal_call_tool_impl_serializes_shared_context(monkeypatch) -> None:
+    active = 0
+    max_active = 0
+    contexts = []
+
+    class FakeContext:
+        def current_tab(self):
+            return None
+
+        async def cleanup(self) -> None:
+            return None
+
+    class EmptyArgs(BaseModel):
+        pass
+
+    async def probe(context, _args):
+        nonlocal active, max_active
+        contexts.append(context)
+        active += 1
+        max_active = max(max_active, active)
+        await asyncio.sleep(0.02)
+        active -= 1
+        from drissionpage_mcp.tools.base import ToolOutcome
+
+        outcome = ToolOutcome()
+        outcome.add_result("done", closed=True)
+        return outcome
+
+    from drissionpage_mcp.tool_outputs import PageCloseData
+
+    monkeypatch.setattr(server_module, "DrissionPageContext", FakeContext)
     server = DrissionPageMCPServer()
-    result = await server._call_tool_impl(
-        "element_type", {"selector": "#password", "text": "secret", "timeout": 0}
+    server.tools["probe"] = ToolSpec(
+        name="probe",
+        title="Probe",
+        description="Track concurrent execution",
+        input_model=EmptyArgs,
+        output_model=PageCloseData,
+        handler=probe,
+        tool_type=ToolType.READ_ONLY,
     )
-    assert result.isError is True
-    assert server.context is not None
-    action = server.context.action_history()["actions"][0]
-    assert action["tool"] == "element_type"
-    assert action["args"]["text"] == "<redacted>"
+
+    first, second = await asyncio.gather(
+        server._call_tool_impl("probe", {}),
+        server._call_tool_impl("probe", {}),
+    )
+
+    assert first.isError is False
+    assert second.isError is False
+    assert max_active == 1
+    assert len(contexts) == 2
+    assert contexts[0] is contexts[1]
 
 
 @pytest.mark.asyncio
-async def test_internal_call_tool_impl_redacts_dialog_prompt_history() -> None:
+async def test_dialog_responder_can_run_with_serialized_trigger(monkeypatch) -> None:
+    responder_ready = asyncio.Event()
+    dialog_triggered = asyncio.Event()
+    contexts = []
+
+    class FakeContext:
+        async def cleanup(self) -> None:
+            return None
+
+    class EmptyArgs(BaseModel):
+        pass
+
+    async def respond(context, _args):
+        contexts.append(context)
+        responder_ready.set()
+        await asyncio.wait_for(dialog_triggered.wait(), timeout=0.1)
+        from drissionpage_mcp.tools.base import ToolOutcome
+
+        outcome = ToolOutcome()
+        outcome.add_result("responded", closed=True)
+        return outcome
+
+    async def trigger(context, _args):
+        contexts.append(context)
+        dialog_triggered.set()
+        from drissionpage_mcp.tools.base import ToolOutcome
+
+        outcome = ToolOutcome()
+        outcome.add_result("triggered", closed=True)
+        return outcome
+
+    from drissionpage_mcp.tool_outputs import PageCloseData
+
+    monkeypatch.setattr(server_module, "DrissionPageContext", FakeContext)
+    server = DrissionPageMCPServer()
+    server.tools["page_dialog_respond"] = ToolSpec(
+        name="page_dialog_respond",
+        title="Respond",
+        description="Wait for a dialog trigger",
+        input_model=EmptyArgs,
+        output_model=PageCloseData,
+        handler=respond,
+        tool_type=ToolType.DESTRUCTIVE,
+    )
+    server.tools["trigger"] = ToolSpec(
+        name="trigger",
+        title="Trigger",
+        description="Trigger a pending dialog",
+        input_model=EmptyArgs,
+        output_model=PageCloseData,
+        handler=trigger,
+        tool_type=ToolType.DESTRUCTIVE,
+    )
+
+    responder = asyncio.create_task(
+        server._call_tool_impl("page_dialog_respond", {})
+    )
+    await asyncio.wait_for(responder_ready.wait(), timeout=0.1)
+    response, triggered = await asyncio.gather(
+        responder,
+        server._call_tool_impl("trigger", {}),
+    )
+
+    assert response.isError is False
+    assert triggered.isError is False
+    assert contexts[0] is contexts[1]
+
+
+@pytest.mark.asyncio
+async def test_cleanup_waits_for_responder_and_serialized_tool(monkeypatch) -> None:
+    all_started = asyncio.Event()
+    release = asyncio.Event()
+    started = 0
+
+    class FakeContext:
+        def __init__(self) -> None:
+            self.cleaned = False
+
+        async def cleanup(self) -> None:
+            self.cleaned = True
+
+    class EmptyArgs(BaseModel):
+        pass
+
+    async def hold(_context, _args):
+        nonlocal started
+        started += 1
+        if started == 2:
+            all_started.set()
+        await release.wait()
+        from drissionpage_mcp.tools.base import ToolOutcome
+
+        outcome = ToolOutcome()
+        outcome.add_result("done", closed=True)
+        return outcome
+
+    from drissionpage_mcp.tool_outputs import PageCloseData
+
+    monkeypatch.setattr(server_module, "DrissionPageContext", FakeContext)
+    server = DrissionPageMCPServer()
+    responder_spec = ToolSpec(
+        name="page_dialog_respond",
+        title="Respond",
+        description="Hold the responder lane",
+        input_model=EmptyArgs,
+        output_model=PageCloseData,
+        handler=hold,
+        tool_type=ToolType.DESTRUCTIVE,
+    )
+    trigger_spec = ToolSpec(
+        name="trigger",
+        title="Trigger",
+        description="Hold the serialized lane",
+        input_model=EmptyArgs,
+        output_model=PageCloseData,
+        handler=hold,
+        tool_type=ToolType.DESTRUCTIVE,
+    )
+    server.tools["page_dialog_respond"] = responder_spec
+    server.tools["trigger"] = trigger_spec
+
+    responder = asyncio.create_task(
+        server._call_tool_impl("page_dialog_respond", {})
+    )
+    trigger = asyncio.create_task(server._call_tool_impl("trigger", {}))
+    await asyncio.wait_for(all_started.wait(), timeout=0.1)
+    context = server.context
+    cleanup = asyncio.create_task(server.cleanup())
+    await asyncio.sleep(0)
+
+    assert cleanup.done() is False
+    assert context is not None
+    assert context.cleaned is False
+
+    release.set()
+    await asyncio.gather(responder, trigger, cleanup)
+
+    assert context.cleaned is True
+    assert server.context is None
+
+
+@pytest.mark.asyncio
+async def test_invalid_or_unknown_tool_does_not_initialize_context(monkeypatch) -> None:
+    created = 0
+
+    class FakeContext:
+        def __init__(self) -> None:
+            nonlocal created
+            created += 1
+
+    monkeypatch.setattr(server_module, "DrissionPageContext", FakeContext)
+    server = DrissionPageMCPServer()
+
+    unknown = await server._call_tool_impl("missing_tool", {})
+    invalid = await server._call_tool_impl("wait_time", {"unexpected": True})
+
+    assert unknown.isError is True
+    assert invalid.isError is True
+    assert created == 0
+    assert server.context is None
+
+
+@pytest.mark.asyncio
+async def test_context_initialization_failure_uses_tool_error_contract(
+    monkeypatch,
+) -> None:
+    class FailingContext:
+        def __init__(self) -> None:
+            raise RuntimeError("browser launch failed")
+
+    monkeypatch.setattr(server_module, "DrissionPageContext", FailingContext)
+    server = DrissionPageMCPServer()
+
+    result = await server._call_tool_impl("wait_time", {"seconds": 0})
+
+    assert result.isError is True
+    assert result.structuredContent["error"]["code"] == "BROWSER_START_FAILED"
+    assert result.structuredContent["error"]["details"]["tool_name"] == "wait_time"
+    assert server.context is None
+    assert server._active_tool_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_internal_call_tool_impl_does_not_retain_dialog_prompt() -> None:
     server = DrissionPageMCPServer()
     secret = "dialog-history-secret"
     result = await server._call_tool_impl(
@@ -210,15 +429,12 @@ async def test_internal_call_tool_impl_redacts_dialog_prompt_history() -> None:
 
     assert result.isError is True
     assert server.context is not None
-    history = server.context.action_history()
-    action = history["actions"][0]
-    assert action["args"]["prompt_text"] == "<redacted>"
     assert secret not in json.dumps(result.structuredContent, ensure_ascii=False)
-    assert secret not in json.dumps(history, ensure_ascii=False)
+    assert not hasattr(server.context, "action_history")
 
 
 @pytest.mark.asyncio
-async def test_dialog_native_failure_secret_is_absent_from_error_and_history() -> None:
+async def test_dialog_native_failure_secret_is_absent_from_error() -> None:
     from drissionpage_mcp.browser.dialogs import DialogResponseIndeterminateError
     from drissionpage_mcp.context import DrissionPageContext
 
@@ -249,10 +465,9 @@ async def test_dialog_native_failure_secret_is_absent_from_error_and_history() -
 
     assert result.isError is True
     public = json.dumps(result.structuredContent, ensure_ascii=False)
-    history = json.dumps(server.context.action_history(), ensure_ascii=False)
     assert secret not in public
-    assert secret not in history
-    receipt = server.context.receipt_inventory()[0]
+    assert not hasattr(server.context, "action_history")
+    receipt = list(server.context._operation_receipts.values())[0]
     assert receipt.status == "indeterminate"
     assert receipt.error_code == "DIALOG_RESPONSE_INDETERMINATE"
 

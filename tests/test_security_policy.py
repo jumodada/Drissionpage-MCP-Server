@@ -15,10 +15,6 @@ from drissionpage_mcp.tools.base import ToolOutcome
 from drissionpage_mcp.tools.common import ScreenshotSaveInput, screenshot_save
 from drissionpage_mcp.tools.files import UploadFileInput, element_upload_file
 from drissionpage_mcp.tools.navigate import NavigateInput, navigate
-from drissionpage_mcp.tools.workflow import (
-    BrowserOpenAndSnapshotInput,
-    browser_open_and_snapshot,
-)
 
 
 @pytest.mark.parametrize(
@@ -72,27 +68,6 @@ async def test_denied_navigation_does_not_initialize_browser(monkeypatch) -> Non
     assert response.is_error is True
     payload = response.structured_content()
     assert payload["error"]["code"] == ErrorCode.POLICY_DENIED.value
-    context.ensure_tab.assert_not_called()
-
-
-@pytest.mark.asyncio
-async def test_denied_open_and_snapshot_does_not_initialize_browser(
-    monkeypatch,
-) -> None:
-    _clear_policy_env(monkeypatch)
-    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
-    context = Mock(spec=DrissionPageContext)
-    context.ensure_tab = AsyncMock()
-
-    outcome = await browser_open_and_snapshot.execute(
-        context,
-        BrowserOpenAndSnapshotInput(url="https://denied.test/"),
-    )
-
-    assert outcome.is_error is True
-    assert (
-        outcome.structured_content()["error"]["code"] == ErrorCode.POLICY_DENIED.value
-    )
     context.ensure_tab.assert_not_called()
 
 

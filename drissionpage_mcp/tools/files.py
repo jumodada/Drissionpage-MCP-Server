@@ -59,10 +59,8 @@ async def element_upload_file(
     result = await tab.elements.upload(
         args.selector, [str(path) for path in safe_paths], timeout=args.timeout
     )
-    outcome.add_code(f"page.ele({result['locator']!r}).input(<approved files>)")
     outcome.add_result(
         f"Uploaded {result['file_count']} file{('' if result['file_count'] == 1 else 's')}",
         **result,
     )
-    outcome.set_include_snapshot(True)
     return outcome

@@ -1015,7 +1015,7 @@ async def test_post_action_stabilization_falls_back_when_doc_loaded_fails(
     tab = PageTab(page, FakeContext())
     monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", fake_sleep)
 
-    await tab.pointer.click_at(1, 2, profile="direct")
+    await tab.pointer.click_at(1, 2)
 
     assert sleeps == [0.02]
 
@@ -1765,7 +1765,6 @@ def test_page_tab_exposes_capabilities_without_legacy_domain_methods() -> None:
     assert tab.pointer is not None
     assert tab.storage is not None
     assert tab.waits is not None
-    assert tab.workflows is not None
 
     legacy_methods = {
         "click",

@@ -13,6 +13,7 @@ def build_screenshot_metadata(
     image_data: Optional[Union[str, bytes]] = None,
     *,
     path: str = "",
+    safe_relative_path: str = "",
     full_page: Optional[bool] = None,
     inline: Optional[bool] = None,
 ) -> Dict[str, Any]:
@@ -32,8 +33,8 @@ def build_screenshot_metadata(
         metadata["inline"] = True
     if image_data is not None and metadata.get("inline", True):
         metadata["encoding"] = "base64"
-    if path:
-        metadata["path"] = path
+    if safe_relative_path:
+        metadata["safe_relative_path"] = safe_relative_path
     if full_page is not None:
         metadata["full_page"] = full_page
     if raw is not None:

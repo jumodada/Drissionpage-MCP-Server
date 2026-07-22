@@ -20,7 +20,6 @@ from drissionpage_mcp.tools import (
     storage,
     tabs,
     wait,
-    workflow,
     network,
     pointer,
 )
@@ -92,10 +91,6 @@ class FakeTab:
         )
         self.page_ops = SimpleNamespace(resize=self.resize, screenshot=self.screenshot)
         self.pointer = SimpleNamespace(click_at=self.click)
-        self.workflows = SimpleNamespace(
-            open_and_snapshot=self.open_and_snapshot,
-            extract_links=self.extract_links,
-        )
 
     def summary(self, *, active: bool = False) -> dict[str, Any]:
         return {
@@ -236,108 +231,6 @@ class FakeTab:
             "max_chars": max_chars,
         }
 
-    async def open_and_snapshot(
-        self,
-        *,
-        url: str,
-        wait_condition: str = "",
-        selector: str = "",
-        wait_value: str = "",
-        wait_timeout: float = 5.0,
-        include_html: bool = False,
-        include_console: bool = False,
-        max_elements: int = 50,
-        max_text_chars: int = 4000,
-    ) -> dict[str, Any]:
-        self._record(
-            "open_and_snapshot",
-            url=url,
-            wait_condition=wait_condition,
-            selector=selector,
-            wait_value=wait_value,
-            wait_timeout=wait_timeout,
-            include_html=include_html,
-            include_console=include_console,
-            max_elements=max_elements,
-            max_text_chars=max_text_chars,
-        )
-        self.url = url
-        payload = {
-            "url": url,
-            "final_url": url,
-            "title": "Workflow Page",
-            "wait": {
-                "condition": wait_condition,
-                "selector": selector,
-                "value": wait_value,
-                "matched": True,
-                "timeout": wait_timeout,
-            },
-            "snapshot": await self.page_snapshot(
-                include_html=include_html,
-                max_elements=max_elements,
-                max_text_chars=max_text_chars,
-            ),
-        }
-        if include_console:
-            payload["console"] = await self.console_logs()
-        return payload
-
-    async def extract_links(
-        self,
-        *,
-        selector: str = "a",
-        limit: int = 50,
-        include_text: bool = True,
-        same_origin_only: bool = False,
-        absolute_urls: bool = True,
-    ) -> dict[str, Any]:
-        self._record(
-            "extract_links",
-            selector=selector,
-            limit=limit,
-            include_text=include_text,
-            same_origin_only=same_origin_only,
-            absolute_urls=absolute_urls,
-        )
-        links = [
-            {
-                "index": 0,
-                "text": "Docs" if include_text else "",
-                "href": "/docs",
-                "url": "https://example.test/docs" if absolute_urls else "/docs",
-                "absolute_url": "https://example.test/docs",
-                "selector": "#docs-link",
-                "rel": "",
-                "target": "",
-            },
-            {
-                "index": 1,
-                "text": "External" if include_text else "",
-                "href": "https://external.test/",
-                "url": "https://external.test/",
-                "absolute_url": "https://external.test/",
-                "selector": "#external-link",
-                "rel": "nofollow",
-                "target": "_blank",
-            },
-        ]
-        selected = links[:limit]
-        return {
-            "selector": selector,
-            "locator": "css:a",
-            "selector_strategy": "css",
-            "selector_normalized": True,
-            "include_text": include_text,
-            "same_origin_only": same_origin_only,
-            "absolute_urls": absolute_urls,
-            "count": 2,
-            "returned": len(selected),
-            "limit": limit,
-            "truncated": limit < 2,
-            "links": selected,
-        }
-
     async def network_listen_start(
         self,
         *,
@@ -425,17 +318,15 @@ class FakeTab:
         self._record("click", x, y, **kwargs)
         return SimpleNamespace(
             to_dict=lambda: {
-                "profile": kwargs.get("profile", "natural"),
+                "profile": kwargs.get("profile", "direct"),
                 "button": kwargs.get("button", "left"),
-                "start_x": kwargs.get("start_x") or 0.0,
-                "start_y": kwargs.get("start_y") or 0.0,
+                "start_x": 0.0,
+                "start_y": 0.0,
                 "target_x": x,
                 "target_y": y,
-                "steps": 24,
-                "reaction_delay_ms": 180,
+                "steps": 1,
                 "delay_before_press_ms": kwargs.get("delay_before_press_ms", 0),
-                "hold_duration_ms": 75,
-                "planned_duration_ms": 620,
+                "planned_duration_ms": kwargs.get("delay_before_press_ms", 0),
             }
         )
 
@@ -997,7 +888,8 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         common.ScreenshotSaveInput(path=str(screenshot_path), full_page=False),
     )
     path_payload = path_response.structured_content()
-    assert path_payload["data"]["screenshot"]["path"] == str(screenshot_path)
+    assert path_payload["data"]["screenshot"]["safe_relative_path"] == "screen.png"
+    assert "path" not in path_payload["data"]["screenshot"]
     assert path_payload["data"]["screenshot"]["inline"] is False
     snapshot_response = await _execute(
         common.page_snapshot,
@@ -1060,21 +952,18 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         "element": "",
         "url": "https://example.test/current",
         "motion": {
-            "profile": "natural",
+            "profile": "direct",
             "button": "left",
             "start_x": 0.0,
             "start_y": 0.0,
             "target_x": 7.0,
             "target_y": 9.0,
-            "steps": 24,
-            "reaction_delay_ms": 180,
+            "steps": 1,
             "delay_before_press_ms": 0,
-            "hold_duration_ms": 75,
-            "planned_duration_ms": 620,
+            "planned_duration_ms": 0,
         },
     }
     assert "(7, 9)" in _message(click_response)
-    assert click_response.include_snapshot is True
     close_response = await _execute(common.close, ctx, common.EmptyInput())
     assert close_response.structured_content()["data"] == {"closed": True}
     assert ctx.closed is True
@@ -1086,38 +975,6 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
     assert "https://example.test/current" in _message(url_response)
 
 
-@pytest.mark.asyncio
-async def test_workflow_tools_success_paths() -> None:
-    ctx = FakeContext()
-    open_response = await _execute(
-        workflow.browser_open_and_snapshot,
-        ctx,
-        workflow.BrowserOpenAndSnapshotInput(
-            url="https://example.test/workflow",
-            wait_condition="visible",
-            selector="#app",
-            include_console=True,
-            max_elements=5,
-            max_text_chars=100,
-        ),
-    )
-    open_payload = open_response.structured_content()
-    assert open_payload["data"]["final_url"] == "https://example.test/workflow"
-    assert open_payload["data"]["snapshot"]["limits"] == {
-        "max_elements": 5,
-        "max_text_chars": 100,
-    }
-    assert open_payload["data"]["console"]["count"] == 2
-    links_response = await _execute(
-        workflow.browser_extract_links,
-        ctx,
-        workflow.BrowserExtractLinksInput(limit=1, same_origin_only=True),
-    )
-    links_payload = links_response.structured_content()
-    assert links_payload["data"]["returned"] == 1
-    assert links_payload["data"]["truncated"] is True
-    assert links_payload["data"]["links"][0]["url"].endswith("/docs")
-    assert links_payload["data"]["meta"]["truncated"] is True
 @pytest.mark.asyncio
 async def test_network_tools_success_paths() -> None:
     ctx = FakeContext()
@@ -1310,7 +1167,6 @@ async def test_navigation_tools_success_paths() -> None:
         "tab_id": "t0",
     }
     assert "Successfully navigated" in _message(nav_response)
-    assert nav_response.include_snapshot is True
     assert ctx.tab.url == "https://example.test/next"
     observed_ctx = FakeContext()
     observed_nav_response = await _execute(
@@ -1345,7 +1201,6 @@ async def test_navigation_tools_success_paths() -> None:
             "url": "https://example.test/next"
         }
         assert expected_message in _message(response)
-        assert response.include_snapshot is True
         assert ctx.tab.calls[-1][0] == expected_call
 
 
@@ -1454,11 +1309,6 @@ def test_get_property_input_uses_property_field_only() -> None:
             element.GetPropertyInput,
             {"selector": "#name", "property": "value", "property_name": "value"},
         ),
-        (
-            workflow.BrowserOpenAndSnapshotInput,
-            {"url": "https://example.test", "maxElements": 10},
-        ),
-        (workflow.BrowserExtractLinksInput, {"sameOriginOnly": True}),
         (network.NetworkListenStartInput, {"target": "/api"}),
         (network.NetworkListenWaitInput, {"timeout_ms": 1000}),
         (wait.WaitTimeInput, {"seconds": 1, "milliseconds": 500}),
@@ -1574,7 +1424,6 @@ async def test_element_tools_success_paths() -> None:
         "click_count": 1,
     }
     assert "Successfully clicked element" in _message(click_response)
-    assert click_response.include_snapshot is True
     observed_click = await _execute(
         element.click_element,
         ctx,
@@ -1594,7 +1443,6 @@ async def test_element_tools_success_paths() -> None:
     }
     assert "Ada" not in str(type_response.structured_content()["data"])
     assert "Successfully typed" in _message(type_response)
-    assert type_response.include_snapshot is True
     observed_type = await _execute(
         element.type_text,
         ctx,

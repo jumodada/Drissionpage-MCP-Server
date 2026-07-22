@@ -32,6 +32,9 @@ def test_readmes_and_changelog_publish_latest_0_7_2_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+    current_changelog = changelog.split("## [0.7.2]", 1)[1].split(
+        "## [0.7.1]", 1
+    )[0]
 
     browser_lab_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/drissionpage-mcp-browser-lab.gif"
     assert browser_lab_url in readme and browser_lab_url in readme_cn
@@ -43,30 +46,34 @@ def test_readmes_and_changelog_publish_latest_0_7_2_summary() -> None:
     assert "观看原始自然指针演示" not in readme_cn
     assert "## 🆕 Latest Version: v0.7.2" in readme
     assert "Released on 2026-07-21" in readme
-    assert "58 Powerful Tools" in readme
+    assert "53 Typed Browser Tools" in readme
     assert "Form Operations" not in readme
     assert "page_dialog_respond" in readme
     assert "element_click_and_download" in readme
     assert "optional Skill" in readme
     assert "### 🌐 Navigation (4 tools)" in readme
     assert "### 🎯 Element Interaction & Extraction (14 tools)" in readme
-    assert "### 📸 Page Operations (18 tools)" in readme
+    assert "### 📸 Page Operations (15 tools)" in readme
+    assert "### 🌐 Network Observation (3 tools)" in readme
     assert "## 🆕 最新版本：v0.7.2" in readme_cn
     assert "发布日期：2026-07-21" in readme_cn
-    assert "58 个强大工具" in readme_cn
+    assert "53 个类型化浏览器工具" in readme_cn
     assert "表单工具（3 个）" not in readme_cn
     assert "page_dialog_respond" in readme_cn
     assert "element_click_and_download" in readme_cn
     assert "可选 Skill" in readme_cn
     assert "### 🌐 导航工具（4 个）" in readme_cn
     assert "### 🎯 元素交互与提取（14 个）" in readme_cn
-    assert "### 📸 页面操作（18 个）" in readme_cn
+    assert "### 📸 页面操作（15 个）" in readme_cn
+    assert "### 🌐 网络观察（3 个）" in readme_cn
     assert "## [0.7.2] - 2026-07-21" in changelog
-    assert "58 generic tools" in changelog
-    assert "No compatibility aliases" in changelog
-    assert "ActionReceipt" in changelog
-    assert "ArtifactRef" in changelog
-    assert "ten-run" in changelog
+    assert "53 generic browser tools" in current_changelog
+    assert "No compatibility aliases" in current_changelog
+    assert "ActionReceipt" in current_changelog
+    assert "ArtifactRef" in current_changelog
+    assert "ten-run" in current_changelog
+    assert "24-step" in current_changelog
+    assert "drissionpage://skills/catalog" in current_changelog
     assert "## [0.6.2] - 2026-07-15" in changelog
     assert "optional ordered `waypoints`" in changelog
     assert "no new public tool" in changelog
@@ -100,18 +107,43 @@ def test_readmes_and_changelog_publish_latest_0_7_2_summary() -> None:
     )
 
 
-def test_public_readmes_advertise_mcp_model_usage_surfaces() -> None:
+def test_public_readmes_advertise_atomic_core_and_optional_skills() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
-    changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert "drissionpage://guide/model-usage" in readme
-    assert "drissionpage://guide/model-usage" in readme_cn
-    assert "drissionpage_mcp_usage_playbook" in readme
-    assert "drissionpage_mcp_usage_playbook" in readme_cn
-    assert "browser_vision_guided_interaction" in readme
-    assert "browser_vision_guided_interaction" in readme_cn
-    assert "MCP-exposed model usage guide" in changelog
+    for text in (readme, readme_cn):
+        assert "drissionpage://skills/catalog" in text
+        assert "skills/<skill-name>/SKILL.md" in text
+        assert 'profile="natural"' in text
+        assert "zero MCP prompts" in text or "零个 MCP Prompt" in text
+        for removed_surface in (
+            "drissionpage://guide/model-usage",
+            "drissionpage://tools/catalog",
+            "drissionpage_mcp_usage_playbook",
+            "browser_vision_guided_interaction",
+        ):
+            assert removed_surface not in text
+    assert pyproject["project"]["urls"]["Skills"].endswith("/skills-manager")
+
+
+def test_current_public_readmes_do_not_advertise_removed_workflow_tools() -> None:
+    removed_tools = {
+        "form_inspect",
+        "form_fill",
+        "form_fill_preview",
+        "form_submit",
+        "page_detect_challenges",
+        "page_click_xy_batch",
+        "page_wait_challenge_result",
+        "browser_open_and_snapshot",
+        "browser_extract_links",
+    }
+
+    for path in (Path("README.md"), Path("README_CN.md")):
+        text = path.read_text(encoding="utf-8")
+        for tool_name in removed_tools:
+            assert tool_name not in text, (path, tool_name)
 
 
 def test_public_readmes_keep_no_sandbox_out_of_general_setup_examples() -> None:
@@ -196,3 +228,33 @@ def test_maintenance_files_do_not_retain_deleted_examples_or_old_versions() -> N
     assert "examples/**" not in codecov
     assert "docs/release-checklist.md" not in readme
     assert "docs/release-checklist.md" not in readme_cn
+
+
+def test_distribution_configuration_excludes_private_guidance_and_skills() -> None:
+    manifest = Path("MANIFEST.in").read_text(encoding="utf-8")
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    forbidden = (
+        "AGENTS.md",
+        "SKILL.md",
+        "skills/",
+        "docs/core-and-skills-strategy.md",
+        "docs/0.7.3-to-0.8.0-capability-plan.md",
+        ".omx/",
+    )
+
+    assert "recursive-include docs" not in manifest
+    for name in forbidden:
+        assert name not in manifest
+    assert pyproject["tool"]["setuptools"]["packages"] == [
+        "drissionpage_mcp",
+        "drissionpage_mcp.browser",
+        "drissionpage_mcp.tools",
+    ]
+    for deleted_module in (
+        Path("drissionpage_mcp/prompts.py"),
+        Path("drissionpage_mcp/browser/vision.py"),
+        Path("drissionpage_mcp/browser/workflows.py"),
+        Path("drissionpage_mcp/tools/vision.py"),
+        Path("drissionpage_mcp/tools/workflow.py"),
+    ):
+        assert not deleted_module.exists()

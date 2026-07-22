@@ -167,7 +167,7 @@ def test_artifact_reservations_are_bound_to_their_artifact_ids() -> None:
     context.release_artifact_slot("artifact-000001")
     context.reserve_artifact_slot("artifact-000003")
 
-    assert context.artifact_inventory() == [second]
+    assert list(context._artifacts.values()) == [second]
     with pytest.raises(Exception, match="artifact ledger limit"):
         context.reserve_artifact_slot("artifact-000004")
 
@@ -203,9 +203,9 @@ async def test_download_policy_denies_before_claim_tab_or_click(
 
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "POLICY_DENIED"
-    assert context.task_summary().operation_count == 0
-    assert context.task_summary().receipt_count == 0
-    assert context.artifact_inventory() == []
+    assert len(context._operation_fingerprints) == 0
+    assert len(context._operation_receipts) == 0
+    assert list(context._artifacts.values()) == []
 
 
 @pytest.mark.asyncio
@@ -230,9 +230,9 @@ async def test_task_directory_symlink_denies_before_claim_or_click(
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "POLICY_DENIED"
     assert tab.downloads.clicked == []
-    assert context.task_summary().operation_count == 0
-    assert context.task_summary().receipt_count == 0
-    assert context.artifact_inventory() == []
+    assert len(context._operation_fingerprints) == 0
+    assert len(context._operation_receipts) == 0
+    assert list(context._artifacts.values()) == []
 
 
 @pytest.mark.asyncio
@@ -265,8 +265,8 @@ async def test_recorded_unsupported_download_denies_before_tab_or_click(
 
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "UNSUPPORTED_OPERATION"
-    assert context.task_summary().operation_count == 0
-    assert context.task_summary().receipt_count == 0
+    assert len(context._operation_fingerprints) == 0
+    assert len(context._operation_receipts) == 0
 
 
 @pytest.mark.asyncio
@@ -290,9 +290,9 @@ async def test_artifact_ledger_full_denies_before_claim_click_or_receipt(
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "TASK_LEDGER_FULL"
     assert downloads.clicked == []
-    assert context.task_summary().operation_count == 0
-    assert context.task_summary().receipt_count == 0
-    assert len(context.artifact_inventory()) == 1
+    assert len(context._operation_fingerprints) == 0
+    assert len(context._operation_receipts) == 0
+    assert len(list(context._artifacts.values())) == 1
 
 
 @pytest.mark.asyncio
@@ -335,7 +335,7 @@ async def test_download_success_uses_preflight_element_and_returns_safe_artifact
     assert receipt["status"] == "success"
     assert receipt["artifact_ids"] == [artifact["artifact_id"]]
     assert artifact["producing_action_id"] == receipt["action_id"]
-    assert context.artifact_inventory()[0].model_dump(mode="json") == artifact
+    assert list(context._artifacts.values())[0].model_dump(mode="json") == artifact
     assert downloads.probed == [tab.element]
     assert downloads.clicked == [tab.element]
     assert tab.element_lookups == 1
@@ -377,17 +377,17 @@ async def test_capability_bookkeeping_failure_cannot_leave_dangling_artifact(
         ),
     )
 
-    inventory = context.artifact_inventory()
+    inventory = list(context._artifacts.values())
     if inventory:
         assert outcome.is_error is False
         artifact_path = root / inventory[0].safe_relative_path
         assert artifact_path.read_bytes() == DOWNLOAD_BYTES
-        receipt = context.receipt_inventory()[0]
+        receipt = list(context._operation_receipts.values())[0]
         assert receipt.status == "success"
         assert receipt.artifact_ids == (inventory[0].artifact_id,)
     else:
         assert outcome.is_error is True
-        assert context.receipt_inventory()[0].status != "success"
+        assert list(context._operation_receipts.values())[0].status != "success"
         assert not [path for path in root.rglob("*") if path.is_file()]
 
 
@@ -414,8 +414,8 @@ async def test_concurrent_same_key_clicks_once_and_reports_in_flight(
     assert duplicate.is_error is True
     assert duplicate.structured_content()["error"]["code"] == "OPERATION_IN_FLIGHT"
     assert downloads.clicked == [tab.element]
-    assert context.task_summary().receipt_count == 1
-    assert len(context.artifact_inventory()) == 1
+    assert len(context._operation_receipts) == 1
+    assert len(list(context._artifacts.values())) == 1
 
 
 @pytest.mark.asyncio
@@ -449,7 +449,7 @@ async def test_two_concurrent_downloads_keep_distinct_artifact_reservations(
     outcomes = await asyncio.gather(first, second)
 
     assert all(outcome.is_error is False for outcome in outcomes)
-    artifacts = context.artifact_inventory()
+    artifacts = list(context._artifacts.values())
     assert len(artifacts) == 2
     assert len({artifact.artifact_id for artifact in artifacts}) == 2
     assert len({artifact.producing_action_id for artifact in artifacts}) == 2
@@ -478,8 +478,8 @@ async def test_failed_download_has_no_artifact_cleans_partial_and_replays_failur
 
     assert first.is_error is True
     assert first.structured_content()["error"]["code"] != "SUCCESS"
-    assert context.artifact_inventory() == []
-    receipt = context.receipt_inventory()[0]
+    assert list(context._artifacts.values()) == []
+    receipt = list(context._operation_receipts.values())[0]
     assert receipt.status == expected_status
     assert receipt.artifact_ids == ()
     assert not [path for path in root.rglob("*") if path.is_file()]
@@ -491,7 +491,7 @@ async def test_failed_download_has_no_artifact_cleans_partial_and_replays_failur
     assert replay.is_error is True
     assert replay.structured_content() == first.structured_content()
     assert len(downloads.clicked) == 1
-    assert context.artifact_inventory() == []
+    assert list(context._artifacts.values()) == []
 
 
 @pytest.mark.asyncio
@@ -570,9 +570,9 @@ async def test_cancellation_drains_native_work_freezes_failure_and_replays(
     assert frozen["status"] == "indeterminate"
     assert frozen["artifact"] is None
     assert frozen["receipt"] == receipt.model_dump(mode="json")
-    assert context.task_summary().operation_count == 1
-    assert context.task_summary().receipt_count == 1
-    assert context.artifact_inventory() == []
+    assert len(context._operation_fingerprints) == 1
+    assert len(context._operation_receipts) == 1
+    assert list(context._artifacts.values()) == []
     assert not [path for path in root.rglob("*") if path.is_file()]
     context.reserve_artifact_slot("reservation-probe")
     context.release_artifact_slot("reservation-probe")
@@ -629,7 +629,7 @@ async def test_cancellation_during_failure_cleanup_still_freezes_indeterminate(
     assert frozen is not None
     assert frozen["status"] == "indeterminate"
     assert frozen["artifact"] is None
-    assert context.artifact_inventory() == []
+    assert list(context._artifacts.values()) == []
     assert not [path for path in root.rglob("*") if path.is_file()]
 
     monkeypatch.delenv("DP_MCP_DOWNLOAD_ROOT")
@@ -669,8 +669,8 @@ async def test_expected_artifact_mismatch_has_no_artifact_and_replays_failure(
 
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "PRECONDITION_FAILED"
-    assert context.artifact_inventory() == []
-    receipt = context.receipt_inventory()[0]
+    assert list(context._artifacts.values()) == []
+    receipt = list(context._operation_receipts.values())[0]
     assert receipt.status == "validation_failed"
     assert receipt.artifact_ids == ()
     assert not [path for path in root.rglob("*") if path.is_file()]
@@ -913,8 +913,8 @@ async def test_native_artifact_path_escape_or_symlink_never_records_success(
 
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "PRECONDITION_FAILED"
-    assert context.artifact_inventory() == []
-    receipt = context.receipt_inventory()[0]
+    assert list(context._artifacts.values()) == []
+    receipt = list(context._operation_receipts.values())[0]
     assert receipt.status == "validation_failed"
     assert receipt.artifact_ids == ()
 
@@ -991,8 +991,8 @@ async def test_artifact_leaf_swap_never_hashes_symlink_target(
 
     assert outcome.is_error is True
     assert outcome.structured_content()["error"]["code"] == "PRECONDITION_FAILED"
-    assert context.artifact_inventory() == []
-    receipt = context.receipt_inventory()[0]
+    assert list(context._artifacts.values()) == []
+    receipt = list(context._operation_receipts.values())[0]
     assert receipt.status == "validation_failed"
     assert receipt.artifact_ids == ()
     assert outside.read_bytes() == b"outside secret must never be hashed"

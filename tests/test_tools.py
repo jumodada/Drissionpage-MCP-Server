@@ -124,15 +124,14 @@ class TestToolOutcome:
         assert "Test error" in content[1].text
         assert response.is_error
 
-    def test_add_code(self):
-        """Test adding code to response."""
+    def test_outcome_has_no_generated_code_or_snapshot_state(self):
+        """Presentation-only workflow state does not belong in tool outcomes."""
+
         response = ToolOutcome()
-        response.add_code("print('hello')")
-        content = response.content()
-        assert len(content) == 2
-        assert JSON_RESULT_SENTINEL in content[0].text
-        assert "```python" in content[1].text
-        assert "print('hello')" in content[1].text
+
+        assert not hasattr(response, "add_code")
+        assert not hasattr(response, "set_include_snapshot")
+        assert not hasattr(response, "include_snapshot")
 
     def test_empty_response(self):
         """Test empty response gets default content."""
@@ -177,8 +176,8 @@ def test_tool_core_has_single_typed_registry_without_legacy_surfaces() -> None:
     from drissionpage_mcp.tools import ALL_TOOLS
     from drissionpage_mcp.tools.base import ToolOutcome, ToolSpec
 
-    assert len(ALL_TOOLS) == 58
-    assert len({tool.name for tool in ALL_TOOLS}) == 58
+    assert len(ALL_TOOLS) == 53
+    assert len({tool.name for tool in ALL_TOOLS}) == 53
     assert {tool.name for tool in ALL_TOOLS} >= {
         "page_dialog_respond",
         "element_click_and_download",
@@ -188,6 +187,11 @@ def test_tool_core_has_single_typed_registry_without_legacy_surfaces() -> None:
         "form_fill",
         "form_submit",
         "form_fill_preview",
+        "page_detect_challenges",
+        "page_click_xy_batch",
+        "page_wait_challenge_result",
+        "browser_open_and_snapshot",
+        "browser_extract_links",
     }.isdisjoint(tool.name for tool in ALL_TOOLS)
     assert all(isinstance(tool, ToolSpec) for tool in ALL_TOOLS)
     assert all(tool.output_model is not None for tool in ALL_TOOLS)

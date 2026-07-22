@@ -165,7 +165,6 @@ async def find_element(
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     element = await tab.elements.find(args.selector, timeout=args.timeout)
-    outcome.add_code(f"element = page.ele({element['locator']!r})")
     outcome.add_result(f"Found element: {args.selector}", element=element)
     return outcome
 
@@ -191,7 +190,6 @@ async def find_all_elements(
     result = await tab.elements.find_all(
         args.selector, limit=args.limit, include_html=args.include_html
     )
-    outcome.add_code(f"elements = page.eles({result['locator']!r}, timeout=0)")
     outcome.add_result(
         f"Found {result['returned']} of {result['count']} elements: {args.selector}",
         **with_response_meta(result),
@@ -240,7 +238,6 @@ async def click_element(
         )
         raise
     changes = await observed_changes(tab, before)
-    outcome.add_code(_click_code(plan.locator, args.button, args.click_count))
     data = {
         **plan.metadata(),
         "url": tab.url,
@@ -250,19 +247,7 @@ async def click_element(
     if changes is not None:
         data["changes"] = changes
     outcome.add_result(f"Successfully clicked element: {args.selector}", **data)
-    outcome.set_include_snapshot(True)
     return outcome
-
-
-def _click_code(locator: str, button: str, click_count: int) -> str:
-    target = f"page.ele({locator!r}).click"
-    if button == "left" and click_count == 1:
-        return target + "()"
-    if button == "right" and click_count == 1:
-        return target + ".right()"
-    if button == "left" and click_count == 2:
-        return target + ".multi(times=2)"
-    return target + f".at(button={button!r}, count={click_count})"
 
 
 def _click_capability_probe(
@@ -330,14 +315,10 @@ async def type_text(
         args.selector, args.text, timeout=args.timeout, clear=args.clear
     )
     changes = await observed_changes(tab, before)
-    outcome.add_code(
-        f"page.ele({plan.locator!r}).input({args.text!r}, clear={args.clear!r})"
-    )
     data = {**plan.metadata(), "typed": True, "cleared": args.clear}
     if changes is not None:
         data["changes"] = changes
     outcome.add_result(f"Successfully typed text into element: {args.selector}", **data)
-    outcome.set_include_snapshot(True)
     return outcome
 
 
@@ -359,8 +340,6 @@ async def get_text(context: "DrissionPageContext", args: GetTextInput) -> "ToolO
     tab = context.current_tab_or_die()
     plan = normalize_selector(args.selector)
     text = await tab.elements.text(args.selector)
-    code = f"page.ele({plan.locator!r}).text" if args.selector else "page.text"
-    outcome.add_code(code)
     outcome.add_result(text or "", text=text or "", **plan.metadata())
     return outcome
 
@@ -387,7 +366,6 @@ async def get_attribute(
     tab = context.current_tab_or_die()
     plan = normalize_selector(args.selector)
     value = await tab.elements.attribute(args.selector, args.attribute)
-    outcome.add_code(f"page.ele({plan.locator!r}).attr({args.attribute!r})")
     outcome.add_result(
         "" if value is None else str(value),
         **plan.metadata(),
@@ -419,7 +397,6 @@ async def get_property(
     tab = context.current_tab_or_die()
     plan = normalize_selector(args.selector)
     value = await tab.elements.property(args.selector, args.property)
-    outcome.add_code(f"page.ele({plan.locator!r}).property({args.property!r})")
     outcome.add_result(
         "" if value is None else str(value),
         **plan.metadata(),
@@ -447,8 +424,6 @@ async def get_html(context: "DrissionPageContext", args: GetHtmlInput) -> "ToolO
     tab = context.current_tab_or_die()
     plan = normalize_selector(args.selector)
     html = await tab.elements.html(args.selector)
-    code = f"page.ele({plan.locator!r}).html" if args.selector else "page.html"
-    outcome.add_code(code)
     outcome.add_result(html or "", html=html or "", **plan.metadata())
     return outcome
 

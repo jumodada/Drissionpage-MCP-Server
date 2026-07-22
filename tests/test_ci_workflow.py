@@ -67,6 +67,7 @@ def test_ci_separates_required_quality_gates() -> None:
         "protocol",
         "evals",
         "benchmark",
+        "browser-boundaries",
         "coverage",
         "package",
     } <= job_names
@@ -86,7 +87,7 @@ def test_ci_enforces_pre_0_8_production_loc_budget() -> None:
 
 
 def test_ci_coverage_is_the_single_strict_browser_integration_gate() -> None:
-    """runs browser integration once while collecting release coverage."""
+    """runs the full browser suite once while collecting release coverage."""
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
@@ -99,6 +100,22 @@ def test_ci_coverage_is_the_single_strict_browser_integration_gate() -> None:
     assert "CHROME_PATH=$BROWSER_BIN" in coverage_job
     assert 'DP_HEADLESS: "1"' in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
+
+
+def test_ci_runs_focused_browser_boundaries_across_supported_runner_os() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    boundary_job = workflow.split("  browser-boundaries:\n", maxsplit=1)[1].split(
+        "\n  coverage:\n", maxsplit=1
+    )[0]
+
+    assert "ubuntu-latest" in boundary_job
+    assert "macos-latest" in boundary_job
+    assert "windows-latest" in boundary_job
+    assert "tests/test_browser_capability_boundaries.py" in boundary_job
+    assert 'DP_HEADLESS: "1"' in boundary_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in boundary_job
+    assert 'no_sandbox: "1"' in boundary_job
+    assert 'no_sandbox: "0"' in boundary_job
 
 
 def test_ci_browser_gate_starts_shared_drissionpage_test_site_once() -> None:
@@ -154,7 +171,7 @@ def test_ci_uploads_xml_coverage_to_codecov() -> None:
 
 
 def test_ci_checks_wheel_package_contents() -> None:
-    """prevents broad compatibility shim packages from leaking into wheels."""
+    """prevents private guidance, Skills, and deleted modules from shipping."""
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     package_job = workflow.split("  package:\n", maxsplit=1)[1]
@@ -162,6 +179,16 @@ def test_ci_checks_wheel_package_contents() -> None:
     assert "Check wheel package contents" in package_job
     assert 'top_level == ["drissionpage_mcp"]' in package_job
     assert 'name.startswith("src/")' in package_job
+    assert "tarfile.open" in package_job
+    assert "/AGENTS.md" in package_job
+    assert "/SKILL.md" in package_job
+    assert "/docs/core-and-skills-strategy.md" in package_job
+    assert "/docs/0.7.3-to-0.8.0-capability-plan.md" in package_job
+    assert '"/skills/" in ("/" + name)' in package_job
+    assert '"/.omx/" in ("/" + name)' in package_job
+    assert "/drissionpage_mcp/prompts.py" in package_job
+    assert "/drissionpage_mcp/browser/vision.py" in package_job
+    assert "/drissionpage_mcp/tools/workflow.py" in package_job
 
 
 def test_readmes_publish_ci_and_codecov_badges() -> None:
@@ -209,7 +236,7 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
     benchmark_job = workflow.split("  benchmark:\n", maxsplit=1)[1].split(
-        "\n  coverage:\n", maxsplit=1
+        "\n  browser-boundaries:\n", maxsplit=1
     )[0]
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
         "\n  package:\n", maxsplit=1
@@ -255,16 +282,16 @@ def test_release_versions_are_in_sync() -> None:
         assert f"DrissionPage MCP {version}" in text
 
 
-def test_ci_runs_0_4_0_resource_prompt_and_eval_gates() -> None:
+def test_ci_runs_resource_and_eval_gates() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
     assert "tests/test_mcp_resources.py" in workflow
-    assert "tests/test_mcp_prompts.py" in workflow
+    assert "tests/test_mcp_prompts.py" not in workflow
     assert "python -m pytest tests/evals -q" in workflow
     assert "tests.evals.task_completion_benchmark" in workflow
     assert "--iterations 10" in workflow
     benchmark_job = workflow.split("  benchmark:\n", maxsplit=1)[1].split(
-        "\n  coverage:\n", maxsplit=1
+        "\n  browser-boundaries:\n", maxsplit=1
     )[0]
     benchmark_upload = benchmark_job.split(
         "- name: Upload task-completion benchmark", 1

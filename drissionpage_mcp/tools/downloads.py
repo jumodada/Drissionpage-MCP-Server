@@ -186,7 +186,6 @@ def _download_replay_outcome(
         raise RuntimeError("Cached download operation has no frozen result.")
     if replay.cached_result.get("status") == "success":
         outcome = ToolOutcome()
-        outcome.add_code("# replay cached element_click_and_download result")
         outcome.set_result(
             f"Replayed completed download for operation key {operation_key}",
             replay.cached_result,
@@ -365,11 +364,7 @@ def _complete_download_success(
         pass
 
     outcome = ToolOutcome()
-    outcome.add_code(
-        f"page.ele({preflight.plan.locator!r}).click.to_download(save_path='<approved-root>')"
-    )
     outcome.set_result("Downloaded one integrity-checked artifact", data)
-    outcome.set_include_snapshot(True)
     return outcome
 
 

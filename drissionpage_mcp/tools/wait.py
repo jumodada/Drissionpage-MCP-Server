@@ -114,9 +114,6 @@ async def wait_for_element(
     found = await tab.waits.element(args.selector, timeout=args.timeout)
     if not found:
         raise TimeoutError(f"Element '{args.selector}' not found")
-    outcome.add_code(
-        f"page.wait.ele_loaded({plan.locator!r}, timeout={args.timeout!r})"
-    )
     outcome.add_result(
         f"Element '{args.selector}' appeared within {args.timeout} seconds",
         **plan.metadata(),
@@ -147,7 +144,6 @@ async def wait_for_url(
     matched = await tab.waits.url(args.url_pattern, timeout=args.timeout)
     if not matched:
         raise TimeoutError(f"URL did not contain '{args.url_pattern}'")
-    outcome.add_code(f"# wait until {args.url_pattern!r} in page.url")
     outcome.add_result(
         f"URL matched '{args.url_pattern}' within {args.timeout} seconds",
         url_pattern=args.url_pattern,
@@ -174,7 +170,6 @@ async def wait_time(
     """Wait for a specific time."""
     outcome = ToolOutcome()
     await context.wait(args.seconds)
-    outcome.add_code(f"time.sleep({args.seconds})")
     outcome.add_result(
         f"Waited for {args.seconds} seconds", waited_seconds=args.seconds
     )
@@ -208,7 +203,6 @@ async def wait_until(
         interval=args.interval,
         stable_ms=args.stable_ms,
     )
-    outcome.add_code(f"# wait until {args.condition!r}")
     outcome.add_result(
         f"Condition '{args.condition}' matched within {args.timeout} seconds", **result
     )
