@@ -772,6 +772,33 @@ class FakeTab:
             ],
         }
 
+    async def cookies_set(self, *, cookies: list[dict[str, Any]]) -> dict[str, Any]:
+        self._record("cookies_set", cookies=cookies)
+        return {"count": len(cookies), "set": True, "cookies": cookies}
+
+    async def cookies_delete(
+        self,
+        *,
+        name: str,
+        url: str | None = None,
+        domain: str | None = None,
+        path: str | None = None,
+    ) -> dict[str, Any]:
+        self._record(
+            "cookies_delete", cookie_name=name, url=url, domain=domain, path=path
+        )
+        return {
+            "name": name,
+            "url": url,
+            "domain": domain,
+            "path": path,
+            "deleted": True,
+        }
+
+    async def cookies_clear(self) -> dict[str, Any]:
+        self._record("cookies_clear")
+        return {"cleared": True}
+
     async def get(
         self, *, area: str = "local", key: str = "", include_values: bool = True
     ) -> dict[str, Any]:
@@ -1128,6 +1155,58 @@ async def test_frame_shadow_and_storage_tools_success_paths() -> None:
     )
     cookies = cookies_response.structured_content()["data"]
     assert cookies["cookies"][0]["value"] == "<redacted>"
+    cookies_set_response = await _execute(
+        storage.browser_cookies_set,
+        ctx,
+        storage.BrowserCookiesSetInput(
+            cookies=[
+                storage.BrowserCookieInput(
+                    name="sid",
+                    value="callback-secret",
+                    domain="example.test",
+                    path="/",
+                    http_only=True,
+                    same_site="Lax",
+                )
+            ]
+        ),
+    )
+    cookies_set = cookies_set_response.structured_content()["data"]
+    assert cookies_set == {
+        "count": 1,
+        "set": True,
+        "cookies": [
+            {
+                "name": "sid",
+                "value": "callback-secret",
+                "url": "",
+                "domain": "example.test",
+                "path": "/",
+                "http_only": True,
+                "same_site": "Lax",
+            }
+        ],
+    }
+    cookies_delete_response = await _execute(
+        storage.browser_cookies_delete,
+        ctx,
+        storage.BrowserCookiesDeleteInput(
+            name="sid", domain="example.test", path="/"
+        ),
+    )
+    assert cookies_delete_response.structured_content()["data"] == {
+        "name": "sid",
+        "url": None,
+        "domain": "example.test",
+        "path": "/",
+        "deleted": True,
+    }
+    cookies_clear_response = await _execute(
+        storage.browser_cookies_clear,
+        ctx,
+        storage.BrowserCookiesClearInput(),
+    )
+    assert cookies_clear_response.structured_content()["data"] == {"cleared": True}
     storage_get_response = await _execute(
         storage.storage_get,
         ctx,

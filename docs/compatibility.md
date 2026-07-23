@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.7.3. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.7.4. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -40,6 +40,23 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Selector-backed pointer geometry remains narrower: one same-origin iframe and
   nested open Shadow DOM paths only. Do not infer pointer support from the
   broader read-only `frame_*` and `shadow_*` evidence.
+
+## 0.7.3 to 0.7.4 Migration
+
+0.7.4 adds three default-registered Cookie mutation tools and grows the ordered
+registry from 53 to 56 tools. There is no capability profile and users do not
+select a `full` mode.
+
+- `browser_cookies_set` accepts a bounded batch of 1-100 cookies and maps public
+  snake_case fields such as `http_only`, `same_site`, and `source_scheme` to the
+  DrissionPage 4.x setter contract.
+- Successful `browser_cookies_set` results echo Cookie values by default for MCP
+  callback and verification flows. Clients must treat those result payloads as
+  secrets.
+- `browser_cookies_delete` deletes one exact name with optional `url`, `domain`,
+  and `path` scope. `browser_cookies_clear` clears the browser Cookie store.
+- `browser_cookies_get` remains backward compatible and continues to redact
+  values unless `include_values=true`.
 
 ## 0.7.0 to 0.7.1 Migration
 

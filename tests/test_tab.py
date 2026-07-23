@@ -41,9 +41,26 @@ class FakeWindow:
         self.size_args = (width, height)
 
 
+class FakeCookiesSetter:
+    def __init__(self) -> None:
+        self.set_calls = []
+        self.remove_calls = []
+        self.clear_calls = 0
+
+    def __call__(self, cookies) -> None:
+        self.set_calls.append(cookies)
+
+    def remove(self, name, url=None, domain=None, path=None) -> None:
+        self.remove_calls.append((name, url, domain, path))
+
+    def clear(self) -> None:
+        self.clear_calls += 1
+
+
 class FakeSet:
     def __init__(self) -> None:
         self.window = FakeWindow()
+        self.cookies = FakeCookiesSetter()
 
 
 class FakeConsole:
@@ -1566,6 +1583,70 @@ async def test_cookie_storage_and_session_state_paths_are_normalized() -> None:
 
 
 @pytest.mark.asyncio
+async def test_cookie_write_paths_map_fields_and_echo_values() -> None:
+    page = CookieStoragePage()
+    tab = PageTab(page, ActiveContext())
+    cookies = [
+        {
+            "name": "sid",
+            "value": "secret-value",
+            "url": "https://example.test/login",
+            "domain": "example.test",
+            "path": "/",
+            "expires": 1893456000.0,
+            "secure": True,
+            "http_only": True,
+            "same_site": "Lax",
+            "priority": "High",
+            "source_scheme": "Secure",
+        },
+        {"name": "theme", "value": "dark"},
+    ]
+
+    result = await tab.storage.cookies_set(cookies=cookies)
+
+    assert page.set.cookies.set_calls == [
+        [
+            {
+                "name": "sid",
+                "value": "secret-value",
+                "url": "https://example.test/login",
+                "domain": "example.test",
+                "path": "/",
+                "expires": 1893456000.0,
+                "secure": True,
+                "httpOnly": True,
+                "sameSite": "Lax",
+                "priority": "High",
+                "sourceScheme": "Secure",
+            },
+            {"name": "theme", "value": "dark"},
+        ]
+    ]
+    assert result == {"count": 2, "set": True, "cookies": cookies}
+
+    deleted = await tab.storage.cookies_delete(
+        name="sid",
+        url="https://example.test/login",
+        domain="example.test",
+        path="/",
+    )
+    assert page.set.cookies.remove_calls == [
+        ("sid", "https://example.test/login", "example.test", "/")
+    ]
+    assert deleted == {
+        "name": "sid",
+        "url": "https://example.test/login",
+        "domain": "example.test",
+        "path": "/",
+        "deleted": True,
+    }
+
+    assert await tab.storage.cookies_clear() == {"cleared": True}
+    assert page.set.cookies.clear_calls == 1
+
+
+@pytest.mark.asyncio
 async def test_cookie_and_storage_failures_are_reraised() -> None:
     class BrokenCookiesPage(CookieStoragePage):
         def cookies(self, **_kwargs):
@@ -1583,6 +1664,26 @@ async def test_cookie_and_storage_failures_are_reraised() -> None:
         await tab.storage.set(area="bad", key="x", value="y")
     with pytest.raises(ValueError, match="Unsupported storage area"):
         await tab.storage.clear(area="bad")
+
+    class BrokenCookiesSetter(FakeCookiesSetter):
+        def __call__(self, cookies) -> None:
+            raise RuntimeError("cookie set failed")
+
+        def remove(self, name, url=None, domain=None, path=None) -> None:
+            raise RuntimeError("cookie delete failed")
+
+        def clear(self) -> None:
+            raise RuntimeError("cookie clear failed")
+
+    broken_page = CookieStoragePage()
+    broken_page.set.cookies = BrokenCookiesSetter()
+    broken_tab = PageTab(broken_page, FakeContext())
+    with pytest.raises(RuntimeError, match="cookie set failed"):
+        await broken_tab.storage.cookies_set(cookies=[{"name": "sid", "value": "x"}])
+    with pytest.raises(RuntimeError, match="cookie delete failed"):
+        await broken_tab.storage.cookies_delete(name="sid")
+    with pytest.raises(RuntimeError, match="cookie clear failed"):
+        await broken_tab.storage.cookies_clear()
 
 
 @pytest.mark.asyncio

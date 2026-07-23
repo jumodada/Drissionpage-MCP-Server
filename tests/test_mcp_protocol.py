@@ -31,7 +31,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 53
+    assert len(tools) == 56
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -58,6 +58,9 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "frame_snapshot",
         "shadow_find",
         "browser_cookies_get",
+        "browser_cookies_set",
+        "browser_cookies_delete",
+        "browser_cookies_clear",
         "storage_get",
         "network_listen_start",
         "network_listen_wait",
@@ -190,7 +193,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 53
+            assert len(tools.tools) == 56
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -207,6 +210,9 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "element_upload_file",
                 "frame_list",
                 "shadow_find",
+                "browser_cookies_set",
+                "browser_cookies_delete",
+                "browser_cookies_clear",
                 "storage_get",
                 "network_listen_start",
                 "network_listen_wait",

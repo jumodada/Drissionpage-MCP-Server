@@ -16,7 +16,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.7.3 exposes 53 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
+**DrissionPage MCP 0.7.4 exposes 56 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
 
 > **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
@@ -72,7 +72,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 53 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.2 removed form-, component-, challenge-, and convenience-workflow orchestration from the server; 0.7.3 strengthens cross-platform input and document-boundary evidence without adding tools or component-specific branches. Models compose type, select, check, click, keyboard, pointer, wait, and state-read primitives, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 56 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.4 adds default-loaded Cookie set/delete/clear primitives, including bounded batch writes for browser-only login flows; it does not add profiles, site logic, or workflow orchestration. Models compose type, select, check, click, keyboard, pointer, Cookie, wait, and state-read primitives, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -167,7 +167,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 53 Typed Browser Tools
+## 🛠️ 56 Typed Browser Tools
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -220,8 +220,11 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `shadow_find` - Find one element inside a shadow root exposed by the current supported DrissionPage runtime, including tested closed roots
 - `shadow_find_all` - Extract repeated elements from a DrissionPage-exposed shadow root
 
-### 🍪 Cookies & Storage (4 tools)
+### 🍪 Cookies & Storage (7 tools)
 - `browser_cookies_get` - Read normalized cookies with values redacted by default
+- `browser_cookies_set` - Set up to 100 cookies in one call and echo values in the successful result by default
+- `browser_cookies_delete` - Delete one named cookie with optional URL/domain/path scope
+- `browser_cookies_clear` - Clear all browser cookies
 - `storage_get` - Read localStorage/sessionStorage by key or as a map
 - `storage_set` - Set one localStorage/sessionStorage item without echoing the value
 - `storage_clear` - Clear one storage key or an entire storage area
@@ -273,7 +276,7 @@ DrissionMCP/
 │   ├── runtime.py          # Operation keys, receipts, artifacts, and capability state
 │   ├── tool_outputs.py     # Typed public result contracts
 │   ├── browser/            # Focused DrissionPage capabilities and page scripts
-│   └── tools/              # 53 typed MCP tool definitions and thin adapters
+│   └── tools/              # 56 typed MCP tool definitions and thin adapters
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -425,7 +428,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.7.3`.
+Should output the installed package version, for example `drissionpage-mcp 0.7.4`.
 
 ### Browser Issues?
 ```bash
@@ -454,14 +457,14 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.7.3 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.7.4 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.7.3)
-- [x] 53 atomic navigation, tab/frame/shadow, observation, interaction, network, storage, wait, and console tools
+### Current (v0.7.4)
+- [x] 56 atomic navigation, tab/frame/shadow, observation, interaction, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -479,6 +482,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] `direct` and deterministic bounded `natural` profiles for `page_pointer_move`, `page_pointer_drag`, and `page_click_xy`, with exact endpoints and failure-safe release
 - [x] Optional bounded `page_pointer_drag.waypoints` for one held multi-segment canvas, map, box-selection, or visual-editor gesture
 - [x] File upload, scrolling, hover, select/check, keyboard, iframe, shadow DOM, cookie, and storage tools for DrissionPage 4.x
+- [x] Pure browser Cookie set/get/delete/clear flow, including bounded batch writes whose successful results echo values for MCP callbacks
 - [x] Ten-cycle controlled and validation input replacement through native DrissionPage input on the supported browser matrix
 - [x] Cross-origin OOPIF reads through `frame_*` and closed Shadow DOM lookup through DrissionPage-backed `shadow_*`, with narrower pointer targeting documented separately
 - [x] Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` is reserved for restricted container/root environments
@@ -620,13 +624,12 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.7.3
+## 🆕 Latest Version: v0.7.4
 
-Released on 2026-07-22. This patch release strengthens input reliability and document-boundary evidence while keeping the core unchanged at 53 atomic tools:
+Released on 2026-07-23. This patch release adds the Cookie primitives required for browser-only login and callback workflows:
 
-- Added ten-cycle browser regression coverage for controlled and validation input replacement through native DrissionPage input.
-- Proved public `frame_*` traversal against an attached cross-origin OOPIF and `shadow_*` lookup against a closed Shadow DOM root that page JavaScript cannot access.
-- Corrected frame/shadow documentation while keeping selector-backed pointer targeting limited to one same-origin iframe and nested open Shadow DOM paths.
-- Added a focused Ubuntu, macOS, and Windows browser-boundary matrix.
-- Kept the deterministic 24-step `natural` pointer contract while removing browser scheduler jitter from the fixture's acceptance decision.
-- Added no public tool, component-library branch, site workflow, prompt, or packaged Skill.
+- Added default-loaded `browser_cookies_set`, `browser_cookies_delete`, and `browser_cookies_clear`; no profile or `full` selection is required.
+- Added bounded batch writes for up to 100 cookies in one MCP call.
+- `browser_cookies_set` returns Cookie values by default for MCP callbacks and explicit verification flows.
+- Kept `browser_cookies_get` values redacted by default unless `include_values=true`.
+- Added typed schema, field-mapping, failure, and real-browser set/get/delete/clear coverage.

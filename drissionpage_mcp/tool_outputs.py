@@ -743,6 +743,38 @@ class BrowserCookiesGetData(ToolData):
     cookies: list[dict[str, Any]]
 
 
+class BrowserCookieWriteData(ToolData):
+    name: str
+    value: str
+    url: str = ""
+    domain: str = ""
+    path: str = ""
+    expires: float | None = None
+    secure: bool | None = None
+    http_only: bool | None = None
+    same_site: Literal["None", "Lax", "Strict", "no_restriction"] | None = None
+    priority: Literal["Low", "Medium", "High"] | None = None
+    source_scheme: Literal["Unset", "NonSecure", "Secure"] | None = None
+
+
+class BrowserCookiesSetData(ToolData):
+    count: int
+    set: Literal[True]
+    cookies: list[BrowserCookieWriteData]
+
+
+class BrowserCookiesDeleteData(ToolData):
+    name: str
+    url: str | None
+    domain: str | None
+    path: str | None
+    deleted: Literal[True]
+
+
+class BrowserCookiesClearData(ToolData):
+    cleared: Literal[True]
+
+
 class StorageGetData(ToolData):
     area: str
     key: str

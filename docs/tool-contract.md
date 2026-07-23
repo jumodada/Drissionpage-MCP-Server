@@ -119,7 +119,7 @@ The server marks tools with MCP annotations:
 
 ## Tool Inventory
 
-The 0.7.3 registry contains 53 typed browser tools. Site, component, challenge,
+The 0.7.4 registry contains 56 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Network Listener Beta
@@ -207,6 +207,9 @@ and business workflows are composed by clients or optional external Skills.
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
 | `browser_cookies_get` | Read-only | none | Read normalized cookies. Values are redacted unless `include_values=true`. |
+| `browser_cookies_set` | Destructive | `cookies` | Set a bounded batch of 1-100 cookies through DrissionPage. Successful results echo Cookie values by default for MCP callbacks. |
+| `browser_cookies_delete` | Destructive | `name` | Delete one named Cookie. Optional: `url`, `domain`, `path`. |
+| `browser_cookies_clear` | Destructive | none | Clear all browser Cookies. |
 | `storage_get` | Read-only | none | Read localStorage/sessionStorage by optional `key`. Optional: `area`, `include_values`. |
 | `storage_set` | Destructive | `key`, `value` | Set one localStorage/sessionStorage value. The value is not echoed in the response. Optional: `area`. |
 | `storage_clear` | Destructive | none | Clear one storage key or the whole selected storage area. Optional: `area`, `key`. |
@@ -235,7 +238,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.7.3 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.7.4 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 
@@ -257,6 +260,8 @@ optional Skills.
 - `shadow_*` tools use DrissionPage's native shadow-root object instead of page-JavaScript `host.shadowRoot`. The current supported DrissionPage 4.x path is regression-tested against both open roots and a closed root that is invisible to page JavaScript. Capability failure is reported; the MCP does not inject a piercing fallback.
 - `page_pointer_drag_element` has a different implementation boundary: its synchronous page script remains limited to the top document or one same-origin iframe and nested open Shadow DOM hosts.
 - `browser_cookies_get` redacts cookie values by default. Use `include_values=true` only when the MCP client/session is allowed to handle cookie secrets.
+- `browser_cookies_set` accepts `name`, `value`, optional `url`, `domain`, `path`, `expires`, `secure`, `http_only`, `same_site`, `priority`, and `source_scheme`. Its successful result echoes values by default, so callbacks and logs must be allowed to handle Cookie secrets.
+- `browser_cookies_delete` and `browser_cookies_clear` use DrissionPage's browser Cookie setter directly; they require no user-side browser action and no tool-loading profile.
 - `storage_set` does not echo the stored value in its success payload.
 - `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.

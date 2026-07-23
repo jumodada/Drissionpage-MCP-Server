@@ -103,7 +103,7 @@ class FixtureState:
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             return {
-                "version": "0.7.3",
+                "version": "0.7.4",
                 "counters": dict(sorted(self._counters.items())),
                 "events": [dict(event) for event in self._events],
                 "download": {

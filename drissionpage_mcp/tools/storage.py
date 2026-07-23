@@ -5,7 +5,10 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import Field
 from .base import ToolInput, ToolType, define_tool, ToolOutcome
 from ..tool_outputs import (
+    BrowserCookiesClearData,
+    BrowserCookiesDeleteData,
     BrowserCookiesGetData,
+    BrowserCookiesSetData,
     StorageGetData,
     StorageSetData,
     StorageClearData,
@@ -25,6 +28,45 @@ class BrowserCookiesGetInput(ToolInput):
         default=False,
         description="Return cookie values. Defaults to false to avoid leaking secrets.",
     )
+
+
+class BrowserCookieInput(ToolInput):
+    """One cookie accepted by the DrissionPage browser cookie setter."""
+
+    name: str = Field(..., min_length=1, max_length=1024)
+    value: str = Field(..., max_length=16384)
+    url: str = Field(default="", max_length=8192)
+    domain: str = Field(default="", max_length=255)
+    path: str = Field(default="", max_length=2048)
+    expires: float | None = Field(default=None)
+    secure: bool | None = Field(default=None)
+    http_only: bool | None = Field(default=None)
+    same_site: Literal["None", "Lax", "Strict", "no_restriction"] | None = Field(
+        default=None
+    )
+    priority: Literal["Low", "Medium", "High"] | None = Field(default=None)
+    source_scheme: Literal["Unset", "NonSecure", "Secure"] | None = Field(
+        default=None
+    )
+
+
+class BrowserCookiesSetInput(ToolInput):
+    """Input schema for setting a bounded cookie batch."""
+
+    cookies: list[BrowserCookieInput] = Field(..., min_length=1, max_length=100)
+
+
+class BrowserCookiesDeleteInput(ToolInput):
+    """Input schema for deleting one named cookie."""
+
+    name: str = Field(..., min_length=1, max_length=1024)
+    url: str | None = Field(default=None, max_length=8192)
+    domain: str | None = Field(default=None, max_length=255)
+    path: str | None = Field(default=None, max_length=2048)
+
+
+class BrowserCookiesClearInput(ToolInput):
+    """Input schema for clearing all browser cookies."""
 
 
 class StorageGetInput(ToolInput):
@@ -71,6 +113,77 @@ async def browser_cookies_get(
         include_values=args.include_values,
     )
     outcome.add_result(f"Read {result['count']} cookie(s)", **result)
+    return outcome
+
+
+@define_tool(
+    name="browser_cookies_set",
+    title="Set Browser Cookies",
+    description=(
+        "Set a bounded batch of browser cookies. The successful result echoes "
+        "cookie values by default for MCP callbacks and verification."
+    ),
+    input_schema=BrowserCookiesSetInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    idempotent=True,
+    output_model=BrowserCookiesSetData,
+    failure_message=lambda args, exc: "Failed to set browser cookies: " + str(exc),
+)
+async def browser_cookies_set(
+    context: "DrissionPageContext", args: BrowserCookiesSetInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    cookies = [cookie.model_dump(exclude_none=True) for cookie in args.cookies]
+    result = await tab.storage.cookies_set(cookies=cookies)
+    outcome.add_result(f"Set {result['count']} cookie(s)", **result)
+    return outcome
+
+
+@define_tool(
+    name="browser_cookies_delete",
+    title="Delete Browser Cookie",
+    description="Delete one named browser cookie with optional URL/domain/path scope.",
+    input_schema=BrowserCookiesDeleteInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    idempotent=True,
+    output_model=BrowserCookiesDeleteData,
+    failure_message=lambda args, exc: (
+        f"Failed to delete browser cookie {args.name!r}: {exc}"
+    ),
+)
+async def browser_cookies_delete(
+    context: "DrissionPageContext", args: BrowserCookiesDeleteInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.storage.cookies_delete(
+        name=args.name,
+        url=args.url,
+        domain=args.domain,
+        path=args.path,
+    )
+    outcome.add_result(f"Deleted browser cookie: {args.name}", **result)
+    return outcome
+
+
+@define_tool(
+    name="browser_cookies_clear",
+    title="Clear Browser Cookies",
+    description="Clear all cookies from the active browser context.",
+    input_schema=BrowserCookiesClearInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    idempotent=True,
+    output_model=BrowserCookiesClearData,
+    failure_message=lambda args, exc: "Failed to clear browser cookies: " + str(exc),
+)
+async def browser_cookies_clear(
+    context: "DrissionPageContext", args: BrowserCookiesClearInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.storage.cookies_clear()
+    outcome.add_result("Cleared browser cookies", **result)
     return outcome
 
 

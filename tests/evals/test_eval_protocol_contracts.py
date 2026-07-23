@@ -31,10 +31,16 @@ async def test_eval_agent_discovers_atomic_tools_and_optional_skills() -> None:
     tool_names = {tool.name for tool in tools_result.root.tools}
     resource_uris = {str(resource.uri) for resource in resources_result.root.resources}
 
-    assert len(tool_names) == 53
-    assert {"page_navigate", "page_snapshot", "element_find_all", "element_type"} <= (
-        tool_names
-    )
+    assert len(tool_names) == 56
+    assert {
+        "page_navigate",
+        "page_snapshot",
+        "element_find_all",
+        "element_type",
+        "browser_cookies_set",
+        "browser_cookies_delete",
+        "browser_cookies_clear",
+    } <= tool_names
     assert resource_uris == {SKILLS_CATALOG_URI}
     assert ListPromptsRequest not in server.server.request_handlers
     assert GetPromptRequest not in server.server.request_handlers

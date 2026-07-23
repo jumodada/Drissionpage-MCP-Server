@@ -1608,6 +1608,72 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
                     for item in cookies_payload["data"]["cookies"]
                 )
             )
+            _content, cookie_set_payload = await _execute_tool(
+                server,
+                "browser_cookies_set",
+                {
+                    "cookies": [
+                        {
+                            "name": "mcp_login",
+                            "value": "callback-secret",
+                            "url": base_url + "/storage",
+                            "path": "/",
+                            "http_only": True,
+                            "same_site": "Lax",
+                        }
+                    ]
+                },
+            )
+            assert cookie_set_payload["data"]["cookies"][0]["value"] == (
+                "callback-secret"
+            )
+            _content, cookie_state_payload = await _execute_tool(
+                server,
+                "browser_cookies_get",
+                {"all_info": True, "include_values": True},
+            )
+            assert any(
+                item["name"] == "mcp_login" and item["value"] == "callback-secret"
+                for item in cookie_state_payload["data"]["cookies"]
+            )
+            _content, cookie_delete_payload = await _execute_tool(
+                server,
+                "browser_cookies_delete",
+                {"name": "mcp_login", "url": base_url + "/storage", "path": "/"},
+            )
+            assert cookie_delete_payload["data"]["deleted"] is True
+            _content, cookie_deleted_state = await _execute_tool(
+                server,
+                "browser_cookies_get",
+                {"all_info": True, "include_values": True},
+            )
+            assert all(
+                item["name"] != "mcp_login"
+                for item in cookie_deleted_state["data"]["cookies"]
+            )
+            await _execute_tool(
+                server,
+                "browser_cookies_set",
+                {
+                    "cookies": [
+                        {
+                            "name": "mcp_login",
+                            "value": "clear-me",
+                            "url": base_url + "/storage",
+                        }
+                    ]
+                },
+            )
+            _content, cookie_clear_payload = await _execute_tool(
+                server, "browser_cookies_clear", {}
+            )
+            assert cookie_clear_payload["data"]["cleared"] is True
+            _content, cookie_cleared_state = await _execute_tool(
+                server,
+                "browser_cookies_get",
+                {"all_domains": True, "all_info": True, "include_values": True},
+            )
+            assert cookie_cleared_state["data"]["cookies"] == []
             _content, set_payload = await _execute_tool(
                 server,
                 "storage_set",

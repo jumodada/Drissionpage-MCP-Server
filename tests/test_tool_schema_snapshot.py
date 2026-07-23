@@ -37,7 +37,7 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
         )
 
     names = [tool["name"] for tool in tools]
-    assert len(tools) == 53
+    assert len(tools) == 56
     assert {
         "form_inspect",
         "form_fill",
@@ -51,6 +51,9 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
     }.isdisjoint(names)
     assert names.count("page_dialog_respond") == 1
     assert names.count("element_click_and_download") == 1
+    assert names.count("browser_cookies_set") == 1
+    assert names.count("browser_cookies_delete") == 1
+    assert names.count("browser_cookies_clear") == 1
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
     return tools

@@ -48,6 +48,58 @@ class StorageOperations:
             logger.error("Failed to read cookies: %s", exc)
             raise
 
+    async def cookies_set(
+        self, *, cookies: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Set one bounded cookie batch and echo the accepted MCP payload."""
+
+        try:
+            normalized = [dict(cookie) for cookie in cookies]
+            upstream = [_to_drissionpage_cookie(cookie) for cookie in normalized]
+            self._page.set.cookies(upstream)
+            return {"count": len(normalized), "set": True, "cookies": normalized}
+        except Exception as exc:
+            logger.error("Failed to set browser cookies: %s", exc)
+            raise
+
+    async def cookies_delete(
+        self,
+        *,
+        name: str,
+        url: str | None = None,
+        domain: str | None = None,
+        path: str | None = None,
+    ) -> dict[str, Any]:
+        """Delete one named cookie within an optional exact scope."""
+
+        try:
+            self._page.set.cookies.remove(
+                name,
+                url=url,
+                domain=domain,
+                path=path,
+            )
+            return {
+                "name": name,
+                "url": url,
+                "domain": domain,
+                "path": path,
+                "deleted": True,
+            }
+        except Exception as exc:
+            logger.error("Failed to delete browser cookie %s: %s", name, exc)
+            raise
+
+    async def cookies_clear(self) -> dict[str, Any]:
+        """Clear all cookies from the browser cookie store."""
+
+        try:
+            self._page.set.cookies.clear()
+            return {"cleared": True}
+        except Exception as exc:
+            logger.error("Failed to clear browser cookies: %s", exc)
+            raise
+
     async def get(
         self, *, area: str = "local", key: str = "", include_values: bool = True
     ) -> dict[str, Any]:
@@ -197,6 +249,22 @@ def _normalize_cookie(cookie: Any, *, include_values: bool = False) -> dict[str,
         "secure": bool(get("secure", False)),
         "http_only": bool(get("httpOnly", get("http_only", False))),
     }
+
+
+def _to_drissionpage_cookie(cookie: Mapping[str, Any]) -> dict[str, Any]:
+    """Map the public snake-case cookie contract to DrissionPage fields."""
+
+    mapped: dict[str, Any] = {}
+    field_names = {
+        "http_only": "httpOnly",
+        "same_site": "sameSite",
+        "source_scheme": "sourceScheme",
+    }
+    for name, value in cookie.items():
+        if name in {"url", "domain", "path"} and value == "":
+            continue
+        mapped[field_names.get(name, name)] = value
+    return mapped
 
 
 def _storage_name(area: str) -> str:

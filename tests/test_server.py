@@ -117,6 +117,9 @@ class TestToolsIntegration:
         assert "shadow_find" in tool_names
         assert "shadow_find_all" in tool_names
         assert "browser_cookies_get" in tool_names
+        assert "browser_cookies_set" in tool_names
+        assert "browser_cookies_delete" in tool_names
+        assert "browser_cookies_clear" in tool_names
         assert "storage_get" in tool_names
         assert "storage_set" in tool_names
         assert "storage_clear" in tool_names
@@ -143,7 +146,7 @@ class TestToolsIntegration:
             "browser_open_and_snapshot",
             "browser_extract_links",
         }.isdisjoint(tool_names)
-        assert len(tool_names) == 53
+        assert len(tool_names) == 56
 
 
 if __name__ == "__main__":

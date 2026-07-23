@@ -7,6 +7,11 @@ from drissionpage_mcp.response_errors import ErrorCode
 from drissionpage_mcp.tools.base import JSON_RESULT_SENTINEL, ToolOutcome
 from drissionpage_mcp.tools import get_all_tools
 from drissionpage_mcp.tools.navigate import NavigateInput, navigate
+from drissionpage_mcp.tools.storage import (
+    BrowserCookieInput,
+    BrowserCookiesDeleteInput,
+    BrowserCookiesSetInput,
+)
 
 
 class TestNavigationTools:
@@ -37,6 +42,30 @@ class TestNavigationTools:
         assert valid_input.url == "https://example.com"
         with pytest.raises(Exception):
             NavigateInput()
+
+
+def test_cookie_mutation_inputs_are_strict_and_bounded() -> None:
+    cookie = BrowserCookieInput(
+        name="sid",
+        value="secret",
+        domain="example.test",
+        http_only=True,
+        same_site="Strict",
+    )
+    assert BrowserCookiesSetInput(cookies=[cookie]).cookies == [cookie]
+
+    with pytest.raises(Exception):
+        BrowserCookieInput.model_validate(
+            {"name": "sid", "value": "secret", "unknown": True}
+        )
+    with pytest.raises(Exception):
+        BrowserCookieInput(name="sid", value="secret", same_site="invalid")
+    with pytest.raises(Exception):
+        BrowserCookiesSetInput(cookies=[])
+    with pytest.raises(Exception):
+        BrowserCookiesSetInput(cookies=[cookie] * 101)
+    with pytest.raises(Exception):
+        BrowserCookiesDeleteInput(name="")
 
     @pytest.mark.asyncio
     async def test_navigate_execution_mock(self):
@@ -176,11 +205,14 @@ def test_tool_core_has_single_typed_registry_without_legacy_surfaces() -> None:
     from drissionpage_mcp.tools import ALL_TOOLS
     from drissionpage_mcp.tools.base import ToolOutcome, ToolSpec
 
-    assert len(ALL_TOOLS) == 53
-    assert len({tool.name for tool in ALL_TOOLS}) == 53
+    assert len(ALL_TOOLS) == 56
+    assert len({tool.name for tool in ALL_TOOLS}) == 56
     assert {tool.name for tool in ALL_TOOLS} >= {
         "page_dialog_respond",
         "element_click_and_download",
+        "browser_cookies_set",
+        "browser_cookies_delete",
+        "browser_cookies_clear",
     }
     assert {
         "form_inspect",

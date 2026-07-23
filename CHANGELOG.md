@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-07-23
+
+### Added
+- Added default-registered `browser_cookies_set`, `browser_cookies_delete`, and `browser_cookies_clear` tools, bringing the ordered atomic registry to 56 tools without profiles or an opt-in `full` mode.
+- Added bounded batch Cookie writes for browser-only login flows, with typed snake_case fields mapped to DrissionPage's Cookie setter contract.
+
+### Changed
+- `browser_cookies_set` returns the accepted Cookie payload and echoes Cookie values by default so MCP callbacks can consume and verify the write result.
+
+### Verification
+- Added strict input, typed output, field-mapping, failure propagation, registry/schema, and real-browser set/get/delete/clear regression coverage.
+
 ## [0.7.3] - 2026-07-22
 
 ### Changed
@@ -426,7 +438,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.3...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.4...HEAD
+[0.7.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.3...0.7.4
 [0.7.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.0...v0.7.1
