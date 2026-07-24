@@ -119,16 +119,25 @@ The server marks tools with MCP annotations:
 
 ## Tool Inventory
 
-The 0.7.4 registry contains 56 typed browser tools. Site, component, challenge,
+The 0.7.5 registry contains 60 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
-### Network Listener Beta
+### Network Control And Listener Beta
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
 | `network_listen_start` | Destructive | none | Start DrissionPage 4.x network observation for HTTP/XHR/Fetch packets. No interception or mocking. Optional: `targets`, `is_regex`, `method`, `resource_type`, `clear`. |
 | `network_listen_wait` | Read-only | none | Wait for bounded network packets with URL, method, resource type, status, MIME type, optional redacted headers, and optional bounded body excerpts. Optional: `timeout`, `limit`, `include_headers`, `include_body`, `max_body_chars`. |
 | `network_listen_stop` | Destructive | none | Stop network observation and optionally clear the listener queue. Optional: `clear`. |
+| `network_blocked_urls_set` | Destructive | `urls` | Replace up to 100 blocked URL patterns and echo the accepted values. An empty list clears all patterns. |
+
+### Browser Environment
+
+| Tool | Type | Required input | Description |
+| --- | --- | --- | --- |
+| `browser_headers_set` | Destructive | `headers` | Replace up to 64 extra request headers and echo the accepted values. An empty object clears all configured headers. |
+| `browser_user_agent_set` | Destructive | `user_agent` | Override the current tab user agent and return the accepted and previous values. Optional: `platform`. |
+| `browser_cache_clear` | Destructive | none | Clear HTTP cache while preserving Cookies, localStorage, and sessionStorage. |
 
 ### Navigation
 
@@ -238,7 +247,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.7.4 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.7.5 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 
@@ -262,6 +271,9 @@ optional Skills.
 - `browser_cookies_get` redacts cookie values by default. Use `include_values=true` only when the MCP client/session is allowed to handle cookie secrets.
 - `browser_cookies_set` accepts `name`, `value`, optional `url`, `domain`, `path`, `expires`, `secure`, `http_only`, `same_site`, `priority`, and `source_scheme`. Its successful result echoes values by default, so callbacks and logs must be allowed to handle Cookie secrets.
 - `browser_cookies_delete` and `browser_cookies_clear` use DrissionPage's browser Cookie setter directly; they require no user-side browser action and no tool-loading profile.
+- `browser_headers_set`, `browser_user_agent_set`, and `network_blocked_urls_set` echo accepted values by default for callback and verification flows. Sensitive header values must be handled as secrets. Empty header and URL collections clear their respective overrides.
+- `browser_user_agent_set` also returns `previous_user_agent` so callers can restore the original value without user-side browser action.
+- `browser_cache_clear` explicitly disables Cookie, localStorage, and sessionStorage clearing while invalidating HTTP cache.
 - `storage_set` does not echo the stored value in its success payload.
 - `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.

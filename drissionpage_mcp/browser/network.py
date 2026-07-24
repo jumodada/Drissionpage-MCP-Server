@@ -140,6 +140,12 @@ class NetworkOperations:
             "cleared": bool(clear),
         }
 
+    async def set_blocked_urls(self, urls: list[str]) -> dict[str, Any]:
+        """Replace the current tab's blocked URL patterns."""
+
+        self._page.set.blocked_urls(urls)
+        return {"count": len(urls), "urls": urls, "set": True}
+
     def _listener(self) -> Any:
         listener = getattr(self._page, "listen", None)
         if listener is None:

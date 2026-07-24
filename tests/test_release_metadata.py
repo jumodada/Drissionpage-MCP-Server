@@ -1,4 +1,4 @@
-"""Release metadata checks for 0.7.4."""
+"""Release metadata checks for 0.7.5."""
 
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_7_4() -> None:
+def test_package_version_metadata_is_0_7_5() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.7.4"
-    assert drissionpage_mcp.__version__ == "0.7.4"
+    assert pyproject["project"]["version"] == "0.7.5"
+    assert drissionpage_mcp.__version__ == "0.7.5"
 
 
 def test_changelog_describes_breaking_alias_removal() -> None:
@@ -28,17 +28,20 @@ def test_changelog_describes_breaking_alias_removal() -> None:
     assert "wait_sleep" in changelog
 
 
-def test_readmes_and_changelog_publish_latest_0_7_4_summary() -> None:
+def test_readmes_and_changelog_publish_latest_0_7_5_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-    current_changelog = changelog.split("## [0.7.4]", 1)[1].split(
+    current_changelog = changelog.split("## [0.7.5]", 1)[1].split(
+        "## [0.7.4]", 1
+    )[0]
+    cookie_changelog = changelog.split("## [0.7.4]", 1)[1].split(
         "## [0.7.3]", 1
     )[0]
-    previous_changelog = changelog.split("## [0.7.3]", 1)[1].split(
+    boundary_changelog = changelog.split("## [0.7.3]", 1)[1].split(
         "## [0.7.2]", 1
     )[0]
-    older_changelog = changelog.split("## [0.7.2]", 1)[1].split(
+    cleanup_changelog = changelog.split("## [0.7.2]", 1)[1].split(
         "## [0.7.1]", 1
     )[0]
 
@@ -50,9 +53,9 @@ def test_readmes_and_changelog_publish_latest_0_7_4_summary() -> None:
     assert "website/public/og-browser-lab.png" not in readme_cn
     assert "Watch the original natural pointer demo" not in readme
     assert "观看原始自然指针演示" not in readme_cn
-    assert "## 🆕 Latest Version: v0.7.4" in readme
-    assert "Released on 2026-07-23" in readme
-    assert "56 Typed Browser Tools" in readme
+    assert "## 🆕 Latest Version: v0.7.5" in readme
+    assert "Released on 2026-07-24" in readme
+    assert "60 Typed Browser Tools" in readme
     assert "Form Operations" not in readme
     assert "page_dialog_respond" in readme
     assert "element_click_and_download" in readme
@@ -60,10 +63,11 @@ def test_readmes_and_changelog_publish_latest_0_7_4_summary() -> None:
     assert "### 🌐 Navigation (4 tools)" in readme
     assert "### 🎯 Element Interaction & Extraction (14 tools)" in readme
     assert "### 📸 Page Operations (15 tools)" in readme
-    assert "### 🌐 Network Observation (3 tools)" in readme
-    assert "## 🆕 最新版本：v0.7.4" in readme_cn
-    assert "发布日期：2026-07-23" in readme_cn
-    assert "56 个类型化浏览器工具" in readme_cn
+    assert "### 🌍 Browser Environment (3 tools)" in readme
+    assert "### 🌐 Network Control & Observation (4 tools)" in readme
+    assert "## 🆕 最新版本：v0.7.5" in readme_cn
+    assert "发布日期：2026-07-24" in readme_cn
+    assert "60 个类型化浏览器工具" in readme_cn
     assert "表单工具（3 个）" not in readme_cn
     assert "page_dialog_respond" in readme_cn
     assert "element_click_and_download" in readme_cn
@@ -71,22 +75,27 @@ def test_readmes_and_changelog_publish_latest_0_7_4_summary() -> None:
     assert "### 🌐 导航工具（4 个）" in readme_cn
     assert "### 🎯 元素交互与提取（14 个）" in readme_cn
     assert "### 📸 页面操作（15 个）" in readme_cn
-    assert "### 🌐 网络观察（3 个）" in readme_cn
-    assert "## [0.7.4] - 2026-07-23" in changelog
-    assert "56 tools" in current_changelog
-    assert "browser_cookies_set" in current_changelog
-    assert "echoes Cookie values" in current_changelog
-    assert "cross-origin OOPIF" in previous_changelog
-    assert "closed Shadow DOM" in previous_changelog
-    assert "ten-cycle" in previous_changelog
-    assert "browser event-scheduling jitter" in previous_changelog
+    assert "### 🌍 浏览器环境（3 个）" in readme_cn
+    assert "### 🌐 网络控制与观察（4 个）" in readme_cn
+    assert "## [0.7.5] - 2026-07-24" in changelog
+    assert "60 tools" in current_changelog
+    assert "browser_headers_set" in current_changelog
+    assert "network_blocked_urls_set" in current_changelog
+    assert "Cookies, localStorage, and sessionStorage are preserved" in current_changelog
+    assert "browser_cookies_set" in cookie_changelog
+    assert "56 tools" in cookie_changelog
+    assert "echoes Cookie values" in cookie_changelog
+    assert "cross-origin OOPIF" in boundary_changelog
+    assert "closed Shadow DOM" in boundary_changelog
+    assert "ten-cycle" in boundary_changelog
+    assert "browser event-scheduling jitter" in boundary_changelog
     assert "## [0.7.2] - 2026-07-21" in changelog
-    assert "No compatibility aliases" in older_changelog
-    assert "ActionReceipt" in older_changelog
-    assert "ArtifactRef" in older_changelog
-    assert "ten-run" in older_changelog
-    assert "24-step" in older_changelog
-    assert "drissionpage://skills/catalog" in older_changelog
+    assert "No compatibility aliases" in cleanup_changelog
+    assert "ActionReceipt" in cleanup_changelog
+    assert "ArtifactRef" in cleanup_changelog
+    assert "ten-run" in cleanup_changelog
+    assert "24-step" in cleanup_changelog
+    assert "drissionpage://skills/catalog" in cleanup_changelog
     assert "## [0.6.2] - 2026-07-15" in changelog
     assert "optional ordered `waypoints`" in changelog
     assert "no new public tool" in changelog
@@ -95,7 +104,11 @@ def test_readmes_and_changelog_publish_latest_0_7_4_summary() -> None:
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.4...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.5...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.7.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.4...0.7.5"
         in changelog
     )
     assert (

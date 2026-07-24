@@ -1,8 +1,8 @@
 """Network listener beta tools for DrissionPage 4.x tabs."""
 
 from __future__ import annotations
-from typing import TYPE_CHECKING
-from pydantic import Field
+from typing import TYPE_CHECKING, Annotated
+from pydantic import Field, StrictStr, StringConstraints
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
 from .base import ToolInput, ToolType, define_tool, ToolOutcome
@@ -10,10 +10,17 @@ from ..tool_outputs import (
     NetworkListenStartData,
     NetworkListenWaitData,
     NetworkListenStopData,
+    NetworkBlockedUrlsSetData,
 )
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
+
+
+BlockedUrlPattern = Annotated[
+    StrictStr,
+    StringConstraints(min_length=1, max_length=2000),
+]
 
 
 class NetworkListenStartInput(ToolInput):
@@ -71,6 +78,16 @@ class NetworkListenStopInput(ToolInput):
 
     clear: bool = Field(
         default=True, description="Clear the listener queue while stopping."
+    )
+
+
+class NetworkBlockedUrlsSetInput(ToolInput):
+    """Input schema for replacing blocked URL patterns."""
+
+    urls: list[BlockedUrlPattern] = Field(
+        ...,
+        max_length=100,
+        description="URL patterns with optional wildcards. An empty list clears them.",
     )
 
 
@@ -146,4 +163,27 @@ async def network_listen_stop(
     tab = context.current_tab_or_die()
     result = await tab.network.stop(clear=args.clear)
     outcome.add_result("Stopped network listener", **result)
+    return outcome
+
+
+@define_tool(
+    name="network_blocked_urls_set",
+    title="Set Blocked URLs",
+    description=(
+        "Replace URL patterns blocked for the current tab. Successful results "
+        "echo patterns; an empty list clears them."
+    ),
+    input_schema=NetworkBlockedUrlsSetInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    idempotent=True,
+    output_model=NetworkBlockedUrlsSetData,
+    failure_message=lambda args, exc: "Failed to set blocked URLs: " + str(exc),
+)
+async def network_blocked_urls_set(
+    context: "DrissionPageContext", args: NetworkBlockedUrlsSetInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.network.set_blocked_urls(args.urls)
+    outcome.add_result(f"Set {result['count']} blocked URL pattern(s)", **result)
     return outcome

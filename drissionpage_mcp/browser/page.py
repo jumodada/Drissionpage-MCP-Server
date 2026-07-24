@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class PageOperations:
-    """Own screenshots and browser-window state changes."""
+    """Own page media, browser-window, and request-environment changes."""
 
     def __init__(self, tab: "PageTab") -> None:
         self._tab = tab
@@ -47,4 +47,47 @@ class PageOperations:
             self._page.set.window.size(width, height)
         except Exception as exc:
             logger.error("Failed to resize window to %sx%s: %s", width, height, exc)
+            raise
+
+    async def set_headers(self, headers: dict[str, str]) -> dict[str, Any]:
+        """Replace the current tab's extra HTTP request headers."""
+
+        try:
+            self._page.set.headers(headers)
+            return {"count": len(headers), "headers": headers, "set": True}
+        except Exception as exc:
+            logger.error("Failed to set browser request headers: %s", exc)
+            raise
+
+    async def set_user_agent(
+        self, user_agent: str, platform: str | None = None
+    ) -> dict[str, Any]:
+        """Override the current tab's user agent and return the previous value."""
+
+        try:
+            previous_user_agent = str(self._page.user_agent)
+            self._page.set.user_agent(user_agent, platform=platform)
+            return {
+                "previous_user_agent": previous_user_agent,
+                "user_agent": user_agent,
+                "platform": platform,
+                "set": True,
+            }
+        except Exception as exc:
+            logger.error("Failed to set browser user agent: %s", exc)
+            raise
+
+    async def clear_cache(self) -> dict[str, Any]:
+        """Clear HTTP cache without clearing cookies or Web Storage."""
+
+        try:
+            self._page.clear_cache(
+                session_storage=False,
+                local_storage=False,
+                cache=True,
+                cookies=False,
+            )
+            return {"cleared": True}
+        except Exception as exc:
+            logger.error("Failed to clear browser cache: %s", exc)
             raise

@@ -40,6 +40,9 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     pointer.click_coordinates,
     common.close,
     common.get_url,
+    common.browser_headers_set,
+    common.browser_user_agent_set,
+    common.browser_cache_clear,
     dialogs.page_dialog_respond,
     downloads.element_click_and_download,
     debug.page_console_logs,
@@ -77,6 +80,7 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     network.network_listen_start,
     network.network_listen_wait,
     network.network_listen_stop,
+    network.network_blocked_urls_set,
 )
 
 

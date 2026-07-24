@@ -72,6 +72,7 @@ class FakeTab:
             start=self.network_listen_start,
             wait=self.network_listen_wait,
             stop=self.network_listen_stop,
+            set_blocked_urls=self.network_blocked_urls_set,
         )
         self.navigation = SimpleNamespace(
             navigate=self.navigate,
@@ -89,7 +90,13 @@ class FakeTab:
             console_logs=self.console_logs,
             evaluate=self.evaluate_script,
         )
-        self.page_ops = SimpleNamespace(resize=self.resize, screenshot=self.screenshot)
+        self.page_ops = SimpleNamespace(
+            resize=self.resize,
+            screenshot=self.screenshot,
+            set_headers=self.set_headers,
+            set_user_agent=self.set_user_agent,
+            clear_cache=self.clear_cache,
+        )
         self.pointer = SimpleNamespace(click_at=self.click)
 
     def summary(self, *, active: bool = False) -> dict[str, Any]:
@@ -111,6 +118,27 @@ class FakeTab:
             Path(path).write_bytes(PNG_1X1)
             return path
         return PNG_1X1_B64
+
+    async def set_headers(self, headers: dict[str, str]) -> dict[str, Any]:
+        self._record("browser_headers_set", headers=headers)
+        return {"count": len(headers), "headers": headers, "set": True}
+
+    async def set_user_agent(
+        self, user_agent: str, platform: str | None = None
+    ) -> dict[str, Any]:
+        self._record(
+            "browser_user_agent_set", user_agent=user_agent, platform=platform
+        )
+        return {
+            "previous_user_agent": "FixtureBrowser/1.0",
+            "user_agent": user_agent,
+            "platform": platform,
+            "set": True,
+        }
+
+    async def clear_cache(self) -> dict[str, Any]:
+        self._record("browser_cache_clear")
+        return {"cleared": True}
 
     async def page_snapshot(
         self,
@@ -799,6 +827,12 @@ class FakeTab:
         self._record("cookies_clear")
         return {"cleared": True}
 
+    async def network_blocked_urls_set(
+        self, urls: list[str]
+    ) -> dict[str, Any]:
+        self._record("network_blocked_urls_set", urls=urls)
+        return {"count": len(urls), "urls": urls, "set": True}
+
     async def get(
         self, *, area: str = "local", key: str = "", include_values: bool = True
     ) -> dict[str, Any]:
@@ -1000,6 +1034,35 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         "url": "https://example.test/current"
     }
     assert "https://example.test/current" in _message(url_response)
+    headers_response = await _execute(
+        common.browser_headers_set,
+        ctx,
+        common.BrowserHeadersSetInput(
+            headers={"X-MCP-Session": "callback-secret"}
+        ),
+    )
+    assert headers_response.structured_content()["data"] == {
+        "count": 1,
+        "headers": {"X-MCP-Session": "callback-secret"},
+        "set": True,
+    }
+    user_agent_response = await _execute(
+        common.browser_user_agent_set,
+        ctx,
+        common.BrowserUserAgentSetInput(
+            user_agent="MCPBrowser/0.7.5", platform="Linux"
+        ),
+    )
+    assert user_agent_response.structured_content()["data"] == {
+        "previous_user_agent": "FixtureBrowser/1.0",
+        "user_agent": "MCPBrowser/0.7.5",
+        "platform": "Linux",
+        "set": True,
+    }
+    cache_response = await _execute(
+        common.browser_cache_clear, ctx, common.EmptyInput()
+    )
+    assert cache_response.structured_content()["data"] == {"cleared": True}
 
 
 @pytest.mark.asyncio
@@ -1037,6 +1100,16 @@ async def test_network_tools_success_paths() -> None:
         "listening": False,
         "was_listening": True,
         "cleared": True,
+    }
+    blocked_response = await _execute(
+        network.network_blocked_urls_set,
+        ctx,
+        network.NetworkBlockedUrlsSetInput(urls=["*.png", "*analytics*"]),
+    )
+    assert blocked_response.structured_content()["data"] == {
+        "count": 2,
+        "urls": ["*.png", "*analytics*"],
+        "set": True,
     }
 
 

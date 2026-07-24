@@ -92,11 +92,12 @@ Then verify:
    python -c "from drissionpage_mcp.tools import get_all_tools; print(len(get_all_tools()))"
    ```
 
-The current tool registry should load 56 tools. Cookie get/set/delete/clear tools
-are included by default; no `full` profile is required.
+The current tool registry should load 60 tools. Cookie mutation, request-header,
+user-agent, cache, and URL-blocking tools are included by default; no capability
+profile or `full` mode is required.
 
 
-## Task Completion / Pointer / Network 0.7.4 Checks
+## Task Completion / Pointer / Network 0.7.5 Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to `profile="direct"`; set `profile="natural"` for a deterministic 24-step eased trajectory with an exact endpoint.
 - In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` explicitly.
@@ -105,6 +106,8 @@ are included by default; no `full` profile is required.
 - Configure `DP_MCP_DOWNLOAD_ROOT` before `element_click_and_download`. A replay with the same operation key returns the frozen result without another click; the successful tool result contains safe artifact metadata.
 - `page_dialog_respond` works only for a currently pending alert, confirm, or prompt. Capability gaps and unsupported click variants return `UNSUPPORTED_OPERATION` rather than another action.
 - Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.
+- Use `browser_headers_set` and `browser_user_agent_set` before navigation when a workflow requires a specific request environment. Successful results echo accepted values; treat sensitive header values as secrets. Use the returned `previous_user_agent` to restore the original value.
+- Use `network_blocked_urls_set` with an empty list to remove URL blocks. Use `browser_cache_clear` when HTTP cache must be invalidated without clearing Cookies or Web Storage.
 - Use `drissionpage-mcp doctor` to inspect browser, headless, sandbox, and environment configuration without starting a workflow.
 - Use `tools/list` for the current typed core contract. Optional Skills are discovered through `drissionpage://skills/catalog` and follow the external `skills/<skill-name>/SKILL.md` path convention.
 - Keep challenge observation, repeated-click sequencing, and site/business decisions in an external Skill. Re-observe and verify between individual MCP actions instead of replaying stale coordinates.
@@ -115,7 +118,7 @@ For the release reliability gate, run the deterministic public-tool benchmark:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.7.4-task-completion.json
+  --output benchmark-results/0.7.5-task-completion.json
 ```
 
 The report is workload-scoped. Every W01-W08 workload must reach at least 9/10;

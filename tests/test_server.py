@@ -120,6 +120,9 @@ class TestToolsIntegration:
         assert "browser_cookies_set" in tool_names
         assert "browser_cookies_delete" in tool_names
         assert "browser_cookies_clear" in tool_names
+        assert "browser_headers_set" in tool_names
+        assert "browser_user_agent_set" in tool_names
+        assert "browser_cache_clear" in tool_names
         assert "storage_get" in tool_names
         assert "storage_set" in tool_names
         assert "storage_clear" in tool_names
@@ -128,6 +131,7 @@ class TestToolsIntegration:
         assert "network_listen_start" in tool_names
         assert "network_listen_wait" in tool_names
         assert "network_listen_stop" in tool_names
+        assert "network_blocked_urls_set" in tool_names
         assert "wait_for_element" in tool_names
         assert "wait_for_url" in tool_names
         assert "wait_time" in tool_names
@@ -146,7 +150,7 @@ class TestToolsIntegration:
             "browser_open_and_snapshot",
             "browser_extract_links",
         }.isdisjoint(tool_names)
-        assert len(tool_names) == 56
+        assert len(tool_names) == 60
 
 
 if __name__ == "__main__":

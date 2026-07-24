@@ -1,7 +1,7 @@
 """Common tools for DrissionPage MCP."""
 
-from typing import TYPE_CHECKING, Any
-from pydantic import Field
+from typing import TYPE_CHECKING, Annotated, Any
+from pydantic import Field, StrictStr, StringConstraints
 from ..metadata import with_response_meta
 from ..policy import PolicyDeniedError, SafetyPolicy
 from ..response_errors import ErrorCode
@@ -16,10 +16,35 @@ from ..tool_outputs import (
     PageEvaluateData,
     PageCloseData,
     PageGetUrlData,
+    BrowserCacheClearData,
+    BrowserHeadersSetData,
+    BrowserUserAgentSetData,
 )
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
+
+
+HeaderName = Annotated[
+    StrictStr,
+    StringConstraints(
+        min_length=1,
+        max_length=256,
+        pattern=r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$",
+    ),
+]
+HeaderValue = Annotated[
+    StrictStr,
+    StringConstraints(max_length=8192, pattern=r"^[^\r\n]*$"),
+]
+UserAgentValue = Annotated[
+    StrictStr,
+    StringConstraints(min_length=1, max_length=2048),
+]
+PlatformValue = Annotated[
+    StrictStr,
+    StringConstraints(min_length=1, max_length=256),
+]
 
 
 class ResizeInput(ToolInput):
@@ -99,6 +124,23 @@ class PageEvaluateInput(ToolInput):
         le=20000,
         description="Maximum serialized JSON characters returned in result",
     )
+
+
+class BrowserHeadersSetInput(ToolInput):
+    """Input schema for replacing extra HTTP request headers."""
+
+    headers: dict[HeaderName, HeaderValue] = Field(
+        ...,
+        max_length=64,
+        description="Extra request headers. An empty object clears all configured values.",
+    )
+
+
+class BrowserUserAgentSetInput(ToolInput):
+    """Input schema for overriding the current tab's user agent."""
+
+    user_agent: UserAgentValue
+    platform: PlatformValue | None = Field(default=None)
 
 
 @define_tool(
@@ -289,4 +331,70 @@ async def get_url(context: "DrissionPageContext", args: EmptyInput) -> "ToolOutc
     tab = context.current_tab_or_die()
     url = tab.url
     outcome.add_result(f"Current URL: {url}", url=url)
+    return outcome
+
+
+@define_tool(
+    name="browser_headers_set",
+    title="Set Browser Headers",
+    description=(
+        "Replace extra HTTP request headers for the current tab. Successful "
+        "results echo header values for MCP callbacks; an empty object clears them."
+    ),
+    input_schema=BrowserHeadersSetInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    idempotent=True,
+    output_model=BrowserHeadersSetData,
+    failure_message=lambda args, exc: "Failed to set browser headers: " + str(exc),
+)
+async def browser_headers_set(
+    context: "DrissionPageContext", args: BrowserHeadersSetInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.page_ops.set_headers(args.headers)
+    outcome.add_result(f"Set {result['count']} browser header(s)", **result)
+    return outcome
+
+
+@define_tool(
+    name="browser_user_agent_set",
+    title="Set Browser User Agent",
+    description=(
+        "Override the current tab user agent and optional platform, returning the "
+        "previous user agent so callers can restore it."
+    ),
+    input_schema=BrowserUserAgentSetInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    idempotent=True,
+    output_model=BrowserUserAgentSetData,
+    failure_message=lambda args, exc: "Failed to set browser user agent: " + str(exc),
+)
+async def browser_user_agent_set(
+    context: "DrissionPageContext", args: BrowserUserAgentSetInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.page_ops.set_user_agent(args.user_agent, args.platform)
+    outcome.add_result("Set browser user agent", **result)
+    return outcome
+
+
+@define_tool(
+    name="browser_cache_clear",
+    title="Clear Browser Cache",
+    description="Clear HTTP cache without clearing cookies or Web Storage.",
+    input_schema=EmptyInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    idempotent=True,
+    output_model=BrowserCacheClearData,
+    failure_message=lambda args, exc: "Failed to clear browser cache: " + str(exc),
+)
+async def browser_cache_clear(
+    context: "DrissionPageContext", args: EmptyInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    result = await tab.page_ops.clear_cache()
+    outcome.add_result("Cleared browser cache", **result)
     return outcome

@@ -16,7 +16,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.7.4 exposes 56 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
+**DrissionPage MCP 0.7.5 exposes 60 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
 
 > **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
@@ -72,7 +72,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 56 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.4 adds default-loaded Cookie set/delete/clear primitives, including bounded batch writes for browser-only login flows; it does not add profiles, site logic, or workflow orchestration. Models compose type, select, check, click, keyboard, pointer, Cookie, wait, and state-read primitives, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 60 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.5 adds default-loaded request-header, user-agent, cache, and URL-blocking primitives for browser-only workflows. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -167,7 +167,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 56 Typed Browser Tools
+## 🛠️ 60 Typed Browser Tools
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -220,6 +220,11 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `shadow_find` - Find one element inside a shadow root exposed by the current supported DrissionPage runtime, including tested closed roots
 - `shadow_find_all` - Extract repeated elements from a DrissionPage-exposed shadow root
 
+### 🌍 Browser Environment (3 tools)
+- `browser_headers_set` - Replace extra request headers and echo the accepted values; an empty object clears them
+- `browser_user_agent_set` - Override the user agent and optional platform, returning both the accepted and previous user agents
+- `browser_cache_clear` - Clear HTTP cache while preserving Cookies, localStorage, and sessionStorage
+
 ### 🍪 Cookies & Storage (7 tools)
 - `browser_cookies_get` - Read normalized cookies with values redacted by default
 - `browser_cookies_set` - Set up to 100 cookies in one call and echo values in the successful result by default
@@ -238,10 +243,11 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `wait_until` - Wait for observable conditions such as clickable, hidden, stable, text, or URL matches
 - `wait_time` - Delay execution
 
-### 🌐 Network Observation (3 tools)
+### 🌐 Network Control & Observation (4 tools)
 - `network_listen_start` - Start bounded HTTP/XHR/Fetch observation through DrissionPage
 - `network_listen_wait` - Wait for bounded packet metadata with optional redacted headers or body excerpts
 - `network_listen_stop` - Stop observation and optionally clear queued packets
+- `network_blocked_urls_set` - Replace blocked URL patterns and echo the accepted values; an empty list clears them
 
 ### 🧩 Optional Skills Discovery
 - Resource: `drissionpage://skills/catalog`
@@ -276,7 +282,7 @@ DrissionMCP/
 │   ├── runtime.py          # Operation keys, receipts, artifacts, and capability state
 │   ├── tool_outputs.py     # Typed public result contracts
 │   ├── browser/            # Focused DrissionPage capabilities and page scripts
-│   └── tools/              # 56 typed MCP tool definitions and thin adapters
+│   └── tools/              # 60 typed MCP tool definitions and thin adapters
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -428,7 +434,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.7.4`.
+Should output the installed package version, for example `drissionpage-mcp 0.7.5`.
 
 ### Browser Issues?
 ```bash
@@ -457,14 +463,14 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.7.4 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.7.5 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.7.4)
-- [x] 56 atomic navigation, tab/frame/shadow, observation, interaction, network, Cookie/storage, wait, and console tools, all loaded by default
+### Current (v0.7.5)
+- [x] 60 atomic navigation, tab/frame/shadow, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -479,6 +485,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Capability-probed `page_dialog_respond`, additive double/context click behavior, and `element_click_and_download` with safe `ArtifactRef` metadata
 - [x] Reproducible W01-W08 public-tool benchmark with ten isolated runs per workload, machine-readable evidence, and zero duplicate side effects
 - [x] Network listener beta with `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation
+- [x] Browser-only request environment control with echoed header, user-agent, and blocked-URL writes plus cache-only clearing that preserves Cookies and Web Storage
 - [x] `direct` and deterministic bounded `natural` profiles for `page_pointer_move`, `page_pointer_drag`, and `page_click_xy`, with exact endpoints and failure-safe release
 - [x] Optional bounded `page_pointer_drag.waypoints` for one held multi-segment canvas, map, box-selection, or visual-editor gesture
 - [x] File upload, scrolling, hover, select/check, keyboard, iframe, shadow DOM, cookie, and storage tools for DrissionPage 4.x
@@ -624,12 +631,13 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.7.4
+## 🆕 Latest Version: v0.7.5
 
-Released on 2026-07-23. This patch release adds the Cookie primitives required for browser-only login and callback workflows:
+Released on 2026-07-24. This patch release adds browser request-environment controls for fully browser-driven workflows:
 
-- Added default-loaded `browser_cookies_set`, `browser_cookies_delete`, and `browser_cookies_clear`; no profile or `full` selection is required.
-- Added bounded batch writes for up to 100 cookies in one MCP call.
-- `browser_cookies_set` returns Cookie values by default for MCP callbacks and explicit verification flows.
-- Kept `browser_cookies_get` values redacted by default unless `include_values=true`.
-- Added typed schema, field-mapping, failure, and real-browser set/get/delete/clear coverage.
+- Added default-loaded `browser_headers_set`, `browser_user_agent_set`, `browser_cache_clear`, and `network_blocked_urls_set`, bringing the registry to 60 tools.
+- All 60 tools load automatically; there is no capability profile or opt-in `full` mode.
+- Header, user-agent, and blocked-URL writes return the accepted values by default for MCP callbacks and explicit verification.
+- User-agent writes also return the previous value so a browser-only workflow can restore it.
+- Cache clearing preserves Cookies, localStorage, and sessionStorage.
+- Added strict schemas, typed outputs, failure propagation, and real-browser request, blocking, cache, Cookie, and Web Storage coverage.

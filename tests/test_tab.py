@@ -61,6 +61,18 @@ class FakeSet:
     def __init__(self) -> None:
         self.window = FakeWindow()
         self.cookies = FakeCookiesSetter()
+        self.headers_calls = []
+        self.user_agent_calls = []
+        self.blocked_urls_calls = []
+
+    def headers(self, headers) -> None:
+        self.headers_calls.append(headers)
+
+    def user_agent(self, user_agent, platform=None) -> None:
+        self.user_agent_calls.append((user_agent, platform))
+
+    def blocked_urls(self, urls) -> None:
+        self.blocked_urls_calls.append(urls)
 
 
 class FakeConsole:
@@ -164,6 +176,7 @@ class FakePage:
         self.text = "Whole page text"
         self.html = "<html><body>Whole page text</body></html>"
         self.tab_id = "tab-1"
+        self.user_agent = "FakeBrowser/1.0"
         self.actions = FakeActions()
         self.wait = FakeWait()
         self.set = FakeSet()
@@ -172,6 +185,7 @@ class FakePage:
         self.elements = [self.element] if self.element is not None else []
         self.calls = []
         self.closed = False
+        self.cache_clear_calls = []
         self.snapshot = {
             "url": self.url,
             "title": "Fake Page",
@@ -232,6 +246,9 @@ class FakePage:
 
     def close(self) -> None:
         self.closed = True
+
+    def clear_cache(self, **kwargs) -> None:
+        self.cache_clear_calls.append(kwargs)
 
 
 class AttrConsoleMessage:
@@ -836,6 +853,88 @@ async def test_screenshot_inline_path_and_errors_are_explicit(tmp_path) -> None:
 
     with pytest.raises(RuntimeError, match="screenshot failed"):
         await PageTab(BrokenScreenshotPage(), FakeContext()).page_ops.screenshot()
+
+
+@pytest.mark.asyncio
+async def test_browser_environment_controls_use_public_drissionpage_apis() -> None:
+    page = FakePage()
+    tab = PageTab(page, FakeContext())
+
+    assert await tab.page_ops.set_headers(
+        {"X-MCP-Session": "callback-value", "Accept-Language": "zh-CN"}
+    ) == {
+        "count": 2,
+        "headers": {
+            "X-MCP-Session": "callback-value",
+            "Accept-Language": "zh-CN",
+        },
+        "set": True,
+    }
+    assert page.set.headers_calls == [
+        {"X-MCP-Session": "callback-value", "Accept-Language": "zh-CN"}
+    ]
+
+    assert await tab.page_ops.set_user_agent("MCPBrowser/0.7.5", "Linux") == {
+        "previous_user_agent": "FakeBrowser/1.0",
+        "user_agent": "MCPBrowser/0.7.5",
+        "platform": "Linux",
+        "set": True,
+    }
+    assert page.set.user_agent_calls == [("MCPBrowser/0.7.5", "Linux")]
+
+    assert await tab.page_ops.clear_cache() == {"cleared": True}
+    assert page.cache_clear_calls == [
+        {
+            "session_storage": False,
+            "local_storage": False,
+            "cache": True,
+            "cookies": False,
+        }
+    ]
+
+    assert await tab.network.set_blocked_urls(["*.png", "*analytics*"]) == {
+        "count": 2,
+        "urls": ["*.png", "*analytics*"],
+        "set": True,
+    }
+    assert page.set.blocked_urls_calls == [["*.png", "*analytics*"]]
+    assert await tab.network.set_blocked_urls([]) == {
+        "count": 0,
+        "urls": [],
+        "set": True,
+    }
+    assert page.set.blocked_urls_calls[-1] == []
+
+
+@pytest.mark.asyncio
+async def test_browser_environment_control_failures_are_reraised() -> None:
+    class BrokenEnvironmentSet(FakeSet):
+        def headers(self, headers) -> None:
+            raise RuntimeError("headers failed")
+
+        def user_agent(self, user_agent, platform=None) -> None:
+            raise RuntimeError("user agent failed")
+
+        def blocked_urls(self, urls) -> None:
+            raise RuntimeError("blocked urls failed")
+
+    page = FakePage()
+    page.set = BrokenEnvironmentSet()
+    tab = PageTab(page, FakeContext())
+
+    with pytest.raises(RuntimeError, match="headers failed"):
+        await tab.page_ops.set_headers({"X-Test": "value"})
+    with pytest.raises(RuntimeError, match="user agent failed"):
+        await tab.page_ops.set_user_agent("MCPBrowser/0.7.5")
+    with pytest.raises(RuntimeError, match="blocked urls failed"):
+        await tab.network.set_blocked_urls(["*.png"])
+
+    class BrokenCachePage(FakePage):
+        def clear_cache(self, **kwargs) -> None:
+            raise RuntimeError("cache failed")
+
+    with pytest.raises(RuntimeError, match="cache failed"):
+        await PageTab(BrokenCachePage(), FakeContext()).page_ops.clear_cache()
 
 
 @pytest.mark.asyncio

@@ -58,6 +58,10 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "Slider iframe" in _read(base_url + "/slider")[1]
         assert "Same-origin iframe slider" in _read(base_url + "/slider-frame")[1]
         assert "Storage Workflow" in _read(base_url + "/storage")[1]
+        assert "Fixture Request Context" in _read(base_url + "/request-context")[1]
+        assert "Fixture Resource Controls" in _read(
+            base_url + "/resource-controls"
+        )[1]
         assert "Links Workflow" in _read(base_url + "/links")[1]
         assert "Workflow Form" in _read(base_url + "/workflow-form")[1]
         assert "Network Workflow" in _read(base_url + "/network")[1]
@@ -1698,6 +1702,179 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
                 server, "storage_get", {"area": "local", "key": "mcp-mode"}
             )
             assert state_payload["data"]["items"] == {}
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_0_7_5_browser_environment_controls_use_local_fixture() -> None:
+    """verifies request identity, cache-only clearing, and URL blocking."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, headers_payload = await _execute_tool(
+                server,
+                "browser_headers_set",
+                {"headers": {"X-MCP-Session": "callback-secret"}},
+            )
+            assert headers_payload["data"]["headers"] == {
+                "X-MCP-Session": "callback-secret"
+            }
+            _content, ua_payload = await _execute_tool(
+                server,
+                "browser_user_agent_set",
+                {"user_agent": "MCPBrowser/0.7.5", "platform": "Linux"},
+            )
+            previous_user_agent = ua_payload["data"]["previous_user_agent"]
+            assert previous_user_agent
+
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/request-context"}
+            )
+            assert "Successfully navigated" in navigate
+            _content, header_state = await _execute_tool(
+                server,
+                "element_get_attribute",
+                {"selector": "#request-session-header", "attribute": "data-value"},
+            )
+            assert header_state["data"]["value"] == "callback-secret"
+            _content, ua_state = await _execute_tool(
+                server,
+                "element_get_attribute",
+                {"selector": "#request-user-agent", "attribute": "data-value"},
+            )
+            assert ua_state["data"]["value"] == "MCPBrowser/0.7.5"
+
+            _content, blocked_payload = await _execute_tool(
+                server,
+                "network_blocked_urls_set",
+                {"urls": ["*blocked-resource.js*"]},
+            )
+            assert blocked_payload["data"]["urls"] == ["*blocked-resource.js*"]
+            await _execute_tool(
+                server,
+                "page_navigate",
+                {"url": base_url + "/resource-controls?run=1"},
+            )
+            _content, first_resources = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": "return {cache: window.__cacheVersion, blocked: window.__blockedResourceLoaded === true};"
+                },
+            )
+            assert first_resources["data"]["result"] == {
+                "cache": 1,
+                "blocked": False,
+            }
+
+            await _execute_tool(
+                server, "page_navigate", {"url": base_url + "/?between=1"}
+            )
+            await _execute_tool(
+                server,
+                "page_navigate",
+                {"url": base_url + "/resource-controls?run=2"},
+            )
+            _content, cached_resources = await _execute_tool(
+                server,
+                "page_evaluate",
+                {"script": "return window.__cacheVersion;"},
+            )
+            assert cached_resources["data"]["result"] == 1
+
+            await _execute_tool(
+                server,
+                "browser_cookies_set",
+                {
+                    "cookies": [
+                        {
+                            "name": "cache_guard",
+                            "value": "cookie-survives",
+                            "url": base_url + "/resource-controls",
+                        }
+                    ]
+                },
+            )
+            await _execute_tool(
+                server,
+                "storage_set",
+                {"area": "local", "key": "cache-guard", "value": "storage-survives"},
+            )
+            _content, cache_payload = await _execute_tool(
+                server, "browser_cache_clear", {}
+            )
+            assert cache_payload["data"] == {"cleared": True}
+            _content, cookie_guard = await _execute_tool(
+                server,
+                "browser_cookies_get",
+                {"all_info": True, "include_values": True},
+            )
+            assert any(
+                item["name"] == "cache_guard"
+                and item["value"] == "cookie-survives"
+                for item in cookie_guard["data"]["cookies"]
+            )
+            _content, storage_guard = await _execute_tool(
+                server,
+                "storage_get",
+                {"area": "local", "key": "cache-guard", "include_values": True},
+            )
+            assert storage_guard["data"]["items"] == {
+                "cache-guard": "storage-survives"
+            }
+            await _execute_tool(
+                server, "network_blocked_urls_set", {"urls": []}
+            )
+            await _execute_tool(
+                server, "page_navigate", {"url": base_url + "/?between=2"}
+            )
+            await _execute_tool(
+                server,
+                "page_navigate",
+                {"url": base_url + "/resource-controls?run=3"},
+            )
+            _content, cleared_resources = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": "return {cache: window.__cacheVersion, blocked: window.__blockedResourceLoaded === true};"
+                },
+            )
+            assert cleared_resources["data"]["result"] == {
+                "cache": 2,
+                "blocked": True,
+            }
+
+            await _execute_tool(server, "browser_headers_set", {"headers": {}})
+            await _execute_tool(
+                server,
+                "browser_user_agent_set",
+                {"user_agent": previous_user_agent},
+            )
+            await _execute_tool(
+                server,
+                "page_navigate",
+                {"url": base_url + "/request-context?restored=1"},
+            )
+            _content, restored_header = await _execute_tool(
+                server,
+                "element_get_attribute",
+                {"selector": "#request-session-header", "attribute": "data-value"},
+            )
+            assert restored_header["data"]["value"] == ""
+            _content, restored_ua = await _execute_tool(
+                server,
+                "element_get_attribute",
+                {"selector": "#request-user-agent", "attribute": "data-value"},
+            )
+            assert restored_ua["data"]["value"] == previous_user_agent
     finally:
         await server.cleanup()
 

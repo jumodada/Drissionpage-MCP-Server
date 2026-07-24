@@ -3112,6 +3112,377 @@
   {
     "annotations": {
       "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Set Browser Headers"
+    },
+    "description": "Replace extra HTTP request headers for the current tab. Successful results echo header values for MCP callbacks; an empty object clears them.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for replacing extra HTTP request headers.",
+      "properties": {
+        "headers": {
+          "description": "Extra request headers. An empty object clears all configured values.",
+          "maxProperties": 64,
+          "patternProperties": {
+            "^[!#$%&'*+\\-.^_`|~0-9A-Za-z]+$": {
+              "maxLength": 8192,
+              "pattern": "^[^\\r\\n]*$",
+              "type": "string"
+            }
+          },
+          "propertyNames": {
+            "maxLength": 256,
+            "minLength": 1
+          },
+          "title": "Headers",
+          "type": "object"
+        }
+      },
+      "required": [
+        "headers"
+      ],
+      "title": "BrowserHeadersSetInput",
+      "type": "object"
+    },
+    "name": "browser_headers_set",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "title": "Count",
+                  "type": "integer"
+                },
+                "headers": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Headers",
+                  "type": "object"
+                },
+                "set": {
+                  "const": true,
+                  "title": "Set",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "count",
+                "headers",
+                "set"
+              ],
+              "title": "BrowserHeadersSetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Set Browser Headers"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Set Browser User Agent"
+    },
+    "description": "Override the current tab user agent and optional platform, returning the previous user agent so callers can restore it.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for overriding the current tab's user agent.",
+      "properties": {
+        "platform": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Platform"
+        },
+        "user_agent": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "User Agent",
+          "type": "string"
+        }
+      },
+      "required": [
+        "user_agent"
+      ],
+      "title": "BrowserUserAgentSetInput",
+      "type": "object"
+    },
+    "name": "browser_user_agent_set",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "platform": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Platform"
+                },
+                "previous_user_agent": {
+                  "title": "Previous User Agent",
+                  "type": "string"
+                },
+                "set": {
+                  "const": true,
+                  "title": "Set",
+                  "type": "boolean"
+                },
+                "user_agent": {
+                  "title": "User Agent",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "previous_user_agent",
+                "user_agent",
+                "platform",
+                "set"
+              ],
+              "title": "BrowserUserAgentSetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Set Browser User Agent"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Clear Browser Cache"
+    },
+    "description": "Clear HTTP cache without clearing cookies or Web Storage.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Empty input schema for tools that don't require arguments.",
+      "properties": {},
+      "title": "EmptyInput",
+      "type": "object"
+    },
+    "name": "browser_cache_clear",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "cleared": {
+                  "const": true,
+                  "title": "Cleared",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "cleared"
+              ],
+              "title": "BrowserCacheClearData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Clear Browser Cache"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
       "idempotentHint": false,
       "openWorldHint": true,
       "readOnlyHint": false,
@@ -9783,5 +10154,130 @@
       "type": "object"
     },
     "title": "Stop Network Listener"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Set Blocked URLs"
+    },
+    "description": "Replace URL patterns blocked for the current tab. Successful results echo patterns; an empty list clears them.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Input schema for replacing blocked URL patterns.",
+      "properties": {
+        "urls": {
+          "description": "URL patterns with optional wildcards. An empty list clears them.",
+          "items": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Urls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "urls"
+      ],
+      "title": "NetworkBlockedUrlsSetInput",
+      "type": "object"
+    },
+    "name": "network_blocked_urls_set",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "title": "Count",
+                  "type": "integer"
+                },
+                "set": {
+                  "const": true,
+                  "title": "Set",
+                  "type": "boolean"
+                },
+                "urls": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Urls",
+                  "type": "array"
+                }
+              },
+              "required": [
+                "count",
+                "urls",
+                "set"
+              ],
+              "title": "NetworkBlockedUrlsSetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Set Blocked URLs"
   }
 ]

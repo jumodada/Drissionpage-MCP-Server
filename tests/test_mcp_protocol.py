@@ -31,7 +31,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 56
+    assert len(tools) == 60
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -61,10 +61,14 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "browser_cookies_set",
         "browser_cookies_delete",
         "browser_cookies_clear",
+        "browser_headers_set",
+        "browser_user_agent_set",
+        "browser_cache_clear",
         "storage_get",
         "network_listen_start",
         "network_listen_wait",
         "network_listen_stop",
+        "network_blocked_urls_set",
     }
     for tool in tools:
         assert tool.description
@@ -193,7 +197,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 56
+            assert len(tools.tools) == 60
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -213,10 +217,14 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "browser_cookies_set",
                 "browser_cookies_delete",
                 "browser_cookies_clear",
+                "browser_headers_set",
+                "browser_user_agent_set",
+                "browser_cache_clear",
                 "storage_get",
                 "network_listen_start",
                 "network_listen_wait",
                 "network_listen_stop",
+                "network_blocked_urls_set",
             }
             assert "element_input_text" not in {tool.name for tool in tools.tools}
             assert "wait_sleep" not in {tool.name for tool in tools.tools}

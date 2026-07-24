@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.5] - 2026-07-24
+
+### Added
+- Added default-registered `browser_headers_set`, `browser_user_agent_set`, `browser_cache_clear`, and `network_blocked_urls_set`, bringing the ordered atomic registry to 60 tools without capability profiles or an opt-in `full` mode.
+- Added strict bounded schemas for request headers, user-agent overrides, optional platform metadata, and blocked URL patterns.
+
+### Changed
+- Successful header, user-agent, and blocked-URL writes echo the accepted values by default for MCP callbacks and verification. User-agent writes also return the previous value for explicit restoration.
+- `browser_cache_clear` clears only the browser HTTP cache; Cookies, localStorage, and sessionStorage are preserved.
+
+### Verification
+- Added typed success, strict input, DrissionPage argument mapping, failure propagation, registry/schema, and real-browser request-environment regression coverage.
+- Added real-browser checks for header and user-agent propagation, URL blocking and clearing, cache invalidation, and Cookie/Web Storage preservation.
+
 ## [0.7.4] - 2026-07-23
 
 ### Added
@@ -438,7 +452,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.4...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.5...HEAD
+[0.7.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.4...0.7.5
 [0.7.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.3...0.7.4
 [0.7.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.2...0.7.3
 [0.7.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/v0.7.1...v0.7.2

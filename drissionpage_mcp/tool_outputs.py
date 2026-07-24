@@ -418,6 +418,23 @@ class PageGetUrlData(ToolData):
     url: str
 
 
+class BrowserHeadersSetData(ToolData):
+    count: int
+    headers: dict[str, str]
+    set: Literal[True]
+
+
+class BrowserUserAgentSetData(ToolData):
+    previous_user_agent: str
+    user_agent: str
+    platform: str | None
+    set: Literal[True]
+
+
+class BrowserCacheClearData(ToolData):
+    cleared: Literal[True]
+
+
 class ConsoleLogsData(ToolData):
     available: bool
     listening: bool
@@ -847,6 +864,12 @@ class NetworkListenStopData(ToolData):
     listening: bool
     was_listening: bool
     cleared: bool
+
+
+class NetworkBlockedUrlsSetData(ToolData):
+    count: int
+    urls: list[str]
+    set: Literal[True]
 
 
 def tool_outcome_schema(output_model: type[ToolData]) -> dict[str, Any]:

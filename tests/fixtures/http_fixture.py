@@ -103,7 +103,7 @@ class FixtureState:
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             return {
-                "version": "0.7.4",
+                "version": "0.7.5",
                 "counters": dict(sorted(self._counters.items())),
                 "events": [dict(event) for event in self._events],
                 "download": {
@@ -247,6 +247,24 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
 
         if path == "/__fixture__/state":
             self._send_json(self._state.snapshot())
+            return
+
+        if path == "/assets/cacheable.js":
+            count = self._state.record("cacheable_resource_requests", path=path)
+            self._send_bytes(
+                f"window.__cacheVersion = {count};".encode(),
+                content_type="application/javascript; charset=utf-8",
+                headers={"Cache-Control": "public, max-age=3600"},
+            )
+            return
+
+        if path == "/assets/blocked-resource.js":
+            self._state.record("blocked_resource_requests", path=path)
+            self._send_bytes(
+                b"window.__blockedResourceLoaded = true;",
+                content_type="application/javascript; charset=utf-8",
+                headers={"Cache-Control": "no-store"},
+            )
             return
 
         task_page = _task_completion_page(path)
@@ -472,6 +490,37 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                       sessionStorage.setItem('fixture-session', 'session-value');
                     </script>
                   </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/request-context":
+            user_agent = self.headers.get("User-Agent", "")
+            session_header = self.headers.get("X-MCP-Session", "")
+            self._send_html(
+                f"""
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Request Context</title></head>
+                  <body>
+                    <output id="request-user-agent" data-value="{_escape_html(user_agent)}"></output>
+                    <output id="request-session-header" data-value="{_escape_html(session_header)}"></output>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/resource-controls":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Resource Controls</title></head>
+                  <body><main id="resource-controls">resource controls</main></body>
+                  <script src="/assets/cacheable.js"></script>
+                  <script src="/assets/blocked-resource.js"></script>
                 </html>
                 """
             )

@@ -12,6 +12,11 @@ from drissionpage_mcp.tools.storage import (
     BrowserCookiesDeleteInput,
     BrowserCookiesSetInput,
 )
+from drissionpage_mcp.tools.common import (
+    BrowserHeadersSetInput,
+    BrowserUserAgentSetInput,
+)
+from drissionpage_mcp.tools.network import NetworkBlockedUrlsSetInput
 
 
 class TestNavigationTools:
@@ -66,6 +71,34 @@ def test_cookie_mutation_inputs_are_strict_and_bounded() -> None:
         BrowserCookiesSetInput(cookies=[cookie] * 101)
     with pytest.raises(Exception):
         BrowserCookiesDeleteInput(name="")
+
+
+def test_browser_environment_inputs_are_strict_and_bounded() -> None:
+    headers = BrowserHeadersSetInput(
+        headers={"X-MCP-Session": "callback-secret", "Accept-Language": "zh-CN"}
+    )
+    assert headers.headers["X-MCP-Session"] == "callback-secret"
+    assert BrowserHeadersSetInput(headers={}).headers == {}
+
+    with pytest.raises(Exception):
+        BrowserHeadersSetInput(headers={"Bad Header": "value"})
+    with pytest.raises(Exception):
+        BrowserHeadersSetInput(headers={"X-Test": "line\r\nbreak"})
+    with pytest.raises(Exception):
+        BrowserHeadersSetInput(headers={f"X-{index}": "v" for index in range(65)})
+
+    value = BrowserUserAgentSetInput(
+        user_agent="MCPBrowser/0.7.5", platform="Linux"
+    )
+    assert value.platform == "Linux"
+    with pytest.raises(Exception):
+        BrowserUserAgentSetInput(user_agent="")
+
+    assert NetworkBlockedUrlsSetInput(urls=[]).urls == []
+    with pytest.raises(Exception):
+        NetworkBlockedUrlsSetInput(urls=["pattern"] * 101)
+    with pytest.raises(Exception):
+        NetworkBlockedUrlsSetInput(urls=[""])
 
     @pytest.mark.asyncio
     async def test_navigate_execution_mock(self):
@@ -205,14 +238,18 @@ def test_tool_core_has_single_typed_registry_without_legacy_surfaces() -> None:
     from drissionpage_mcp.tools import ALL_TOOLS
     from drissionpage_mcp.tools.base import ToolOutcome, ToolSpec
 
-    assert len(ALL_TOOLS) == 56
-    assert len({tool.name for tool in ALL_TOOLS}) == 56
+    assert len(ALL_TOOLS) == 60
+    assert len({tool.name for tool in ALL_TOOLS}) == 60
     assert {tool.name for tool in ALL_TOOLS} >= {
         "page_dialog_respond",
         "element_click_and_download",
         "browser_cookies_set",
         "browser_cookies_delete",
         "browser_cookies_clear",
+        "browser_headers_set",
+        "browser_user_agent_set",
+        "browser_cache_clear",
+        "network_blocked_urls_set",
     }
     assert {
         "form_inspect",

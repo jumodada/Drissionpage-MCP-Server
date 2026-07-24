@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.7.4. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.7.5. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -40,6 +40,26 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Selector-backed pointer geometry remains narrower: one same-origin iframe and
   nested open Shadow DOM paths only. Do not infer pointer support from the
   broader read-only `frame_*` and `shadow_*` evidence.
+
+## 0.7.4 to 0.7.5 Migration
+
+0.7.5 adds four default-registered browser request-environment tools and grows
+the ordered registry from 56 to 60 tools. All tools load automatically; there is
+no capability profile and users do not select a `full` mode.
+
+- `browser_headers_set` replaces the current tab's extra request headers. It
+  accepts at most 64 strictly validated names and values; an empty object clears
+  the configured headers.
+- `browser_user_agent_set` overrides the current tab's user agent and optional
+  platform metadata. Its result includes both the accepted value and the
+  previous user agent so browser-only workflows can restore it explicitly.
+- `network_blocked_urls_set` replaces up to 100 URL patterns; an empty list
+  clears all configured patterns.
+- Successful header, user-agent, and blocked-URL writes echo accepted values by
+  default for MCP callbacks and verification. Clients must treat sensitive
+  header values as secrets.
+- `browser_cache_clear` clears only the HTTP cache. Cookies, localStorage, and
+  sessionStorage are explicitly preserved.
 
 ## 0.7.3 to 0.7.4 Migration
 
