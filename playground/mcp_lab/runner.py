@@ -7,8 +7,9 @@ import asyncio
 import json
 import sys
 import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from typing import Any, Awaitable, Callable
+from typing import Any
 from urllib.request import urlopen
 
 from mcp import ClientSession, StdioServerParameters

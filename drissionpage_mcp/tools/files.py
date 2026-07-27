@@ -1,13 +1,17 @@
 """File-related element tools for DrissionPage MCP."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 from pydantic import Field
+
 from ..limits import MAX_WAIT_SECONDS
 from ..policy import PolicyDeniedError, validate_upload_paths
 from ..response_errors import ErrorCode
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..target import ElementTargetArg, target_label
 from ..tool_outputs import ElementUploadFileData
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -16,7 +20,7 @@ if TYPE_CHECKING:
 class UploadFileInput(ToolInput):
     """Input schema for file uploads."""
 
-    selector: str = Field(
+    selector: ElementTargetArg = Field(
         ..., description="CSS/XPath/DrissionPage locator for an input[type=file]."
     )
     paths: list[str] = Field(
@@ -40,12 +44,12 @@ class UploadFileInput(ToolInput):
     tool_type=ToolType.DESTRUCTIVE,
     output_model=ElementUploadFileData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to upload file into '{args.selector}': {e}"
+        lambda e: f"Failed to upload file into '{target_label(args.selector)}': {e}"
     )(exc),
 )
 async def element_upload_file(
-    context: "DrissionPageContext", args: UploadFileInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: UploadFileInput
+) -> ToolOutcome:
     """Upload one or more files into a file input."""
     outcome = ToolOutcome()
     try:

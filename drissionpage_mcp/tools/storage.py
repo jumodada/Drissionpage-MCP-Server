@@ -1,18 +1,21 @@
 """Cookies and web storage tools for DrissionPage MCP."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Literal
+
 from pydantic import Field
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
+
 from ..tool_outputs import (
     BrowserCookiesClearData,
     BrowserCookiesDeleteData,
     BrowserCookiesGetData,
     BrowserCookiesSetData,
+    StorageClearData,
     StorageGetData,
     StorageSetData,
-    StorageClearData,
 )
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -103,8 +106,8 @@ class StorageClearInput(ToolInput):
     failure_message=lambda args, exc: "Failed to read browser cookies: " + str(exc),
 )
 async def browser_cookies_get(
-    context: "DrissionPageContext", args: BrowserCookiesGetInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: BrowserCookiesGetInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.storage.cookies_get(
@@ -130,8 +133,8 @@ async def browser_cookies_get(
     failure_message=lambda args, exc: "Failed to set browser cookies: " + str(exc),
 )
 async def browser_cookies_set(
-    context: "DrissionPageContext", args: BrowserCookiesSetInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: BrowserCookiesSetInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     cookies = [cookie.model_dump(exclude_none=True) for cookie in args.cookies]
@@ -153,8 +156,8 @@ async def browser_cookies_set(
     ),
 )
 async def browser_cookies_delete(
-    context: "DrissionPageContext", args: BrowserCookiesDeleteInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: BrowserCookiesDeleteInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.storage.cookies_delete(
@@ -178,8 +181,8 @@ async def browser_cookies_delete(
     failure_message=lambda args, exc: "Failed to clear browser cookies: " + str(exc),
 )
 async def browser_cookies_clear(
-    context: "DrissionPageContext", args: BrowserCookiesClearInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: BrowserCookiesClearInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.storage.cookies_clear()
@@ -198,8 +201,8 @@ async def browser_cookies_clear(
     failure_message=lambda args, exc: f"{f'Failed to read {args.area} storage'}: {exc}",
 )
 async def storage_get(
-    context: "DrissionPageContext", args: StorageGetInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: StorageGetInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.storage.get(
@@ -219,8 +222,8 @@ async def storage_get(
     failure_message=lambda args, exc: f"{f'Failed to set {args.area} storage'}: {exc}",
 )
 async def storage_set(
-    context: "DrissionPageContext", args: StorageSetInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: StorageSetInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.storage.set(area=args.area, key=args.key, value=args.value)
@@ -238,8 +241,8 @@ async def storage_set(
     failure_message=lambda args, exc: f"{f'Failed to clear {args.area} storage'}: {exc}",
 )
 async def storage_clear(
-    context: "DrissionPageContext", args: StorageClearInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: StorageClearInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.storage.clear(area=args.area, key=args.key)

@@ -140,6 +140,95 @@ async def test_mcp_frame_and_shadow_tools_cross_document_boundaries() -> None:
         await server.cleanup()
 
 
+@pytest.mark.asyncio
+async def test_mcp_structured_targets_act_across_oopif_and_closed_shadow() -> None:
+    """Unified targets must drive reads/actions without frame/shadow helper calls."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            await _call(
+                server,
+                "page_navigate",
+                {"url": base_url + "/document-boundaries"},
+            )
+            frame_target = {
+                "kind": "accessibility",
+                "role": "textbox",
+                "name": "Frame Name",
+                "frame_selectors": ["#oopif-frame"],
+            }
+            typed = await _call(
+                server,
+                "element_type",
+                {"selector": frame_target, "text": "Ada in frame", "timeout": 3},
+            )
+            assert typed["target_kind"] == "accessibility"
+            assert typed["frame_selectors"] == ["#oopif-frame"]
+            frame_value = await _call(
+                server,
+                "element_get_text",
+                {
+                    "selector": {
+                        "kind": "selector",
+                        "selector": "#frame-value",
+                        "frame_selectors": ["#oopif-frame"],
+                    }
+                },
+            )
+            assert frame_value["text"] == "Ada in frame"
+
+            shadow_button = {
+                "kind": "accessibility",
+                "role": "button",
+                "name": "Closed",
+                "exact": False,
+                "shadow_hosts": ["#closed-shadow-host"],
+            }
+            await _call(server, "element_click", {"selector": shadow_button, "timeout": 3})
+            shadow_status = await _call(
+                server,
+                "element_get_text",
+                {
+                    "selector": {
+                        "kind": "selector",
+                        "selector": "#closed-shadow-status",
+                        "shadow_hosts": ["#closed-shadow-host"],
+                    }
+                },
+            )
+            assert shadow_status["text"] == "clicked"
+
+            state = await _call(
+                server,
+                "element_state_get",
+                {"selector": shadow_button, "timeout": 3},
+            )
+            assert state["clickable"] is True
+            assert state["alive"] is True
+            assert state["rect"]["size"]["width"] > 0
+            assert state["rect"]["coordinate_space"] == "target_document"
+
+            accessibility = await _call(
+                server,
+                "page_accessibility_snapshot",
+                {
+                    "scope": {
+                        "kind": "selector",
+                        "selector": "#closed-shadow-host",
+                    },
+                    "max_nodes": 30,
+                },
+            )
+            assert any(
+                node["role"] == "button" and node["name"] == "Closed Action"
+                for node in accessibility["nodes"]
+            )
+            assert accessibility["returned"] <= 30
+    finally:
+        await server.cleanup()
+
+
 async def _type_and_assert(
     server: DrissionPageMCPServer, selector: str, value: str
 ) -> None:

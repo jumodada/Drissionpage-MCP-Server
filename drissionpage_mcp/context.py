@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, List, Optional
+from typing import Any
 
 from .compat import create_browser, get_latest_tab, new_tab, quit_browser
 from .limits import MAX_WAIT_SECONDS
@@ -33,9 +33,9 @@ class DrissionPageContext(TaskRuntime):
             operation_limit=operation_limit,
             artifact_limit=artifact_limit,
         )
-        self._browser: Optional[Any] = None
-        self._current_tab: Optional[PageTab] = None
-        self._tabs: List[PageTab] = []
+        self._browser: Any | None = None
+        self._current_tab: PageTab | None = None
+        self._tabs: list[PageTab] = []
         self._next_tab_index = 0
         self._is_initialized = False
 
@@ -60,7 +60,7 @@ class DrissionPageContext(TaskRuntime):
         if not self._is_initialized:
             await self.initialize()
 
-    def current_tab(self) -> Optional[PageTab]:
+    def current_tab(self) -> PageTab | None:
         """Get the current active tab."""
         return self._current_tab
 
@@ -70,11 +70,11 @@ class DrissionPageContext(TaskRuntime):
             raise RuntimeError("No active tab. Use navigate tool to open a page first.")
         return self._current_tab
 
-    def tabs(self) -> List[PageTab]:
+    def tabs(self) -> list[PageTab]:
         """Get all tabs."""
         return self._tabs.copy()
 
-    async def sync_tabs(self) -> List[PageTab]:
+    async def sync_tabs(self) -> list[PageTab]:
         """Synchronize tracked tabs with the underlying browser tab registry."""
 
         await self.ensure_initialized()
@@ -170,7 +170,7 @@ class DrissionPageContext(TaskRuntime):
         self._current_tab = tab
         return tab
 
-    async def close_tab(self, tab: Optional[PageTab] = None) -> None:
+    async def close_tab(self, tab: PageTab | None = None) -> None:
         """Close a tab."""
         target_tab = tab or self._current_tab
         if not target_tab:
@@ -219,7 +219,7 @@ class DrissionPageContext(TaskRuntime):
         return self._is_initialized and self._browser is not None
 
     @property
-    def browser(self) -> Optional[Any]:
+    def browser(self) -> Any | None:
         """Return the underlying DrissionPage browser object."""
         return self._browser
 
@@ -264,7 +264,7 @@ class DrissionPageContext(TaskRuntime):
             pages.append(latest)
         return pages
 
-    def _find_tab(self, tab_id: str) -> Optional[PageTab]:
+    def _find_tab(self, tab_id: str) -> PageTab | None:
         return next(
             (
                 tab
@@ -274,7 +274,7 @@ class DrissionPageContext(TaskRuntime):
             None,
         )
 
-    def _find_tab_by_key(self, key: str) -> Optional[PageTab]:
+    def _find_tab_by_key(self, key: str) -> PageTab | None:
         return next((tab for tab in self._tabs if self._tab_key(tab.page) == key), None)
 
     @staticmethod

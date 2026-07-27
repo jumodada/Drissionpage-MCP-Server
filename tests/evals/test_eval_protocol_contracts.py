@@ -31,7 +31,7 @@ async def test_eval_agent_discovers_atomic_tools_and_optional_skills() -> None:
     tool_names = {tool.name for tool in tools_result.root.tools}
     resource_uris = {str(resource.uri) for resource in resources_result.root.resources}
 
-    assert len(tool_names) == 60
+    assert len(tool_names) == 63
     assert {
         "page_navigate",
         "page_snapshot",

@@ -4,19 +4,19 @@ import base64
 import logging
 import struct
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def build_screenshot_metadata(
-    image_data: Optional[Union[str, bytes]] = None,
+    image_data: str | bytes | None = None,
     *,
     path: str = "",
     safe_relative_path: str = "",
-    full_page: Optional[bool] = None,
-    inline: Optional[bool] = None,
-) -> Dict[str, Any]:
+    full_page: bool | None = None,
+    inline: bool | None = None,
+) -> dict[str, Any]:
     """Return compact metadata for an MCP screenshot result."""
 
     raw = _image_bytes(image_data) if image_data is not None else None
@@ -24,7 +24,7 @@ def build_screenshot_metadata(
         raw = _path_bytes(path)
     width, height = _png_dimensions(raw)
 
-    metadata: Dict[str, Any] = {
+    metadata: dict[str, Any] = {
         "mime_type": "image/png",
     }
     if inline is not None:
@@ -45,7 +45,7 @@ def build_screenshot_metadata(
     return metadata
 
 
-def _image_bytes(image_data: Union[str, bytes]) -> Optional[bytes]:
+def _image_bytes(image_data: str | bytes) -> bytes | None:
     if isinstance(image_data, bytes):
         return image_data
     try:
@@ -55,7 +55,7 @@ def _image_bytes(image_data: Union[str, bytes]) -> Optional[bytes]:
         return None
 
 
-def _path_bytes(path: str) -> Optional[bytes]:
+def _path_bytes(path: str) -> bytes | None:
     try:
         return Path(path).read_bytes()
     except OSError:
@@ -63,7 +63,7 @@ def _path_bytes(path: str) -> Optional[bytes]:
         return None
 
 
-def _png_dimensions(raw: Optional[bytes]) -> Tuple[Optional[int], Optional[int]]:
+def _png_dimensions(raw: bytes | None) -> tuple[int | None, int | None]:
     if not raw or len(raw) < 24:
         return None, None
     if raw[:8] != b"\x89PNG\r\n\x1a\n" or raw[12:16] != b"IHDR":

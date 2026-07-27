@@ -1,12 +1,15 @@
 """Shadow DOM read-only tools for DrissionPage MCP."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 from pydantic import Field
+
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
-from ..tool_outputs import ShadowFindData, ShadowFindAllData
+from ..tool_outputs import ShadowFindAllData, ShadowFindData
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -42,8 +45,8 @@ class ShadowFindAllInput(ToolInput):
     )(exc),
 )
 async def shadow_find(
-    context: "DrissionPageContext", args: ShadowFindInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: ShadowFindInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.frames.shadow_find(
@@ -66,8 +69,8 @@ async def shadow_find(
     )(exc),
 )
 async def shadow_find_all(
-    context: "DrissionPageContext", args: ShadowFindAllInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: ShadowFindAllInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.frames.shadow_find_all(

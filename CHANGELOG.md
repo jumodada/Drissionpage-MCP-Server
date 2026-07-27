@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.6] - 2026-07-27
+
+### Added
+- Added a backward-compatible structured element target contract for selector and accessibility role/name lookup, with ordered DrissionPage frame and Shadow DOM scopes across element reads, actions, waits, uploads, and click-download correlation.
+- Added default-registered `page_accessibility_snapshot`, `page_dialog_observe`, and `element_state_get`, bringing the ordered atomic registry to 63 tools. All tools load automatically without capability profiles or an opt-in `full` mode.
+
+### Changed
+- Native element clicks now run off the asyncio event loop so a concurrent dialog observer or responder can inspect and handle a blocking JavaScript dialog without user intervention.
+- Structured target results include target kind and scope metadata while legacy string-selector calls retain their existing result shape.
+- Accessibility snapshot field values and value-like properties are redacted by default and require explicit `include_values=true`; dialog responses are serialized per tab and native handling runs off the asyncio event loop.
+- Structured target scope resolution enters all frames before all Shadow DOM hosts; arbitrary frame/shadow interleaving is not part of the 0.7.6 contract.
+
+### Verification
+- Added strict discriminated-target, accessibility ambiguity, typed success/schema, and real-browser coverage for cross-origin OOPIF input, closed Shadow DOM click/state, scoped accessibility snapshots, and dialog observe/respond concurrency.
+
 ## [0.7.5] - 2026-07-24
 
 ### Added
@@ -452,7 +467,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.5...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.6...HEAD
+[0.7.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.5...0.7.6
 [0.7.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.4...0.7.5
 [0.7.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.3...0.7.4
 [0.7.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.2...0.7.3

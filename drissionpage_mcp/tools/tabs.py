@@ -1,10 +1,13 @@
 """Browser tab management tools for DrissionPage MCP."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 from pydantic import Field
-from .base import EmptyInput, ToolInput, ToolType, define_tool, ToolOutcome
-from ..tool_outputs import TabListData, TabSwitchData, TabCloseData
+
+from ..tool_outputs import TabCloseData, TabListData, TabSwitchData
+from .base import EmptyInput, ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -29,7 +32,7 @@ class TabIdInput(ToolInput):
     output_model=TabListData,
     failure_message=lambda args, exc: "Failed to list tabs: " + str(exc),
 )
-async def tab_list(context: "DrissionPageContext", args: EmptyInput) -> "ToolOutcome":
+async def tab_list(context: DrissionPageContext, args: EmptyInput) -> ToolOutcome:
     """List current browser tabs."""
     outcome = ToolOutcome()
     await context.sync_tabs()
@@ -55,7 +58,7 @@ async def tab_list(context: "DrissionPageContext", args: EmptyInput) -> "ToolOut
         lambda e: f"Failed to switch to tab {args.tab_id!r}: {e}"
     )(exc),
 )
-async def tab_switch(context: "DrissionPageContext", args: TabIdInput) -> "ToolOutcome":
+async def tab_switch(context: DrissionPageContext, args: TabIdInput) -> ToolOutcome:
     """Switch active browser tab."""
     outcome = ToolOutcome()
     tab = await context.switch_tab(args.tab_id)
@@ -84,7 +87,7 @@ async def tab_switch(context: "DrissionPageContext", args: TabIdInput) -> "ToolO
         lambda e: f"Failed to close tab {args.tab_id!r}: {e}"
     )(exc),
 )
-async def tab_close(context: "DrissionPageContext", args: TabIdInput) -> "ToolOutcome":
+async def tab_close(context: DrissionPageContext, args: TabIdInput) -> ToolOutcome:
     """Close a browser tab."""
     outcome = ToolOutcome()
     await context.close_tab_by_id(args.tab_id)

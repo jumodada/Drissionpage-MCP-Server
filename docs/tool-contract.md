@@ -119,8 +119,56 @@ The server marks tools with MCP annotations:
 
 ## Tool Inventory
 
-The 0.7.5 registry contains 60 typed browser tools. Site, component, challenge,
+The 0.7.6 registry contains 63 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
+
+### Reusable Element Targets
+
+Existing string selectors remain valid and retain their previous result shape:
+
+```json
+{"selector": "#save"}
+```
+
+Element tools also accept a strict `kind`-discriminated target object. Selector
+targets can cross up to four ordered frame selectors and eight ordered Shadow DOM
+hosts through DrissionPage objects:
+
+```json
+{
+  "selector": {
+    "kind": "selector",
+    "selector": "#save",
+    "frame_selectors": ["#outer-frame", "#inner-frame"],
+    "shadow_hosts": ["#app-host"]
+  }
+}
+```
+
+Scope resolution is intentionally ordered in two phases: every
+`frame_selectors` entry is resolved outer-to-inner first, then every
+`shadow_hosts` entry is resolved outer-to-inner. Arbitrarily interleaved
+frame/shadow paths are not part of the 0.7.6 contract.
+
+Accessibility targets query Chromium's accessibility tree by role and optional
+accessible name. `exact` defaults to `true`; more than one matching node returns
+`AMBIGUOUS_TARGET` instead of choosing an arbitrary element:
+
+```json
+{
+  "selector": {
+    "kind": "accessibility",
+    "role": "button",
+    "name": "Save",
+    "exact": true,
+    "frame_selectors": [],
+    "shadow_hosts": ["#app-host"]
+  }
+}
+```
+
+The shared target contract is accepted by element discovery, read, click, type,
+upload, scroll, hover, select, check, state, wait, and click-download tools.
 
 ### Network Control And Listener Beta
 
@@ -164,6 +212,7 @@ and business workflows are composed by clients or optional external Skills.
 | `page_screenshot` | Read-only | none | Capture an inline viewport or full-page screenshot. Optional: `full_page`. |
 | `page_screenshot_save` | Destructive | `path` | Save a viewport or full-page screenshot under `DP_MCP_SCREENSHOT_ROOT`. Optional: `full_page`. |
 | `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`. |
+| `page_accessibility_snapshot` | Read-only | none | Return a bounded Chromium accessibility tree for the page or an optional scoped element target. Field values and value-like properties are redacted by default; `include_values=true` explicitly returns them. Optional: `scope`, `max_nodes`, `include_ignored`, `include_values`. |
 | `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, recent console summary, and limits. Optional: `max_texts`, `max_text_chars`. |
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
 | `page_scroll` | Destructive | none | Scroll the page by direction or to a position. Optional: `direction`, `pixels`, `x`, `y`. |
@@ -174,6 +223,7 @@ and business workflows are composed by clients or optional external Skills.
 | `page_click_xy` | Destructive | `x`, `y` | Move with the `direct` or deterministic bounded `natural` profile, optionally wait for `delay_before_press_ms`, then press and release at the exact viewport target. Optional: `profile`, `element`, and `button`. |
 | `page_close` | Destructive | none | Close the browser context. |
 | `page_get_url` | Read-only | none | Return the current page URL. |
+| `page_dialog_observe` | Read-only | none | Wait for and return one pending native alert, confirm, or prompt without handling it. Optional: `timeout`, `max_message_chars`. |
 | `page_dialog_respond` | Destructive | `action` | Accept or dismiss one currently pending alert, confirm, or prompt through a capability-probed native path. Optional: `prompt_text`, `timeout`. Prompt text is never returned. |
 
 ### Debug / Observability
@@ -186,11 +236,11 @@ and business workflows are composed by clients or optional external Skills.
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
-| `element_find` | Read-only | `selector` | Find an element by CSS selector or XPath. Bare selectors are treated as CSS. Optional: `timeout` (default 3s). |
-| `element_find_all` | Read-only | `selector` | Find multiple matching elements with bounded text, attributes, optional HTML, count/truncation metadata, and recommended selectors. Optional: `limit` (default 20), `include_html`. |
-| `element_click` | Destructive | `selector` | Click an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `observe`, `button` (`left`, `right`, `middle`), `click_count` (`1`, `2`). Existing calls remain left single-clicks. Unsupported native variants return `UNSUPPORTED_OPERATION` rather than substituting another click. |
-| `element_click_and_download` | Destructive | `selector` | Perform one native click and await one correlated completed download under `DP_MCP_DOWNLOAD_ROOT`. Returns an integrity-checked `ArtifactRef` and linked `ActionReceipt`. Optional: `operation_key`, `timeout`, `expected_filename`, `expected_mime_type`. |
-| `element_type` | Destructive | `selector`, `text` | Type text into an element selected by CSS/XPath/explicit DrissionPage locator. Optional: `timeout`, `clear`, `observe`. |
+| `element_find` | Read-only | `selector` | Find one string or structured selector/accessibility target. Optional: `timeout` (default 3s). |
+| `element_find_all` | Read-only | `selector` | Find multiple matching string or structured targets with bounded text, attributes, optional HTML, count/truncation metadata, and recommended selectors. Optional: `limit` (default 20), `include_html`. |
+| `element_click` | Destructive | `selector` | Click one string or structured selector/accessibility target. Optional: `timeout`, `observe`, `button` (`left`, `right`, `middle`), `click_count` (`1`, `2`). Existing calls remain left single-clicks. Unsupported native variants return `UNSUPPORTED_OPERATION` rather than substituting another click. |
+| `element_click_and_download` | Destructive | `selector` | Resolve one string or structured target, perform one native click, and await one correlated completed download under `DP_MCP_DOWNLOAD_ROOT`. Returns an integrity-checked `ArtifactRef` and linked `ActionReceipt`. Optional: `operation_key`, `timeout`, `expected_filename`, `expected_mime_type`. |
+| `element_type` | Destructive | `selector`, `text` | Type into one string or structured selector/accessibility target. Optional: `timeout`, `clear`, `observe`. |
 | `element_upload_file` | Destructive | `selector`, `paths` | Upload one or more files from `DP_MCP_UPLOAD_ROOT` into an `input[type=file]`. Optional: `timeout`. |
 | `element_scroll_into_view` | Destructive | `selector` | Scroll an element into the viewport. Optional: `center`, `timeout`. |
 | `element_hover` | Destructive | `selector` | Hover an element. Optional: `timeout`, `offset_x`, `offset_y`. |
@@ -200,6 +250,7 @@ and business workflows are composed by clients or optional external Skills.
 | `element_get_attribute` | Read-only | `selector`, `attribute` | Read an HTML attribute. |
 | `element_get_property` | Read-only | `selector`, `property` | Read a live DOM property such as `value`. |
 | `element_get_html` | Read-only | none | Get page HTML, or element HTML when `selector` is set. |
+| `element_state_get` | Read-only | `selector` | Return DrissionPage state flags plus document and viewport geometry for one string or structured target. Optional: `timeout`. |
 
 ### Frame / Shadow DOM
 
@@ -247,7 +298,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.7.5 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.7.6 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 
@@ -255,9 +306,12 @@ optional Skills.
 
 - Selectors are normalized before calling DrissionPage: bare selectors are treated as CSS (`h1` -> `css:h1`, `input[name=q]` -> `css:input[name=q]`), XPath-looking strings are prefixed as XPath (`//h1` -> `xpath://h1`), and explicit DrissionPage forms such as `tag:h1`, `text:Submit`, `css:...`, `xpath:...`, and `@name=value` are preserved.
 - Tool responses include selector metadata: `selector`, `locator`, `selector_strategy`, and `selector_normalized`.
+- Structured target responses additionally include `target_kind`, ordered `frame_selectors`, ordered `shadow_hosts`, and accessibility role/name matching metadata. Legacy string-target responses omit these additive fields.
+- Accessibility snapshots report `values_included`; field values and value-like properties are `<redacted>` unless `include_values=true`. Treat opt-in values as secrets.
 - `page_snapshot` and `element_find_all` include `meta.approx_tokens`, `meta.json_chars`, and `meta.truncated` so clients can narrow later calls when a response is large.
 - `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
 - Form and component workflows are composed from element discovery, type/select/check/click/keyboard, upload, wait, and state-read tools. The core does not classify widget libraries or infer business submission intent.
+- `page_dialog_observe` returns a bounded pending-dialog message without accepting or dismissing it. Observation and response bypass ordinary browser-operation serialization so they can overlap the native click that opened a blocking dialog; no user action is required.
 - `page_dialog_respond` handles one currently pending JavaScript dialog. Capability gaps return `UNSUPPORTED_OPERATION`; prompt text and dialog messages are not retained in action history.
 - `element_click_and_download` requires an approved `DP_MCP_DOWNLOAD_ROOT`. A successful response includes one checksum-verified regular file, safe relative path, sanitized HTTP(S) source URL, `ArtifactRef`, and correlated `ActionReceipt`. Replaying the same operation key does not click again; failure and indeterminate results contain no artifact.
 - `tab_list` synchronizes with browser tabs opened by normal page behavior, including `target="_blank"` links.

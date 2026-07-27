@@ -2,12 +2,14 @@
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING, Any
 
 from DrissionPage.errors import ElementNotFoundError
 
 from .browser import (
+    AccessibilityOperations,
     DialogOperations,
+    DomTargetResolver,
     DownloadOperations,
     ElementOperations,
     FrameOperations,
@@ -45,6 +47,8 @@ class PageTab:
         self.context = context
         self.mcp_tab_id = mcp_tab_id
         self._url = ""
+        self.dom_targeting = DomTargetResolver(self)
+        self.accessibility = AccessibilityOperations(self)
         self.dialogs = DialogOperations(self)
         self.downloads = DownloadOperations(self)
         self.elements = ElementOperations(self)
@@ -87,7 +91,7 @@ class PageTab:
             value = ""
         return "" if value is None else str(value)
 
-    def summary(self, *, active: bool = False) -> Dict[str, Any]:
+    def summary(self, *, active: bool = False) -> dict[str, Any]:
         """Return a bounded public tab summary."""
 
         return {
@@ -117,6 +121,12 @@ class PageTab:
         fallback_sleep: float = 0.02,
     ) -> None:
         """Prefer DrissionPage-native load waits with a bounded async fallback."""
+
+        try:
+            if bool(self.page.states.has_alert):
+                return
+        except Exception:
+            pass
 
         wait = getattr(self.page, "wait", None)
         doc_loaded = getattr(wait, "doc_loaded", None)

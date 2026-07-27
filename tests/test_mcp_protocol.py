@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from mcp import ClientSession, StdioServerParameters
@@ -31,7 +31,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 60
+    assert len(tools) == 63
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -175,7 +175,7 @@ async def test_removed_alias_tools_return_actionable_tool_not_found() -> None:
     assert "Use 'element_type' instead" in result.root.structuredContent["message"]
 
 
-def _call_tool_request(name: str, arguments: Dict[str, Any]) -> CallToolRequest:
+def _call_tool_request(name: str, arguments: dict[str, Any]) -> CallToolRequest:
     return CallToolRequest(
         method="tools/call",
         params=CallToolRequestParams(name=name, arguments=arguments),
@@ -197,7 +197,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 60
+            assert len(tools.tools) == 63
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",

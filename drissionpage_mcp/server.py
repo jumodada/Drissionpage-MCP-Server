@@ -3,7 +3,7 @@
 import asyncio
 import inspect
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from mcp.server import Server
 from mcp.server.lowlevel import NotificationOptions
@@ -43,8 +43,8 @@ class DrissionPageMCPServer:
             version=version,
             instructions=server_instructions(version),
         )
-        self.context: Optional[DrissionPageContext] = None
-        self.tools: Dict[str, DrissionTool] = {}
+        self.context: DrissionPageContext | None = None
+        self.tools: dict[str, DrissionTool] = {}
         self._execution_lock = asyncio.Lock()
         self._lifecycle_condition = asyncio.Condition()
         self._active_tool_calls = 0
@@ -66,7 +66,7 @@ class DrissionPageMCPServer:
         """Set up MCP request handlers."""
 
         @self.server.list_tools()
-        async def list_tools() -> List[Tool]:
+        async def list_tools() -> list[Tool]:
             """List available tools."""
             return [self._tool_to_mcp_tool(tool) for tool in self.tools.values()]
 
@@ -81,14 +81,14 @@ class DrissionPageMCPServer:
             return read_resource_definition(str(uri))
 
         async def call_tool_impl(
-            name: str, arguments: Optional[Dict[str, Any]] = None
+            name: str, arguments: dict[str, Any] | None = None
         ) -> CallToolResult:
             """Execute a tool with given arguments and preserve isError semantics."""
             tool = self.tools.get(name)
             if not tool:
                 replacement = REMOVED_TOOL_REPLACEMENTS.get(name)
                 message = f"Tool '{name}' not found"
-                details: Dict[str, Any] = {"tool_name": name}
+                details: dict[str, Any] = {"tool_name": name}
                 if replacement:
                     message = f"{message}. Use '{replacement}' instead."
                     details["suggested_tool"] = replacement
@@ -101,7 +101,7 @@ class DrissionPageMCPServer:
             except ValidationError as e:
                 outcome = ToolOutcome()
                 outcome.add_error(
-                    "Input validation error: %s" % e,
+                    f"Input validation error: {e}",
                     ErrorCode.MCP_ARGUMENT_INVALID,
                     tool_name=name,
                 )
@@ -111,7 +111,7 @@ class DrissionPageMCPServer:
             try:
                 context = await self._begin_tool_call()
                 call_started = True
-                if name in _CONCURRENT_RESPONDER_TOOLS:
+                if name in _CONCURRENT_DIALOG_TOOLS:
                     outcome = await tool.execute(context, validated_args)
                 else:
                     async with self._execution_lock:
@@ -156,7 +156,7 @@ class DrissionPageMCPServer:
     def _tool_to_mcp_tool(self, tool: DrissionTool) -> Tool:
         """Convert an internal tool definition to an MCP SDK Tool model."""
 
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "name": tool.name,
             "title": tool.title,
             "description": tool.description,
@@ -259,6 +259,8 @@ REMOVED_TOOL_REPLACEMENTS = {
 }
 
 
-# A dialog trigger can block until another call accepts or dismisses the native
-# modal. Only the responder bypasses ordinary browser-operation serialization.
-_CONCURRENT_RESPONDER_TOOLS = frozenset({"page_dialog_respond"})
+# Dialog observation/response must overlap the serialized action that opens the
+# native modal; both operations are bounded to the pending dialog lifecycle.
+_CONCURRENT_DIALOG_TOOLS = frozenset(
+    {"page_dialog_observe", "page_dialog_respond"}
+)

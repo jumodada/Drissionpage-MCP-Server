@@ -52,7 +52,7 @@ class DownloadValidationError(ValueError):
 class DownloadOperations:
     """Own one-click/one-download lifecycle and integrity verification."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
         self._download_lock = asyncio.Lock()
 
@@ -177,7 +177,7 @@ class DownloadOperations:
                 pass
 
 
-async def _await_terminal(task: "asyncio.Task[_T]") -> _T:
+async def _await_terminal(task: asyncio.Task[_T]) -> _T:
     cancellation: asyncio.CancelledError | None = None
     while not task.done():
         try:
@@ -188,7 +188,7 @@ async def _await_terminal(task: "asyncio.Task[_T]") -> _T:
         result = task.result()
     except BaseException:
         if cancellation is not None:
-            raise cancellation
+            raise cancellation from None
         raise
     if cancellation is not None:
         raise cancellation

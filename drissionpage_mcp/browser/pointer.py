@@ -123,7 +123,7 @@ _BUTTON_BITS: dict[PointerButton, int] = {"left": 1, "right": 2, "middle": 4}
 class PointerOperations:
     """Execute bounded pointer profiles and guarantee held-button cleanup."""
 
-    def __init__(self, tab: "PageTab", *, sleep: Sleep | None = None) -> None:
+    def __init__(self, tab: PageTab, *, sleep: Sleep | None = None) -> None:
         self._tab = tab
         self._sleep = sleep or asyncio.sleep
 
@@ -262,7 +262,8 @@ class PointerOperations:
     @staticmethod
     def _path_actions(path: PointerPath) -> tuple[MoveAction, ...]:
         return tuple(
-            MoveAction(point, delay) for point, delay in zip(path.points, path.delays)
+            MoveAction(point, delay)
+            for point, delay in zip(path.points, path.delays, strict=True)
         )
 
     def _dispatch_move(

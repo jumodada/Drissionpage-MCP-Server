@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class FrameOperations:
     """Own iframe and DrissionPage-exposed shadow-root lookup behavior."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
 
     @property

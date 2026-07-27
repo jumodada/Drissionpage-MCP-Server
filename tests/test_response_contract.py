@@ -1,11 +1,14 @@
 """Response contract tests for machine-readable MCP tool results."""
 
 from __future__ import annotations
+
 import base64
 import json
 import re
+
 import pytest
 from jsonschema import ValidationError, validate
+
 from drissionpage_mcp.response_errors import ErrorCode, classify_error, recovery_hints
 from drissionpage_mcp.response_media import build_screenshot_metadata
 from drissionpage_mcp.tools import get_all_tools
@@ -122,10 +125,8 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
         "inspect_current_page",
     }
     assert any(
-        (
-            hint.get("command") == "drissionpage-mcp doctor --launch-browser"
-            for hint in browser_hints
-        )
+        hint.get("command") == "drissionpage-mcp doctor --launch-browser"
+        for hint in browser_hints
     )
     assert not_initialized_hints[0] == {
         "action": "navigate_first",
@@ -140,12 +141,9 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
     assert "complete JSON Schema" in catalog_hint["message"]
     assert not_found_hints[0]["action"] == "list_available_tools"
     assert any(
-        (
-            hint.get("env") == "DP_MCP_SCREENSHOT_ROOT"
-            for hint in screenshot_policy_hints
-        )
+        hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in screenshot_policy_hints
     )
-    assert any((hint["action"] == "verify_listener_api" for hint in unsupported_hints))
+    assert any(hint["action"] == "verify_listener_api" for hint in unsupported_hints)
 
 
 def test_screenshot_result_includes_image_content_and_json_metadata() -> None:
@@ -155,7 +153,7 @@ def test_screenshot_result_includes_image_content_and_json_metadata() -> None:
     content = response.content()
     payload = response.structured_content()
     screenshot = payload["data"]["screenshot"]
-    assert any((item.type == "image" for item in content))
+    assert any(item.type == "image" for item in content)
     assert screenshot == {
         "mime_type": "image/png",
         "inline": True,

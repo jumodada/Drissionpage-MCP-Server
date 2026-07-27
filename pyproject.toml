@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "drissionpage-mcp"
-version = "0.7.5"
+version = "0.7.6"
 description = "Professional browser automation for Codex, Claude Code, and MCP clients powered by DrissionPage"
 authors = [
     { name = "Wukunyun", email = "864353360@qq.com" }
@@ -91,6 +91,9 @@ extend-exclude = '''
   | dist
 )/
 '''
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "B", "UP"]
 
 [tool.isort]
 profile = "black"

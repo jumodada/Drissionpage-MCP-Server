@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from hashlib import sha256
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Lock, Thread
-from typing import Any, Iterator, cast
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
-
 
 TASK_COMPLETION_DOWNLOAD = b"employee_id,name,department\n0701,Ada Lovelace,Research\n"
 TASK_COMPLETION_DOWNLOAD_SHA256 = sha256(TASK_COMPLETION_DOWNLOAD).hexdigest()
@@ -103,7 +103,7 @@ class FixtureState:
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             return {
-                "version": "0.7.5",
+                "version": "0.7.6",
                 "counters": dict(sorted(self._counters.items())),
                 "events": [dict(event) for event in self._events],
                 "download": {
@@ -848,7 +848,16 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                     <section id="frame-content" data-frame="fixture">
                       <h2>Iframe Content</h2>
                       <p id="frame-text">frame ready</p>
+                      <label for="frame-name">Frame Name</label>
+                      <input id="frame-name" />
+                      <output id="frame-value">empty</output>
                     </section>
+                    <script>
+                      const input = document.getElementById('frame-name');
+                      input.addEventListener('input', () => {
+                        document.getElementById('frame-value').textContent = input.value;
+                      });
+                    </script>
                   </body>
                 </html>
                 """
@@ -922,7 +931,7 @@ def local_http_fixture() -> Iterator[str]:
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:
-        yield "http://127.0.0.1:{0}".format(server.server_port)
+        yield f"http://127.0.0.1:{server.server_port}"
     finally:
         server.shutdown()
         server.server_close()
@@ -1383,12 +1392,16 @@ def _document_boundaries_html(port: int) -> str:
           root.innerHTML = `
             <section id="closed-shadow-content">
               <button id="closed-shadow-button" type="button">Closed Action</button>
+              <output id="closed-shadow-status">idle</output>
               <ul>
                 <li class="closed-shadow-item">Closed Alpha</li>
                 <li class="closed-shadow-item">Closed Beta</li>
               </ul>
             </section>
           `;
+          root.getElementById('closed-shadow-button').addEventListener('click', () => {{
+            root.getElementById('closed-shadow-status').textContent = 'clicked';
+          }});
         </script>
       </body>
     </html>

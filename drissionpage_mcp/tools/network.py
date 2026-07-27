@@ -1,17 +1,20 @@
 """Network listener beta tools for DrissionPage 4.x tabs."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Annotated
+
 from pydantic import Field, StrictStr, StringConstraints
+
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
 from ..tool_outputs import (
-    NetworkListenStartData,
-    NetworkListenWaitData,
-    NetworkListenStopData,
     NetworkBlockedUrlsSetData,
+    NetworkListenStartData,
+    NetworkListenStopData,
+    NetworkListenWaitData,
 )
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -101,8 +104,8 @@ class NetworkBlockedUrlsSetInput(ToolInput):
     failure_message=lambda args, exc: "Failed to start network listener: " + str(exc),
 )
 async def network_listen_start(
-    context: "DrissionPageContext", args: NetworkListenStartInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: NetworkListenStartInput
+) -> ToolOutcome:
     """Start DrissionPage listener."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
@@ -127,8 +130,8 @@ async def network_listen_start(
     failure_message=lambda args, exc: "Failed to wait for network packets: " + str(exc),
 )
 async def network_listen_wait(
-    context: "DrissionPageContext", args: NetworkListenWaitInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: NetworkListenWaitInput
+) -> ToolOutcome:
     """Wait for packets from DrissionPage listener."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
@@ -156,8 +159,8 @@ async def network_listen_wait(
     failure_message=lambda args, exc: "Failed to stop network listener: " + str(exc),
 )
 async def network_listen_stop(
-    context: "DrissionPageContext", args: NetworkListenStopInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: NetworkListenStopInput
+) -> ToolOutcome:
     """Stop DrissionPage listener."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
@@ -180,8 +183,8 @@ async def network_listen_stop(
     failure_message=lambda args, exc: "Failed to set blocked URLs: " + str(exc),
 )
 async def network_blocked_urls_set(
-    context: "DrissionPageContext", args: NetworkBlockedUrlsSetInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: NetworkBlockedUrlsSetInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.network.set_blocked_urls(args.urls)

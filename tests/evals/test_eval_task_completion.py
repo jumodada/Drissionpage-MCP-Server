@@ -12,21 +12,21 @@ from urllib.request import Request, urlopen
 import pytest
 
 import tests.evals.task_completion_benchmark as benchmark
+from tests.evals.task_completion_benchmark import (
+    SIDE_EFFECT_BASELINES,
+    WORKLOAD_TOOL_REQUIREMENTS,
+    WORKLOADS,
+    _browser_evidence_complete,
+    _console_report,
+    _missing_required_tools,
+    _side_effect_evidence,
+    _summarize,
+)
 from tests.fixtures.http_fixture import (
     TASK_COMPLETION_DOWNLOAD,
     TASK_COMPLETION_DOWNLOAD_SHA256,
     TASK_COMPLETION_SCENARIOS,
     local_http_fixture,
-)
-from tests.evals.task_completion_benchmark import (
-    SIDE_EFFECT_BASELINES,
-    WORKLOAD_TOOL_REQUIREMENTS,
-    WORKLOADS,
-    _console_report,
-    _browser_evidence_complete,
-    _missing_required_tools,
-    _side_effect_evidence,
-    _summarize,
 )
 
 

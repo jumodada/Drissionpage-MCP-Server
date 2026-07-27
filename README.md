@@ -16,7 +16,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.7.5 exposes 60 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
+**DrissionPage MCP 0.7.6 exposes 63 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
 
 > **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
@@ -72,7 +72,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 60 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.5 adds default-loaded request-header, user-agent, cache, and URL-blocking primitives for browser-only workflows. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 63 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.6 adds structured selector/accessibility targets with frame and Shadow DOM scopes, bounded accessibility snapshots, native dialog observation, and element state/geometry inspection. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -167,7 +167,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ---
 
-## 🛠️ 60 Typed Browser Tools
+## 🛠️ 63 Typed Browser Tools
 
 ### 🌐 Navigation (4 tools)
 - `page_navigate` - Navigate to any URL; optionally open it in a new tab with `new_tab` or return an `observe` change summary
@@ -180,7 +180,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `tab_switch` - Switch to a tab returned by `tab_list`
 - `tab_close` - Close one tab without closing the whole browser
 
-### 🎯 Element Interaction & Extraction (14 tools)
+### 🎯 Element Interaction & Extraction (15 tools)
 - `element_find` - Find one element by CSS selector or XPath; bare selectors like `h1` are treated as CSS
 - `element_find_all` - Extract bounded repeated elements with text, attributes, and recommended selectors
 - `element_click` - Click any element with additive left/right/middle and single/double-click semantics
@@ -195,11 +195,13 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `element_get_attribute` - Get an HTML attribute
 - `element_get_property` - Get a live DOM property such as an input value
 - `element_get_html` - Get element or page HTML
+- `element_state_get` - Read live DrissionPage state flags and document/viewport geometry for one element
 
-### 📸 Page Operations (15 tools)
+### 📸 Page Operations (17 tools)
 - `page_screenshot` - Capture an inline full-page or viewport screenshot
 - `page_screenshot_save` - Save a screenshot under `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - Return a bounded page outline with headings, links, buttons, inputs, forms, and selector recommendations
+- `page_accessibility_snapshot` - Return a bounded Chromium accessibility tree for the page or a scoped element, with field values redacted unless explicitly requested
 - `page_observe` - Return a compact page fingerprint with URL, title, counts, visible text samples, active element, and recent console summary
 - `page_evaluate` - Run bounded JavaScript in the current page and return a JSON-safe result
 - `page_scroll` - Scroll the page by direction or to a position
@@ -211,6 +213,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_click_xy` - Move with `direct` or `natural` motion, optionally wait for an explicit delay, then press and release at the exact target
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
+- `page_dialog_observe` - Wait for and inspect a pending native alert, confirm, or prompt without handling it
 - `page_dialog_respond` - Accept or dismiss one pending alert, confirm, or prompt through a capability-probed native path
 
 ### 🧱 Frame / Shadow DOM (5 tools)
@@ -282,7 +285,7 @@ DrissionMCP/
 │   ├── runtime.py          # Operation keys, receipts, artifacts, and capability state
 │   ├── tool_outputs.py     # Typed public result contracts
 │   ├── browser/            # Focused DrissionPage capabilities and page scripts
-│   └── tools/              # 60 typed MCP tool definitions and thin adapters
+│   └── tools/              # 63 typed MCP tool definitions and thin adapters
 ├── tests/                  # Unit tests
 └── playground/             # MCP Lab business-scenario playground
 ```
@@ -434,7 +437,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.7.5`.
+Should output the installed package version, for example `drissionpage-mcp 0.7.6`.
 
 ### Browser Issues?
 ```bash
@@ -463,14 +466,14 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.7.5 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.7.6 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.7.5)
-- [x] 60 atomic navigation, tab/frame/shadow, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
+### Current (v0.7.6)
+- [x] 63 atomic navigation, tab/frame/shadow, accessibility, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
@@ -492,6 +495,8 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Pure browser Cookie set/get/delete/clear flow, including bounded batch writes whose successful results echo values for MCP callbacks
 - [x] Ten-cycle controlled and validation input replacement through native DrissionPage input on the supported browser matrix
 - [x] Cross-origin OOPIF reads through `frame_*` and closed Shadow DOM lookup through DrissionPage-backed `shadow_*`, with narrower pointer targeting documented separately
+- [x] Backward-compatible string or structured selector/accessibility targets across element reads, actions, waits, uploads, and click-download correlation, resolving ordered frames first and then ordered Shadow DOM hosts
+- [x] Bounded accessibility snapshots, non-handling native dialog observation, and live element state/geometry for autonomous locate-act-verify loops
 - [x] Chrome sandbox remains enabled by default; `DP_NO_SANDBOX=1` is reserved for restricted container/root environments
 - [x] No retained action history, generated code snippets, or absolute screenshot paths in public results
 - [x] Opt-in local safety policy for navigation and screenshot paths
@@ -631,13 +636,13 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.7.5
+## 🆕 Latest Version: v0.7.6
 
-Released on 2026-07-24. This patch release adds browser request-environment controls for fully browser-driven workflows:
+Released on 2026-07-27. This patch release adds the autonomous locate-act-verify primitives needed for fully browser-driven workflows:
 
-- Added default-loaded `browser_headers_set`, `browser_user_agent_set`, `browser_cache_clear`, and `network_blocked_urls_set`, bringing the registry to 60 tools.
-- All 60 tools load automatically; there is no capability profile or opt-in `full` mode.
-- Header, user-agent, and blocked-URL writes return the accepted values by default for MCP callbacks and explicit verification.
-- User-agent writes also return the previous value so a browser-only workflow can restore it.
-- Cache clearing preserves Cookies, localStorage, and sessionStorage.
-- Added strict schemas, typed outputs, failure propagation, and real-browser request, blocking, cache, Cookie, and Web Storage coverage.
+- Added structured selector and accessibility role/name targets that resolve ordered frames first and then ordered Shadow DOM hosts while preserving string-selector compatibility.
+- Added default-loaded `page_accessibility_snapshot`, `page_dialog_observe`, and `element_state_get`, bringing the registry to 63 tools.
+- Accessibility snapshot field values are redacted by default and available through explicit `include_values=true` opt-in.
+- All 63 tools load automatically; there is no capability profile or opt-in `full` mode.
+- Native clicks, dialog observation, and dialog response can complete one blocking JavaScript-dialog lifecycle without user intervention.
+- Added typed schemas and real-browser coverage for cross-origin OOPIF input, closed Shadow DOM action/state, accessibility lookup, and dialog concurrency.

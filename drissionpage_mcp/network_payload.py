@@ -7,7 +7,6 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-
 SENSITIVE_NETWORK_HEADERS = {
     "authorization",
     "cookie",

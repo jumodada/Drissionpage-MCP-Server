@@ -874,13 +874,13 @@ async def test_browser_environment_controls_use_public_drissionpage_apis() -> No
         {"X-MCP-Session": "callback-value", "Accept-Language": "zh-CN"}
     ]
 
-    assert await tab.page_ops.set_user_agent("MCPBrowser/0.7.5", "Linux") == {
+    assert await tab.page_ops.set_user_agent("MCPBrowser/0.7.6", "Linux") == {
         "previous_user_agent": "FakeBrowser/1.0",
-        "user_agent": "MCPBrowser/0.7.5",
+        "user_agent": "MCPBrowser/0.7.6",
         "platform": "Linux",
         "set": True,
     }
-    assert page.set.user_agent_calls == [("MCPBrowser/0.7.5", "Linux")]
+    assert page.set.user_agent_calls == [("MCPBrowser/0.7.6", "Linux")]
 
     assert await tab.page_ops.clear_cache() == {"cleared": True}
     assert page.cache_clear_calls == [
@@ -925,7 +925,7 @@ async def test_browser_environment_control_failures_are_reraised() -> None:
     with pytest.raises(RuntimeError, match="headers failed"):
         await tab.page_ops.set_headers({"X-Test": "value"})
     with pytest.raises(RuntimeError, match="user agent failed"):
-        await tab.page_ops.set_user_agent("MCPBrowser/0.7.5")
+        await tab.page_ops.set_user_agent("MCPBrowser/0.7.6")
     with pytest.raises(RuntimeError, match="blocked urls failed"):
         await tab.network.set_blocked_urls(["*.png"])
 

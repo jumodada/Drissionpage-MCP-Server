@@ -1,18 +1,298 @@
-"""Atomic DOM target resolution for selector-first pointer actions."""
+"""Atomic DrissionPage DOM targets and pointer geometry resolution."""
 
 from __future__ import annotations
 
+import asyncio
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Literal, Mapping
+from time import monotonic
+from typing import TYPE_CHECKING, Any, Literal
 
+from DrissionPage.errors import ElementNotFoundError
+from DrissionPage.items import ChromiumElement
+from pydantic import TypeAdapter
+
+from ..response_errors import ErrorCode
 from ..selector import SelectorPlan, normalize_selector
+from ..target import ElementTargetArg
 from .motion import Point
 
 if TYPE_CHECKING:
     from ..tab import PageTab
 
 TargetAnchor = Literal["center", "left", "right", "top", "bottom"]
+_TARGET_ADAPTER: TypeAdapter[ElementTargetArg] = TypeAdapter(ElementTargetArg)
+
+
+class TargetAmbiguousError(ValueError):
+    """Raised when an accessibility target does not identify one element."""
+
+    code = ErrorCode.AMBIGUOUS_TARGET
+
+
+class TargetUnsupportedError(RuntimeError):
+    """Raised when the attached runtime cannot resolve a requested target."""
+
+    code = ErrorCode.UNSUPPORTED_OPERATION
+
+
+@dataclass(frozen=True, slots=True)
+class DomTarget:
+    """Normalized selector or accessibility target and its document scope."""
+
+    kind: Literal["selector", "accessibility"]
+    frame_selectors: tuple[SelectorPlan, ...]
+    shadow_hosts: tuple[SelectorPlan, ...]
+    selector: SelectorPlan | None = None
+    role: str | None = None
+    name: str | None = None
+    exact: bool = True
+    structured: bool = False
+
+    @classmethod
+    def from_input(cls, value: ElementTargetArg | Mapping[str, Any]) -> DomTarget:
+        target = _TARGET_ADAPTER.validate_python(value)
+        if isinstance(target, str):
+            return cls(
+                kind="selector",
+                selector=normalize_selector(target),
+                frame_selectors=(),
+                shadow_hosts=(),
+            )
+        frames = tuple(normalize_selector(item) for item in target.frame_selectors)
+        hosts = tuple(normalize_selector(item) for item in target.shadow_hosts)
+        if target.kind == "selector":
+            return cls(
+                kind="selector",
+                selector=normalize_selector(target.selector),
+                frame_selectors=frames,
+                shadow_hosts=hosts,
+                structured=True,
+            )
+        return cls(
+            kind="accessibility",
+            role=target.role,
+            name=target.name,
+            exact=target.exact,
+            frame_selectors=frames,
+            shadow_hosts=hosts,
+            structured=True,
+        )
+
+    @property
+    def label(self) -> str:
+        if self.selector is not None:
+            return self.selector.original
+        suffix = "" if self.name is None else f" name={self.name!r}"
+        return f"role={self.role!r}{suffix}"
+
+    def metadata(self) -> dict[str, Any]:
+        if self.selector is not None:
+            metadata = self.selector.metadata()
+        else:
+            label = self.label
+            metadata = {
+                "selector": label,
+                "locator": label,
+                "selector_strategy": "accessibility",
+                "selector_normalized": False,
+            }
+        if not self.structured:
+            return metadata
+        return {
+            **metadata,
+            "target_kind": self.kind,
+            "frame_selectors": [item.original for item in self.frame_selectors],
+            "shadow_hosts": [item.original for item in self.shadow_hosts],
+            "role": self.role,
+            "name": self.name,
+            "exact": self.exact if self.kind == "accessibility" else None,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class ResolvedDomTarget:
+    """One resolved DrissionPage element plus stable target metadata."""
+
+    target: DomTarget
+    element: Any
+    owner: Any
+
+    def metadata(self) -> dict[str, Any]:
+        return self.target.metadata()
+
+
+class DomTargetResolver:
+    """Resolve selector and AX targets through DrissionPage frame/shadow objects."""
+
+    def __init__(self, tab: PageTab) -> None:
+        self._tab = tab
+
+    async def resolve(
+        self,
+        target: ElementTargetArg | Mapping[str, Any],
+        *,
+        timeout: float = 10,
+    ) -> ResolvedDomTarget:
+        spec = DomTarget.from_input(target)
+        deadline = monotonic() + max(0.0, float(timeout))
+        legacy_resolver = getattr(self._tab, "_element_by_plan", None)
+        if (
+            spec.selector is not None
+            and not spec.structured
+            and callable(legacy_resolver)
+        ):
+            element = await legacy_resolver(
+                spec.selector,
+                timeout=max(0, int(deadline - monotonic() + 0.999)),
+            )
+            return ResolvedDomTarget(
+                target=spec,
+                element=element,
+                owner=getattr(self._tab, "page", self._tab),
+            )
+        owner, root = self._resolve_scope(spec, deadline)
+        if spec.selector is not None:
+            element = root.ele(
+                spec.selector.locator,
+                timeout=max(0.0, deadline - monotonic()),
+            )
+            if not element:
+                raise ElementNotFoundError(f"Element not found: {spec.label}")
+        else:
+            element = await self._resolve_accessibility(spec, owner, root, deadline)
+        return ResolvedDomTarget(target=spec, element=element, owner=owner)
+
+    async def resolve_all(
+        self,
+        target: ElementTargetArg | Mapping[str, Any],
+        *,
+        timeout: float = 0,
+    ) -> tuple[DomTarget, list[Any]]:
+        spec = DomTarget.from_input(target)
+        deadline = monotonic() + max(0.0, float(timeout))
+        owner, root = self._resolve_scope(spec, deadline)
+        if spec.selector is not None:
+            elements = list(
+                root.eles(
+                    spec.selector.locator,
+                    timeout=max(0.0, deadline - monotonic()),
+                )
+                or []
+            )
+        else:
+            elements = self._accessibility_elements(spec, owner, root)
+        return spec, elements
+
+    def _resolve_scope(self, target: DomTarget, deadline: float) -> tuple[Any, Any]:
+        owner = self._tab.page
+        root = owner
+        for frame in target.frame_selectors:
+            getter = getattr(owner, "get_frame", None)
+            if not callable(getter):
+                raise TargetUnsupportedError(
+                    "Nested frame target resolution is unsupported by this runtime."
+                )
+            owner = getter(
+                frame.locator,
+                timeout=max(0.0, deadline - monotonic()),
+            )
+            if not owner:
+                raise ElementNotFoundError(f"Frame not found: {frame.original}")
+            root = owner
+        for host in target.shadow_hosts:
+            element = root.ele(
+                host.locator,
+                timeout=max(0.0, deadline - monotonic()),
+            )
+            if not element:
+                raise ElementNotFoundError(f"Shadow host not found: {host.original}")
+            root = getattr(element, "shadow_root", None)
+            if not root:
+                raise ElementNotFoundError(f"Shadow root not found: {host.original}")
+        return owner, root
+
+    async def _resolve_accessibility(
+        self, target: DomTarget, owner: Any, root: Any, deadline: float
+    ) -> Any:
+        while True:
+            elements = self._accessibility_elements(target, owner, root)
+            if len(elements) == 1:
+                return elements[0]
+            if len(elements) > 1:
+                raise TargetAmbiguousError(
+                    f"Target matched {len(elements)} accessibility targets; "
+                    "provide an exact accessible name or narrower scope."
+                )
+            if monotonic() >= deadline:
+                raise ElementNotFoundError(f"Element not found: {target.label}")
+            await asyncio.sleep(min(0.05, max(0.001, deadline - monotonic())))
+
+    def _accessibility_elements(
+        self, target: DomTarget, owner: Any, root: Any
+    ) -> list[Any]:
+        run_cdp = getattr(owner, "run_cdp", None)
+        if not callable(run_cdp):
+            raise TargetUnsupportedError(
+                "Accessibility target resolution is unsupported by this runtime."
+            )
+        backend_id = self._scope_backend_id(root)
+        result = run_cdp(
+            "Accessibility.queryAXTree",
+            backendNodeId=backend_id,
+            role=target.role,
+        )
+        nodes = result.get("nodes") if isinstance(result, dict) else None
+        if not isinstance(nodes, list):
+            raise TargetUnsupportedError(
+                "Accessibility.queryAXTree returned an invalid payload."
+            )
+        matches: list[Any] = []
+        for node in nodes:
+            if not isinstance(node, Mapping) or bool(node.get("ignored")):
+                continue
+            role = _ax_value(node.get("role"))
+            name = _ax_value(node.get("name"))
+            if role.casefold() != str(target.role or "").casefold():
+                continue
+            if target.name is not None:
+                expected = target.name.casefold()
+                observed = name.casefold()
+                name_mismatch = (
+                    observed != expected if target.exact else expected not in observed
+                )
+                if name_mismatch:
+                    continue
+            backend = node.get("backendDOMNodeId")
+            if not isinstance(backend, int) or backend <= 0:
+                continue
+            matches.append(ChromiumElement(owner, backend_id=backend))
+        return matches
+
+    @staticmethod
+    def _scope_backend_id(root: Any) -> int:
+        document = getattr(root, "doc_ele", None)
+        document_backend = getattr(document, "_backend_id", None)
+        if isinstance(document_backend, int) and document_backend > 0:
+            return document_backend
+        backend = getattr(root, "_backend_id", None)
+        if isinstance(backend, int) and backend > 0:
+            return backend
+        element = root.ele("tag:html", timeout=0)
+        backend = getattr(element, "_backend_id", None)
+        if not isinstance(backend, int) or backend <= 0:
+            raise TargetUnsupportedError(
+                "The target scope does not expose a backend DOM node."
+            )
+        return backend
+
+
+def _ax_value(value: Any) -> str:
+    if not isinstance(value, Mapping):
+        return ""
+    raw = value.get("value")
+    return "" if raw is None else str(raw)
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +316,7 @@ class ElementTarget:
         anchor: TargetAnchor = "center",
         offset_x: float = 0,
         offset_y: float = 0,
-    ) -> "ElementTarget":
+    ) -> ElementTarget:
         selector_plan = _pointer_selector(selector)
         host_plans = tuple(_pointer_selector(item) for item in shadow_hosts)
         if host_plans and (
@@ -96,7 +376,7 @@ class ResolvedTarget:
     height: float
 
     @classmethod
-    def from_payload(cls, payload: Mapping[str, Any]) -> "ResolvedTarget":
+    def from_payload(cls, payload: Mapping[str, Any]) -> ResolvedTarget:
         return cls(
             selector=str(payload["selector"]),
             locator=str(payload["locator"]),
@@ -145,7 +425,7 @@ class ResolvedTarget:
 class TargetResolver:
     """Resolve multiple element paths in one synchronous browser script call."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
 
     def resolve_many(

@@ -1,16 +1,19 @@
 """Wait operation tools for DrissionPage MCP."""
 
 from typing import TYPE_CHECKING, Literal
+
 from pydantic import Field
+
+from ..browser.targeting import DomTarget
 from ..limits import MAX_WAIT_SECONDS
-from ..selector import normalize_selector
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..target import ElementTargetArg, PageOrElementTargetArg, target_label
 from ..tool_outputs import (
     WaitForElementData,
     WaitForUrlData,
     WaitTimeData,
     WaitUntilData,
 )
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -19,7 +22,7 @@ if TYPE_CHECKING:
 class WaitElementInput(ToolInput):
     """Input schema for waiting for elements."""
 
-    selector: str = Field(
+    selector: ElementTargetArg = Field(
         ...,
         description="CSS selector or XPath to wait for. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
@@ -66,7 +69,7 @@ class WaitUntilInput(ToolInput):
         "property_equals",
         "property_nonempty",
     ] = Field(..., description="Condition to wait for")
-    selector: str = Field(
+    selector: PageOrElementTargetArg = Field(
         default="",
         description="CSS/XPath/DrissionPage locator for element or text conditions",
     )
@@ -101,7 +104,7 @@ class WaitUntilInput(ToolInput):
     idempotent=True,
     output_model=WaitForElementData,
     failure_message=lambda args, exc: (
-        lambda e: f"Element '{args.selector}' did not appear within {args.timeout} seconds: {e}"
+        lambda e: f"Element '{target_label(args.selector)}' did not appear within {args.timeout} seconds: {e}"
     )(exc),
 )
 async def wait_for_element(
@@ -110,13 +113,12 @@ async def wait_for_element(
     """Wait for an element to appear."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
-    plan = normalize_selector(args.selector)
     found = await tab.waits.element(args.selector, timeout=args.timeout)
     if not found:
-        raise TimeoutError(f"Element '{args.selector}' not found")
+        raise TimeoutError(f"Element '{target_label(args.selector)}' not found")
     outcome.add_result(
-        f"Element '{args.selector}' appeared within {args.timeout} seconds",
-        **plan.metadata(),
+        f"Element '{target_label(args.selector)}' appeared within {args.timeout} seconds",
+        **DomTarget.from_input(args.selector).metadata(),
         found=True,
         timeout=args.timeout,
     )

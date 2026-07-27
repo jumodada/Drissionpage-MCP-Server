@@ -18,11 +18,12 @@ from ..browser.downloads import (
     DownloadUnsupportedError,
     DownloadValidationError,
 )
+from ..browser.targeting import DomTargetResolver
 from ..limits import MAX_WAIT_SECONDS
 from ..policy import PolicyDeniedError, SafetyPolicy
 from ..response_errors import ErrorCode
 from ..runtime import OperationClaim
-from ..selector import SelectorPlan, normalize_selector
+from ..target import ElementTargetArg, target_payload
 from ..tool_outputs import (
     ActionReceipt,
     ArtifactRef,
@@ -53,10 +54,8 @@ MimeType = Annotated[
 class ElementClickAndDownloadInput(ToolInput):
     """Strict request for one native click and one correlated download."""
 
-    selector: StrictStr = Field(
+    selector: ElementTargetArg = Field(
         ...,
-        min_length=1,
-        max_length=500,
         description="CSS/XPath/DrissionPage selector for the download control.",
     )
     operation_key: OperationKey | None = Field(
@@ -79,7 +78,7 @@ class ElementClickAndDownloadInput(ToolInput):
     )
 
     @model_validator(mode="after")
-    def validate_filename(self) -> "ElementClickAndDownloadInput":
+    def validate_filename(self) -> ElementClickAndDownloadInput:
         if self.expected_filename is not None and (
             self.expected_filename in {".", ".."}
             or "/" in self.expected_filename
@@ -92,9 +91,9 @@ class ElementClickAndDownloadInput(ToolInput):
 @dataclass(slots=True)
 class _DownloadPreflight:
     root: Path
-    tab: "PageTab"
+    tab: PageTab
     deadline: float
-    plan: SelectorPlan
+    target_metadata: dict[str, Any]
     element: Any
     action_id: str
     operation_key: str
@@ -123,8 +122,8 @@ class _ClaimedDownload:
     failure_message=lambda args, exc: _download_failure_message(exc),
 )
 async def element_click_and_download(
-    context: "DrissionPageContext", args: ElementClickAndDownloadInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: ElementClickAndDownloadInput
+) -> ToolOutcome:
     """Execute one download boundary after all non-side-effect preconditions."""
 
     action_id, operation_key, fingerprint = _download_identity(context, args)
@@ -156,7 +155,7 @@ async def element_click_and_download(
 
 
 def _download_identity(
-    context: "DrissionPageContext", args: ElementClickAndDownloadInput
+    context: DrissionPageContext, args: ElementClickAndDownloadInput
 ) -> tuple[str | None, str, str]:
     action_id: str | None = None
     operation_key = args.operation_key
@@ -166,7 +165,7 @@ def _download_identity(
     fingerprint = context.request_fingerprint(
         {
             "tool": "element_click_and_download",
-            "selector": args.selector,
+            "selector": target_payload(args.selector),
             "operation_key": operation_key,
             "timeout": args.timeout,
             "expected_filename": args.expected_filename,
@@ -177,7 +176,7 @@ def _download_identity(
 
 
 def _download_replay_outcome(
-    context: "DrissionPageContext", operation_key: str, fingerprint: str
+    context: DrissionPageContext, operation_key: str, fingerprint: str
 ) -> ToolOutcome | None:
     replay = context.preview_operation(operation_key, fingerprint)
     if replay is None:
@@ -198,7 +197,7 @@ def _download_replay_outcome(
 
 
 async def _download_preflight(
-    context: "DrissionPageContext",
+    context: DrissionPageContext,
     args: ElementClickAndDownloadInput,
     *,
     root: Path,
@@ -209,9 +208,10 @@ async def _download_preflight(
     _validate_download_capability(context)
     tab = context.current_tab_or_die()
     deadline = monotonic() + args.timeout
-    plan = normalize_selector(args.selector)
     target_timeout = max(0, math.ceil(deadline - monotonic()))
-    element = await tab._element_by_plan(plan, timeout=target_timeout)
+    targeting = getattr(tab, "dom_targeting", DomTargetResolver(tab))
+    resolved = await targeting.resolve(args.selector, timeout=target_timeout)
+    element = resolved.element
     try:
         tab.downloads.probe(element)
     except DownloadUnsupportedError as exc:
@@ -222,7 +222,7 @@ async def _download_preflight(
         root=root,
         tab=tab,
         deadline=deadline,
-        plan=plan,
+        target_metadata=resolved.metadata(),
         element=element,
         action_id=action_id or context.new_action_id(),
         operation_key=operation_key,
@@ -231,7 +231,7 @@ async def _download_preflight(
 
 
 async def _claim_download(
-    context: "DrissionPageContext", preflight: _DownloadPreflight
+    context: DrissionPageContext, preflight: _DownloadPreflight
 ) -> _ClaimedDownload:
     artifact_id = context.new_artifact_id()
     reserved = False
@@ -256,13 +256,13 @@ async def _claim_download(
             download_dir,
         )
         if rollback_cancellation is not None:
-            raise rollback_cancellation
+            raise rollback_cancellation from None
         raise
 
     target_fingerprint = context.request_fingerprint(
         {
             "tab_id": preflight.tab.mcp_tab_id or "untracked-tab",
-            "selector": preflight.plan.locator,
+            "selector": preflight.target_metadata["locator"],
             "url": preflight.tab.url,
         }
     )
@@ -277,7 +277,7 @@ async def _claim_download(
 
 
 async def _execute_claimed_download(
-    context: "DrissionPageContext",
+    context: DrissionPageContext,
     args: ElementClickAndDownloadInput,
     state: _ClaimedDownload,
 ) -> ToolOutcome:
@@ -323,7 +323,7 @@ async def _invoke_download(
 
 
 def _complete_download_success(
-    context: "DrissionPageContext",
+    context: DrissionPageContext,
     state: _ClaimedDownload,
     result: dict[str, Any],
 ) -> ToolOutcome:
@@ -369,7 +369,7 @@ def _complete_download_success(
 
 
 async def _complete_cancelled_download(
-    context: "DrissionPageContext", state: _ClaimedDownload
+    context: DrissionPageContext, state: _ClaimedDownload
 ) -> None:
     await _release_and_cleanup_download(context, state)
     receipt = _download_receipt_for_state(
@@ -383,7 +383,7 @@ async def _complete_cancelled_download(
 
 
 async def _complete_failed_download(
-    context: "DrissionPageContext",
+    context: DrissionPageContext,
     state: _ClaimedDownload,
     exc: Exception,
 ) -> ToolOutcome:
@@ -403,7 +403,7 @@ async def _complete_failed_download(
 
 
 async def _release_and_cleanup_download(
-    context: "DrissionPageContext", state: _ClaimedDownload
+    context: DrissionPageContext, state: _ClaimedDownload
 ) -> asyncio.CancelledError | None:
     if state.reserved:
         context.release_artifact_slot(state.artifact_id)
@@ -412,7 +412,7 @@ async def _release_and_cleanup_download(
 
 
 async def _cleanup_download_dir(
-    tab: "PageTab", download_dir: Path | None
+    tab: PageTab, download_dir: Path | None
 ) -> asyncio.CancelledError | None:
     if download_dir is None:
         return None
@@ -434,7 +434,7 @@ def _download_failure_status(
 
 
 def _download_receipt_for_state(
-    context: "DrissionPageContext",
+    context: DrissionPageContext,
     state: _ClaimedDownload,
     *,
     status: Literal["success", "failed", "validation_failed", "indeterminate"],
@@ -465,7 +465,7 @@ def _download_data(
     data = {
         "status": receipt.status,
         "operation_key": state.preflight.operation_key,
-        **state.preflight.plan.metadata(),
+        **state.preflight.target_metadata,
         "artifact": (
             artifact.model_dump(mode="json") if artifact is not None else None
         ),
@@ -478,7 +478,7 @@ def _download_data(
 
 
 async def _drain_cleanup(
-    task: "asyncio.Task[Any]",
+    task: asyncio.Task[Any],
 ) -> asyncio.CancelledError | None:
     cancellation: asyncio.CancelledError | None = None
     while True:
@@ -546,7 +546,7 @@ def _validate_task_download_directory(root: Path, task_id: str) -> None:
         )
 
 
-def _validate_download_capability(context: "DrissionPageContext") -> None:
+def _validate_download_capability(context: DrissionPageContext) -> None:
     for capability in context.capability_set().capabilities:
         if capability.name == "download.click_and_wait" and capability.status in {
             "unsupported",
@@ -573,7 +573,7 @@ def _download_probe(
 
 def _receipt(
     *,
-    context: "DrissionPageContext",
+    context: DrissionPageContext,
     action_id: str,
     operation_key: str,
     fingerprint: str,

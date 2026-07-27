@@ -1,17 +1,19 @@
 """Navigation tools for DrissionPage MCP."""
 
 from typing import TYPE_CHECKING
+
 from pydantic import Field
+
 from ..policy import PolicyDeniedError, validate_navigation
 from ..response_errors import ErrorCode
-from ._observe import maybe_observe, observed_changes
-from .base import EmptyInput, ToolInput, ToolType, define_tool, ToolOutcome
 from ..tool_outputs import (
-    PageNavigateData,
     PageGoBackData,
     PageGoForwardData,
+    PageNavigateData,
     PageRefreshData,
 )
+from ._observe import maybe_observe, observed_changes
+from .base import EmptyInput, ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext

@@ -1,25 +1,29 @@
 """Common tools for DrissionPage MCP."""
 
 from typing import TYPE_CHECKING, Annotated, Any
+
 from pydantic import Field, StrictStr, StringConstraints
+
 from ..metadata import with_response_meta
 from ..policy import PolicyDeniedError, SafetyPolicy
 from ..response_errors import ErrorCode
 from ..response_media import build_screenshot_metadata
-from .base import EmptyInput, ToolInput, ToolType, define_tool, ToolOutcome
+from ..target import ElementTargetArg
 from ..tool_outputs import (
+    BrowserCacheClearData,
+    BrowserHeadersSetData,
+    BrowserUserAgentSetData,
+    PageAccessibilitySnapshotData,
+    PageCloseData,
+    PageEvaluateData,
+    PageGetUrlData,
+    PageObservation,
     PageResizeData,
     PageScreenshotData,
     PageScreenshotSaveData,
     PageSnapshotData,
-    PageObservation,
-    PageEvaluateData,
-    PageCloseData,
-    PageGetUrlData,
-    BrowserCacheClearData,
-    BrowserHeadersSetData,
-    BrowserUserAgentSetData,
 )
+from .base import EmptyInput, ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -87,6 +91,21 @@ class PageSnapshotInput(ToolInput):
         ge=0,
         le=20000,
         description="Maximum page text excerpt characters to return",
+    )
+
+
+class PageAccessibilitySnapshotInput(ToolInput):
+    """Input schema for a bounded accessibility-tree snapshot."""
+
+    scope: ElementTargetArg | None = Field(
+        default=None,
+        description="Optional selector/accessibility element whose AX subtree is returned.",
+    )
+    max_nodes: int = Field(default=200, ge=1, le=1000)
+    include_ignored: bool = False
+    include_values: bool = Field(
+        default=False,
+        description="Return accessibility field values. Defaults to false to avoid leaking secrets.",
     )
 
 
@@ -248,6 +267,34 @@ async def page_snapshot(
         max_text_chars=args.max_text_chars,
     )
     outcome.add_result("Captured page snapshot", **with_response_meta(snapshot))
+    return outcome
+
+
+@define_tool(
+    name="page_accessibility_snapshot",
+    title="Accessibility Snapshot",
+    description="Return a bounded Chromium accessibility tree for the page or a scoped selector/frame/shadow target.",
+    input_schema=PageAccessibilitySnapshotInput,
+    tool_type=ToolType.READ_ONLY,
+    idempotent=True,
+    output_model=PageAccessibilitySnapshotData,
+    failure_message=lambda args, exc: "Failed to capture accessibility snapshot: "
+    + str(exc),
+)
+async def page_accessibility_snapshot(
+    context: "DrissionPageContext", args: PageAccessibilitySnapshotInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    snapshot = await tab.accessibility.snapshot(
+        scope=args.scope,
+        max_nodes=args.max_nodes,
+        include_ignored=args.include_ignored,
+        include_values=args.include_values,
+    )
+    outcome.add_result(
+        "Captured accessibility snapshot", **with_response_meta(snapshot)
+    )
     return outcome
 
 

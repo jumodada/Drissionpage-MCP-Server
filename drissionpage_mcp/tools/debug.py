@@ -1,9 +1,11 @@
 """Debugging and observability tools for DrissionPage MCP."""
 
 from typing import TYPE_CHECKING, Literal
+
 from pydantic import Field
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
+
 from ..tool_outputs import ConsoleLogsData
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext

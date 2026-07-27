@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 class ObservationOperations:
     """Own bounded page observation and diagnostic data collection."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
         self._console_log_cache: list[dict[str, Any]] = []
 

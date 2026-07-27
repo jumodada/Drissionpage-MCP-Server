@@ -25,7 +25,7 @@ class NetworkUnsupportedError(RuntimeError):
 class NetworkOperations:
     """Own DrissionPage listener state and bounded packet serialization."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
         self._started_at = ""
         self._filters: dict[str, Any] = {}

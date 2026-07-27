@@ -179,8 +179,8 @@ class ClickCoordinatesInput(PointerCoordinatesInput):
     )(exc),
 )
 async def pointer_move(
-    context: "DrissionPageContext", args: PointerCoordinatesInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: PointerCoordinatesInput
+) -> ToolOutcome:
     """Move the pointer to viewport coordinates without pressing a button."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
@@ -217,8 +217,8 @@ async def pointer_move(
     )(exc),
 )
 async def pointer_drag(
-    context: "DrissionPageContext", args: PointerDragInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: PointerDragInput
+) -> ToolOutcome:
     """Drag between viewport coordinates without exposing persistent button state."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
@@ -259,8 +259,8 @@ async def pointer_drag(
     failure_message=lambda args, exc: f"Failed to resolve and drag element: {exc}",
 )
 async def pointer_drag_element(
-    context: "DrissionPageContext", args: PointerDragElementInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: PointerDragElementInput
+) -> ToolOutcome:
     """Resolve selector geometry atomically and execute one held-button drag."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
@@ -349,8 +349,8 @@ async def pointer_drag_element(
     )(exc),
 )
 async def click_coordinates(
-    context: "DrissionPageContext", args: ClickCoordinatesInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: ClickCoordinatesInput
+) -> ToolOutcome:
     """Click at coordinates."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from ipaddress import ip_address
 from pathlib import PurePosixPath
-import re
-from typing import Annotated, Any, Literal, Union, cast
+from typing import Annotated, Any, Literal, cast
 from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import (
@@ -18,6 +18,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
+
 
 class ToolData(BaseModel):
     """Strict base for tool data payloads."""
@@ -134,7 +135,7 @@ class ActionReceipt(ContractData):
     redacted: Literal[True] = True
 
     @model_validator(mode="after")
-    def validate_timestamps(self) -> "ActionReceipt":
+    def validate_timestamps(self) -> ActionReceipt:
         if self.finished_at < self.started_at:
             raise ValueError("finished_at must not precede started_at")
         return self
@@ -200,7 +201,7 @@ class CapabilityProbe(ContractData):
     checked_at: datetime | None = None
 
     @model_validator(mode="after")
-    def validate_probe_evidence(self) -> "CapabilityProbe":
+    def validate_probe_evidence(self) -> CapabilityProbe:
         if self.status == "unprobed":
             if self.evidence_source != "none" or self.checked_at is not None:
                 raise ValueError("unprobed capabilities cannot include probe evidence")
@@ -444,15 +445,24 @@ class ConsoleLogsData(ToolData):
     logs: list[dict[str, Any]]
 
 
-class ElementFindData(ToolData):
-    element: dict[str, Any]
-
-
-class ElementFindAllData(ToolData):
+class ElementTargetData(ToolData):
     selector: str
     locator: str
     selector_strategy: str
     selector_normalized: bool
+    target_kind: Literal["selector", "accessibility"] = "selector"
+    frame_selectors: list[str] = Field(default_factory=list)
+    shadow_hosts: list[str] = Field(default_factory=list)
+    role: str | None = None
+    name: str | None = None
+    exact: bool | None = None
+
+
+class ElementFindData(ToolData):
+    element: dict[str, Any]
+
+
+class ElementFindAllData(ElementTargetData):
     count: int
     returned: int
     limit: int
@@ -461,11 +471,7 @@ class ElementFindAllData(ToolData):
     meta: dict[str, Any]
 
 
-class ElementClickData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementClickData(ElementTargetData):
     url: str
     button: Literal["left", "right", "middle"]
     click_count: Literal[1, 2]
@@ -500,12 +506,8 @@ class ElementClickAndDownloadIndeterminateReceipt(ActionReceipt):
     artifact_ids: Annotated[tuple[ContractId, ...], Field(max_length=0)] = ()
 
 
-class _ElementClickAndDownloadDataBase(ToolData):
+class _ElementClickAndDownloadDataBase(ElementTargetData):
     operation_key: str
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
 
 
 class ElementClickAndDownloadSuccessData(_ElementClickAndDownloadDataBase):
@@ -514,7 +516,7 @@ class ElementClickAndDownloadSuccessData(_ElementClickAndDownloadDataBase):
     receipt: ElementClickAndDownloadSuccessReceipt
 
     @model_validator(mode="after")
-    def validate_correlations(self) -> "ElementClickAndDownloadSuccessData":
+    def validate_correlations(self) -> ElementClickAndDownloadSuccessData:
         if self.receipt.operation_key != self.operation_key:
             raise ValueError("receipt operation_key must match data operation_key")
         if self.artifact.task_id != self.receipt.task_id:
@@ -536,7 +538,7 @@ class ElementClickAndDownloadFailedData(_ElementClickAndDownloadDataBase):
     receipt: ElementClickAndDownloadFailedReceipt
 
     @model_validator(mode="after")
-    def validate_operation_key(self) -> "ElementClickAndDownloadFailedData":
+    def validate_operation_key(self) -> ElementClickAndDownloadFailedData:
         if self.receipt.operation_key != self.operation_key:
             raise ValueError("receipt operation_key must match data operation_key")
         return self
@@ -548,7 +550,7 @@ class ElementClickAndDownloadValidationFailedData(_ElementClickAndDownloadDataBa
     receipt: ElementClickAndDownloadValidationFailedReceipt
 
     @model_validator(mode="after")
-    def validate_operation_key(self) -> "ElementClickAndDownloadValidationFailedData":
+    def validate_operation_key(self) -> ElementClickAndDownloadValidationFailedData:
         if self.receipt.operation_key != self.operation_key:
             raise ValueError("receipt operation_key must match data operation_key")
         return self
@@ -560,19 +562,14 @@ class ElementClickAndDownloadIndeterminateData(_ElementClickAndDownloadDataBase)
     receipt: ElementClickAndDownloadIndeterminateReceipt
 
     @model_validator(mode="after")
-    def validate_operation_key(self) -> "ElementClickAndDownloadIndeterminateData":
+    def validate_operation_key(self) -> ElementClickAndDownloadIndeterminateData:
         if self.receipt.operation_key != self.operation_key:
             raise ValueError("receipt operation_key must match data operation_key")
         return self
 
 
 ElementClickAndDownloadVariant = Annotated[
-    Union[
-        ElementClickAndDownloadSuccessData,
-        ElementClickAndDownloadFailedData,
-        ElementClickAndDownloadValidationFailedData,
-        ElementClickAndDownloadIndeterminateData,
-    ],
+    ElementClickAndDownloadSuccessData | ElementClickAndDownloadFailedData | ElementClickAndDownloadValidationFailedData | ElementClickAndDownloadIndeterminateData,
     Field(discriminator="status"),
 ]
 
@@ -581,55 +578,31 @@ class ElementClickAndDownloadData(RootModel[ElementClickAndDownloadVariant]):
     """Status-discriminated download result with correlated public evidence."""
 
 
-class ElementTypeData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementTypeData(ElementTargetData):
     typed: Literal[True]
     cleared: bool
     changes: dict[str, Any] | None = None
 
 
-class ElementGetTextData(ToolData):
+class ElementGetTextData(ElementTargetData):
     text: str
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
 
 
-class ElementGetAttributeData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementGetAttributeData(ElementTargetData):
     attribute: str
     value: str | None
 
 
-class ElementGetPropertyData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementGetPropertyData(ElementTargetData):
     property: str
     value: Any
 
 
-class ElementGetHtmlData(ToolData):
+class ElementGetHtmlData(ElementTargetData):
     html: str
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
 
 
-class ElementUploadFileData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementUploadFileData(ElementTargetData):
     uploaded: Literal[True]
     file_count: int
     filenames: list[str]
@@ -643,20 +616,12 @@ class PageScrollData(ToolData):
     url: str
 
 
-class ElementScrollIntoViewData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementScrollIntoViewData(ElementTargetData):
     center: bool
     url: str
 
 
-class ElementHoverData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementHoverData(ElementTargetData):
     url: str
     offset_x: int | None
     offset_y: int | None
@@ -668,21 +633,13 @@ class KeyboardPressData(ToolData):
     url: str
 
 
-class ElementSelectData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementSelectData(ElementTargetData):
     selected: Literal[True]
     by: str
     value: str
 
 
-class ElementCheckData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class ElementCheckData(ElementTargetData):
     checked: bool
     by_js: bool
 
@@ -707,6 +664,15 @@ class PageDialogRespondData(ToolData):
     prompt: DialogPromptMetadata
     final_url: str
     receipt: ActionReceipt
+
+
+class PageDialogObserveData(ToolData):
+    pending: bool
+    timed_out: bool
+    dialog_type: Literal["alert", "confirm", "prompt"] | None
+    message: str
+    message_truncated: bool
+    timeout: float
 
 
 class FrameListData(ToolData):
@@ -812,13 +778,69 @@ class StorageClearData(ToolData):
     cleared: Literal[True]
 
 
-class WaitForElementData(ToolData):
-    selector: str
-    locator: str
-    selector_strategy: str
-    selector_normalized: bool
+class WaitForElementData(ElementTargetData):
     found: Literal[True]
     timeout: float
+
+
+class PointData(ToolData):
+    x: float
+    y: float
+
+
+class SizeData(ToolData):
+    width: float
+    height: float
+
+
+class ElementRectData(ToolData):
+    location: PointData
+    size: SizeData
+    midpoint: PointData
+    click_point: PointData
+    viewport_location: PointData
+    viewport_midpoint: PointData
+    viewport_click_point: PointData
+    coordinate_space: Literal["target_document"]
+
+
+class ElementStateData(ElementTargetData):
+    tag: str
+    text: str
+    displayed: bool
+    enabled: bool
+    alive: bool
+    clickable: bool
+    checked: bool
+    selected: bool
+    in_viewport: bool
+    whole_in_viewport: bool
+    covered: bool
+    covering_backend_node_id: int | None
+    rect: ElementRectData
+
+
+class AccessibilityNodeData(ToolData):
+    node_id: str
+    parent_id: str | None
+    backend_dom_node_id: int | None
+    role: str
+    name: str
+    description: str
+    value: str
+    ignored: bool
+    properties: dict[str, Any]
+
+
+class PageAccessibilitySnapshotData(ToolData):
+    nodes: list[AccessibilityNodeData]
+    count: int
+    returned: int
+    max_nodes: int
+    truncated: bool
+    values_included: bool
+    scope: dict[str, Any] | None
+    meta: dict[str, Any]
 
 
 class WaitForUrlData(ToolData):

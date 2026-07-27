@@ -1,12 +1,15 @@
 """Deterministic read-only evals for 0.4.9 page-understanding tools."""
 
 from __future__ import annotations
+
 import os
 from typing import Any
+
 import pytest
+
 from drissionpage_mcp.context import DrissionPageContext
-from drissionpage_mcp.tools.base import ToolOutcome
 from drissionpage_mcp.server import DrissionPageMCPServer
+from drissionpage_mcp.tools.base import ToolOutcome
 from tests.fixtures.http_fixture import local_http_fixture
 
 _BROWSER_UNAVAILABLE_MARKERS = (
@@ -53,11 +56,9 @@ async def test_eval_page_understanding_read_only_catalog_tasks() -> None:
                 "Docs",
                 "Pricing",
             }
+            assert any(item["selector"] == "#query" for item in snapshot_data["inputs"])
             assert any(
-                (item["selector"] == "#query" for item in snapshot_data["inputs"])
-            )
-            assert any(
-                (item["selector"] == "#filter-form" for item in snapshot_data["forms"])
+                item["selector"] == "#filter-form" for item in snapshot_data["forms"]
             )
             assert [item["text"].split()[0] for item in cards_data["elements"]] == [
                 "Alpha",
@@ -92,7 +93,7 @@ async def _call(
 
 def _skip_if_browser_unavailable(message: str) -> None:
     lowered = message.lower()
-    if any((marker in lowered for marker in _BROWSER_UNAVAILABLE_MARKERS)):
+    if any(marker in lowered for marker in _BROWSER_UNAVAILABLE_MARKERS):
         if os.environ.get("DP_MCP_REQUIRE_BROWSER", "").lower() in {"1", "true", "yes"}:
             pytest.fail(
                 f"Chrome/Chromium browser is required but unavailable for DrissionPage eval: {message[:300]}"

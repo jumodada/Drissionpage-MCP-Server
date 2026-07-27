@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class PageOperations:
     """Own page media, browser-window, and request-environment changes."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
 
     @property

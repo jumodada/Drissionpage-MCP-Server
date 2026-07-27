@@ -1,12 +1,15 @@
 """Iframe/frame read-only tools for DrissionPage MCP."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
+
 from pydantic import Field
+
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
-from ..tool_outputs import FrameListData, FrameSnapshotData, FrameFindData
+from ..tool_outputs import FrameFindData, FrameListData, FrameSnapshotData
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -52,8 +55,8 @@ class FrameFindInput(ToolInput):
     failure_message=lambda args, exc: "Failed to list frames: " + str(exc),
 )
 async def frame_list(
-    context: "DrissionPageContext", args: FrameListInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: FrameListInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.frames.list_frames(limit=args.limit)
@@ -72,8 +75,8 @@ async def frame_list(
     failure_message=lambda args, exc: "Failed to capture frame snapshot: " + str(exc),
 )
 async def frame_snapshot(
-    context: "DrissionPageContext", args: FrameSnapshotInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: FrameSnapshotInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.frames.snapshot(
@@ -101,8 +104,8 @@ async def frame_snapshot(
     )(exc),
 )
 async def frame_find(
-    context: "DrissionPageContext", args: FrameFindInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: FrameFindInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.frames.find(

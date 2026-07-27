@@ -4,15 +4,16 @@ import asyncio
 import json
 from types import SimpleNamespace
 from unittest.mock import Mock
+
 import pytest
 from mcp.types import CallToolResult
 from pydantic import BaseModel
+
 import drissionpage_mcp.server as server_module
 from drissionpage_mcp import __version__
-from drissionpage_mcp.tools.base import JSON_RESULT_SENTINEL
 from drissionpage_mcp.server import DrissionPageMCPServer, _tool_supports_output_schema
 from drissionpage_mcp.tools import get_all_tools
-from drissionpage_mcp.tools.base import ToolSpec, ToolType
+from drissionpage_mcp.tools.base import JSON_RESULT_SENTINEL, ToolSpec, ToolType
 
 
 class TestDrissionPageMCPServer:
@@ -86,6 +87,7 @@ class TestToolsIntegration:
         assert "page_screenshot" in tool_names
         assert "page_screenshot_save" in tool_names
         assert "page_snapshot" in tool_names
+        assert "page_accessibility_snapshot" in tool_names
         assert "page_observe" in tool_names
         assert "page_console_logs" in tool_names
         assert "page_evaluate" in tool_names
@@ -127,6 +129,8 @@ class TestToolsIntegration:
         assert "storage_set" in tool_names
         assert "storage_clear" in tool_names
         assert "page_dialog_respond" in tool_names
+        assert "page_dialog_observe" in tool_names
+        assert "element_state_get" in tool_names
         assert "element_click_and_download" in tool_names
         assert "network_listen_start" in tool_names
         assert "network_listen_wait" in tool_names
@@ -150,7 +154,7 @@ class TestToolsIntegration:
             "browser_open_and_snapshot",
             "browser_extract_links",
         }.isdisjoint(tool_names)
-        assert len(tool_names) == 60
+        assert len(tool_names) == 63
 
 
 if __name__ == "__main__":
@@ -297,9 +301,7 @@ async def test_dialog_responder_can_run_with_serialized_trigger(monkeypatch) -> 
         tool_type=ToolType.DESTRUCTIVE,
     )
 
-    responder = asyncio.create_task(
-        server._call_tool_impl("page_dialog_respond", {})
-    )
+    responder = asyncio.create_task(server._call_tool_impl("page_dialog_respond", {}))
     await asyncio.wait_for(responder_ready.wait(), timeout=0.1)
     response, triggered = await asyncio.gather(
         responder,
@@ -364,9 +366,7 @@ async def test_cleanup_waits_for_responder_and_serialized_tool(monkeypatch) -> N
     server.tools["page_dialog_respond"] = responder_spec
     server.tools["trigger"] = trigger_spec
 
-    responder = asyncio.create_task(
-        server._call_tool_impl("page_dialog_respond", {})
-    )
+    responder = asyncio.create_task(server._call_tool_impl("page_dialog_respond", {}))
     trigger = asyncio.create_task(server._call_tool_impl("trigger", {}))
     await asyncio.wait_for(all_started.wait(), timeout=0.1)
     context = server.context
@@ -505,10 +505,8 @@ async def test_internal_call_tool_impl_converts_unexpected_exceptions() -> None:
     assert result.structuredContent["error"]["code"] == "BROWSER_START_FAILED"
     assert result.structuredContent["error"]["details"]["tool_name"] == "boom"
     assert any(
-        (
-            hint.get("command") == "drissionpage-mcp doctor --launch-browser"
-            for hint in result.structuredContent["error"]["details"]["hints"]
-        )
+        hint.get("command") == "drissionpage-mcp doctor --launch-browser"
+        for hint in result.structuredContent["error"]["details"]["hints"]
     )
 
 

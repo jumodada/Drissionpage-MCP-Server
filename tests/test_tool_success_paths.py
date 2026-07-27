@@ -1,28 +1,33 @@
 """Pure unit coverage for tool success paths without launching DrissionPage."""
 
 from __future__ import annotations
+
 import base64
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+
 import pytest
 from DrissionPage.errors import ElementNotFoundError
-from drissionpage_mcp.tools.base import ToolOutcome
+from pydantic import ValidationError
+
 from drissionpage_mcp.tools import (
     common,
     debug,
+    dialogs,
     element,
     files,
     frame,
     interaction,
     navigate,
+    network,
+    pointer,
     shadow,
     storage,
     tabs,
     wait,
-    network,
-    pointer,
 )
+from drissionpage_mcp.tools.base import ToolOutcome
 
 PNG_1X1 = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
@@ -52,6 +57,7 @@ class FakeTab:
             property=self.get_property,
             html=self.get_html,
             upload=self.upload_file,
+            state=self.element_state,
         )
         self.frames = SimpleNamespace(
             list_frames=self.list_frames,
@@ -90,6 +96,8 @@ class FakeTab:
             console_logs=self.console_logs,
             evaluate=self.evaluate_script,
         )
+        self.accessibility = SimpleNamespace(snapshot=self.accessibility_snapshot)
+        self.dialogs = SimpleNamespace(wait_for_pending=self.wait_for_pending_dialog)
         self.page_ops = SimpleNamespace(
             resize=self.resize,
             screenshot=self.screenshot,
@@ -174,6 +182,48 @@ class FakeTab:
             "truncated": {"text": False, "elements": False, "returned_elements": 1},
             "limits": {"max_elements": max_elements, "max_text_chars": max_text_chars},
         }
+
+    async def accessibility_snapshot(
+        self,
+        *,
+        scope: object = None,
+        max_nodes: int = 200,
+        include_ignored: bool = False,
+        include_values: bool = False,
+    ) -> dict[str, Any]:
+        self._record(
+            "accessibility_snapshot",
+            scope=scope,
+            max_nodes=max_nodes,
+            include_ignored=include_ignored,
+            include_values=include_values,
+        )
+        nodes = [
+            {
+                "node_id": "ax-save",
+                "parent_id": "ax-root",
+                "backend_dom_node_id": 21,
+                "role": "button",
+                "name": "Save",
+                "description": "Save changes",
+                "value": "",
+                "ignored": False,
+                "properties": {"focusable": True},
+            }
+        ]
+        return {
+            "nodes": nodes[:max_nodes],
+            "count": len(nodes),
+            "returned": min(len(nodes), max_nodes),
+            "max_nodes": max_nodes,
+            "truncated": len(nodes) > max_nodes,
+            "values_included": include_values,
+            "scope": None,
+        }
+
+    async def wait_for_pending_dialog(self, *, timeout: float) -> dict[str, str]:
+        self._record("wait_for_pending_dialog", timeout=timeout)
+        return {"dialog_type": "confirm", "message": "Fixture confirm dialog"}
 
     async def observe(
         self, *, max_texts: int = 20, max_text_chars: int = 160
@@ -509,6 +559,45 @@ class FakeTab:
             "uploaded": True,
             "file_count": len(paths),
             "filenames": [Path(path).name for path in paths],
+        }
+
+    async def element_state(
+        self, selector: object, *, timeout: int = 3
+    ) -> dict[str, Any]:
+        self._record("element_state", selector, timeout=timeout)
+        return {
+            "selector": "role='button' name='Save'",
+            "locator": "role='button' name='Save'",
+            "selector_strategy": "accessibility",
+            "selector_normalized": False,
+            "target_kind": "accessibility",
+            "frame_selectors": [],
+            "shadow_hosts": ["#app-host"],
+            "role": "button",
+            "name": "Save",
+            "exact": True,
+            "tag": "button",
+            "text": "Save",
+            "displayed": True,
+            "enabled": True,
+            "alive": True,
+            "clickable": True,
+            "checked": False,
+            "selected": False,
+            "in_viewport": True,
+            "whole_in_viewport": True,
+            "covered": False,
+            "covering_backend_node_id": None,
+            "rect": {
+                "location": {"x": 10.0, "y": 20.0},
+                "size": {"width": 80.0, "height": 30.0},
+                "midpoint": {"x": 50.0, "y": 35.0},
+                "click_point": {"x": 50.0, "y": 35.0},
+                "viewport_location": {"x": 10.0, "y": 20.0},
+                "viewport_midpoint": {"x": 50.0, "y": 35.0},
+                "viewport_click_point": {"x": 50.0, "y": 35.0},
+                "coordinate_space": "target_document",
+            },
         }
 
     async def scroll_page(
@@ -968,6 +1057,48 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         (),
         {"include_html": True, "max_elements": 5, "max_text_chars": 100},
     )
+    accessibility_response = await _execute(
+        common.page_accessibility_snapshot,
+        ctx,
+        common.PageAccessibilitySnapshotInput(max_nodes=5),
+    )
+    accessibility_data = accessibility_response.structured_content()["data"]
+    assert accessibility_data["nodes"][0]["role"] == "button"
+    assert accessibility_data["nodes"][0]["name"] == "Save"
+    assert accessibility_data["returned"] == 1
+    assert accessibility_data["values_included"] is False
+    assert accessibility_data["meta"]["truncated"] is False
+    dialog_response = await _execute(
+        dialogs.page_dialog_observe,
+        ctx,
+        dialogs.PageDialogObserveInput(timeout=2, max_message_chars=7),
+    )
+    assert dialog_response.structured_content()["data"] == {
+        "pending": True,
+        "timed_out": False,
+        "dialog_type": "confirm",
+        "message": "Fixture",
+        "message_truncated": True,
+        "timeout": 2.0,
+    }
+
+    async def no_pending_dialog(*, timeout: float) -> dict[str, str]:
+        raise TimeoutError(f"No dialog within {timeout}")
+
+    ctx.tab.dialogs = SimpleNamespace(wait_for_pending=no_pending_dialog)
+    no_dialog_response = await _execute(
+        dialogs.page_dialog_observe,
+        ctx,
+        dialogs.PageDialogObserveInput(timeout=0.1),
+    )
+    assert no_dialog_response.structured_content()["data"] == {
+        "pending": False,
+        "timed_out": True,
+        "dialog_type": None,
+        "message": "",
+        "message_truncated": False,
+        "timeout": 0.1,
+    }
     observe_response = await _execute(
         common.page_observe,
         ctx,
@@ -1050,12 +1181,12 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
         common.browser_user_agent_set,
         ctx,
         common.BrowserUserAgentSetInput(
-            user_agent="MCPBrowser/0.7.5", platform="Linux"
+            user_agent="MCPBrowser/0.7.6", platform="Linux"
         ),
     )
     assert user_agent_response.structured_content()["data"] == {
         "previous_user_agent": "FixtureBrowser/1.0",
-        "user_agent": "MCPBrowser/0.7.5",
+        "user_agent": "MCPBrowser/0.7.6",
         "platform": "Linux",
         "set": True,
     }
@@ -1486,7 +1617,7 @@ def test_tool_inputs_reject_unknown_fields(model, payload) -> None:
 )
 def test_wait_inputs_reject_excessive_timeouts(model, payload) -> None:
     """Client-controlled waits should stay bounded."""
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         model.model_validate(payload)
 
 
@@ -1664,6 +1795,24 @@ async def test_element_tools_success_paths() -> None:
         "selector_strategy": "page",
         "selector_normalized": False,
     }
+    state_response = await _execute(
+        element.element_state_get,
+        ctx,
+        element.ElementStateInput(
+            selector={
+                "kind": "accessibility",
+                "role": "button",
+                "name": "Save",
+                "shadow_hosts": ["#app-host"],
+            },
+            timeout=2,
+        ),
+    )
+    state_data = state_response.structured_content()["data"]
+    assert state_data["target_kind"] == "accessibility"
+    assert state_data["clickable"] is True
+    assert state_data["rect"]["size"] == {"width": 80.0, "height": 30.0}
+    assert state_data["rect"]["coordinate_space"] == "target_document"
 
 
 class MissingElementTypeTab(FakeTab):

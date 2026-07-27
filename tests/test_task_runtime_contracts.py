@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import ast
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-import ast
 from pathlib import Path
 
 import pytest

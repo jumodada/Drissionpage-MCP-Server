@@ -19,7 +19,6 @@ from . import (
 )
 from .base import ToolSpec, ToolType, define_tool
 
-
 ALL_TOOLS: tuple[ToolSpec, ...] = (
     navigate.navigate,
     navigate.go_back,
@@ -32,6 +31,7 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     common.screenshot,
     common.screenshot_save,
     common.page_snapshot,
+    common.page_accessibility_snapshot,
     common.page_observe,
     common.page_evaluate,
     pointer.pointer_move,
@@ -43,6 +43,7 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     common.browser_headers_set,
     common.browser_user_agent_set,
     common.browser_cache_clear,
+    dialogs.page_dialog_observe,
     dialogs.page_dialog_respond,
     downloads.element_click_and_download,
     debug.page_console_logs,
@@ -54,6 +55,7 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     element.get_attribute,
     element.get_property,
     element.get_html,
+    element.element_state_get,
     files.element_upload_file,
     interaction.page_scroll,
     interaction.element_scroll_into_view,

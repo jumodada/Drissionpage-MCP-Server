@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.7.5 提供 60 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
+**DrissionPage MCP 0.7.6 提供 63 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -72,7 +72,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 60 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.5 新增默认加载的请求 header、user-agent、cache 和 URL 屏蔽原语，面向纯浏览器工作流。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 63 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.6 新增带 frame/Shadow DOM scope 的 selector/accessibility 结构化目标、有界 accessibility snapshot、原生 dialog 观察和元素状态/几何读取。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -167,7 +167,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ---
 
-## 🛠️ 60 个类型化浏览器工具
+## 🛠️ 63 个类型化浏览器工具
 
 ### 🌐 导航工具（4 个）
 - `page_navigate` - 导航到任意 URL；可用 `new_tab` 在新标签页打开，也可用 `observe` 返回变化摘要
@@ -180,7 +180,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `tab_switch` - 切换到 `tab_list` 返回的标签页
 - `tab_close` - 关闭单个标签页，不关闭整个浏览器
 
-### 🎯 元素交互与提取（14 个）
+### 🎯 元素交互与提取（15 个）
 - `element_find` - 通过 CSS 选择器或 XPath 查找单个元素；`h1` 等裸选择器按 CSS 处理
 - `element_find_all` - 提取重复列表、卡片和表格元素，返回有界文本、属性和推荐 selector
 - `element_click` - 点击任意元素，并以兼容方式支持左/右/中键和单击/双击语义
@@ -195,11 +195,13 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `element_get_attribute` - 获取 HTML attribute
 - `element_get_property` - 获取实时 DOM property，例如输入框当前 value
 - `element_get_html` - 获取元素或整页 HTML
+- `element_state_get` - 读取单个元素的 DrissionPage 实时状态和文档/viewport 几何
 
-### 📸 页面操作（15 个）
+### 📸 页面操作（17 个）
 - `page_screenshot` - 捕获完整页面或视口
 - `page_screenshot_save` - 保存截图到 `DP_MCP_SCREENSHOT_ROOT`
 - `page_snapshot` - 返回有界页面 outline，包括标题、链接、按钮、输入框、表单和 selector 推荐
+- `page_accessibility_snapshot` - 返回整页或指定 scope 的有界 Chromium accessibility tree；字段值默认脱敏，仅在显式请求时返回
 - `page_observe` - 返回紧凑页面指纹，包括 URL、标题、元素数量、可见文本样本、当前焦点元素和最近 console 摘要
 - `page_evaluate` - 在当前页面运行有界 JavaScript，并返回 JSON-safe 结果
 - `page_scroll` - 按方向或坐标滚动页面
@@ -211,6 +213,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_click_xy` - 使用 `direct` 或 `natural` 移动，可选等待显式延迟，然后在精确终点按下并释放
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
+- `page_dialog_observe` - 等待并读取待处理原生 alert、confirm 或 prompt，但不进行响应
 - `page_dialog_respond` - 通过能力探测后的原生路径接受或取消一个待处理 alert、confirm 或 prompt
 
 ### 🧱 iframe / Shadow DOM（5 个）
@@ -282,7 +285,7 @@ DrissionMCP/
 │   ├── runtime.py          # Operation key、receipt、artifact 和 capability 状态
 │   ├── tool_outputs.py     # 类型化公共结果合同
 │   ├── browser/            # 聚焦的 DrissionPage 能力和页面脚本
-│   └── tools/              # 60 个类型化 MCP 工具定义和薄适配层
+│   └── tools/              # 63 个类型化 MCP 工具定义和薄适配层
 ├── tests/                  # 单元测试
 └── playground/             # MCP Lab 业务场景测试场
 ```
@@ -434,7 +437,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.7.5`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.7.6`。
 
 ### 浏览器问题？
 ```bash
@@ -463,14 +466,14 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.7.5 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.7.6 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.7.5)
-- [x] 60 个默认加载的原子导航、标签页/frame/shadow、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
+### 当前版本 (v0.7.6)
+- [x] 63 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
@@ -492,6 +495,8 @@ which chromium         # macOS
 - [x] 纯浏览器 Cookie set/get/delete/clear 流程，包括成功结果为 MCP callback 默认回显 value 的有界批量写入
 - [x] 在受支持浏览器矩阵中通过原生 DrissionPage 输入完成受控输入与验证输入的十轮替换回归
 - [x] `frame_*` 读取跨源 OOPIF、DrissionPage 支持的 `shadow_*` 查找 closed Shadow DOM，并单独记录更窄的指针目标边界
+- [x] element 读取、动作、等待、上传和点击下载均兼容字符串与结构化 selector/accessibility target，先依次进入 frame，再依次进入 Shadow DOM host
+- [x] 提供有界 accessibility snapshot、只观察不处理的原生 dialog 工具，以及元素实时状态/几何，支持自主定位-操作-验证闭环
 - [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
 - [x] 不保留动作历史，不生成代码片段，公开截图结果不暴露绝对路径
 - [x] 针对导航和截图路径的可选本地安全策略
@@ -631,13 +636,13 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.7.5
+## 🆕 最新版本：v0.7.6
 
-发布日期：2026-07-24。本次补丁版本增加纯浏览器工作流所需的请求环境控制：
+发布日期：2026-07-27。本补丁版本补齐纯浏览器工作流所需的自主定位-操作-验证原语：
 
-- 新增默认加载的 `browser_headers_set`、`browser_user_agent_set`、`browser_cache_clear` 和 `network_blocked_urls_set`，registry 增至 60 个工具。
-- 全部 60 个工具自动加载，不存在能力 profile 或需要选择的 `full` 模式。
-- Header、user-agent 和 URL 屏蔽写操作默认返回写入值，供 MCP callback 和显式验证使用。
-- User-agent 写操作同时返回原值，纯浏览器工作流可据此恢复。
-- Cache 清理保留 Cookie、localStorage 和 sessionStorage。
-- 增加严格 schema、typed output、失败传播，以及真实浏览器 request、URL 屏蔽、cache、Cookie 和 Web Storage 回归覆盖。
+- 新增结构化 selector 和 accessibility role/name target，按“有序 frame 优先、有序 Shadow DOM host 其次”解析 scope，并保持字符串 selector 兼容。
+- 新增默认加载的 `page_accessibility_snapshot`、`page_dialog_observe` 和 `element_state_get`，registry 增至 63 个工具。
+- Accessibility snapshot 字段值默认脱敏，可通过显式 `include_values=true` 获取。
+- 全部 63 个工具自动加载，不存在能力 profile 或需要选择的 `full` 模式。
+- 原生点击、dialog 观察和 dialog 响应可在无需用户介入的情况下完成一次阻塞 JavaScript dialog 生命周期。
+- 新增 typed schema 和真实浏览器跨域 OOPIF 输入、closed Shadow DOM 操作/状态、accessibility 定位和 dialog 并发覆盖。

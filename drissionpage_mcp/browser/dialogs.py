@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from time import monotonic
+from time import monotonic, sleep
 from typing import TYPE_CHECKING, Any
 
 from ..compat import accepts_parameters
@@ -38,8 +38,9 @@ class DialogResponseIndeterminateError(RuntimeError):
 class DialogOperations:
     """Own pending-dialog inspection and native DrissionPage response calls."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
+        self._response_lock = asyncio.Lock()
 
     @property
     def _page(self) -> Any:
@@ -74,6 +75,11 @@ class DialogOperations:
     async def wait_for_pending(self, *, timeout: float) -> dict[str, Any]:
         """Wait for one supported pending dialog without responding to it."""
 
+        return await asyncio.to_thread(self._wait_for_pending, timeout)
+
+    def _wait_for_pending(self, timeout: float) -> dict[str, Any]:
+        """Poll off-loop because native DrissionPage clicks are synchronous."""
+
         self.probe()
         deadline = monotonic() + timeout
         while True:
@@ -91,7 +97,7 @@ class DialogOperations:
                 raise TimeoutError(
                     "No pending JavaScript dialog was observed within the timeout."
                 )
-            await asyncio.sleep(min(0.02, max(0.001, deadline - monotonic())))
+            sleep(min(0.02, max(0.001, deadline - monotonic())))
 
     async def respond(
         self,
@@ -103,26 +109,65 @@ class DialogOperations:
     ) -> None:
         """Dispatch one native response and verify closure under one deadline."""
 
-        self.probe()
-        alert = self._page._alert
-        current_type = str(alert.type or "").lower()
-        current_message = str(alert.text or "")
-        if not bool(self._page.states.has_alert) or (
-            current_type != pending["dialog_type"]
-            or current_message != pending["message"]
-        ):
-            raise DialogPreconditionError(
-                "The pending JavaScript dialog changed before it could be handled."
-            )
-        if prompt_text is not None and current_type != "prompt":
-            raise DialogPreconditionError(
-                "prompt_text is valid only for a pending prompt dialog."
-            )
-
         deadline = monotonic() + timeout
         try:
-            result = self._page._handle_alert(
-                accept=action == "accept",
+            await asyncio.wait_for(self._response_lock.acquire(), timeout=timeout)
+        except TimeoutError as exc:
+            raise DialogPreconditionError(
+                "Another JavaScript dialog response consumed the response deadline."
+            ) from exc
+        try:
+            self.probe()
+            alert = self._page._alert
+            current_type = str(alert.type or "").lower()
+            current_message = str(alert.text or "")
+            if not bool(self._page.states.has_alert) or (
+                current_type != pending["dialog_type"]
+                or current_message != pending["message"]
+            ):
+                raise DialogPreconditionError(
+                    "The pending JavaScript dialog changed before it could be handled."
+                )
+            if prompt_text is not None and current_type != "prompt":
+                raise DialogPreconditionError(
+                    "prompt_text is valid only for a pending prompt dialog."
+                )
+            remaining = deadline - monotonic()
+            if remaining <= 0:
+                raise DialogPreconditionError(
+                    "Dialog response deadline expired before native invocation."
+                )
+            completion = asyncio.create_task(
+                self._invoke_and_verify(
+                    accept=action == "accept",
+                    prompt_text=prompt_text,
+                    timeout=remaining,
+                    deadline=deadline,
+                )
+            )
+            try:
+                await asyncio.shield(completion)
+            except asyncio.CancelledError:
+                try:
+                    await completion
+                except Exception:
+                    pass
+                raise
+        finally:
+            self._response_lock.release()
+
+    async def _invoke_and_verify(
+        self,
+        *,
+        accept: bool,
+        prompt_text: str | None,
+        timeout: float,
+        deadline: float,
+    ) -> None:
+        try:
+            result = await asyncio.to_thread(
+                self._page._handle_alert,
+                accept=accept,
                 send=prompt_text,
                 timeout=timeout,
                 next_one=False,

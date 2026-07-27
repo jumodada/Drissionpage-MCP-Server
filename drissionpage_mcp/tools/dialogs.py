@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import datetime, timezone
 from time import monotonic
 from typing import TYPE_CHECKING, Annotated, Literal
@@ -16,7 +15,12 @@ from ..browser.dialogs import (
     DialogUnsupportedError,
 )
 from ..limits import MAX_WAIT_SECONDS
-from ..tool_outputs import ActionReceipt, CapabilityProbe, PageDialogRespondData
+from ..tool_outputs import (
+    ActionReceipt,
+    CapabilityProbe,
+    PageDialogObserveData,
+    PageDialogRespondData,
+)
 from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
@@ -42,10 +46,73 @@ class PageDialogRespondInput(ToolInput):
     )
 
     @model_validator(mode="after")
-    def validate_prompt_action(self) -> "PageDialogRespondInput":
+    def validate_prompt_action(self) -> PageDialogRespondInput:
         if self.action == "dismiss" and self.prompt_text is not None:
             raise ValueError("prompt_text cannot be used when dismissing a dialog")
         return self
+
+
+class PageDialogObserveInput(ToolInput):
+    """Bounded wait for a native JavaScript dialog without responding to it."""
+
+    timeout: float = Field(
+        default=0,
+        ge=0,
+        le=MAX_WAIT_SECONDS,
+        description="Seconds to wait for a pending alert, confirm, or prompt.",
+    )
+    max_message_chars: int = Field(
+        default=2000,
+        ge=0,
+        le=10000,
+        description="Maximum dialog message characters returned to the MCP client.",
+    )
+
+
+@define_tool(
+    name="page_dialog_observe",
+    title="Observe Page Dialog",
+    description="Observe a pending native alert, confirm, or prompt and return its bounded message without handling it.",
+    input_schema=PageDialogObserveInput,
+    tool_type=ToolType.READ_ONLY,
+    idempotent=True,
+    output_model=PageDialogObserveData,
+    failure_message=lambda args, exc: "Failed to observe page dialog: " + str(exc),
+)
+async def page_dialog_observe(
+    context: DrissionPageContext, args: PageDialogObserveInput
+) -> ToolOutcome:
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    try:
+        pending = await tab.dialogs.wait_for_pending(timeout=args.timeout)
+    except TimeoutError:
+        outcome.set_result(
+            "No pending page dialog was observed",
+            {
+                "pending": False,
+                "timed_out": True,
+                "dialog_type": None,
+                "message": "",
+                "message_truncated": False,
+                "timeout": args.timeout,
+            },
+        )
+        return outcome
+    message = str(pending["message"])
+    excerpt = message[: args.max_message_chars]
+    outcome.set_result(
+        f"Observed pending {pending['dialog_type']} dialog",
+        {
+            "pending": True,
+            "timed_out": False,
+            "dialog_type": pending["dialog_type"],
+            "message": excerpt,
+            "message_truncated": len(excerpt) < len(message),
+            "timeout": args.timeout,
+        },
+    )
+    return outcome
 
 
 @define_tool(
@@ -58,8 +125,8 @@ class PageDialogRespondInput(ToolInput):
     failure_message=lambda args, exc: _dialog_failure_message(exc),
 )
 async def page_dialog_respond(
-    context: "DrissionPageContext", args: PageDialogRespondInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: PageDialogRespondInput
+) -> ToolOutcome:
     """Respond once after capability and pending-dialog preflight."""
 
     outcome = ToolOutcome()
@@ -110,13 +177,10 @@ async def page_dialog_respond(
         }
     )
     try:
-        await asyncio.wait_for(
-            tab.dialogs.respond(
-                pending=pending,
-                action=args.action,
-                prompt_text=args.prompt_text,
-                timeout=response_timeout,
-            ),
+        await tab.dialogs.respond(
+            pending=pending,
+            action=args.action,
+            prompt_text=args.prompt_text,
             timeout=response_timeout,
         )
     except Exception as exc:
@@ -194,7 +258,7 @@ async def page_dialog_respond(
 
 def _receipt(
     *,
-    context: "DrissionPageContext",
+    context: DrissionPageContext,
     action_id: str,
     operation_key: str,
     fingerprint: str,
@@ -236,7 +300,7 @@ def _dialog_probe(
     )
 
 
-def _validate_dialog_capability(context: "DrissionPageContext") -> None:
+def _validate_dialog_capability(context: DrissionPageContext) -> None:
     """Honor recorded negative evidence before touching a tab or dialog."""
 
     for capability in context.capability_set().capabilities:

@@ -16,16 +16,17 @@ from types import SimpleNamespace
 import pytest
 from pydantic import ValidationError
 
-from drissionpage_mcp.browser.downloads import DownloadIndeterminateError
-from drissionpage_mcp.browser.downloads import DownloadOperations
-from drissionpage_mcp.browser.downloads import DownloadValidationError
+from drissionpage_mcp.browser.downloads import (
+    DownloadIndeterminateError,
+    DownloadOperations,
+    DownloadValidationError,
+)
 from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.tool_outputs import ArtifactRef, CapabilityProbe, CapabilitySet
 from drissionpage_mcp.tools.downloads import (
     ElementClickAndDownloadInput,
     element_click_and_download,
 )
-
 
 DOWNLOAD_BYTES = b"employee_id,name,department\n0701,Ada Lovelace,Research\n"
 DOWNLOAD_SHA256 = hashlib.sha256(DOWNLOAD_BYTES).hexdigest()
@@ -40,8 +41,19 @@ def test_click_and_download_input_is_strict_bounded_and_path_safe() -> None:
     )
 
     assert value.timeout == 30
+    structured = ElementClickAndDownloadInput(
+        selector={
+            "kind": "accessibility",
+            "role": "button",
+            "name": "Download",
+            "frame_selectors": ["#report-frame"],
+        }
+    )
+    assert structured.selector.kind == "accessibility"
     with pytest.raises(ValidationError):
         ElementClickAndDownloadInput(selector="")
+    with pytest.raises(ValidationError):
+        ElementClickAndDownloadInput(selector="x" * 501)
     with pytest.raises(ValidationError):
         ElementClickAndDownloadInput(selector="#download", operation_key=" ")
     with pytest.raises(ValidationError):

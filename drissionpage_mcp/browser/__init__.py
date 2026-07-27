@@ -1,5 +1,6 @@
 """Browser capability components used by the MCP tab wrapper."""
 
+from .accessibility import AccessibilityOperations
 from .dialogs import DialogOperations
 from .downloads import DownloadOperations
 from .elements import ElementOperations
@@ -11,11 +12,12 @@ from .observation import ObservationOperations
 from .page import PageOperations
 from .pointer import PointerOperations
 from .storage import StorageOperations
-from .targeting import TargetResolver
+from .targeting import DomTargetResolver, TargetResolver
 from .waits import WaitOperations
 
 __all__ = [
     "DialogOperations",
+    "AccessibilityOperations",
     "DownloadOperations",
     "ElementOperations",
     "FrameOperations",
@@ -27,5 +29,6 @@ __all__ = [
     "PointerOperations",
     "StorageOperations",
     "TargetResolver",
+    "DomTargetResolver",
     "WaitOperations",
 ]

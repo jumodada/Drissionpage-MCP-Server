@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class NavigationOperations:
     """Own page navigation and history behavior."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
 
     @property

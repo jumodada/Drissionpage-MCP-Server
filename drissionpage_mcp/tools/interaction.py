@@ -1,18 +1,22 @@
 """Additional page and element interaction tools for DrissionPage MCP."""
 
 from __future__ import annotations
+
 from typing import TYPE_CHECKING, Literal
+
 from pydantic import Field
+
 from ..limits import MAX_WAIT_SECONDS
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..target import ElementTargetArg, target_label
 from ..tool_outputs import (
-    PageScrollData,
-    ElementScrollIntoViewData,
-    ElementHoverData,
-    KeyboardPressData,
-    ElementSelectData,
     ElementCheckData,
+    ElementHoverData,
+    ElementScrollIntoViewData,
+    ElementSelectData,
+    KeyboardPressData,
+    PageScrollData,
 )
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -42,7 +46,9 @@ class PageScrollInput(ToolInput):
 class ElementScrollIntoViewInput(ToolInput):
     """Input schema for scrolling an element into view."""
 
-    selector: str = Field(..., description="CSS/XPath/DrissionPage element locator.")
+    selector: ElementTargetArg = Field(
+        ..., description="String locator or structured element target."
+    )
     center: bool = Field(
         default=True, description="Center the element in the viewport."
     )
@@ -52,7 +58,9 @@ class ElementScrollIntoViewInput(ToolInput):
 class ElementHoverInput(ToolInput):
     """Input schema for hovering an element."""
 
-    selector: str = Field(..., description="CSS/XPath/DrissionPage element locator.")
+    selector: ElementTargetArg = Field(
+        ..., description="String locator or structured element target."
+    )
     timeout: int = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
     offset_x: int | None = Field(default=None, description="Optional hover X offset.")
     offset_y: int | None = Field(default=None, description="Optional hover Y offset.")
@@ -73,7 +81,9 @@ class KeyboardPressInput(ToolInput):
 class ElementSelectInput(ToolInput):
     """Input schema for selecting an option."""
 
-    selector: str = Field(..., description="CSS/XPath/DrissionPage select locator.")
+    selector: ElementTargetArg = Field(
+        ..., description="String locator or structured select target."
+    )
     value: str = Field(..., description="Option value, text, or index string.")
     by: SelectBy = Field(
         default="value", description="Select by value, text, or index."
@@ -84,7 +94,9 @@ class ElementSelectInput(ToolInput):
 class ElementCheckInput(ToolInput):
     """Input schema for checkbox/radio state."""
 
-    selector: str = Field(..., description="CSS/XPath/DrissionPage checkbox locator.")
+    selector: ElementTargetArg = Field(
+        ..., description="String locator or structured checkbox target."
+    )
     checked: bool = Field(default=True, description="Desired checked state.")
     by_js: bool = Field(default=False, description="Use JavaScript-backed checking.")
     timeout: int = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
@@ -100,8 +112,8 @@ class ElementCheckInput(ToolInput):
     failure_message=lambda args, exc: "Failed to scroll page: " + str(exc),
 )
 async def page_scroll(
-    context: "DrissionPageContext", args: PageScrollInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: PageScrollInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.interaction.scroll_page(
@@ -119,18 +131,20 @@ async def page_scroll(
     tool_type=ToolType.DESTRUCTIVE,
     output_model=ElementScrollIntoViewData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to scroll element '{args.selector}' into view: {e}"
+        lambda e: f"Failed to scroll element '{target_label(args.selector)}' into view: {e}"
     )(exc),
 )
 async def element_scroll_into_view(
-    context: "DrissionPageContext", args: ElementScrollIntoViewInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: ElementScrollIntoViewInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.interaction.scroll_element_into_view(
         args.selector, center=args.center, timeout=args.timeout
     )
-    outcome.add_result(f"Scrolled element into view: {args.selector}", **result)
+    outcome.add_result(
+        f"Scrolled element into view: {target_label(args.selector)}", **result
+    )
     return outcome
 
 
@@ -142,12 +156,12 @@ async def element_scroll_into_view(
     tool_type=ToolType.DESTRUCTIVE,
     output_model=ElementHoverData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to hover element '{args.selector}': {e}"
+        lambda e: f"Failed to hover element '{target_label(args.selector)}': {e}"
     )(exc),
 )
 async def element_hover(
-    context: "DrissionPageContext", args: ElementHoverInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: ElementHoverInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.interaction.hover_element(
@@ -156,7 +170,7 @@ async def element_hover(
         offset_x=args.offset_x,
         offset_y=args.offset_y,
     )
-    outcome.add_result(f"Hovered element: {args.selector}", **result)
+    outcome.add_result(f"Hovered element: {target_label(args.selector)}", **result)
     return outcome
 
 
@@ -170,8 +184,8 @@ async def element_hover(
     failure_message=lambda args, exc: "Failed to send keyboard keys: " + str(exc),
 )
 async def keyboard_press(
-    context: "DrissionPageContext", args: KeyboardPressInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: KeyboardPressInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.interaction.keyboard_press(args.keys, interval=args.interval)
@@ -187,18 +201,18 @@ async def keyboard_press(
     tool_type=ToolType.DESTRUCTIVE,
     output_model=ElementSelectData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to select option for '{args.selector}': {e}"
+        lambda e: f"Failed to select option for '{target_label(args.selector)}': {e}"
     )(exc),
 )
 async def element_select(
-    context: "DrissionPageContext", args: ElementSelectInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: ElementSelectInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.interaction.select_element(
         args.selector, value=args.value, by=args.by, timeout=args.timeout
     )
-    outcome.add_result(f"Selected option in: {args.selector}", **result)
+    outcome.add_result(f"Selected option in: {target_label(args.selector)}", **result)
     return outcome
 
 
@@ -210,16 +224,16 @@ async def element_select(
     tool_type=ToolType.DESTRUCTIVE,
     output_model=ElementCheckData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to set check state for '{args.selector}': {e}"
+        lambda e: f"Failed to set check state for '{target_label(args.selector)}': {e}"
     )(exc),
 )
 async def element_check(
-    context: "DrissionPageContext", args: ElementCheckInput
-) -> "ToolOutcome":
+    context: DrissionPageContext, args: ElementCheckInput
+) -> ToolOutcome:
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     result = await tab.interaction.check_element(
         args.selector, checked=args.checked, by_js=args.by_js, timeout=args.timeout
     )
-    outcome.add_result(f"Set check state for: {args.selector}", **result)
+    outcome.add_result(f"Set check state for: {target_label(args.selector)}", **result)
     return outcome

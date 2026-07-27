@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Mapping
 from copy import deepcopy
 from secrets import token_hex
 from threading import Lock
-from typing import Any, Mapping
+from typing import Any
 
 from .response_errors import ErrorCode
 from .tool_outputs import (

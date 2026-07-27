@@ -8,13 +8,14 @@ import json
 import os
 import platform
 import sys
+from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager, suppress
 from datetime import datetime, timezone
 from math import ceil
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from time import monotonic
-from typing import Any, Awaitable, Callable, Iterator
+from typing import Any
 from urllib.request import Request, urlopen
 
 from drissionpage_mcp import __version__
@@ -25,7 +26,6 @@ from tests.fixtures.http_fixture import (
     TASK_COMPLETION_DOWNLOAD_SHA256,
     local_http_fixture,
 )
-
 
 WORKLOAD_TOOL_REQUIREMENTS = {
     "W01": frozenset(
@@ -71,7 +71,7 @@ class BenchmarkClient:
         expect_ok: bool = True,
     ) -> dict[str, Any]:
         self.calls.append(name)
-        call_tool = getattr(self.server, "_call_tool_impl")
+        call_tool = self.server._call_tool_impl
         result = await call_tool(name, arguments or {})
         payload = dict(result.structuredContent or {})
         if bool(payload.get("ok")) is not expect_ok:

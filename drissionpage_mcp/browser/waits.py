@@ -8,7 +8,10 @@ import re
 import time
 from typing import TYPE_CHECKING, Any
 
+from DrissionPage.errors import ElementNotFoundError
+
 from ..selector import SelectorPlan, normalize_selector
+from ..target import ElementTargetArg, target_label
 from .page_state_scripts import _selector_state_script
 
 if TYPE_CHECKING:
@@ -20,7 +23,7 @@ logger = logging.getLogger(__name__)
 class WaitOperations:
     """Own selector, URL, text, and state waits."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
 
     @property
@@ -31,7 +34,7 @@ class WaitOperations:
         self,
         *,
         condition: str,
-        selector: str = "",
+        selector: ElementTargetArg = "",
         value: str = "",
         name: str = "",
         timeout: float = 10,
@@ -52,7 +55,7 @@ class WaitOperations:
             if matched:
                 return {
                     "condition": condition,
-                    "selector": selector,
+                    "selector": target_label(selector) if selector else "",
                     "value": value,
                     "name": name,
                     "matched": True,
@@ -66,8 +69,14 @@ class WaitOperations:
                 )
             await asyncio.sleep(interval)
 
-    async def element(self, selector: str, timeout: int = 10) -> bool:
-        return await self.for_plan(normalize_selector(selector), timeout)
+    async def element(self, selector: ElementTargetArg, timeout: int = 10) -> bool:
+        if isinstance(selector, str):
+            return await self.for_plan(normalize_selector(selector), timeout)
+        try:
+            await self._tab.dom_targeting.resolve(selector, timeout=timeout)
+            return True
+        except ElementNotFoundError:
+            return False
 
     async def for_plan(self, plan: SelectorPlan, timeout: int = 10) -> bool:
         try:
@@ -108,7 +117,7 @@ class WaitOperations:
         self,
         *,
         condition: str,
-        selector: str,
+        selector: ElementTargetArg,
         value: str,
         name: str,
         stable_ms: int,
@@ -123,7 +132,7 @@ class WaitOperations:
             return matched, {"url": current_url}
 
         if condition in {"text_contains", "text_matches"}:
-            text = self._condition_text(selector)
+            text = await self._condition_text(selector)
             matched = (
                 value in text
                 if condition == "text_contains"
@@ -155,7 +164,7 @@ class WaitOperations:
                 "nonempty": bool(text),
             }
 
-        state = self._selector_state(selector)
+        state = await self._selector_state(selector)
         if condition == "present":
             return bool(state.get("exists")), state
         if condition == "visible":
@@ -173,22 +182,28 @@ class WaitOperations:
             if not state.get("exists") or not first:
                 return False, state
             await asyncio.sleep(max(0, stable_ms) / 1000)
-            second_state = self._selector_state(selector)
+            second_state = await self._selector_state(selector)
             return first == second_state.get("signature"), second_state
         raise ValueError(f"Unsupported wait condition: {condition}")
 
-    def _condition_text(self, selector: str) -> str:
+    async def _condition_text(self, selector: ElementTargetArg) -> str:
         if not selector:
             try:
                 return str(self._page.text)
             except Exception:
                 return self._html()
-        plan = normalize_selector(selector)
+        if isinstance(selector, str):
+            plan = normalize_selector(selector)
+            try:
+                element = self._page.ele(plan.locator, timeout=0)
+            except Exception:
+                return ""
+            return str(getattr(element, "text", "") or "") if element else ""
         try:
-            element = self._page.ele(plan.locator, timeout=0)
-        except Exception:
+            resolved = await self._tab.dom_targeting.resolve(selector, timeout=0)
+        except ElementNotFoundError:
             return ""
-        return str(getattr(element, "text", "") or "") if element else ""
+        return str(getattr(resolved.element, "text", "") or "")
 
     def _html(self) -> str:
         try:
@@ -196,19 +211,45 @@ class WaitOperations:
         except Exception:
             return ""
 
-    def _selector_state(self, selector: str) -> dict[str, Any]:
-        plan = normalize_selector(selector)
-        if plan.locator.startswith(("css:", "xpath:")):
-            try:
-                result = self._page.run_js(
-                    _selector_state_script(plan.locator),
-                    as_expr=True,
-                )
-                if isinstance(result, dict):
-                    return result
-            except Exception:
-                logger.debug("selector state JavaScript failed", exc_info=True)
-        return self._selector_state_fallback(plan)
+    async def _selector_state(self, selector: ElementTargetArg) -> dict[str, Any]:
+        if isinstance(selector, str):
+            plan = normalize_selector(selector)
+            if plan.locator.startswith(("css:", "xpath:")):
+                try:
+                    result = self._page.run_js(
+                        _selector_state_script(plan.locator),
+                        as_expr=True,
+                    )
+                    if isinstance(result, dict):
+                        return result
+                except Exception:
+                    logger.debug("selector state JavaScript failed", exc_info=True)
+            return self._selector_state_fallback(plan)
+        try:
+            resolved = await self._tab.dom_targeting.resolve(selector, timeout=0)
+        except ElementNotFoundError:
+            return {
+                "exists": False,
+                "visible": False,
+                "disabled": False,
+                "tag": "",
+                "text": "",
+                "signature": "",
+            }
+        element = resolved.element
+        states = element.states
+        text = str(getattr(element, "text", "") or "")
+        tag = str(getattr(element, "tag", "") or "")
+        visible = bool(states.is_displayed)
+        disabled = not bool(states.is_enabled)
+        return {
+            "exists": True,
+            "visible": visible,
+            "disabled": disabled,
+            "tag": tag,
+            "text": text[:500],
+            "signature": f"{tag}|{text[:100]}|{visible}|{disabled}",
+        }
 
     def _selector_state_fallback(self, plan: SelectorPlan) -> dict[str, Any]:
         try:

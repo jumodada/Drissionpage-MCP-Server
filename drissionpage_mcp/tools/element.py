@@ -7,22 +7,25 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from pydantic import Field, StrictInt
 
 from ..browser.elements import ClickUnsupportedError
+from ..browser.targeting import DomTarget
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
 from ..selector import normalize_selector
-from ._observe import maybe_observe, observed_changes
-from .base import ToolInput, ToolType, define_tool, ToolOutcome
+from ..target import ElementTargetArg, PageOrElementTargetArg, target_label
 from ..tool_outputs import (
     CapabilityProbe,
-    ElementFindData,
-    ElementFindAllData,
     ElementClickData,
-    ElementTypeData,
-    ElementGetTextData,
+    ElementFindAllData,
+    ElementFindData,
     ElementGetAttributeData,
-    ElementGetPropertyData,
     ElementGetHtmlData,
+    ElementGetPropertyData,
+    ElementGetTextData,
+    ElementStateData,
+    ElementTypeData,
 )
+from ._observe import maybe_observe, observed_changes
+from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
@@ -31,7 +34,7 @@ if TYPE_CHECKING:
 class FindElementInput(ToolInput):
     """Input schema for finding elements."""
 
-    selector: str = Field(
+    selector: ElementTargetArg = Field(
         ...,
         description="CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
@@ -46,7 +49,7 @@ class FindElementInput(ToolInput):
 class FindAllElementsInput(ToolInput):
     """Input schema for bounded multi-element extraction."""
 
-    selector: str = Field(
+    selector: ElementTargetArg = Field(
         ...,
         description="CSS selector, XPath, or explicit DrissionPage locator for repeated elements. Bare selectors are CSS.",
     )
@@ -65,7 +68,7 @@ class FindAllElementsInput(ToolInput):
 class ClickElementInput(ToolInput):
     """Input schema for clicking elements."""
 
-    selector: str = Field(
+    selector: ElementTargetArg = Field(
         ...,
         description="CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
@@ -89,7 +92,7 @@ class ClickElementInput(ToolInput):
 class TypeTextInput(ToolInput):
     """Input schema for typing text."""
 
-    selector: str = Field(
+    selector: ElementTargetArg = Field(
         ...,
         description="CSS selector or XPath to find the input element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
@@ -111,7 +114,7 @@ class TypeTextInput(ToolInput):
 class GetTextInput(ToolInput):
     """Input schema for getting text."""
 
-    selector: str = Field(
+    selector: PageOrElementTargetArg = Field(
         default="",
         description="CSS selector or XPath; empty means whole page. Bare selectors are CSS; use text:... for text matching.",
     )
@@ -120,7 +123,7 @@ class GetTextInput(ToolInput):
 class GetAttributeInput(ToolInput):
     """Input schema for getting an element attribute."""
 
-    selector: str = Field(
+    selector: ElementTargetArg = Field(
         ...,
         description="CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
@@ -130,7 +133,7 @@ class GetAttributeInput(ToolInput):
 class GetPropertyInput(ToolInput):
     """Input schema for getting a live DOM property."""
 
-    selector: str = Field(
+    selector: ElementTargetArg = Field(
         ...,
         description="CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
@@ -140,10 +143,20 @@ class GetPropertyInput(ToolInput):
 class GetHtmlInput(ToolInput):
     """Input schema for getting HTML."""
 
-    selector: str = Field(
+    selector: PageOrElementTargetArg = Field(
         default="",
         description="CSS selector or XPath; empty means whole page. Bare selectors are CSS; use text:... for text matching.",
     )
+
+
+class ElementStateInput(ToolInput):
+    """Input schema for inspecting element state and geometry."""
+
+    selector: ElementTargetArg = Field(
+        ...,
+        description="String locator or structured selector/accessibility target with frame and shadow scope.",
+    )
+    timeout: int = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
 
 
 @define_tool(
@@ -155,7 +168,7 @@ class GetHtmlInput(ToolInput):
     idempotent=True,
     output_model=ElementFindData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to find element '{args.selector}': {e}"
+        lambda e: f"Failed to find element '{target_label(args.selector)}': {e}"
     )(exc),
 )
 async def find_element(
@@ -165,7 +178,7 @@ async def find_element(
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
     element = await tab.elements.find(args.selector, timeout=args.timeout)
-    outcome.add_result(f"Found element: {args.selector}", element=element)
+    outcome.add_result(f"Found element: {target_label(args.selector)}", element=element)
     return outcome
 
 
@@ -178,7 +191,7 @@ async def find_element(
     idempotent=True,
     output_model=ElementFindAllData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to find elements '{args.selector}': {e}"
+        lambda e: f"Failed to find elements '{target_label(args.selector)}': {e}"
     )(exc),
 )
 async def find_all_elements(
@@ -191,7 +204,7 @@ async def find_all_elements(
         args.selector, limit=args.limit, include_html=args.include_html
     )
     outcome.add_result(
-        f"Found {result['returned']} of {result['count']} elements: {args.selector}",
+        f"Found {result['returned']} of {result['count']} elements: {target_label(args.selector)}",
         **with_response_meta(result),
     )
     return outcome
@@ -205,7 +218,7 @@ async def find_all_elements(
     tool_type=ToolType.DESTRUCTIVE,
     output_model=ElementClickData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to click element '{args.selector}': {e}"
+        lambda e: f"Failed to click element '{target_label(args.selector)}': {e}"
     )(exc),
 )
 async def click_element(
@@ -215,7 +228,7 @@ async def click_element(
     outcome = ToolOutcome()
     _validate_click_capability(context, args)
     tab = context.current_tab_or_die()
-    plan = normalize_selector(args.selector)
+    metadata = DomTarget.from_input(args.selector).metadata()
     before = await maybe_observe(tab, args.observe)
     try:
         if args.button == "left" and args.click_count == 1:
@@ -239,14 +252,16 @@ async def click_element(
         raise
     changes = await observed_changes(tab, before)
     data = {
-        **plan.metadata(),
+        **metadata,
         "url": tab.url,
         "button": args.button,
         "click_count": args.click_count,
     }
     if changes is not None:
         data["changes"] = changes
-    outcome.add_result(f"Successfully clicked element: {args.selector}", **data)
+    outcome.add_result(
+        f"Successfully clicked element: {target_label(args.selector)}", **data
+    )
     return outcome
 
 
@@ -300,7 +315,7 @@ def _click_capability_name(args: ClickElementInput) -> str:
     tool_type=ToolType.DESTRUCTIVE,
     output_model=ElementTypeData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to type text into element '{args.selector}': {e}"
+        lambda e: f"Failed to type text into element '{target_label(args.selector)}': {e}"
     )(exc),
 )
 async def type_text(
@@ -309,16 +324,19 @@ async def type_text(
     """Type text into an element."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
-    plan = normalize_selector(args.selector)
     before = await maybe_observe(tab, args.observe)
-    await tab.elements.type(
+    metadata = await tab.elements.type(
         args.selector, args.text, timeout=args.timeout, clear=args.clear
     )
+    if metadata is None:
+        metadata = DomTarget.from_input(args.selector).metadata()
     changes = await observed_changes(tab, before)
-    data = {**plan.metadata(), "typed": True, "cleared": args.clear}
+    data = {**metadata, "typed": True, "cleared": args.clear}
     if changes is not None:
         data["changes"] = changes
-    outcome.add_result(f"Successfully typed text into element: {args.selector}", **data)
+    outcome.add_result(
+        f"Successfully typed text into element: {target_label(args.selector)}", **data
+    )
     return outcome
 
 
@@ -331,16 +349,16 @@ async def type_text(
     idempotent=True,
     output_model=ElementGetTextData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to get text from '{args.selector or 'page'}': {e}"
+        lambda e: f"Failed to get text from '{target_label(args.selector) if args.selector else 'page'}': {e}"
     )(exc),
 )
 async def get_text(context: "DrissionPageContext", args: GetTextInput) -> "ToolOutcome":
     """Get text from an element or the page."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
-    plan = normalize_selector(args.selector)
+    metadata = _target_metadata(args.selector)
     text = await tab.elements.text(args.selector)
-    outcome.add_result(text or "", text=text or "", **plan.metadata())
+    outcome.add_result(text or "", text=text or "", **metadata)
     return outcome
 
 
@@ -354,7 +372,7 @@ async def get_text(context: "DrissionPageContext", args: GetTextInput) -> "ToolO
     output_model=ElementGetAttributeData,
     failure_message=lambda args, exc: (
         lambda e: (
-            f"Failed to get attribute '{args.attribute}' from '{args.selector}': {e}"
+            f"Failed to get attribute '{args.attribute}' from '{target_label(args.selector)}': {e}"
         )
     )(exc),
 )
@@ -364,11 +382,10 @@ async def get_attribute(
     """Get an attribute value from an element."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
-    plan = normalize_selector(args.selector)
     value = await tab.elements.attribute(args.selector, args.attribute)
     outcome.add_result(
         "" if value is None else str(value),
-        **plan.metadata(),
+        **DomTarget.from_input(args.selector).metadata(),
         attribute=args.attribute,
         value=value,
     )
@@ -385,7 +402,7 @@ async def get_attribute(
     output_model=ElementGetPropertyData,
     failure_message=lambda args, exc: (
         lambda e: (
-            f"Failed to get property '{args.property}' from '{args.selector}': {e}"
+            f"Failed to get property '{args.property}' from '{target_label(args.selector)}': {e}"
         )
     )(exc),
 )
@@ -395,11 +412,10 @@ async def get_property(
     """Get a live DOM property value from an element."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
-    plan = normalize_selector(args.selector)
     value = await tab.elements.property(args.selector, args.property)
     outcome.add_result(
         "" if value is None else str(value),
-        **plan.metadata(),
+        **DomTarget.from_input(args.selector).metadata(),
         property=args.property,
         value=_json_safe(value),
     )
@@ -415,17 +431,45 @@ async def get_property(
     idempotent=True,
     output_model=ElementGetHtmlData,
     failure_message=lambda args, exc: (
-        lambda e: f"Failed to get HTML from '{args.selector or 'page'}': {e}"
+        lambda e: f"Failed to get HTML from '{target_label(args.selector) if args.selector else 'page'}': {e}"
     )(exc),
 )
 async def get_html(context: "DrissionPageContext", args: GetHtmlInput) -> "ToolOutcome":
     """Get HTML from an element or the page."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
-    plan = normalize_selector(args.selector)
+    metadata = _target_metadata(args.selector)
     html = await tab.elements.html(args.selector)
-    outcome.add_result(html or "", html=html or "", **plan.metadata())
+    outcome.add_result(html or "", html=html or "", **metadata)
     return outcome
+
+
+@define_tool(
+    name="element_state_get",
+    title="Get Element State",
+    description="Return DrissionPage element state and page/viewport geometry for a selector or accessibility target.",
+    input_schema=ElementStateInput,
+    tool_type=ToolType.READ_ONLY,
+    idempotent=True,
+    output_model=ElementStateData,
+    failure_message=lambda args, exc: (
+        f"Failed to inspect element '{target_label(args.selector)}': {exc}"
+    ),
+)
+async def element_state_get(
+    context: "DrissionPageContext", args: ElementStateInput
+) -> "ToolOutcome":
+    outcome = ToolOutcome()
+    tab = context.current_tab_or_die()
+    state = await tab.elements.state(args.selector, timeout=args.timeout)
+    outcome.add_result(f"Inspected element: {target_label(args.selector)}", **state)
+    return outcome
+
+
+def _target_metadata(target: ElementTargetArg) -> dict[str, object]:
+    if not target:
+        return normalize_selector("").metadata()
+    return DomTarget.from_input(target).metadata()
 
 
 def _json_safe(value):

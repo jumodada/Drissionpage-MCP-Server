@@ -12,6 +12,5 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from playground.mcp_lab.runner import main  # noqa: E402
 
-
 if __name__ == "__main__":
     raise SystemExit(main())

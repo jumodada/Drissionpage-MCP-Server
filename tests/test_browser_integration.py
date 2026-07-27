@@ -7,7 +7,7 @@ import base64
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
 from urllib.request import urlopen
 
@@ -52,16 +52,12 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "Upload Workflow" in _read(base_url + "/upload")[1]
         assert "Interaction Workflow" in _read(base_url + "/interactions")[1]
         assert "shadow-host" in _read(base_url + "/shadow")[1]
-        assert "Document Boundaries" in _read(
-            base_url + "/document-boundaries"
-        )[1]
+        assert "Document Boundaries" in _read(base_url + "/document-boundaries")[1]
         assert "Slider iframe" in _read(base_url + "/slider")[1]
         assert "Same-origin iframe slider" in _read(base_url + "/slider-frame")[1]
         assert "Storage Workflow" in _read(base_url + "/storage")[1]
         assert "Fixture Request Context" in _read(base_url + "/request-context")[1]
-        assert "Fixture Resource Controls" in _read(
-            base_url + "/resource-controls"
-        )[1]
+        assert "Fixture Resource Controls" in _read(base_url + "/resource-controls")[1]
         assert "Links Workflow" in _read(base_url + "/links")[1]
         assert "Workflow Form" in _read(base_url + "/workflow-form")[1]
         assert "Network Workflow" in _read(base_url + "/network")[1]
@@ -273,7 +269,7 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
                 server, "page_screenshot", {}
             )
             text_content = "\n".join(
-                (item.text for item in screenshot if item.type == "text")
+                item.text for item in screenshot if item.type == "text"
             )
             _skip_if_browser_unavailable(text_content)
             images = [item for item in screenshot if item.type == "image"]
@@ -291,7 +287,6 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             assert "Successfully closed browser" in closed
     finally:
         await server.cleanup()
-
 
 
 @pytest.mark.asyncio
@@ -622,7 +617,6 @@ async def test_pointer_drag_follows_waypoints_in_one_browser_gesture() -> None:
         await server.cleanup()
 
 
-
 @pytest.mark.asyncio
 async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
     """discovers, switches, and closes a tab opened by target=_blank."""
@@ -667,7 +661,6 @@ async def test_mcp_tab_tools_discover_target_blank_tabs() -> None:
             assert switch_back["ok"] is True
     finally:
         await server.cleanup()
-
 
 
 @pytest.mark.asyncio
@@ -747,6 +740,65 @@ async def test_mcp_page_dialog_respond_handles_alert_confirm_and_redacted_prompt
                 server, "element_get_text", {"selector": "#dialog-status"}
             )
             assert status["data"]["text"] == f"prompt accepted:{safe_prompt}"
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_dialog_observe_returns_message_without_handling_dialog() -> None:
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/dialog"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            observe_task = asyncio.create_task(
+                _execute_tool(
+                    server,
+                    "page_dialog_observe",
+                    {"timeout": 3, "max_message_chars": 100},
+                )
+            )
+            await asyncio.sleep(0.05)
+            click_task = asyncio.create_task(
+                _execute_tool(
+                    server,
+                    "element_click",
+                    {
+                        "selector": {
+                            "kind": "accessibility",
+                            "role": "button",
+                            "name": "Confirm",
+                        },
+                        "timeout": 2,
+                    },
+                )
+            )
+            _content, observed = await observe_task
+            assert observed["ok"] is True
+            assert observed["data"] == {
+                "pending": True,
+                "timed_out": False,
+                "dialog_type": "confirm",
+                "message": "Fixture confirm",
+                "message_truncated": False,
+                "timeout": 3.0,
+            }
+
+            _content, response = await _execute_tool(
+                server,
+                "page_dialog_respond",
+                {"action": "dismiss", "timeout": 2},
+            )
+            assert response["ok"] is True
+            _content, clicked = await click_task
+            assert clicked["ok"] is True
+            _content, status = await _execute_tool(
+                server, "element_get_text", {"selector": "#dialog-status"}
+            )
+            assert status["data"]["text"] == "confirm dismissed"
     finally:
         await server.cleanup()
 
@@ -994,7 +1046,9 @@ async def test_mcp_element_click_and_download_failure_has_no_artifact_or_success
             assert not [path for path in download_root.rglob("*") if path.is_file()]
             assert server.context is not None
             assert list(server.context._artifacts.values()) == []
-            assert list(server.context._operation_receipts.values())[0].status != "success"
+            assert (
+                list(server.context._operation_receipts.values())[0].status != "success"
+            )
             assert _json(base_url + "/__fixture__/state")["counters"] == {
                 "download_fail_requests": 1
             }
@@ -1287,7 +1341,7 @@ async def test_mcp_console_logs_and_observe_changes_cover_action_errors() -> Non
             assert logs_payload["ok"] is True
             logs = logs_payload["data"]["logs"]
             assert {"log", "warning", "error"} <= {item["level"] for item in logs}
-            assert any((item["text"] == "fixture console error" for item in logs))
+            assert any(item["text"] == "fixture console error" for item in logs)
             _content, error_payload = await _execute_tool(
                 server, "page_console_logs", {"level": "error", "limit": 20}
             )
@@ -1306,10 +1360,8 @@ async def test_mcp_console_logs_and_observe_changes_cover_action_errors() -> Non
             changes = click_payload["data"]["changes"]
             assert changes["console_errors_added"] >= 1
             assert any(
-                (
-                    item["text"] == "fixture action failed"
-                    for item in changes["new_console_messages"]
-                )
+                item["text"] == "fixture action failed"
+                for item in changes["new_console_messages"]
             )
             _content, since_payload = await _execute_tool(
                 server,
@@ -1345,11 +1397,9 @@ async def test_mcp_page_understanding_tools_extract_catalog_outline() -> None:
             assert snapshot["headings"][0]["selector"] == "#catalog-title"
             assert {link["text"] for link in snapshot["links"]} >= {"Docs", "Pricing"}
             assert any(
-                (button["text"] == "Choose Alpha" for button in snapshot["buttons"])
+                button["text"] == "Choose Alpha" for button in snapshot["buttons"]
             )
-            assert any(
-                (input_["selector"] == "#query" for input_ in snapshot["inputs"])
-            )
+            assert any(input_["selector"] == "#query" for input_ in snapshot["inputs"])
             assert snapshot["limits"] == {"max_elements": 30, "max_text_chars": 1000}
             _content, cards_payload = await _execute_tool(
                 server,
@@ -1399,10 +1449,8 @@ async def test_mcp_page_snapshot_balances_link_heavy_pages() -> None:
             assert snapshot_payload["ok"] is True
             snapshot = snapshot_payload["data"]
             returned = sum(
-                (
-                    len(snapshot[name])
-                    for name in ("headings", "links", "buttons", "inputs", "forms")
-                )
+                len(snapshot[name])
+                for name in ("headings", "links", "buttons", "inputs", "forms")
             )
             assert snapshot["counts"]["links"] == 75
             assert snapshot["counts"]["inputs"] == 1
@@ -1412,17 +1460,12 @@ async def test_mcp_page_snapshot_balances_link_heavy_pages() -> None:
             assert snapshot["truncated"]["returned_elements"] == returned <= 20
             assert len(snapshot["links"]) < 20
             assert any(
-                (
-                    button["selector"] == "#search-button"
-                    for button in snapshot["buttons"]
-                )
+                button["selector"] == "#search-button" for button in snapshot["buttons"]
             )
             assert any(
-                (input_["selector"] == "#search-input" for input_ in snapshot["inputs"])
+                input_["selector"] == "#search-input" for input_ in snapshot["inputs"]
             )
-            assert any(
-                (form["selector"] == "#search-form" for form in snapshot["forms"])
-            )
+            assert any(form["selector"] == "#search-form" for form in snapshot["forms"])
     finally:
         await server.cleanup()
 
@@ -1461,7 +1504,7 @@ async def test_mcp_browser_tools_return_structured_errors_for_bad_page_actions()
             assert wait_payload["ok"] is False
             assert wait_payload["error"]["code"] == "TIMEOUT"
             wait_hints = wait_payload["error"]["details"]["hints"]
-            assert any((hint["action"] == "increase_timeout" for hint in wait_hints))
+            assert any(hint["action"] == "increase_timeout" for hint in wait_hints)
     finally:
         await server.cleanup()
 
@@ -1601,16 +1644,12 @@ async def test_mcp_0_5_5_frame_shadow_and_storage_tools_use_local_fixture() -> N
             )
             assert cookies_payload["ok"] is True
             assert any(
-                (
-                    item["name"] == "fixture_cookie"
-                    for item in cookies_payload["data"]["cookies"]
-                )
+                item["name"] == "fixture_cookie"
+                for item in cookies_payload["data"]["cookies"]
             )
             assert all(
-                (
-                    item["value"] in {"", "<redacted>"}
-                    for item in cookies_payload["data"]["cookies"]
-                )
+                item["value"] in {"", "<redacted>"}
+                for item in cookies_payload["data"]["cookies"]
             )
             _content, cookie_set_payload = await _execute_tool(
                 server,
@@ -1729,7 +1768,7 @@ async def test_mcp_0_7_5_browser_environment_controls_use_local_fixture() -> Non
             _content, ua_payload = await _execute_tool(
                 server,
                 "browser_user_agent_set",
-                {"user_agent": "MCPBrowser/0.7.5", "platform": "Linux"},
+                {"user_agent": "MCPBrowser/0.7.6", "platform": "Linux"},
             )
             previous_user_agent = ua_payload["data"]["previous_user_agent"]
             assert previous_user_agent
@@ -1749,7 +1788,7 @@ async def test_mcp_0_7_5_browser_environment_controls_use_local_fixture() -> Non
                 "element_get_attribute",
                 {"selector": "#request-user-agent", "attribute": "data-value"},
             )
-            assert ua_state["data"]["value"] == "MCPBrowser/0.7.5"
+            assert ua_state["data"]["value"] == "MCPBrowser/0.7.6"
 
             _content, blocked_payload = await _execute_tool(
                 server,
@@ -1817,8 +1856,7 @@ async def test_mcp_0_7_5_browser_environment_controls_use_local_fixture() -> Non
                 {"all_info": True, "include_values": True},
             )
             assert any(
-                item["name"] == "cache_guard"
-                and item["value"] == "cookie-survives"
+                item["name"] == "cache_guard" and item["value"] == "cookie-survives"
                 for item in cookie_guard["data"]["cookies"]
             )
             _content, storage_guard = await _execute_tool(
@@ -1826,12 +1864,8 @@ async def test_mcp_0_7_5_browser_environment_controls_use_local_fixture() -> Non
                 "storage_get",
                 {"area": "local", "key": "cache-guard", "include_values": True},
             )
-            assert storage_guard["data"]["items"] == {
-                "cache-guard": "storage-survives"
-            }
-            await _execute_tool(
-                server, "network_blocked_urls_set", {"urls": []}
-            )
+            assert storage_guard["data"]["items"] == {"cache-guard": "storage-survives"}
+            await _execute_tool(server, "network_blocked_urls_set", {"urls": []})
             await _execute_tool(
                 server, "page_navigate", {"url": base_url + "/?between=2"}
             )
@@ -1879,7 +1913,6 @@ async def test_mcp_0_7_5_browser_environment_controls_use_local_fixture() -> Non
         await server.cleanup()
 
 
-
 @pytest.mark.asyncio
 async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
     """observes local fetch/XHR packets without interception."""
@@ -1915,8 +1948,8 @@ async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
             )
             assert wait_payload["ok"] is True
             urls = {packet["url"] for packet in wait_payload["data"]["packets"]}
-            assert any(("/api/data.json" in url for url in urls))
-            assert any(("/api/echo.json" in url for url in urls))
+            assert any("/api/data.json" in url for url in urls)
+            assert any("/api/echo.json" in url for url in urls)
             assert "fixture-secret" not in json.dumps(wait_payload["data"])
             _content, stop_payload = await _execute_tool(
                 server, "network_listen_stop", {"clear": True}
@@ -1928,22 +1961,22 @@ async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
 
 
 async def _execute_tool_text(
-    server: DrissionPageMCPServer, name: str, arguments: Dict[str, Any]
+    server: DrissionPageMCPServer, name: str, arguments: dict[str, Any]
 ) -> str:
     content = await _execute_tool_content(server, name, arguments)
-    return "\n".join((item.text for item in content if item.type == "text"))
+    return "\n".join(item.text for item in content if item.type == "text")
 
 
 async def _execute_tool_content(
-    server: DrissionPageMCPServer, name: str, arguments: Dict[str, Any]
-) -> List[Any]:
+    server: DrissionPageMCPServer, name: str, arguments: dict[str, Any]
+) -> list[Any]:
     content, _payload = await _execute_tool(server, name, arguments)
     return content
 
 
 async def _execute_tool(
-    server: DrissionPageMCPServer, name: str, arguments: Dict[str, Any]
-) -> Tuple[List[Any], Dict[str, Any]]:
+    server: DrissionPageMCPServer, name: str, arguments: dict[str, Any]
+) -> tuple[list[Any], dict[str, Any]]:
     tool = server.tools[name]
     if server.context is None:
         from drissionpage_mcp.context import DrissionPageContext
@@ -1983,11 +2016,11 @@ def _merge_base_query(url: str, base_query: str) -> str:
     )
 
 
-def _json(url: str) -> Dict[str, Any]:
+def _json(url: str) -> dict[str, Any]:
     return json.loads(_read(url)[1])
 
 
-def _read(url: str) -> Tuple[int, str]:
+def _read(url: str) -> tuple[int, str]:
     try:
         response = urlopen(url, timeout=5)
         return (response.status, response.read().decode("utf-8"))
@@ -2022,16 +2055,12 @@ def test_browser_unavailable_helper_fails_when_required(
 def _skip_if_browser_unavailable(text: str) -> None:
     lowered = text.lower()
     if "### Error" in text and any(
-        (marker in lowered for marker in _BROWSER_UNAVAILABLE_MARKERS)
+        marker in lowered for marker in _BROWSER_UNAVAILABLE_MARKERS
     ):
         if os.environ.get("DP_MCP_REQUIRE_BROWSER", "").lower() in {"1", "true", "yes"}:
             pytest.fail(
-                "Chrome/Chromium browser is required but unavailable for DrissionPage integration: {0}".format(
-                    text[:300]
-                )
+                f"Chrome/Chromium browser is required but unavailable for DrissionPage integration: {text[:300]}"
             )
         pytest.skip(
-            "Chrome/Chromium browser unavailable for DrissionPage integration: {0}".format(
-                text[:300]
-            )
+            f"Chrome/Chromium browser unavailable for DrissionPage integration: {text[:300]}"
         )

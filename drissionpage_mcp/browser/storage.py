@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class StorageOperations:
     """Own cookie and Web Storage behavior for one tab."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
 
     @property

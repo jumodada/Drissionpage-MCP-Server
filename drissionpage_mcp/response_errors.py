@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Union
+from typing import Any
 
 
 class ErrorCode(str, Enum):
@@ -26,6 +27,7 @@ class ErrorCode(str, Enum):
     OPERATION_IN_FLIGHT = "OPERATION_IN_FLIGHT"
     TASK_LEDGER_FULL = "TASK_LEDGER_FULL"
     PRECONDITION_FAILED = "PRECONDITION_FAILED"
+    AMBIGUOUS_TARGET = "AMBIGUOUS_TARGET"
 
 
 @dataclass
@@ -34,10 +36,10 @@ class ToolError:
 
     code: str
     message: str
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
-        payload: Dict[str, Any] = {"code": self.code, "message": self.message}
+    def to_dict(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {"code": self.code, "message": self.message}
         if self.details:
             payload["details"] = self.details
         return payload
@@ -151,11 +153,11 @@ _HINT_SPECS = _parse_hint_table(_HINT_TABLE)
 
 
 def recovery_hints(
-    code: Union[str, ErrorCode],
+    code: str | ErrorCode,
     *,
     tool_name: str = "",
     message: str = "",
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     """Return deterministic, machine-readable recovery hints for common failures."""
 
     code_value = code.value if isinstance(code, ErrorCode) else str(code)
@@ -209,7 +211,7 @@ _DYNAMIC_HINT_BUILDERS: dict[str, HintBuilder] = {
 }
 
 
-def _materialize_hints(specs: list[HintSpec]) -> List[Dict[str, str]]:
+def _materialize_hints(specs: list[HintSpec]) -> list[dict[str, str]]:
     return [
         _hint(action, message, tool=tool, command=command, env=env)
         for action, message, tool, command, env in specs
@@ -223,7 +225,7 @@ def _hint(
     tool: str = "",
     command: str = "",
     env: str = "",
-) -> Dict[str, str]:
+) -> dict[str, str]:
     hint = {"action": action, "message": message}
     if tool:
         hint["tool"] = tool

@@ -1317,6 +1317,382 @@
       "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": true,
+      "title": "Accessibility Snapshot"
+    },
+    "description": "Return a bounded Chromium accessibility tree for the page or a scoped selector/frame/shadow target.",
+    "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Input schema for a bounded accessibility-tree snapshot.",
+      "properties": {
+        "include_ignored": {
+          "default": false,
+          "title": "Include Ignored",
+          "type": "boolean"
+        },
+        "include_values": {
+          "default": false,
+          "description": "Return accessibility field values. Defaults to false to avoid leaking secrets.",
+          "title": "Include Values",
+          "type": "boolean"
+        },
+        "max_nodes": {
+          "default": 200,
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Max Nodes",
+          "type": "integer"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional selector/accessibility element whose AX subtree is returned.",
+          "title": "Scope"
+        }
+      },
+      "title": "PageAccessibilitySnapshotInput",
+      "type": "object"
+    },
+    "name": "page_accessibility_snapshot",
+    "outputSchema": {
+      "$defs": {
+        "AccessibilityNodeData": {
+          "additionalProperties": false,
+          "properties": {
+            "backend_dom_node_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Backend Dom Node Id"
+            },
+            "description": {
+              "title": "Description",
+              "type": "string"
+            },
+            "ignored": {
+              "title": "Ignored",
+              "type": "boolean"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "node_id": {
+              "title": "Node Id",
+              "type": "string"
+            },
+            "parent_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parent Id"
+            },
+            "properties": {
+              "additionalProperties": true,
+              "title": "Properties",
+              "type": "object"
+            },
+            "role": {
+              "title": "Role",
+              "type": "string"
+            },
+            "value": {
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "node_id",
+            "parent_id",
+            "backend_dom_node_id",
+            "role",
+            "name",
+            "description",
+            "value",
+            "ignored",
+            "properties"
+          ],
+          "title": "AccessibilityNodeData",
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "count": {
+                  "title": "Count",
+                  "type": "integer"
+                },
+                "max_nodes": {
+                  "title": "Max Nodes",
+                  "type": "integer"
+                },
+                "meta": {
+                  "additionalProperties": true,
+                  "title": "Meta",
+                  "type": "object"
+                },
+                "nodes": {
+                  "items": {
+                    "$ref": "#/$defs/AccessibilityNodeData"
+                  },
+                  "title": "Nodes",
+                  "type": "array"
+                },
+                "returned": {
+                  "title": "Returned",
+                  "type": "integer"
+                },
+                "scope": {
+                  "anyOf": [
+                    {
+                      "additionalProperties": true,
+                      "type": "object"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Scope"
+                },
+                "truncated": {
+                  "title": "Truncated",
+                  "type": "boolean"
+                },
+                "values_included": {
+                  "title": "Values Included",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "nodes",
+                "count",
+                "returned",
+                "max_nodes",
+                "truncated",
+                "values_included",
+                "scope",
+                "meta"
+              ],
+              "title": "PageAccessibilitySnapshotData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Accessibility Snapshot"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
       "title": "Observe Page"
     },
     "description": "Return a compact current-page fingerprint with URL, title, ready state, element counts, visible text samples, active element, and recent console summary.",
@@ -3482,6 +3858,156 @@
   },
   {
     "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Observe Page Dialog"
+    },
+    "description": "Observe a pending native alert, confirm, or prompt and return its bounded message without handling it.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Bounded wait for a native JavaScript dialog without responding to it.",
+      "properties": {
+        "max_message_chars": {
+          "default": 2000,
+          "description": "Maximum dialog message characters returned to the MCP client.",
+          "maximum": 10000,
+          "minimum": 0,
+          "title": "Max Message Chars",
+          "type": "integer"
+        },
+        "timeout": {
+          "default": 0,
+          "description": "Seconds to wait for a pending alert, confirm, or prompt.",
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "title": "PageDialogObserveInput",
+      "type": "object"
+    },
+    "name": "page_dialog_observe",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "dialog_type": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "alert",
+                        "confirm",
+                        "prompt"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Dialog Type"
+                },
+                "message": {
+                  "title": "Message",
+                  "type": "string"
+                },
+                "message_truncated": {
+                  "title": "Message Truncated",
+                  "type": "boolean"
+                },
+                "pending": {
+                  "title": "Pending",
+                  "type": "boolean"
+                },
+                "timed_out": {
+                  "title": "Timed Out",
+                  "type": "boolean"
+                },
+                "timeout": {
+                  "title": "Timeout",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "pending",
+                "timed_out",
+                "dialog_type",
+                "message",
+                "message_truncated",
+                "timeout"
+              ],
+              "title": "PageDialogObserveData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Observe Page Dialog"
+  },
+  {
+    "annotations": {
       "destructiveHint": true,
       "idempotentHint": false,
       "openWorldHint": true,
@@ -3840,6 +4366,117 @@
     },
     "description": "Perform one native element click, await one completed download, and return an integrity-checked safe artifact receipt.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Strict request for one native click and one correlated download.",
       "properties": {
@@ -3889,11 +4526,32 @@
           "title": "Operation Key"
         },
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS/XPath/DrissionPage selector for the download control.",
-          "maxLength": 500,
-          "minLength": 1,
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         },
         "timeout": {
           "default": 30.0,
@@ -4025,9 +4683,40 @@
               "title": "Artifact",
               "type": "null"
             },
+            "exact": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Exact"
+            },
+            "frame_selectors": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Frame Selectors",
+              "type": "array"
+            },
             "locator": {
               "title": "Locator",
               "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
             },
             "operation_key": {
               "title": "Operation Key",
@@ -4035,6 +4724,18 @@
             },
             "receipt": {
               "$ref": "#/$defs/ElementClickAndDownloadFailedReceipt"
+            },
+            "role": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Role"
             },
             "selector": {
               "title": "Selector",
@@ -4048,18 +4749,34 @@
               "title": "Selector Strategy",
               "type": "string"
             },
+            "shadow_hosts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Shadow Hosts",
+              "type": "array"
+            },
             "status": {
               "const": "failed",
               "title": "Status",
               "type": "string"
+            },
+            "target_kind": {
+              "default": "selector",
+              "enum": [
+                "selector",
+                "accessibility"
+              ],
+              "title": "Target Kind",
+              "type": "string"
             }
           },
           "required": [
-            "operation_key",
             "selector",
             "locator",
             "selector_strategy",
             "selector_normalized",
+            "operation_key",
             "status",
             "artifact",
             "receipt"
@@ -4194,9 +4911,40 @@
               "title": "Artifact",
               "type": "null"
             },
+            "exact": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Exact"
+            },
+            "frame_selectors": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Frame Selectors",
+              "type": "array"
+            },
             "locator": {
               "title": "Locator",
               "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
             },
             "operation_key": {
               "title": "Operation Key",
@@ -4204,6 +4952,18 @@
             },
             "receipt": {
               "$ref": "#/$defs/ElementClickAndDownloadIndeterminateReceipt"
+            },
+            "role": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Role"
             },
             "selector": {
               "title": "Selector",
@@ -4217,18 +4977,34 @@
               "title": "Selector Strategy",
               "type": "string"
             },
+            "shadow_hosts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Shadow Hosts",
+              "type": "array"
+            },
             "status": {
               "const": "indeterminate",
               "title": "Status",
               "type": "string"
+            },
+            "target_kind": {
+              "default": "selector",
+              "enum": [
+                "selector",
+                "accessibility"
+              ],
+              "title": "Target Kind",
+              "type": "string"
             }
           },
           "required": [
-            "operation_key",
             "selector",
             "locator",
             "selector_strategy",
             "selector_normalized",
+            "operation_key",
             "status",
             "artifact",
             "receipt"
@@ -4362,9 +5138,40 @@
             "artifact": {
               "$ref": "#/$defs/ArtifactRef"
             },
+            "exact": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Exact"
+            },
+            "frame_selectors": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Frame Selectors",
+              "type": "array"
+            },
             "locator": {
               "title": "Locator",
               "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
             },
             "operation_key": {
               "title": "Operation Key",
@@ -4372,6 +5179,18 @@
             },
             "receipt": {
               "$ref": "#/$defs/ElementClickAndDownloadSuccessReceipt"
+            },
+            "role": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Role"
             },
             "selector": {
               "title": "Selector",
@@ -4385,18 +5204,34 @@
               "title": "Selector Strategy",
               "type": "string"
             },
+            "shadow_hosts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Shadow Hosts",
+              "type": "array"
+            },
             "status": {
               "const": "success",
               "title": "Status",
               "type": "string"
+            },
+            "target_kind": {
+              "default": "selector",
+              "enum": [
+                "selector",
+                "accessibility"
+              ],
+              "title": "Target Kind",
+              "type": "string"
             }
           },
           "required": [
-            "operation_key",
             "selector",
             "locator",
             "selector_strategy",
             "selector_normalized",
+            "operation_key",
             "status",
             "artifact",
             "receipt"
@@ -4532,9 +5367,40 @@
               "title": "Artifact",
               "type": "null"
             },
+            "exact": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Exact"
+            },
+            "frame_selectors": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Frame Selectors",
+              "type": "array"
+            },
             "locator": {
               "title": "Locator",
               "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
             },
             "operation_key": {
               "title": "Operation Key",
@@ -4542,6 +5408,18 @@
             },
             "receipt": {
               "$ref": "#/$defs/ElementClickAndDownloadValidationFailedReceipt"
+            },
+            "role": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Role"
             },
             "selector": {
               "title": "Selector",
@@ -4555,18 +5433,34 @@
               "title": "Selector Strategy",
               "type": "string"
             },
+            "shadow_hosts": {
+              "items": {
+                "type": "string"
+              },
+              "title": "Shadow Hosts",
+              "type": "array"
+            },
             "status": {
               "const": "validation_failed",
               "title": "Status",
               "type": "string"
+            },
+            "target_kind": {
+              "default": "selector",
+              "enum": [
+                "selector",
+                "accessibility"
+              ],
+              "title": "Target Kind",
+              "type": "string"
             }
           },
           "required": [
-            "operation_key",
             "selector",
             "locator",
             "selector_strategy",
             "selector_normalized",
+            "operation_key",
             "status",
             "artifact",
             "receipt"
@@ -4974,13 +5868,147 @@
     },
     "description": "Find an element on the page using CSS selector or XPath. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for finding elements.",
       "properties": {
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         },
         "timeout": {
           "default": 3,
@@ -5088,6 +6116,117 @@
     },
     "description": "Find multiple matching elements with bounded text/attribute summaries and recommended selectors for repeated lists, cards, and tables.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for bounded multi-element extraction.",
       "properties": {
@@ -5106,9 +6245,32 @@
           "type": "integer"
         },
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS selector, XPath, or explicit DrissionPage locator for repeated elements. Bare selectors are CSS.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         }
       },
       "required": [
@@ -5138,6 +6300,25 @@
                   "title": "Elements",
                   "type": "array"
                 },
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "limit": {
                   "title": "Limit",
                   "type": "integer"
@@ -5151,9 +6332,33 @@
                   "title": "Meta",
                   "type": "object"
                 },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
                 "returned": {
                   "title": "Returned",
                   "type": "integer"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -5165,6 +6370,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "truncated": {
@@ -5257,6 +6478,117 @@
     },
     "description": "Click an element found by CSS selector or XPath. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for clicking elements.",
       "properties": {
@@ -5286,9 +6618,32 @@
           "type": "boolean"
         },
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         },
         "timeout": {
           "default": 10,
@@ -5344,9 +6699,52 @@
                   "title": "Click Count",
                   "type": "integer"
                 },
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -5358,6 +6756,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "url": {
@@ -5447,6 +6861,117 @@
     },
     "description": "Type text into an input element",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for typing text.",
       "properties": {
@@ -5463,9 +6988,32 @@
           "type": "boolean"
         },
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS selector or XPath to find the input element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         },
         "text": {
           "description": "Text to type into the element",
@@ -5514,9 +7062,52 @@
                   "title": "Cleared",
                   "type": "boolean"
                 },
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -5528,6 +7119,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "typed": {
@@ -5617,14 +7224,152 @@
     },
     "description": "Get text from an element or the whole page",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for getting text.",
       "properties": {
         "selector": {
+          "anyOf": [
+            {
+              "const": "",
+              "type": "string"
+            },
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "default": "",
           "description": "CSS selector or XPath; empty means whole page. Bare selectors are CSS; use text:... for text matching.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         }
       },
       "title": "GetTextInput",
@@ -5639,9 +7384,52 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -5655,17 +7443,33 @@
                   "title": "Selector Strategy",
                   "type": "string"
                 },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
+                  "type": "string"
+                },
                 "text": {
                   "title": "Text",
                   "type": "string"
                 }
               },
               "required": [
-                "text",
                 "selector",
                 "locator",
                 "selector_strategy",
-                "selector_normalized"
+                "selector_normalized",
+                "text"
               ],
               "title": "ElementGetTextData",
               "type": "object"
@@ -5740,6 +7544,117 @@
     },
     "description": "Get an attribute value from an element",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for getting an element attribute.",
       "properties": {
@@ -5749,9 +7664,32 @@
           "type": "string"
         },
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         }
       },
       "required": [
@@ -5774,9 +7712,52 @@
                   "title": "Attribute",
                   "type": "string"
                 },
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -5788,6 +7769,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "value": {
@@ -5883,6 +7880,117 @@
     },
     "description": "Get a live DOM property value from an element, such as an input's current value",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for getting a live DOM property.",
       "properties": {
@@ -5892,9 +8000,32 @@
           "type": "string"
         },
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         }
       },
       "required": [
@@ -5913,13 +8044,56 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
                 },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
                 "property": {
                   "title": "Property",
                   "type": "string"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -5931,6 +8105,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "value": {
@@ -6018,14 +8208,152 @@
     },
     "description": "Get HTML from an element or the whole page",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for getting HTML.",
       "properties": {
         "selector": {
+          "anyOf": [
+            {
+              "const": "",
+              "type": "string"
+            },
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "default": "",
           "description": "CSS selector or XPath; empty means whole page. Bare selectors are CSS; use text:... for text matching.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         }
       },
       "title": "GetHtmlInput",
@@ -6040,6 +8368,25 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "html": {
                   "title": "Html",
                   "type": "string"
@@ -6047,6 +8394,30 @@
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -6059,14 +8430,30 @@
                 "selector_strategy": {
                   "title": "Selector Strategy",
                   "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
+                  "type": "string"
                 }
               },
               "required": [
-                "html",
                 "selector",
                 "locator",
                 "selector_strategy",
-                "selector_normalized"
+                "selector_normalized",
+                "html"
               ],
               "title": "ElementGetHtmlData",
               "type": "object"
@@ -6133,6 +8520,480 @@
   },
   {
     "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Get Element State"
+    },
+    "description": "Return DrissionPage element state and page/viewport geometry for a selector or accessibility target.",
+    "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Input schema for inspecting element state and geometry.",
+      "properties": {
+        "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
+          "description": "String locator or structured selector/accessibility target with frame and shadow scope.",
+          "title": "Selector"
+        },
+        "timeout": {
+          "default": 3,
+          "maximum": 120,
+          "minimum": 0,
+          "title": "Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selector"
+      ],
+      "title": "ElementStateInput",
+      "type": "object"
+    },
+    "name": "element_state_get",
+    "outputSchema": {
+      "$defs": {
+        "ElementRectData": {
+          "additionalProperties": false,
+          "properties": {
+            "click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "coordinate_space": {
+              "const": "target_document",
+              "title": "Coordinate Space",
+              "type": "string"
+            },
+            "location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "midpoint": {
+              "$ref": "#/$defs/PointData"
+            },
+            "size": {
+              "$ref": "#/$defs/SizeData"
+            },
+            "viewport_click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_midpoint": {
+              "$ref": "#/$defs/PointData"
+            }
+          },
+          "required": [
+            "location",
+            "size",
+            "midpoint",
+            "click_point",
+            "viewport_location",
+            "viewport_midpoint",
+            "viewport_click_point",
+            "coordinate_space"
+          ],
+          "title": "ElementRectData",
+          "type": "object"
+        },
+        "PointData": {
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "title": "PointData",
+          "type": "object"
+        },
+        "SizeData": {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "title": "Height",
+              "type": "number"
+            },
+            "width": {
+              "title": "Width",
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "title": "SizeData",
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "alive": {
+                  "title": "Alive",
+                  "type": "boolean"
+                },
+                "checked": {
+                  "title": "Checked",
+                  "type": "boolean"
+                },
+                "clickable": {
+                  "title": "Clickable",
+                  "type": "boolean"
+                },
+                "covered": {
+                  "title": "Covered",
+                  "type": "boolean"
+                },
+                "covering_backend_node_id": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Covering Backend Node Id"
+                },
+                "displayed": {
+                  "title": "Displayed",
+                  "type": "boolean"
+                },
+                "enabled": {
+                  "title": "Enabled",
+                  "type": "boolean"
+                },
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
+                "in_viewport": {
+                  "title": "In Viewport",
+                  "type": "boolean"
+                },
+                "locator": {
+                  "title": "Locator",
+                  "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "rect": {
+                  "$ref": "#/$defs/ElementRectData"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
+                },
+                "selected": {
+                  "title": "Selected",
+                  "type": "boolean"
+                },
+                "selector": {
+                  "title": "Selector",
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "title": "Selector Normalized",
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "tag": {
+                  "title": "Tag",
+                  "type": "string"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
+                  "type": "string"
+                },
+                "text": {
+                  "title": "Text",
+                  "type": "string"
+                },
+                "whole_in_viewport": {
+                  "title": "Whole In Viewport",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "tag",
+                "text",
+                "displayed",
+                "enabled",
+                "alive",
+                "clickable",
+                "checked",
+                "selected",
+                "in_viewport",
+                "whole_in_viewport",
+                "covered",
+                "covering_backend_node_id",
+                "rect"
+              ],
+              "title": "ElementStateData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Get Element State"
+  },
+  {
+    "annotations": {
       "destructiveHint": true,
       "idempotentHint": false,
       "openWorldHint": true,
@@ -6141,6 +9002,117 @@
     },
     "description": "Set files on an input[type=file]. Paths must exist under DP_MCP_UPLOAD_ROOT and response data only returns safe file names.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for file uploads.",
       "properties": {
@@ -6154,9 +9126,32 @@
           "type": "array"
         },
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS/XPath/DrissionPage locator for an input[type=file].",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         },
         "timeout": {
           "default": 10,
@@ -6183,6 +9178,18 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
                 "file_count": {
                   "title": "File Count",
                   "type": "integer"
@@ -6194,9 +9201,40 @@
                   "title": "Filenames",
                   "type": "array"
                 },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -6208,6 +9246,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "uploaded": {
@@ -6453,6 +9507,117 @@
     },
     "description": "Scroll an element into the viewport before a later action.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for scrolling an element into view.",
       "properties": {
@@ -6463,9 +9628,32 @@
           "type": "boolean"
         },
         "selector": {
-          "description": "CSS/XPath/DrissionPage element locator.",
-          "title": "Selector",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
+          "description": "String locator or structured element target.",
+          "title": "Selector"
         },
         "timeout": {
           "default": 10,
@@ -6494,9 +9682,52 @@
                   "title": "Center",
                   "type": "boolean"
                 },
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -6508,6 +9739,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "url": {
@@ -6596,6 +9843,117 @@
     },
     "description": "Move the mouse over an element.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for hovering an element.",
       "properties": {
@@ -6626,9 +9984,32 @@
           "title": "Offset Y"
         },
         "selector": {
-          "description": "CSS/XPath/DrissionPage element locator.",
-          "title": "Selector",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
+          "description": "String locator or structured element target.",
+          "title": "Selector"
         },
         "timeout": {
           "default": 10,
@@ -6653,9 +10034,40 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
                 },
                 "offset_x": {
                   "anyOf": [
@@ -6679,6 +10091,18 @@
                   ],
                   "title": "Offset Y"
                 },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
+                },
                 "selector": {
                   "title": "Selector",
                   "type": "string"
@@ -6689,6 +10113,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "url": {
@@ -6901,6 +10341,117 @@
     },
     "description": "Select an option from a select element by value, text, or index.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for selecting an option.",
       "properties": {
@@ -6916,9 +10467,32 @@
           "type": "string"
         },
         "selector": {
-          "description": "CSS/XPath/DrissionPage select locator.",
-          "title": "Selector",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
+          "description": "String locator or structured select target.",
+          "title": "Selector"
         },
         "timeout": {
           "default": 10,
@@ -6953,9 +10527,52 @@
                   "title": "By",
                   "type": "string"
                 },
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selected": {
                   "const": true,
@@ -6972,6 +10589,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "value": {
@@ -7061,6 +10694,117 @@
     },
     "description": "Set a checkbox or radio element to checked/unchecked.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for checkbox/radio state.",
       "properties": {
@@ -7077,9 +10821,32 @@
           "type": "boolean"
         },
         "selector": {
-          "description": "CSS/XPath/DrissionPage checkbox locator.",
-          "title": "Selector",
-          "type": "string"
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
+          "description": "String locator or structured checkbox target.",
+          "title": "Selector"
         },
         "timeout": {
           "default": 10,
@@ -7112,9 +10879,52 @@
                   "title": "Checked",
                   "type": "boolean"
                 },
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -7126,6 +10936,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 }
               },
@@ -9164,13 +12990,147 @@
     },
     "description": "Wait for an element to appear on the page. Bare selectors are treated as CSS; use text:... for text matching.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for waiting for elements.",
       "properties": {
         "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "description": "CSS selector or XPath to wait for. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         },
         "timeout": {
           "default": 10,
@@ -9196,14 +13156,57 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
                 "found": {
                   "const": true,
                   "title": "Found",
                   "type": "boolean"
                 },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
                 "locator": {
                   "title": "Locator",
                   "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
                 },
                 "selector": {
                   "title": "Selector",
@@ -9215,6 +13218,22 @@
                 },
                 "selector_strategy": {
                   "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
                   "type": "string"
                 },
                 "timeout": {
@@ -9539,6 +13558,117 @@
     },
     "description": "Wait for observable page state: element present/visible/hidden/detached/clickable/stable, text contains/matches, or URL contains/matches.",
     "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
       "additionalProperties": false,
       "description": "Input schema for generalized observable waits.",
       "properties": {
@@ -9578,10 +13708,37 @@
           "type": "string"
         },
         "selector": {
+          "anyOf": [
+            {
+              "const": "",
+              "type": "string"
+            },
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
           "default": "",
           "description": "CSS/XPath/DrissionPage locator for element or text conditions",
-          "title": "Selector",
-          "type": "string"
+          "title": "Selector"
         },
         "stable_ms": {
           "default": 300,

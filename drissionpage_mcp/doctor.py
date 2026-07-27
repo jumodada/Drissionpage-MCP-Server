@@ -8,7 +8,7 @@ import platform
 import re
 import shutil
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from . import __version__
 
@@ -31,10 +31,10 @@ def _package_version(module_name: str, version_attr: str = "__version__") -> str
         module = importlib.import_module(module_name)
         return str(getattr(module, version_attr, "unknown"))
     except Exception as exc:
-        return "unavailable: %s" % exc
+        return f"unavailable: {exc}"
 
 
-def _find_browser() -> Optional[str]:
+def _find_browser() -> str | None:
     candidates = [
         os.getenv("CHROME_PATH"),
         os.getenv("DP_BROWSER_PATH"),
@@ -68,7 +68,7 @@ def _env_truthy(name: str) -> bool:
     }
 
 
-def _config() -> Dict[str, Any]:
+def _config() -> dict[str, Any]:
     names = [
         "CHROME_PATH",
         "DP_BROWSER_PATH",
@@ -94,7 +94,7 @@ def _config() -> Dict[str, Any]:
         "DP_MCP_SCREENSHOT_ROOT",
         "DP_MCP_UPLOAD_ROOT",
     }
-    config: Dict[str, Any] = {}
+    config: dict[str, Any] = {}
     for name in names:
         value = os.getenv(name)
         if value is None:
@@ -116,11 +116,11 @@ def _config() -> Dict[str, Any]:
     return config
 
 
-def run_diagnostics(launch_browser: bool = False) -> Dict[str, Any]:
+def run_diagnostics(launch_browser: bool = False) -> dict[str, Any]:
     """Collect package/config/browser diagnostics without launching by default."""
 
-    checks: List[Dict[str, Any]] = []
-    hints: List[str] = []
+    checks: list[dict[str, Any]] = []
+    hints: list[str] = []
 
     def check(name: str, ok: bool, detail: str = "") -> None:
         checks.append({"name": name, "ok": bool(ok), "detail": detail})
@@ -194,7 +194,7 @@ def run_diagnostics(launch_browser: bool = False) -> Dict[str, Any]:
                 quit_browser(browser)
         except Exception as exc:
             launch_ok = False
-            launch_detail = "%s: %s" % (exc.__class__.__name__, exc)
+            launch_detail = f"{exc.__class__.__name__}: {exc}"
             hints.append(
                 "Browser launch failed. Check CHROME_PATH/DP_BROWSER_PATH, sandbox permissions, and headless settings."
             )
@@ -224,13 +224,13 @@ def _is_drissionpage_5_or_newer(version: str) -> bool:
     return int(match.group(1)) >= 5
 
 
-def format_diagnostics(report: Dict[str, Any]) -> str:
+def format_diagnostics(report: dict[str, Any]) -> str:
     """Format diagnostics for humans while preserving JSON parseability."""
 
     lines = [
         "DrissionPage MCP doctor",
         "status: %s" % ("ok" if report.get("ok") else "problem"),
-        "version: %s" % report.get("version", "unknown"),
+        f"version: {report.get('version', 'unknown')}",
     ]
     platform_info = report.get("platform", {})
     lines.append(
@@ -244,13 +244,11 @@ def format_diagnostics(report: Dict[str, Any]) -> str:
     lines.append("checks:")
     for item in report.get("checks", []):
         mark = "ok" if item.get("ok") else "fail"
-        lines.append(
-            "  - [%s] %s: %s" % (mark, item.get("name"), item.get("detail", ""))
-        )
+        lines.append(f"  - [{mark}] {item.get('name')}: {item.get('detail', '')}")
     if report.get("hints"):
         lines.append("hints:")
         for hint in report["hints"]:
-            lines.append("  - %s" % hint)
+            lines.append(f"  - {hint}")
     lines.append("### JSON_RESULT")
     lines.append("```json")
     lines.append(json.dumps(report, ensure_ascii=False, sort_keys=True))

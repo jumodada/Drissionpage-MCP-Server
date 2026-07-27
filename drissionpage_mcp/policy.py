@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import ipaddress
 import os
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
 from urllib.parse import urlparse
 
 from .env import env_bool
@@ -49,7 +49,7 @@ class SafetyPolicy:
     deny_download: bool = False
 
     @classmethod
-    def from_env(cls) -> "SafetyPolicy":
+    def from_env(cls) -> SafetyPolicy:
         """Build a policy from process environment variables."""
 
         root = os.getenv(ENV_SCREENSHOT_ROOT)

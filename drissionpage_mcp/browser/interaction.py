@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from ..selector import normalize_selector
+from ..target import ElementTargetArg, target_label
 
 if TYPE_CHECKING:
     from ..tab import PageTab
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class InteractionOperations:
     """Own scrolling, hover, keyboard, selection, and check behavior."""
 
-    def __init__(self, tab: "PageTab") -> None:
+    def __init__(self, tab: PageTab) -> None:
         self._tab = tab
 
     @property
@@ -64,43 +64,43 @@ class InteractionOperations:
             raise
 
     async def scroll_element_into_view(
-        self, selector: str, *, center: bool = True, timeout: int = 10
+        self, selector: ElementTargetArg, *, center: bool = True, timeout: int = 10
     ) -> dict[str, Any]:
         try:
-            plan = normalize_selector(selector)
-            element = await self._tab._element_by_plan(plan, timeout=timeout)
-            element.scroll.to_see(center=center)
+            resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
+            resolved.element.scroll.to_see(center=center)
             await self._tab._stabilize(
                 "element_scroll_into_view", timeout=0.5, fallback_sleep=0.02
             )
-            return {**plan.metadata(), "center": center, "url": self._tab.url}
+            return {**resolved.metadata(), "center": center, "url": self._tab.url}
         except Exception as exc:
-            logger.error("Failed to scroll element into view %s: %s", selector, exc)
+            logger.error(
+                "Failed to scroll element into view %s: %s", target_label(selector), exc
+            )
             raise
 
     async def hover_element(
         self,
-        selector: str,
+        selector: ElementTargetArg,
         *,
         timeout: int = 10,
         offset_x: int | None = None,
         offset_y: int | None = None,
     ) -> dict[str, Any]:
         try:
-            plan = normalize_selector(selector)
-            element = await self._tab._element_by_plan(plan, timeout=timeout)
-            element.hover(offset_x=offset_x, offset_y=offset_y)
+            resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
+            resolved.element.hover(offset_x=offset_x, offset_y=offset_y)
             await self._tab._stabilize(
                 "element_hover", timeout=0.5, fallback_sleep=0.02
             )
             return {
-                **plan.metadata(),
+                **resolved.metadata(),
                 "url": self._tab.url,
                 "offset_x": offset_x,
                 "offset_y": offset_y,
             }
         except Exception as exc:
-            logger.error("Failed to hover element %s: %s", selector, exc)
+            logger.error("Failed to hover element %s: %s", target_label(selector), exc)
             raise
 
     async def keyboard_press(self, keys: str, *, interval: float = 0) -> dict[str, Any]:
@@ -116,15 +116,15 @@ class InteractionOperations:
 
     async def select_element(
         self,
-        selector: str,
+        selector: ElementTargetArg,
         *,
         value: str,
         by: str = "value",
         timeout: int = 10,
     ) -> dict[str, Any]:
         try:
-            plan = normalize_selector(selector)
-            element = await self._tab._element_by_plan(plan, timeout=timeout)
+            resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
+            element = resolved.element
             select = element.select
             actions = {
                 "value": lambda: select.by_value(value, timeout=timeout),
@@ -138,27 +138,34 @@ class InteractionOperations:
             await self._tab._stabilize(
                 "element_select", timeout=0.5, fallback_sleep=0.02
             )
-            return {**plan.metadata(), "selected": True, "by": by, "value": value}
+            return {
+                **resolved.metadata(),
+                "selected": True,
+                "by": by,
+                "value": value,
+            }
         except Exception as exc:
-            logger.error("Failed to select option for %s: %s", selector, exc)
+            logger.error(
+                "Failed to select option for %s: %s", target_label(selector), exc
+            )
             raise
 
     async def check_element(
         self,
-        selector: str,
+        selector: ElementTargetArg,
         *,
         checked: bool = True,
         by_js: bool = False,
         timeout: int = 10,
     ) -> dict[str, Any]:
         try:
-            plan = normalize_selector(selector)
-            element = await self._tab._element_by_plan(plan, timeout=timeout)
+            resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
+            element = resolved.element
             element.check(uncheck=not checked, by_js=by_js)
             await self._tab._stabilize(
                 "element_check", timeout=0.5, fallback_sleep=0.02
             )
-            return {**plan.metadata(), "checked": checked, "by_js": by_js}
+            return {**resolved.metadata(), "checked": checked, "by_js": by_js}
         except Exception as exc:
-            logger.error("Failed to check element %s: %s", selector, exc)
+            logger.error("Failed to check element %s: %s", target_label(selector), exc)
             raise

@@ -4,7 +4,6 @@ import argparse
 import asyncio
 import logging
 import sys
-from typing import List, Optional
 
 from mcp.server.stdio import stdio_server
 
@@ -15,7 +14,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-async def main_async(args: Optional[List[str]] = None) -> None:
+async def main_async(args: list[str] | None = None) -> None:
     """Main async function."""
     parser = argparse.ArgumentParser(
         description="DrissionPage MCP Server - Web automation tools for MCP",
@@ -75,7 +74,7 @@ async def main_async(args: Optional[List[str]] = None) -> None:
         await server.cleanup()
 
 
-def main(args: Optional[List[str]] = None) -> None:
+def main(args: list[str] | None = None) -> None:
     """Main entry point."""
     try:
         asyncio.run(main_async(args))

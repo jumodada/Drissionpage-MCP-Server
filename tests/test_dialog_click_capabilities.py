@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import asyncio
+import json
 from datetime import datetime, timezone
-from time import monotonic
+from threading import Event, Timer
+from time import monotonic, sleep
 from types import SimpleNamespace
 
 import pytest
@@ -170,6 +171,164 @@ async def test_dialog_adapter_classifies_pending_and_native_failure_paths() -> N
             prompt_text=None,
             timeout=0.01,
         )
+
+
+@pytest.mark.asyncio
+async def test_dialog_native_response_does_not_block_the_event_loop() -> None:
+    class SlowDialogPage(_DialogPage):
+        def _handle_alert(
+            self, *, accept: bool, send: str | None, timeout: float, next_one: bool
+        ) -> object:
+            sleep(0.05)
+            return super()._handle_alert(
+                accept=accept, send=send, timeout=timeout, next_one=next_one
+            )
+
+    operations = DialogOperations(SimpleNamespace(page=SlowDialogPage()))  # type: ignore[arg-type]
+    response = asyncio.create_task(
+        operations.respond(
+            pending={"dialog_type": "alert", "message": "message"},
+            action="accept",
+            prompt_text=None,
+            timeout=0.2,
+        )
+    )
+
+    await asyncio.sleep(0.01)
+
+    assert response.done() is False
+    await response
+
+
+@pytest.mark.asyncio
+async def test_dialog_concurrent_responses_invoke_native_handler_once() -> None:
+    class CountingDialogPage(_DialogPage):
+        def __init__(self) -> None:
+            super().__init__()
+            self.calls = 0
+
+        def _handle_alert(
+            self, *, accept: bool, send: str | None, timeout: float, next_one: bool
+        ) -> object:
+            self.calls += 1
+            sleep(0.03)
+            return super()._handle_alert(
+                accept=accept, send=send, timeout=timeout, next_one=next_one
+            )
+
+    page = CountingDialogPage()
+    operations = DialogOperations(SimpleNamespace(page=page))  # type: ignore[arg-type]
+    pending = {"dialog_type": "alert", "message": "message"}
+
+    results = await asyncio.gather(
+        operations.respond(
+            pending=pending,
+            action="accept",
+            prompt_text=None,
+            timeout=0.2,
+        ),
+        operations.respond(
+            pending=pending,
+            action="accept",
+            prompt_text=None,
+            timeout=0.2,
+        ),
+        return_exceptions=True,
+    )
+
+    assert page.calls == 1
+    assert sum(result is None for result in results) == 1
+    assert sum(isinstance(result, DialogPreconditionError) for result in results) == 1
+
+
+@pytest.mark.asyncio
+async def test_dialog_response_lock_is_held_until_delayed_closure() -> None:
+    class DelayedClosurePage(_DialogPage):
+        def __init__(self) -> None:
+            super().__init__()
+            self.calls = 0
+
+        def _handle_alert(
+            self, *, accept: bool, send: str | None, timeout: float, next_one: bool
+        ) -> object:
+            self.calls += 1
+            Timer(0.03, setattr, args=(self.states, "has_alert", False)).start()
+            return True
+
+    page = DelayedClosurePage()
+    operations = DialogOperations(SimpleNamespace(page=page))  # type: ignore[arg-type]
+    pending = {"dialog_type": "alert", "message": "message"}
+
+    results = await asyncio.gather(
+        operations.respond(
+            pending=pending,
+            action="accept",
+            prompt_text=None,
+            timeout=0.2,
+        ),
+        operations.respond(
+            pending=pending,
+            action="accept",
+            prompt_text=None,
+            timeout=0.2,
+        ),
+        return_exceptions=True,
+    )
+
+    assert page.calls == 1
+    assert sum(result is None for result in results) == 1
+    assert sum(isinstance(result, DialogPreconditionError) for result in results) == 1
+
+
+@pytest.mark.asyncio
+async def test_dialog_cancellation_drains_native_response_before_unlocking() -> None:
+    class PausedDialogPage(_DialogPage):
+        def __init__(self) -> None:
+            super().__init__()
+            self.calls = 0
+            self.started = Event()
+            self.release = Event()
+
+        def _handle_alert(
+            self, *, accept: bool, send: str | None, timeout: float, next_one: bool
+        ) -> object:
+            self.calls += 1
+            self.started.set()
+            self.release.wait(timeout)
+            self.states.has_alert = False
+            return True
+
+    page = PausedDialogPage()
+    operations = DialogOperations(SimpleNamespace(page=page))  # type: ignore[arg-type]
+    pending = {"dialog_type": "alert", "message": "message"}
+    first = asyncio.create_task(
+        operations.respond(
+            pending=pending,
+            action="accept",
+            prompt_text=None,
+            timeout=0.5,
+        )
+    )
+    assert await asyncio.to_thread(page.started.wait, 0.1)
+
+    first.cancel()
+    second = asyncio.create_task(
+        operations.respond(
+            pending=pending,
+            action="accept",
+            prompt_text=None,
+            timeout=0.5,
+        )
+    )
+    await asyncio.sleep(0.01)
+    calls_before_release = page.calls
+    page.release.set()
+    results = await asyncio.gather(first, second, return_exceptions=True)
+
+    assert calls_before_release == 1
+    assert page.calls == 1
+    assert isinstance(results[0], asyncio.CancelledError)
+    assert isinstance(results[1], DialogPreconditionError)
 
 
 @pytest.mark.asyncio

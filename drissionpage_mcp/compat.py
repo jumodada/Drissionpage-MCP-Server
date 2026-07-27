@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 import logging
 import os
-from typing import Any, Optional
+from typing import Any
 
 from DrissionPage import ChromiumOptions
 
@@ -99,7 +99,7 @@ def build_chromium_options() -> ChromiumOptions:
     return options
 
 
-def create_browser(options: Optional[ChromiumOptions] = None) -> Any:
+def create_browser(options: ChromiumOptions | None = None) -> Any:
     """Create a browser using the 4.2-preferred API with older fallbacks."""
 
     opts = options or build_chromium_options()
@@ -127,7 +127,7 @@ def get_latest_tab(browser: Any) -> Any:
     return tab
 
 
-def new_tab(browser: Any, url: Optional[str] = None) -> Any:
+def new_tab(browser: Any, url: str | None = None) -> Any:
     """Create a new tab across DrissionPage 4.1/4.2 signature differences."""
 
     if not hasattr(browser, "new_tab"):

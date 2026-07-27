@@ -1,14 +1,18 @@
 """Unit coverage for opt-in local safety policy controls."""
 
 from __future__ import annotations
+
 import json
 from unittest.mock import AsyncMock, Mock
+
 import pytest
+
 from drissionpage_mcp.context import DrissionPageContext
-from drissionpage_mcp.policy import SafetyPolicy
 from drissionpage_mcp.policy import (
     ENV_DENY_DOWNLOAD,
     ENV_DOWNLOAD_ROOT,
+    PolicyDeniedError,
+    SafetyPolicy,
 )
 from drissionpage_mcp.response_errors import ErrorCode
 from drissionpage_mcp.tools.base import ToolOutcome
@@ -35,7 +39,7 @@ def test_navigation_policy_uses_allowlist_first(monkeypatch) -> None:
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "example.com,https://allowed.test/app")
     SafetyPolicy.from_env().validate_navigation("https://sub.example.com/page")
     SafetyPolicy.from_env().validate_navigation("https://allowed.test/app/1")
-    with pytest.raises(Exception, match="allowlist|ALLOWLIST"):
+    with pytest.raises(PolicyDeniedError, match="allowlist|ALLOWLIST"):
         SafetyPolicy.from_env().validate_navigation("https://blocked.test/")
 
 
@@ -51,7 +55,7 @@ def test_navigation_policy_blocks_hosts_and_private_networks(monkeypatch) -> Non
         "http://10.0.0.1/",
         "http://192.168.1.1/",
     ):
-        with pytest.raises(Exception):
+        with pytest.raises(PolicyDeniedError):
             SafetyPolicy.from_env().validate_navigation(url)
 
 
@@ -108,7 +112,7 @@ async def test_screenshot_save_root_policy_blocks_path_before_file_write(
     assert response.is_error is True
     assert response.structured_content()["error"]["code"] == "POLICY_DENIED"
     hints = response.structured_content()["error"]["details"]["hints"]
-    assert any((hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in hints))
+    assert any(hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in hints)
     context.current_tab_or_die.assert_not_called()
 
 

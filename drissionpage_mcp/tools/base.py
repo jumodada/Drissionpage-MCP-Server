@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import base64
 import json
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Awaitable, Callable, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from mcp.types import ImageContent, TextContent
 from pydantic import BaseModel, ConfigDict
@@ -43,7 +44,7 @@ class EmptyInput(ToolInput):
 class ToolOutcome:
     """Structured tool result plus MCP text or image content."""
 
-    _content: list[Union[TextContent, ImageContent]] = field(default_factory=list)
+    _content: list[TextContent | ImageContent] = field(default_factory=list)
     _is_error: bool = False
     _message: str = ""
     _data: dict[str, Any] = field(default_factory=dict)
@@ -127,7 +128,7 @@ class ToolOutcome:
             "data": self._data,
         }
 
-    def content(self) -> list[Union[TextContent, ImageContent]]:
+    def content(self) -> list[TextContent | ImageContent]:
         content = list(self._content)
         if not content:
             heading = "Error" if self._is_error else "Result"
@@ -172,7 +173,7 @@ class ToolSpec(Generic[InputT, OutputT]):
         return self.input_model
 
     async def execute(
-        self, context: "DrissionPageContext", args: InputT
+        self, context: DrissionPageContext, args: InputT
     ) -> ToolOutcome:
         try:
             outcome = await self.handler(context, args)

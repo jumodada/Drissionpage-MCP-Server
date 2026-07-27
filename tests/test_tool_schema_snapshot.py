@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from drissionpage_mcp.server import DrissionPageMCPServer
 
@@ -25,7 +25,7 @@ def test_current_tool_schema_matches_snapshot() -> None:
     assert snapshot == expected
 
 
-def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
+def _build_tool_schema_snapshot() -> list[dict[str, Any]]:
     mcp_server = DrissionPageMCPServer()
     tools = []
     for tool in mcp_server.tools.values():
@@ -37,7 +37,7 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
         )
 
     names = [tool["name"] for tool in tools]
-    assert len(tools) == 60
+    assert len(tools) == 63
     assert {
         "form_inspect",
         "form_fill",
@@ -58,6 +58,9 @@ def _build_tool_schema_snapshot() -> List[Dict[str, Any]]:
     assert names.count("browser_user_agent_set") == 1
     assert names.count("browser_cache_clear") == 1
     assert names.count("network_blocked_urls_set") == 1
+    assert names.count("page_accessibility_snapshot") == 1
+    assert names.count("page_dialog_observe") == 1
+    assert names.count("element_state_get") == 1
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
     return tools
