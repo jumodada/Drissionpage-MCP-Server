@@ -13,6 +13,10 @@ from drissionpage_mcp.policy import (
     ENV_DOWNLOAD_ROOT,
     PolicyDeniedError,
     SafetyPolicy,
+    validate_download_root,
+    validate_external_download,
+    validate_navigation,
+    validate_screenshot_path,
 )
 from drissionpage_mcp.response_errors import ErrorCode
 from drissionpage_mcp.tools.base import ToolOutcome
@@ -211,6 +215,62 @@ def test_download_policy_summary_redacts_root_and_exposes_deny_flag(
     }
     assert summary["controls"]["deny_download"] is True
     assert str(tmp_path) not in json.dumps(summary, ensure_ascii=False)
+
+
+def test_restricted_policy_rejects_invalid_url_and_empty_file_inputs(tmp_path) -> None:
+    policy = SafetyPolicy(
+        navigation_allowlist=("example.test",),
+        screenshot_root=tmp_path,
+        upload_root=tmp_path,
+    )
+
+    with pytest.raises(PolicyDeniedError, match="absolute http"):
+        policy.validate_navigation("about:blank")
+    with pytest.raises(PolicyDeniedError, match="non-empty path"):
+        policy.validate_screenshot_path("")
+    with pytest.raises(PolicyDeniedError, match="at least one path"):
+        policy.validate_upload_paths([""])
+    with pytest.raises(PolicyDeniedError, match="exist and be a file"):
+        policy.validate_upload_paths([str(tmp_path / "missing.txt")])
+
+
+def test_environment_policy_wrappers_enforce_configured_boundaries(
+    monkeypatch, tmp_path
+) -> None:
+    _clear_policy_env(monkeypatch)
+    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "example.test")
+    monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(tmp_path))
+    monkeypatch.setenv(ENV_DOWNLOAD_ROOT, str(tmp_path))
+
+    validate_navigation("https://example.test/path")
+    assert validate_screenshot_path(str(tmp_path / "screen.png")) == (
+        tmp_path / "screen.png"
+    ).resolve()
+    assert validate_download_root() == tmp_path.resolve()
+
+    monkeypatch.setenv(ENV_DENY_DOWNLOAD, "1")
+    with pytest.raises(PolicyDeniedError, match="disabled"):
+        validate_external_download()
+
+
+def test_policy_summary_redacts_configured_navigation_patterns() -> None:
+    summary = SafetyPolicy(
+        navigation_allowlist=("example.test",),
+        navigation_blocklist=("blocked.test",),
+    ).public_summary()
+
+    assert summary["controls"]["navigation_allowlist"] == {
+        "configured": True,
+        "count": 1,
+        "values": "<redacted>",
+    }
+    assert "example.test" not in json.dumps(summary)
+
+
+def test_navigation_pattern_matching_ignores_empty_entries() -> None:
+    policy = SafetyPolicy(navigation_allowlist=("", "example.test"))
+
+    policy.validate_navigation("https://example.test/path")
 
 
 def _clear_policy_env(monkeypatch) -> None:

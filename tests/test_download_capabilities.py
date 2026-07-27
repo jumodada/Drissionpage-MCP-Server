@@ -17,8 +17,10 @@ import pytest
 from pydantic import ValidationError
 
 from drissionpage_mcp.browser.downloads import (
+    DownloadFailedError,
     DownloadIndeterminateError,
     DownloadOperations,
+    DownloadUnsupportedError,
     DownloadValidationError,
 )
 from drissionpage_mcp.context import DrissionPageContext
@@ -1083,3 +1085,333 @@ async def test_tab_lock_wait_consumes_deadline_without_second_native_click(
         await second_task
     assert first_clicker.calls == 1
     assert second_clicker.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_browser_probe_unsupported_api_records_probe_without_click(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(tmp_path / "downloads"))
+
+    class UnsupportedDownloads(_FakeDownloads):
+        def probe(self, element: object) -> None:
+            self.probed.append(element)
+            raise DownloadUnsupportedError("CLICK_TO_DOWNLOAD_API_UNAVAILABLE")
+
+    downloads = UnsupportedDownloads()
+    context, tab = _context_with_downloads(downloads)
+
+    outcome = await element_click_and_download.execute(
+        context,
+        ElementClickAndDownloadInput(
+            selector="#download", operation_key="unsupported-native-api", timeout=1
+        ),
+    )
+
+    assert outcome.is_error is True
+    assert outcome.structured_content()["error"]["code"] == "UNSUPPORTED_OPERATION"
+    assert downloads.probed == [tab.element]
+    assert downloads.clicked == []
+    probe = context.capability_set().capabilities[-1]
+    assert probe.name == "download.click_and_wait"
+    assert probe.status == "unsupported"
+    assert probe.reason_code == "CLICK_TO_DOWNLOAD_API_UNAVAILABLE"
+    assert len(context._operation_fingerprints) == 0
+    assert list(context._artifacts.values()) == []
+
+
+def test_browser_probe_rejects_missing_download_manager() -> None:
+    downloads = DownloadOperations(SimpleNamespace(page=SimpleNamespace(browser=None)))  # type: ignore[arg-type]
+
+    with pytest.raises(DownloadUnsupportedError) as exc_info:
+        downloads.probe(SimpleNamespace(click=SimpleNamespace()))
+
+    assert exc_info.value.reason_code == "DOWNLOAD_MANAGER_UNAVAILABLE"
+
+
+def test_browser_probe_rejects_incompatible_click_api() -> None:
+    downloads = DownloadOperations(
+        SimpleNamespace(
+            page=SimpleNamespace(
+                browser=SimpleNamespace(_dl_mgr=SimpleNamespace(missions={}))
+            )
+        )
+    )  # type: ignore[arg-type]
+
+    with pytest.raises(DownloadUnsupportedError) as exc_info:
+        downloads.probe(
+            SimpleNamespace(click=SimpleNamespace(to_download=lambda: None))
+        )
+
+    assert exc_info.value.reason_code == "CLICK_TO_DOWNLOAD_API_UNAVAILABLE"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("native_result", "expected_exception"),
+    [
+        ("raises", DownloadIndeterminateError),
+        ("no_mission", DownloadIndeterminateError),
+        ("canceled", DownloadFailedError),
+        ("skipped", DownloadFailedError),
+        ("interrupted", DownloadIndeterminateError),
+        ("missing_path", DownloadValidationError),
+        ("directory_path", DownloadValidationError),
+    ],
+)
+async def test_native_download_rejects_unconfirmed_or_invalid_missions(
+    tmp_path: Path, native_result: str, expected_exception: type[Exception]
+) -> None:
+    manager = SimpleNamespace(missions={})
+
+    class Mission:
+        is_done = True
+        url = "https://example.test/report.csv"
+
+        def __init__(self, state: str, path: Path | None) -> None:
+            self.state = state
+            self.final_path = None if path is None else str(path)
+            self.name = "native-name.csv"
+
+    class Clicker:
+        def to_download(self, *, save_path: str, timeout: float) -> Mission | None:
+            if native_result == "raises":
+                raise RuntimeError("native failed")
+            if native_result == "no_mission":
+                return None
+            path = Path(save_path) / "report.csv"
+            if native_result == "missing_path":
+                return Mission("completed", None)
+            if native_result == "directory_path":
+                path.mkdir()
+                return Mission("completed", path)
+            path.write_bytes(DOWNLOAD_BYTES)
+            return Mission(native_result, path)
+
+    downloads = DownloadOperations(
+        SimpleNamespace(page=SimpleNamespace(browser=SimpleNamespace(_dl_mgr=manager)))
+    )  # type: ignore[arg-type]
+    element = SimpleNamespace(click=Clicker())
+
+    with pytest.raises(expected_exception):
+        await downloads.click_and_wait(element, download_dir=tmp_path, timeout=1)
+
+
+@pytest.mark.asyncio
+async def test_native_download_uses_final_path_basename_when_mission_name_differs(
+    tmp_path: Path,
+) -> None:
+    manager = SimpleNamespace(missions={})
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        name = "reported.csv"
+        url = "https://example.test/final.bin"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+
+    class Clicker:
+        def to_download(self, *, save_path: str, timeout: float) -> Mission:
+            path = Path(save_path) / "actual.bin"
+            path.write_bytes(DOWNLOAD_BYTES)
+            return Mission(path)
+
+    downloads = DownloadOperations(
+        SimpleNamespace(page=SimpleNamespace(browser=SimpleNamespace(_dl_mgr=manager)))
+    )  # type: ignore[arg-type]
+
+    result = await downloads.click_and_wait(
+        SimpleNamespace(click=Clicker()), download_dir=tmp_path, timeout=1
+    )
+
+    assert result["filename"] == "actual.bin"
+    assert result["mime_type"] == "application/octet-stream"
+    assert result["path"] == (tmp_path / "actual.bin").resolve()
+
+
+@pytest.mark.asyncio
+async def test_cancel_mission_ignores_browser_cancel_exceptions() -> None:
+    class Mission:
+        def __init__(self) -> None:
+            self.cancel_calls = 0
+
+        def cancel(self) -> None:
+            self.cancel_calls += 1
+            raise RuntimeError("cancel failed")
+
+    mission = Mission()
+
+    await DownloadOperations._cancel_mission(mission)
+
+    assert mission.cancel_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_native_artifact_change_during_integrity_is_indeterminate(
+    monkeypatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "downloads"
+    root.mkdir()
+    path = root / "report.csv"
+    path.write_bytes(DOWNLOAD_BYTES)
+    real_fdopen = os.fdopen
+    mutated = False
+
+    class MutatingReader:
+        def __init__(self, stream: object) -> None:
+            self._stream = stream
+
+        def __enter__(self) -> MutatingReader:
+            self._stream.__enter__()
+            return self
+
+        def __exit__(self, *args: object) -> object:
+            return self._stream.__exit__(*args)
+
+        def read(self, size: int = -1) -> bytes:
+            nonlocal mutated
+            chunk = self._stream.read(size)
+            if chunk and not mutated:
+                mutated = True
+                path.write_bytes(DOWNLOAD_BYTES + b"mutated")
+            return chunk
+
+    def mutating_fdopen(
+        descriptor: int, mode: str, closefd: bool = True
+    ) -> MutatingReader:
+        return MutatingReader(real_fdopen(descriptor, mode, closefd=closefd))
+
+    monkeypatch.setattr(os, "fdopen", mutating_fdopen)
+
+    with pytest.raises(DownloadIndeterminateError):
+        await DownloadOperations(
+            SimpleNamespace(
+                page=SimpleNamespace(
+                    browser=SimpleNamespace(_dl_mgr=SimpleNamespace(missions={}))
+                )
+            )
+        )._click_and_wait(  # type: ignore[arg-type]
+            SimpleNamespace(
+                click=SimpleNamespace(
+                    to_download=lambda *, save_path, timeout: SimpleNamespace(
+                        state="completed",
+                        is_done=True,
+                        final_path=str(path),
+                        name="report.csv",
+                        url="https://example.test/report.csv",
+                    )
+                )
+            ),
+            download_dir=root,
+            timeout=1,
+        )
+
+
+@pytest.mark.asyncio
+async def test_default_operation_key_allocates_distinct_action_for_each_request(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(tmp_path / "downloads"))
+    downloads = _FakeDownloads()
+    context, _tab = _context_with_downloads(downloads)
+    args = ElementClickAndDownloadInput(selector="#download", timeout=1)
+
+    outcome = await element_click_and_download.execute(context, args)
+
+    assert outcome.is_error is False
+    data = outcome.structured_content()["data"]
+    assert data["operation_key"] == "download-action-000001"
+    assert data["receipt"]["action_id"] == "action-000001"
+    assert len(downloads.clicked) == 1
+
+    second = await element_click_and_download.execute(context, args)
+
+    assert second.is_error is False
+    second_data = second.structured_content()["data"]
+    assert second_data["operation_key"] == "download-action-000002"
+    assert second_data["receipt"]["action_id"] == "action-000002"
+    assert len(downloads.clicked) == 2
+
+
+@pytest.mark.asyncio
+async def test_operation_claim_failure_releases_artifact_and_cleans_action_directory(
+    monkeypatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "downloads"
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(root))
+    downloads = _FakeDownloads()
+    context = DrissionPageContext(operation_limit=1)
+    context.claim_operation("existing", "a" * 64)
+    context._current_tab = _FakeTab(downloads)  # type: ignore[assignment]
+
+    outcome = await element_click_and_download.execute(
+        context,
+        ElementClickAndDownloadInput(
+            selector="#download", operation_key="ledger-full-after-dir", timeout=1
+        ),
+    )
+
+    assert outcome.is_error is True
+    assert outcome.structured_content()["error"]["code"] == "TASK_LEDGER_FULL"
+    assert downloads.clicked == []
+    assert not [path for path in root.rglob("*") if path.is_file()]
+    assert not context._artifact_reservations
+
+
+@pytest.mark.asyncio
+async def test_download_failed_status_has_failed_receipt_and_replays_failure(
+    monkeypatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "downloads"
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(root))
+    downloads = _FakeDownloads(fail=DownloadFailedError("browser canceled"))
+    context, _tab = _context_with_downloads(downloads)
+    args = ElementClickAndDownloadInput(
+        selector="#download", operation_key="browser-failed", timeout=1
+    )
+
+    outcome = await element_click_and_download.execute(context, args)
+
+    assert outcome.is_error is True
+    assert outcome.structured_content()["error"]["code"] == "UNKNOWN_ERROR"
+    receipt = context.operation_receipt("browser-failed")
+    assert receipt is not None
+    assert receipt.status == "failed"
+    assert receipt.error_code == "DOWNLOAD_FAILED"
+    assert receipt.artifact_ids == ()
+    assert list(context._artifacts.values()) == []
+
+    monkeypatch.delenv("DP_MCP_DOWNLOAD_ROOT")
+    monkeypatch.setenv("DP_MCP_DENY_DOWNLOAD", "1")
+    context._current_tab = None
+    replay = await element_click_and_download.execute(context, args)
+    assert replay.is_error is True
+    assert replay.structured_content()["error"]["code"] == "UNKNOWN_ERROR"
+    assert replay.structured_content()["data"] == outcome.structured_content()["data"]
+    assert len(downloads.clicked) == 1
+
+
+@pytest.mark.asyncio
+async def test_task_download_directory_file_denies_before_claim_or_click(
+    monkeypatch, tmp_path: Path
+) -> None:
+    root = tmp_path / "downloads"
+    root.mkdir()
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(root))
+    context, tab = _context_with_downloads(_FakeDownloads())
+    (root / context.task_id).write_text("not a directory", encoding="utf-8")
+
+    outcome = await element_click_and_download.execute(
+        context,
+        ElementClickAndDownloadInput(
+            selector="#download", operation_key="task-dir-file", timeout=1
+        ),
+    )
+
+    assert outcome.is_error is True
+    assert outcome.structured_content()["error"]["code"] == "POLICY_DENIED"
+    assert tab.downloads.clicked == []
+    assert len(context._operation_fingerprints) == 0
+    assert list(context._artifacts.values()) == []

@@ -105,6 +105,64 @@ def test_run_diagnostics_warns_when_chrome_sandbox_is_disabled(monkeypatch) -> N
     assert any("Chrome sandbox is disabled" in hint for hint in report["hints"])
 
 
+def test_doctor_redacts_navigation_patterns_and_counts_entries(monkeypatch) -> None:
+    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "one.test, two.test, ")
+    monkeypatch.setattr(doctor, "_find_browser", lambda: "/tmp/chrome")
+
+    report = doctor.run_diagnostics()
+    config = next(item for item in report["checks"] if item["name"] == "config")
+    payload = json.loads(config["detail"])
+
+    assert payload["DP_MCP_NAV_ALLOWLIST"] == {
+        "configured": True,
+        "value": "<redacted>",
+        "count": 2,
+    }
+    assert "one.test" not in config["detail"]
+
+
+def test_doctor_reports_existing_and_creatable_profile_paths(
+    monkeypatch, tmp_path
+) -> None:
+    monkeypatch.setattr(doctor, "_find_browser", lambda: "/tmp/chrome")
+
+    monkeypatch.setenv("DP_USER_DATA_PATH", str(tmp_path))
+    existing = doctor.run_diagnostics()
+    existing_check = next(
+        item for item in existing["checks"] if item["name"] == "profile_path"
+    )
+    assert existing_check["ok"] is True
+    assert existing_check["detail"].endswith("exists")
+
+    monkeypatch.setenv("DP_USER_DATA_PATH", str(tmp_path / "new-profile"))
+    creatable = doctor.run_diagnostics()
+    creatable_check = next(
+        item for item in creatable["checks"] if item["name"] == "profile_path"
+    )
+    assert creatable_check["ok"] is True
+    assert creatable_check["detail"].endswith("parent writable")
+
+
+def test_doctor_warns_when_profile_parent_is_not_writable(monkeypatch) -> None:
+    monkeypatch.setenv("DP_USER_DATA_PATH", "/missing/profile")
+    monkeypatch.setattr(doctor, "_find_browser", lambda: "/tmp/chrome")
+    monkeypatch.setattr(doctor.os.path, "exists", lambda _path: False)
+    monkeypatch.setattr(doctor.os.path, "isdir", lambda _path: False)
+
+    report = doctor.run_diagnostics()
+    profile = next(
+        item for item in report["checks"] if item["name"] == "profile_path"
+    )
+
+    assert profile["ok"] is False
+    assert profile["detail"].endswith("parent not writable")
+    assert any("parent directory is not writable" in hint for hint in report["hints"])
+
+
+def test_drissionpage_major_parser_tolerates_unversioned_values() -> None:
+    assert doctor._is_drissionpage_5_or_newer("unavailable") is False
+
+
 def test_run_diagnostics_rejects_drissionpage_5_and_reports_upload_root(
     monkeypatch,
 ) -> None:

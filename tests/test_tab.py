@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 from drissionpage_mcp.tab import PageTab
+from drissionpage_mcp.target import SelectorTargetInput
 
 
 @pytest.fixture(autouse=True)
@@ -20,6 +21,7 @@ def no_real_sleep(monkeypatch):
 
     monkeypatch.setattr("drissionpage_mcp.tab.asyncio.sleep", _sleep)
     monkeypatch.setattr("drissionpage_mcp.browser.pointer.asyncio.sleep", _sleep)
+    monkeypatch.setattr("drissionpage_mcp.browser.waits.asyncio.sleep", _sleep)
 
 
 class FakeActions:
@@ -2010,3 +2012,376 @@ def test_page_tab_exposes_capabilities_without_legacy_domain_methods() -> None:
         "wait_until",
     }
     assert legacy_methods.isdisjoint(dir(tab))
+
+
+class FakeNetworkListener:
+    def __init__(
+        self,
+        *,
+        listening: bool = False,
+        wait_result=None,
+        start_type_error_once: bool = False,
+        stop_raises: Exception | None = None,
+    ) -> None:
+        self.listening = listening
+        self.wait_result = wait_result
+        self.start_type_error_once = start_type_error_once
+        self.stop_raises = stop_raises
+        self.start_calls = []
+        self.wait_calls = []
+        self.stop_calls = 0
+        self.clear_calls = 0
+        self.pause_calls = []
+
+    def start(self, *args, **kwargs) -> None:
+        self.start_calls.append((args, kwargs))
+        if self.start_type_error_once and len(self.start_calls) == 1:
+            raise TypeError("legacy listener signature")
+        self.listening = True
+
+    def wait(self, **kwargs):
+        self.wait_calls.append(kwargs)
+        return self.wait_result
+
+    def stop(self) -> None:
+        self.stop_calls += 1
+        if self.stop_raises is not None:
+            raise self.stop_raises
+        self.listening = False
+
+    def clear(self) -> None:
+        self.clear_calls += 1
+
+    def pause(self, **kwargs) -> None:
+        self.pause_calls.append(kwargs)
+        self.listening = False
+
+
+class FakeNetworkPage(FakePage):
+    def __init__(self, listener=None) -> None:
+        super().__init__()
+        self.listen = listener
+
+
+class FakeRequest:
+    def __init__(self) -> None:
+        self.headers = {"Authorization": "secret", "Accept": "application/json"}
+        self.postData = {"query": "abcdef"}
+
+
+class FakeResponse:
+    def __init__(self) -> None:
+        self.status = "201"
+        self.mimeType = "application/json"
+        self.headers = {"set-cookie": "private", "X-Trace": "visible"}
+        self.body = {"token": "abcdef"}
+
+
+class FakePacket:
+    def __init__(self, *, url: str = "https://example.test/api") -> None:
+        self.url = url
+        self.method = "POST"
+        self.resourceType = "XHR"
+        self.request = FakeRequest()
+        self.response = FakeResponse()
+        self.is_failed = False
+
+
+@pytest.mark.asyncio
+async def test_wait_element_handles_structured_targets_without_stale_success() -> None:
+    target = SelectorTargetInput(kind="selector", selector="#missing")
+
+    assert await PageTab(FakePage(), FakeContext()).waits.element(target, timeout=0)
+    assert not await PageTab(FakePage(element=None), FakeContext()).waits.element(
+        target, timeout=0
+    )
+
+
+@pytest.mark.asyncio
+async def test_wait_conditions_report_missing_names_and_empty_properties() -> None:
+    tab = PageTab(FakePage(FakeElement(attrs={"data-state": ""})), FakeContext())
+
+    with pytest.raises(ValueError, match="name is required"):
+        await tab.waits.until(
+            condition="attribute_equals",
+            selector="#status",
+            timeout=0,
+        )
+
+    with pytest.raises(TimeoutError):
+        await tab.waits.until(
+            condition="attribute_nonempty",
+            selector="#status",
+            name="data-state",
+            timeout=0,
+        )
+
+    with pytest.raises(TimeoutError):
+        await tab.waits.until(
+            condition="property_equals",
+            selector="#status",
+            name="value",
+            value="different",
+            timeout=0,
+        )
+
+
+@pytest.mark.asyncio
+async def test_wait_conditions_resolve_structured_text_and_state_targets() -> None:
+    class States:
+        is_displayed = True
+        is_enabled = False
+
+    element = FakeElement(tag="button", text="Locked")
+    element.states = States()
+    tab = PageTab(FakePage(element), FakeContext())
+    target = SelectorTargetInput(kind="selector", selector="#locked")
+
+    text_match = await tab.waits.until(
+        condition="text_matches",
+        selector=target,
+        value="Lock.*",
+        timeout=0,
+    )
+    visible = await tab.waits.until(condition="visible", selector=target, timeout=0)
+
+    assert text_match["state"] == {"text": "Locked"}
+    assert visible["state"] == {
+        "exists": True,
+        "visible": True,
+        "disabled": True,
+        "tag": "button",
+        "text": "Locked",
+        "signature": "button|Locked|True|True",
+    }
+
+
+@pytest.mark.asyncio
+async def test_wait_until_retries_transient_resolver_failures_without_sleep(
+    monkeypatch,
+) -> None:
+    tab = PageTab(FakePage(element=None), FakeContext())
+    states = iter([
+        (False, {"exists": False, "text": ""}),
+        (True, {"exists": True, "text": "ready"}),
+    ])
+
+    async def condition_matches(**_kwargs):
+        return next(states)
+
+    monkeypatch.setattr(tab.waits, "_condition_matches", condition_matches)
+
+    result = await tab.waits.until(
+        condition="present",
+        selector="#later",
+        timeout=1,
+        interval=0.01,
+    )
+
+    assert result["matched"] is True
+    assert result["state"]["text"] == "ready"
+
+
+@pytest.mark.asyncio
+async def test_network_start_records_filters_and_cleans_existing_listener() -> None:
+    listener = FakeNetworkListener(listening=True)
+    tab = PageTab(FakeNetworkPage(listener), FakeContext(), mcp_tab_id="mcp-tab")
+
+    result = await tab.network.start(
+        targets=["/api", "/graphql"],
+        is_regex=True,
+        method="POST",
+        resource_type="XHR",
+    )
+
+    assert listener.stop_calls == 1
+    assert listener.start_calls[-1] == (
+        (),
+        {
+            "targets": ["/api", "/graphql"],
+            "is_regex": True,
+            "method": "POST",
+            "res_type": "XHR",
+        },
+    )
+    assert result["listening"] is True
+    assert result["filters"] == {
+        "targets": ["/api", "/graphql"],
+        "is_regex": True,
+        "method": "POST",
+        "resource_type": "XHR",
+    }
+    assert result["tab_id"] == "mcp-tab"
+    assert result["cleared"] is True
+
+
+@pytest.mark.asyncio
+async def test_network_start_uses_clear_and_legacy_start_signature() -> None:
+    listener = FakeNetworkListener(start_type_error_once=True)
+    result = await PageTab(FakeNetworkPage(listener), FakeContext()).network.start(
+        targets=["/events"], is_regex=True
+    )
+
+    assert listener.clear_calls == 1
+    assert listener.start_calls == [
+        (
+            (),
+            {"targets": "/events", "is_regex": True, "method": None, "res_type": None},
+        ),
+        (("/events", True), {}),
+    ]
+    assert result["filters"]["targets"] == ["/events"]
+
+
+@pytest.mark.asyncio
+async def test_network_wait_normalizes_packets_and_timeout_shapes() -> None:
+    packet = FakePacket()
+    listener = FakeNetworkListener(listening=True, wait_result=[packet])
+    tab = PageTab(FakeNetworkPage(listener), FakeContext())
+
+    result = await tab.network.wait(
+        timeout=1,
+        limit=2,
+        include_headers=True,
+        include_body=True,
+        max_body_chars=8,
+    )
+
+    assert listener.wait_calls == [
+        {"count": 2, "timeout": 1, "fit_count": False, "raise_err": False}
+    ]
+    assert result["timed_out"] is True
+    assert result["count"] == 1
+    assert result["packets"][0]["request_headers"] == {
+        "Authorization": "<redacted>",
+        "Accept": "application/json",
+    }
+    assert result["packets"][0]["response_headers"] == {
+        "set-cookie": "<redacted>",
+        "X-Trace": "visible",
+    }
+    assert result["packets"][0]["body_excerpt"] == '{"token"'
+    assert result["packets"][0]["body_truncated"] is True
+
+    single_listener = FakeNetworkListener(listening=True, wait_result=FakePacket())
+    single = await PageTab(FakeNetworkPage(single_listener), FakeContext()).network.wait(
+        limit=1
+    )
+    assert single["timed_out"] is False
+    assert single["count"] == 1
+
+    timeout_listener = FakeNetworkListener(listening=True, wait_result=False)
+    timed_out = await PageTab(
+        FakeNetworkPage(timeout_listener), FakeContext()
+    ).network.wait(limit=3)
+    assert timed_out["timed_out"] is True
+    assert timed_out["packets"] == []
+
+    none_listener = FakeNetworkListener(listening=True, wait_result=None)
+    no_packets = await PageTab(FakeNetworkPage(none_listener), FakeContext()).network.wait(
+        limit=3
+    )
+    assert no_packets["timed_out"] is False
+    assert no_packets["packets"] == []
+
+
+@pytest.mark.asyncio
+async def test_network_wait_requires_active_listener() -> None:
+    with pytest.raises(RuntimeError, match="not listening"):
+        await PageTab(
+            FakeNetworkPage(FakeNetworkListener(listening=False)), FakeContext()
+        ).network.wait()
+
+
+@pytest.mark.asyncio
+async def test_network_stop_clears_or_pauses_listener_state() -> None:
+    listening = FakeNetworkListener(listening=True)
+    paused = await PageTab(FakeNetworkPage(listening), FakeContext()).network.stop(
+        clear=False
+    )
+    assert listening.pause_calls == [{"clear": False}]
+    assert paused == {"listening": False, "was_listening": True, "cleared": False}
+
+    idle = FakeNetworkListener(listening=False)
+    cleared = await PageTab(FakeNetworkPage(idle), FakeContext()).network.stop()
+    assert idle.clear_calls == 1
+    assert cleared == {"listening": False, "was_listening": False, "cleared": True}
+
+
+@pytest.mark.asyncio
+async def test_network_reports_unavailable_and_partial_listener_capabilities() -> None:
+    with pytest.raises(RuntimeError, match="unavailable"):
+        await PageTab(FakeNetworkPage(None), FakeContext()).network.start()
+
+    class MissingStopListener:
+        listening = False
+
+        def start(self):
+            return None
+
+        def wait(self):
+            return None
+
+    with pytest.raises(RuntimeError, match="missing: stop"):
+        await PageTab(FakeNetworkPage(MissingStopListener()), FakeContext()).network.stop()
+
+
+@pytest.mark.asyncio
+async def test_network_stop_suppresses_partial_driver_attribute_errors() -> None:
+    listener = FakeNetworkListener(
+        listening=True, stop_raises=AttributeError("driver detached")
+    )
+
+    result = await PageTab(FakeNetworkPage(listener), FakeContext()).network.stop()
+
+    assert listener.stop_calls == 1
+    assert result == {"listening": True, "was_listening": True, "cleared": True}
+
+
+@pytest.mark.asyncio
+async def test_network_stop_reraises_unexpected_driver_errors() -> None:
+    listener = FakeNetworkListener(listening=True, stop_raises=RuntimeError("boom"))
+
+    with pytest.raises(RuntimeError, match="boom"):
+        await PageTab(FakeNetworkPage(listener), FakeContext()).network.stop()
+
+
+@pytest.mark.asyncio
+async def test_wait_conditions_treat_missing_structured_targets_as_empty_state() -> None:
+    target = SelectorTargetInput(kind="selector", selector="#missing")
+    tab = PageTab(FakePage(element=None), FakeContext())
+
+    with pytest.raises(TimeoutError):
+        await tab.waits.until(
+            condition="text_contains",
+            selector=target,
+            value="ready",
+            timeout=0,
+        )
+
+    detached = await tab.waits.until(
+        condition="detached",
+        selector=target,
+        timeout=0,
+    )
+    assert detached["state"] == {
+        "exists": False,
+        "visible": False,
+        "disabled": False,
+        "tag": "",
+        "text": "",
+        "signature": "",
+    }
+
+
+@pytest.mark.asyncio
+async def test_network_stop_without_clear_falls_back_to_stop_when_pause_missing() -> None:
+    listener = FakeNetworkListener(listening=True)
+    listener.pause = None
+
+    result = await PageTab(FakeNetworkPage(listener), FakeContext()).network.stop(
+        clear=False
+    )
+
+    assert listener.stop_calls == 1
+    assert result == {"listening": False, "was_listening": True, "cleared": False}

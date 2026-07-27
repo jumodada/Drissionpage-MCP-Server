@@ -332,6 +332,98 @@ async def test_dialog_cancellation_drains_native_response_before_unlocking() -> 
 
 
 @pytest.mark.asyncio
+async def test_dialog_response_rejects_when_lock_consumes_deadline() -> None:
+    operations = DialogOperations(SimpleNamespace(page=_DialogPage()))  # type: ignore[arg-type]
+    await operations._response_lock.acquire()
+    try:
+        with pytest.raises(DialogPreconditionError, match="consumed the response deadline"):
+            await operations.respond(
+                pending={"dialog_type": "alert", "message": "message"},
+                action="accept",
+                prompt_text=None,
+                timeout=0.001,
+            )
+    finally:
+        operations._response_lock.release()
+
+
+@pytest.mark.asyncio
+async def test_dialog_response_rejects_expired_deadline_before_native_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    page = _DialogPage()
+    operations = DialogOperations(SimpleNamespace(page=page))  # type: ignore[arg-type]
+    times = iter((10.0, 10.2))
+    monkeypatch.setattr(
+        "drissionpage_mcp.browser.dialogs.monotonic", lambda: next(times)
+    )
+
+    with pytest.raises(DialogPreconditionError, match="deadline expired"):
+        await operations.respond(
+            pending={"dialog_type": "alert", "message": "message"},
+            action="accept",
+            prompt_text=None,
+            timeout=0.1,
+        )
+
+    assert page.states.has_alert is True
+
+
+@pytest.mark.asyncio
+async def test_dialog_cancellation_preserves_cancel_when_native_response_fails() -> None:
+    class PausedFailingDialogPage(_DialogPage):
+        def __init__(self) -> None:
+            super().__init__()
+            self.started = Event()
+            self.release = Event()
+
+        def _handle_alert(
+            self, *, accept: bool, send: str | None, timeout: float, next_one: bool
+        ) -> object:
+            self.started.set()
+            self.release.wait(timeout)
+            raise RuntimeError("native failure after cancellation")
+
+    page = PausedFailingDialogPage()
+    operations = DialogOperations(SimpleNamespace(page=page))  # type: ignore[arg-type]
+    response = asyncio.create_task(
+        operations.respond(
+            pending={"dialog_type": "alert", "message": "message"},
+            action="accept",
+            prompt_text=None,
+            timeout=0.5,
+        )
+    )
+    assert await asyncio.to_thread(page.started.wait, 0.1)
+
+    response.cancel()
+    page.release.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await response
+    assert operations._response_lock.locked() is False
+
+
+@pytest.mark.asyncio
+async def test_dialog_response_is_indeterminate_when_alert_never_closes() -> None:
+    class StuckDialogPage(_DialogPage):
+        def _handle_alert(
+            self, *, accept: bool, send: str | None, timeout: float, next_one: bool
+        ) -> object:
+            return True
+
+    operations = DialogOperations(SimpleNamespace(page=StuckDialogPage()))  # type: ignore[arg-type]
+
+    with pytest.raises(DialogResponseIndeterminateError):
+        await operations.respond(
+            pending={"dialog_type": "alert", "message": "message"},
+            action="dismiss",
+            prompt_text=None,
+            timeout=0.001,
+        )
+
+
+@pytest.mark.asyncio
 async def test_dialog_response_returns_only_redacted_metadata_and_receipt() -> None:
     secret_message = "Secret fixture dialog message"
     prompt_text = "safe-office-value"

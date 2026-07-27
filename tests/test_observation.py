@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import pytest
+
 from drissionpage_mcp.metadata import response_meta, with_response_meta
 from drissionpage_mcp.observation import (
     bounded_json_value,
     diff_observations,
     result_type,
 )
+from drissionpage_mcp.tools._observe import observed_changes
 
 
 def test_diff_observations_reports_url_title_counts_and_text_changes() -> None:
@@ -140,3 +145,71 @@ def test_response_metadata_detects_nested_truncation() -> None:
     assert meta["truncated"] is True
     assert meta["json_chars"] > 0
     assert enriched["meta"]["truncated"] is False
+
+
+@pytest.mark.asyncio
+async def test_observed_changes_waits_for_delayed_console_messages(monkeypatch) -> None:
+    before = {
+        "console": {
+            "available": True,
+            "next_cursor": 2,
+        }
+    }
+    observations = iter(
+        (
+            before,
+            before,
+            {
+                "console": {
+                    "available": True,
+                    "next_cursor": 3,
+                    "recent": [
+                        {
+                            "index": 3,
+                            "level": "error",
+                            "text": "late failure",
+                        }
+                    ],
+                }
+            },
+        )
+    )
+
+    async def observe() -> dict[str, object]:
+        return next(observations)
+
+    sleeps: list[float] = []
+
+    async def sleep(seconds: float) -> None:
+        sleeps.append(seconds)
+
+    monkeypatch.setattr("drissionpage_mcp.tools._observe.asyncio.sleep", sleep)
+    tab = SimpleNamespace(observation=SimpleNamespace(observe=observe))
+
+    changes = await observed_changes(tab, before)
+
+    assert changes is not None
+    assert changes["console_errors_added"] == 1
+    assert changes["new_console_messages"][0]["text"] == "late failure"
+    assert sleeps == [0.05, 0.05]
+
+
+@pytest.mark.asyncio
+async def test_observed_changes_skips_settle_wait_without_console_metadata(
+    monkeypatch,
+) -> None:
+    async def observe() -> dict[str, object]:
+        return {"url": "https://example.test/after"}
+
+    async def unexpected_sleep(_seconds: float) -> None:
+        raise AssertionError("console settling should not run")
+
+    monkeypatch.setattr(
+        "drissionpage_mcp.tools._observe.asyncio.sleep", unexpected_sleep
+    )
+    tab = SimpleNamespace(observation=SimpleNamespace(observe=observe))
+
+    changes = await observed_changes(tab, {"url": "https://example.test/before"})
+
+    assert changes is not None
+    assert changes["url_changed"] is True

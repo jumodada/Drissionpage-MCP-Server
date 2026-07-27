@@ -209,6 +209,25 @@ def test_classify_error_maps_mcp_recovery_categories(
     assert classify_error(exc, tool_name) is expected
 
 
+def test_classify_error_accepts_known_string_codes_and_ignores_unknown_ones() -> None:
+    known = type("KnownCodeError", (Exception,), {"code": "POLICY_DENIED"})(
+        "blocked"
+    )
+    unknown = type("UnknownCodeError", (Exception,), {"code": "NOT_REGISTERED"})(
+        "element not found"
+    )
+
+    assert classify_error(known) is ErrorCode.POLICY_DENIED
+    assert classify_error(unknown) is ErrorCode.ELEMENT_NOT_FOUND
+
+
+def test_selector_invalid_hints_include_syntax_recovery() -> None:
+    hints = recovery_hints(ErrorCode.SELECTOR_INVALID)
+
+    assert hints[0]["action"] == "check_selector_syntax"
+    assert "XPath" in hints[0]["message"]
+
+
 def test_failure_outcome_controls_error_state_and_default_error_content() -> None:
     response = ToolOutcome()
     response.add_error("explicit failure", ErrorCode.UNKNOWN_ERROR)
