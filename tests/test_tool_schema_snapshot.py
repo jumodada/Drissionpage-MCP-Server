@@ -37,7 +37,7 @@ def _build_tool_schema_snapshot() -> list[dict[str, Any]]:
         )
 
     names = [tool["name"] for tool in tools]
-    assert len(tools) == 63
+    assert len(tools) == 69
     assert {
         "form_inspect",
         "form_fill",
@@ -61,6 +61,12 @@ def _build_tool_schema_snapshot() -> list[dict[str, Any]]:
     assert names.count("page_accessibility_snapshot") == 1
     assert names.count("page_dialog_observe") == 1
     assert names.count("element_state_get") == 1
+    assert names.count("browser_permission_get") == 1
+    assert names.count("browser_permission_set") == 1
+    assert names.count("browser_permissions_reset") == 1
+    assert names.count("page_export_artifact") == 1
+    assert names.count("element_click_and_upload") == 1
+    assert names.count("page_navigate_with_http_auth") == 1
     assert "element_input_text" not in names
     assert "wait_sleep" not in names
     return tools

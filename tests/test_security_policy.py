@@ -9,10 +9,12 @@ import pytest
 
 from drissionpage_mcp.context import DrissionPageContext
 from drissionpage_mcp.policy import (
+    ENV_ARTIFACT_ROOT,
     ENV_DENY_DOWNLOAD,
     ENV_DOWNLOAD_ROOT,
     PolicyDeniedError,
     SafetyPolicy,
+    validate_artifact_root,
     validate_download_root,
     validate_external_download,
     validate_navigation,
@@ -217,6 +219,42 @@ def test_download_policy_summary_redacts_root_and_exposes_deny_flag(
     assert str(tmp_path) not in json.dumps(summary, ensure_ascii=False)
 
 
+def test_artifact_root_policy_requires_safe_directory(monkeypatch, tmp_path) -> None:
+    _clear_policy_env(monkeypatch)
+    policy = SafetyPolicy.from_env()
+    with pytest.raises(PolicyDeniedError, match="DP_MCP_ARTIFACT_ROOT"):
+        policy.validate_artifact_root()
+
+    root = tmp_path / "artifacts"
+    monkeypatch.setenv(ENV_ARTIFACT_ROOT, str(root))
+    policy = SafetyPolicy.from_env()
+    assert policy.validate_artifact_root() == root.resolve()
+    assert policy.control_flags()["artifact_root"] is True
+    summary = policy.public_summary()
+    assert summary["controls"]["artifact_root"] == {
+        "configured": True,
+        "value": "<redacted>",
+    }
+    assert str(root) not in json.dumps(summary)
+
+
+def test_artifact_root_policy_rejects_symlink_and_file(monkeypatch, tmp_path) -> None:
+    _clear_policy_env(monkeypatch)
+    file_root = tmp_path / "artifact-file"
+    file_root.write_text("not a directory", encoding="utf-8")
+    monkeypatch.setenv(ENV_ARTIFACT_ROOT, str(file_root))
+    with pytest.raises(PolicyDeniedError, match="directory"):
+        validate_artifact_root()
+
+    target = tmp_path / "target"
+    target.mkdir()
+    link = tmp_path / "artifact-link"
+    link.symlink_to(target, target_is_directory=True)
+    monkeypatch.setenv(ENV_ARTIFACT_ROOT, str(link))
+    with pytest.raises(PolicyDeniedError, match="symlink"):
+        validate_artifact_root()
+
+
 def test_restricted_policy_rejects_invalid_url_and_empty_file_inputs(tmp_path) -> None:
     policy = SafetyPolicy(
         navigation_allowlist=("example.test",),
@@ -241,12 +279,14 @@ def test_environment_policy_wrappers_enforce_configured_boundaries(
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "example.test")
     monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(tmp_path))
     monkeypatch.setenv(ENV_DOWNLOAD_ROOT, str(tmp_path))
+    monkeypatch.setenv(ENV_ARTIFACT_ROOT, str(tmp_path))
 
     validate_navigation("https://example.test/path")
     assert validate_screenshot_path(str(tmp_path / "screen.png")) == (
         tmp_path / "screen.png"
     ).resolve()
     assert validate_download_root() == tmp_path.resolve()
+    assert validate_artifact_root() == tmp_path.resolve()
 
     monkeypatch.setenv(ENV_DENY_DOWNLOAD, "1")
     with pytest.raises(PolicyDeniedError, match="disabled"):
@@ -281,6 +321,7 @@ def _clear_policy_env(monkeypatch) -> None:
         "DP_MCP_SCREENSHOT_ROOT",
         "DP_MCP_UPLOAD_ROOT",
         "DP_MCP_DOWNLOAD_ROOT",
+        "DP_MCP_ARTIFACT_ROOT",
         "DP_MCP_DENY_DOWNLOAD",
     ):
         monkeypatch.delenv(name, raising=False)

@@ -1,6 +1,8 @@
 """Canonical registry for DrissionPage MCP tool specifications."""
 
 from . import (
+    artifacts,
+    auth,
     common,
     debug,
     dialogs,
@@ -11,6 +13,7 @@ from . import (
     interaction,
     navigate,
     network,
+    permissions,
     pointer,
     shadow,
     storage,
@@ -21,6 +24,7 @@ from .base import ToolSpec, ToolType, define_tool
 
 ALL_TOOLS: tuple[ToolSpec, ...] = (
     navigate.navigate,
+    auth.page_navigate_with_http_auth,
     navigate.go_back,
     navigate.go_forward,
     navigate.refresh,
@@ -30,6 +34,7 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     common.resize,
     common.screenshot,
     common.screenshot_save,
+    artifacts.page_export_artifact,
     common.page_snapshot,
     common.page_accessibility_snapshot,
     common.page_observe,
@@ -43,6 +48,9 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     common.browser_headers_set,
     common.browser_user_agent_set,
     common.browser_cache_clear,
+    permissions.browser_permission_get,
+    permissions.browser_permission_set,
+    permissions.browser_permissions_reset,
     dialogs.page_dialog_observe,
     dialogs.page_dialog_respond,
     downloads.element_click_and_download,
@@ -57,6 +65,7 @@ ALL_TOOLS: tuple[ToolSpec, ...] = (
     element.get_html,
     element.element_state_get,
     files.element_upload_file,
+    files.element_click_and_upload,
     interaction.page_scroll,
     interaction.element_scroll_into_view,
     interaction.element_hover,

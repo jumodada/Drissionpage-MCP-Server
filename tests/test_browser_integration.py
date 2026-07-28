@@ -6,6 +6,8 @@ import asyncio
 import base64
 import json
 import os
+from email import policy
+from email.parser import BytesParser
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qsl, urlencode, urljoin, urlsplit, urlunsplit
@@ -16,6 +18,9 @@ import pytest
 from drissionpage_mcp.server import DrissionPageMCPServer
 from drissionpage_mcp.tools.base import ToolOutcome
 from tests.fixtures.http_fixture import (
+    HTTP_AUTH_PASSWORD,
+    HTTP_AUTH_REALM,
+    HTTP_AUTH_USERNAME,
     TASK_COMPLETION_DOWNLOAD,
     TASK_COMPLETION_DOWNLOAD_SHA256,
     local_http_fixture,
@@ -50,6 +55,8 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert _read(base_url + "/status/500")[0] == 500
         assert "Iframe Content" in _read(base_url + "/iframe")[1]
         assert "Upload Workflow" in _read(base_url + "/upload")[1]
+        assert "Browser Owned Export Marker" in _read(base_url + "/browser-owned")[1]
+        assert _read(base_url + "/auth/basic")[0] == 401
         assert "Interaction Workflow" in _read(base_url + "/interactions")[1]
         assert "shadow-host" in _read(base_url + "/shadow")[1]
         assert "Document Boundaries" in _read(base_url + "/document-boundaries")[1]
@@ -1956,6 +1963,139 @@ async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
             )
             assert stop_payload["ok"] is True
             assert stop_payload["data"]["listening"] is False
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
+async def test_mcp_0_7_7_browser_owned_capabilities_are_fully_automated(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """controls permissions, exports, chooser input, and isolated HTTP auth."""
+
+    artifact_root = tmp_path / "artifacts"
+    upload_root = tmp_path / "uploads"
+    upload_root.mkdir()
+    upload_file = upload_root / "fixture-note.txt"
+    upload_file.write_text("fixture upload", encoding="utf-8")
+    monkeypatch.setenv("DP_MCP_ARTIFACT_ROOT", str(artifact_root))
+    monkeypatch.setenv("DP_MCP_UPLOAD_ROOT", str(upload_root))
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/browser-owned"}
+            )
+            _skip_if_browser_unavailable(navigate)
+
+            _content, initial_permission = await _execute_tool(
+                server, "browser_permission_get", {"permission": "geolocation"}
+            )
+            assert initial_permission["ok"] is True
+            assert initial_permission["data"]["state"] in {
+                "prompt",
+                "denied",
+                "granted",
+            }
+            _content, granted = await _execute_tool(
+                server,
+                "browser_permission_set",
+                {
+                    "permission": "geolocation",
+                    "setting": "granted",
+                    "origin": base_url,
+                },
+            )
+            assert granted["data"]["verified"] is True
+            assert granted["data"]["observed_state"] == "granted"
+            _content, reset = await _execute_tool(
+                server, "browser_permissions_reset", {}
+            )
+            assert reset["data"]["reset"] is True
+            _content, reset_state = await _execute_tool(
+                server, "browser_permission_get", {"permission": "geolocation"}
+            )
+            assert reset_state["data"]["state"] != "granted"
+
+            for export_format in ("pdf", "mhtml"):
+                filename = f"fixture-export.{export_format}"
+                _content, exported = await _execute_tool(
+                    server,
+                    "page_export_artifact",
+                    {
+                        "format": export_format,
+                        "filename": filename,
+                        "operation_key": f"fixture-export-{export_format}",
+                    },
+                )
+                assert exported["ok"] is True
+                artifact = exported["data"]["artifact"]
+                output = artifact_root / artifact["safe_relative_path"]
+                assert output.is_file()
+                if export_format == "pdf":
+                    assert output.read_bytes().startswith(b"%PDF")
+                else:
+                    message = BytesParser(policy=policy.default).parsebytes(
+                        output.read_bytes()
+                    )
+                    html_parts = [
+                        part.get_content()
+                        for part in message.walk()
+                        if part.get_content_type() == "text/html"
+                    ]
+                    assert any(
+                        "Browser Owned Export Marker 0.7.7" in part
+                        for part in html_parts
+                    )
+
+            _content, uploaded = await _execute_tool(
+                server,
+                "element_click_and_upload",
+                {
+                    "selector": "#chooser-trigger",
+                    "paths": [str(upload_file)],
+                    "timeout": 5,
+                },
+            )
+            assert uploaded["data"]["filenames"] == ["fixture-note.txt"]
+            chooser_text = await _execute_tool_text(
+                server, "element_get_text", {"selector": "#chooser-result"}
+            )
+            assert "fixture-note.txt" in chooser_text
+
+            _content, authenticated = await _execute_tool(
+                server,
+                "page_navigate_with_http_auth",
+                {
+                    "url": base_url + "/auth/basic",
+                    "username": HTTP_AUTH_USERNAME,
+                    "password": HTTP_AUTH_PASSWORD,
+                    "realm": HTTP_AUTH_REALM,
+                    "timeout": 10,
+                },
+            )
+            assert authenticated["data"]["authenticated"] is True
+            assert authenticated["data"]["handlers_cleaned"] is True
+            assert (
+                authenticated["data"]["credential_scope"]
+                == "isolated_browser_context"
+            )
+            serialized = json.dumps(authenticated, ensure_ascii=False)
+            assert HTTP_AUTH_PASSWORD not in serialized
+            auth_text = await _execute_tool_text(
+                server, "element_get_text", {"selector": "#auth-ok"}
+            )
+            assert "Authenticated Fixture" in auth_text
+            auth_tab_id = authenticated["data"]["tab_id"]
+            _content, closed = await _execute_tool(
+                server, "tab_close", {"tab_id": auth_tab_id}
+            )
+            assert closed["data"]["closed"] is True
+            assert server.context is not None
+            assert server.context._owned_browser_context_ids == set()
+            fixture_state = _json(base_url + "/__fixture__/state")
+            assert HTTP_AUTH_PASSWORD not in json.dumps(fixture_state)
     finally:
         await server.cleanup()
 

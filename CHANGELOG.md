@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.7] - 2026-07-28
+
+### Added
+- Added six default-loaded browser-owned capabilities, growing the ordered registry to 69 tools: origin-scoped permission observation/set/reset, managed PDF/MHTML export, browser file-chooser upload, and isolated HTTP authentication navigation.
+- Added `DP_MCP_ARTIFACT_ROOT` for generated page artifacts. Successful exports return safe relative paths, MIME type, size, SHA-256, sanitized source URL, `ArtifactRef`, and a linked exact-once `ActionReceipt`.
+
+### Security
+- HTTP auth credentials are never returned. Fetch handlers are removed after navigation, credentials are contained in a dedicated Chromium BrowserContext, and `tab_close` disposes that context because CDP does not provide an HTTP auth-cache purge command.
+- File chooser paths remain restricted to `DP_MCP_UPLOAD_ROOT`, successful results return basenames only, and interception is disabled on success, failure, and timeout.
+- Permission overrides are bounded to an exact HTTP(S) origin and the current browser context. Native operating-system permission prompts and notification-center control are not claimed.
+
+### Verification
+- Added strict schema, replay, cleanup, redaction, registry snapshot, and Chrome-backed tests for permission grant/reset, valid PDF/MHTML contents, chooser injection without an operating-system picker, Basic Auth handler cleanup, and isolated-context disposal.
+
 ## [0.7.6] - 2026-07-27
 
 ### Added
@@ -467,7 +481,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.6...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.7...HEAD
+[0.7.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.6...0.7.7
 [0.7.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.5...0.7.6
 [0.7.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.4...0.7.5
 [0.7.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.3...0.7.4

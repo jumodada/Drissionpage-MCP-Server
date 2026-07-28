@@ -12,12 +12,16 @@ from .browser import (
     DomTargetResolver,
     DownloadOperations,
     ElementOperations,
+    FileChooserOperations,
     FrameOperations,
+    HttpAuthOperations,
     InteractionOperations,
     NavigationOperations,
     NetworkOperations,
     ObservationOperations,
+    PageArtifactOperations,
     PageOperations,
+    PermissionOperations,
     PointerOperations,
     StorageOperations,
     TargetResolver,
@@ -40,28 +44,36 @@ class PageTab:
         context: "DrissionPageContext",
         *,
         mcp_tab_id: str = "",
+        browser_context_id: str = "",
+        owns_browser_context: bool = False,
     ):
         # Keep the historical ``page`` attribute name while allowing it to hold
         # DrissionPage 4.2 ChromiumTab objects.
         self.page = page
         self.context = context
         self.mcp_tab_id = mcp_tab_id
+        self.browser_context_id = browser_context_id
+        self.owns_browser_context = owns_browser_context
         self._url = ""
         self.dom_targeting = DomTargetResolver(self)
         self.accessibility = AccessibilityOperations(self)
+        self.artifacts = PageArtifactOperations(self)
         self.dialogs = DialogOperations(self)
         self.downloads = DownloadOperations(self)
         self.elements = ElementOperations(self)
+        self.file_chooser = FileChooserOperations(self)
         self.frames = FrameOperations(self)
         self.interaction = InteractionOperations(self)
         self.navigation = NavigationOperations(self)
         self.network = NetworkOperations(self)
         self.observation = ObservationOperations(self)
         self.page_ops = PageOperations(self)
+        self.permissions = PermissionOperations(self)
         self.pointer = PointerOperations(self)
         self.storage = StorageOperations(self)
         self.targeting = TargetResolver(self)
         self.waits = WaitOperations(self)
+        self.http_auth = HttpAuthOperations(self)
 
     @property
     def native_tab_id(self) -> str:
@@ -101,6 +113,7 @@ class PageTab:
             "title": self.title,
             "active": active,
             "connected": self.is_connected(),
+            "isolated_context": self.owns_browser_context,
         }
 
     async def _element_by_plan(self, plan: SelectorPlan, *, timeout: int = 10) -> Any:

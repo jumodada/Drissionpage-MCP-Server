@@ -31,7 +31,7 @@ async def test_eval_agent_discovers_atomic_tools_and_optional_skills() -> None:
     tool_names = {tool.name for tool in tools_result.root.tools}
     resource_uris = {str(resource.uri) for resource in resources_result.root.resources}
 
-    assert len(tool_names) == 63
+    assert len(tool_names) == 69
     assert {
         "page_navigate",
         "page_snapshot",
@@ -44,6 +44,12 @@ async def test_eval_agent_discovers_atomic_tools_and_optional_skills() -> None:
         "browser_user_agent_set",
         "browser_cache_clear",
         "network_blocked_urls_set",
+        "browser_permission_get",
+        "browser_permission_set",
+        "browser_permissions_reset",
+        "page_export_artifact",
+        "element_click_and_upload",
+        "page_navigate_with_http_auth",
     } <= tool_names
     assert resource_uris == {SKILLS_CATALOG_URI}
     assert ListPromptsRequest not in server.server.request_handlers

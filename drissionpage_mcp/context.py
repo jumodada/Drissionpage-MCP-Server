@@ -36,6 +36,7 @@ class DrissionPageContext(TaskRuntime):
         self._browser: Any | None = None
         self._current_tab: PageTab | None = None
         self._tabs: list[PageTab] = []
+        self._owned_browser_context_ids: set[str] = set()
         self._next_tab_index = 0
         self._is_initialized = False
 
@@ -170,17 +171,89 @@ class DrissionPageContext(TaskRuntime):
         self._current_tab = tab
         return tab
 
+    async def new_isolated_tab(self) -> PageTab:
+        """Create and own one tab in a dedicated Chromium browser context."""
+
+        await self.ensure_initialized()
+        if not self._browser:
+            raise RuntimeError("Browser context not initialized")
+        page = new_tab(self._browser, new_context=True)
+        browser_context_id = self._browser_context_id(page)
+        if not browser_context_id:
+            try:
+                self._browser.close_tabs(getattr(page, "tab_id", page))
+            except Exception:
+                pass
+            raise RuntimeError(
+                "DrissionPage created a tab without a disposable browser context."
+            )
+        self._owned_browser_context_ids.add(browser_context_id)
+        tab = self._wrap_page(
+            page,
+            browser_context_id=browser_context_id,
+            owns_browser_context=True,
+        )
+        self._tabs.append(tab)
+        self._current_tab = tab
+        return tab
+
+    async def navigate_with_http_auth(
+        self,
+        *,
+        url: str,
+        username: str,
+        password: str,
+        realm: str | None,
+        timeout: float,
+    ) -> dict[str, Any]:
+        """Navigate with Fetch auth inside a disposable isolated context."""
+
+        tab = await self.new_isolated_tab()
+        try:
+            return await tab.http_auth.navigate(
+                url=url,
+                username=username,
+                password=password,
+                realm=realm,
+                timeout=timeout,
+            )
+        except BaseException as auth_error:
+            try:
+                await self.close_tab(tab)
+            except BaseException:
+                await self.close_browser()
+                if isinstance(auth_error, asyncio.CancelledError):
+                    raise auth_error from None
+                raise RuntimeError(
+                    "HTTP authentication failed and isolated context cleanup failed; "
+                    "browser state was closed."
+                ) from auth_error
+            raise
+
     async def close_tab(self, tab: PageTab | None = None) -> None:
         """Close a tab."""
         target_tab = tab or self._current_tab
         if not target_tab:
             return
 
-        close_result = await target_tab.close()
-        if close_result is False:
-            raise RuntimeError(f"Failed to close tab: {target_tab.mcp_tab_id}")
-        if target_tab in self._tabs:
-            self._tabs.remove(target_tab)
+        browser_context_id = getattr(target_tab, "browser_context_id", "")
+        if (
+            getattr(target_tab, "owns_browser_context", False)
+            and browser_context_id
+            and self._browser is not None
+        ):
+            self._dispose_browser_context(browser_context_id)
+            self._tabs = [
+                item
+                for item in self._tabs
+                if getattr(item, "browser_context_id", "") != browser_context_id
+            ]
+        else:
+            close_result = await target_tab.close()
+            if close_result is False:
+                raise RuntimeError(f"Failed to close tab: {target_tab.mcp_tab_id}")
+            if target_tab in self._tabs:
+                self._tabs.remove(target_tab)
         if self._current_tab == target_tab:
             self._current_tab = self._tabs[0] if self._tabs else None
 
@@ -197,6 +270,7 @@ class DrissionPageContext(TaskRuntime):
                 self._browser = None
 
         self._tabs.clear()
+        self._owned_browser_context_ids.clear()
         self._current_tab = None
         self._is_initialized = False
         logger.info("Browser context closed")
@@ -223,11 +297,57 @@ class DrissionPageContext(TaskRuntime):
         """Return the underlying DrissionPage browser object."""
         return self._browser
 
-    def _wrap_page(self, page: Any) -> PageTab:
-        tab = PageTab(page, self, mcp_tab_id=f"t{self._next_tab_index}")
+    def _wrap_page(
+        self,
+        page: Any,
+        *,
+        browser_context_id: str = "",
+        owns_browser_context: bool | None = None,
+    ) -> PageTab:
+        context_id = browser_context_id or self._browser_context_id(page)
+        owns_context = (
+            context_id in self._owned_browser_context_ids
+            if owns_browser_context is None
+            else owns_browser_context
+        )
+        tab = PageTab(
+            page,
+            self,
+            mcp_tab_id=f"t{self._next_tab_index}",
+            browser_context_id=context_id,
+            owns_browser_context=owns_context,
+        )
         self._next_tab_index += 1
         tab.observation.ensure_console_capture()
         return tab
+
+    def _browser_context_id(self, page: Any) -> str:
+        browser = self._browser
+        run_cdp = getattr(browser, "_run_cdp", None)
+        tab_id = getattr(page, "tab_id", "")
+        if not callable(run_cdp) or not tab_id:
+            return ""
+        try:
+            valid_contexts = set(
+                run_cdp("Target.getBrowserContexts").get("browserContextIds", [])
+            )
+            target_info = run_cdp(
+                "Target.getTargetInfo", targetId=tab_id
+            ).get("targetInfo", {})
+        except Exception:
+            return ""
+        context_id = str(target_info.get("browserContextId", ""))
+        return context_id if context_id in valid_contexts else ""
+
+    def _dispose_browser_context(self, browser_context_id: str) -> None:
+        browser = self._browser
+        run_cdp = getattr(browser, "_run_cdp", None)
+        if not callable(run_cdp):
+            raise RuntimeError("Browser context disposal is unavailable.")
+        run_cdp(
+            "Target.disposeBrowserContext", browserContextId=browser_context_id
+        )
+        self._owned_browser_context_ids.discard(browser_context_id)
 
     def _browser_tabs(self) -> list[Any]:
         browser = self._browser

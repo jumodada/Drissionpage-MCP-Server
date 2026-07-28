@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.7.6. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.7.7. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -40,6 +40,30 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Selector-backed pointer geometry remains narrower: one same-origin iframe and
   nested open Shadow DOM paths only. Do not infer pointer support from the
   broader read-only `frame_*` and `shadow_*` evidence.
+
+## 0.7.6 to 0.7.7 Migration
+
+0.7.7 adds six default-registered browser-owned tools and grows the ordered
+registry from 63 to 69 tools. All tools load automatically; there is no
+capability profile and users do not select a `full` mode.
+
+- `browser_permission_get`, `browser_permission_set`, and
+  `browser_permissions_reset` expose bounded Chromium permission state. Setting
+  is exact-origin/current-context scoped; querying uses the current document's
+  Permissions API. Native OS prompts and notification-center control remain
+  explicitly unsupported.
+- `page_export_artifact` writes PDF/MHTML only beneath
+  `DP_MCP_ARTIFACT_ROOT`, returns checksum and safe relative metadata, and uses
+  a correlated receipt plus `operation_key` replay.
+- `element_click_and_upload` owns the one-shot file-chooser interception
+  lifetime and always disarms it. Input paths remain restricted to
+  `DP_MCP_UPLOAD_ROOT` and public results return basenames only.
+- `page_navigate_with_http_auth` never returns credentials. It creates a
+  dedicated Chromium BrowserContext because CDP has no documented HTTP
+  auth-cache purge command. Fetch handlers are removed after navigation and
+  `tab_close` destroys the isolated context/cache boundary.
+- PDF/MHTML output may contain sensitive page content. Treat the configured
+  artifact root and all generated files as secret-bearing local data.
 
 ## 0.7.5 to 0.7.6 Migration
 

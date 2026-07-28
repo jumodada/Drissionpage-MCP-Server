@@ -23,6 +23,7 @@ ENV_BLOCK_PRIVATE = "DP_MCP_BLOCK_PRIVATE_NETWORK"
 ENV_SCREENSHOT_ROOT = "DP_MCP_SCREENSHOT_ROOT"
 ENV_UPLOAD_ROOT = "DP_MCP_UPLOAD_ROOT"
 ENV_DOWNLOAD_ROOT = "DP_MCP_DOWNLOAD_ROOT"
+ENV_ARTIFACT_ROOT = "DP_MCP_ARTIFACT_ROOT"
 ENV_DENY_DOWNLOAD = "DP_MCP_DENY_DOWNLOAD"
 
 
@@ -46,6 +47,7 @@ class SafetyPolicy:
     screenshot_root: Path | None = None
     upload_root: Path | None = None
     download_root: Path | None = None
+    artifact_root: Path | None = None
     deny_download: bool = False
 
     @classmethod
@@ -55,6 +57,7 @@ class SafetyPolicy:
         root = os.getenv(ENV_SCREENSHOT_ROOT)
         upload_root = os.getenv(ENV_UPLOAD_ROOT)
         download_root = os.getenv(ENV_DOWNLOAD_ROOT)
+        artifact_root = os.getenv(ENV_ARTIFACT_ROOT)
         return cls(
             navigation_allowlist=_split_env(os.getenv(ENV_NAV_ALLOWLIST)),
             navigation_blocklist=_split_env(os.getenv(ENV_NAV_BLOCKLIST)),
@@ -64,6 +67,9 @@ class SafetyPolicy:
                 Path(upload_root).expanduser().resolve() if upload_root else None
             ),
             download_root=Path(download_root).expanduser() if download_root else None,
+            artifact_root=(
+                Path(artifact_root).expanduser() if artifact_root else None
+            ),
             deny_download=env_bool(ENV_DENY_DOWNLOAD),
         )
 
@@ -210,6 +216,29 @@ class SafetyPolicy:
             )
         return self.download_root.resolve()
 
+    def validate_artifact_root(self) -> Path:
+        """Return the configured generated-artifact root after boundary checks."""
+
+        if self.artifact_root is None:
+            raise PolicyDeniedError(
+                "Page exports require DP_MCP_ARTIFACT_ROOT.",
+                rule=ENV_ARTIFACT_ROOT,
+                value="<redacted>",
+            )
+        if self.artifact_root.is_symlink():
+            raise PolicyDeniedError(
+                "DP_MCP_ARTIFACT_ROOT must not be a symlink.",
+                rule=ENV_ARTIFACT_ROOT,
+                value="<redacted>",
+            )
+        if self.artifact_root.exists() and not self.artifact_root.is_dir():
+            raise PolicyDeniedError(
+                "DP_MCP_ARTIFACT_ROOT must identify a directory.",
+                rule=ENV_ARTIFACT_ROOT,
+                value="<redacted>",
+            )
+        return self.artifact_root.resolve()
+
     def profile(self) -> str:
         """Return a compact public profile name for configured controls."""
 
@@ -225,6 +254,7 @@ class SafetyPolicy:
             "screenshot_root": self.screenshot_root is not None,
             "upload_root": self.upload_root is not None,
             "download_root": self.download_root is not None,
+            "artifact_root": self.artifact_root is not None,
             "deny_download": self.deny_download,
         }
 
@@ -257,6 +287,14 @@ class SafetyPolicy:
                         else {}
                     ),
                 },
+                "artifact_root": {
+                    "configured": self.artifact_root is not None,
+                    **(
+                        {"value": "<redacted>"}
+                        if self.artifact_root is not None
+                        else {}
+                    ),
+                },
                 "deny_download": self.deny_download,
             },
         }
@@ -284,6 +322,12 @@ def validate_download_root() -> Path:
     """Return the configured safe browser download root."""
 
     return SafetyPolicy.from_env().validate_download_root()
+
+
+def validate_artifact_root() -> Path:
+    """Return the configured safe generated-artifact root."""
+
+    return SafetyPolicy.from_env().validate_artifact_root()
 
 
 def validate_upload_paths(paths: Iterable[str]) -> list[Path]:

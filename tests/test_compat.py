@@ -232,6 +232,45 @@ def test_new_tab_handles_missing_and_legacy_signatures() -> None:
     )
 
 
+def test_new_tab_requires_isolated_context_capability_before_creation() -> None:
+    calls: list[dict[str, object]] = []
+
+    class BrowserWithIsolatedNewTab:
+        def new_tab(self, url=None, *, new_context=False):
+            calls.append({"url": url, "new_context": new_context})
+            return "isolated-tab"
+
+    assert (
+        compat.new_tab(
+            BrowserWithIsolatedNewTab(),
+            "https://example.test",
+            new_context=True,
+        )
+        == "isolated-tab"
+    )
+    assert calls == [{"url": "https://example.test", "new_context": True}]
+
+    latest_tab = object()
+    browser_without_new_tab = type(
+        "BrowserWithoutNewTab", (), {"latest_tab": latest_tab}
+    )()
+    with pytest.raises(RuntimeError, match="isolated browser context"):
+        compat.new_tab(browser_without_new_tab, new_context=True)
+
+    class BrowserWithoutContextParameter:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def new_tab(self, url=None):
+            self.calls += 1
+            return object()
+
+    unsupported = BrowserWithoutContextParameter()
+    with pytest.raises(RuntimeError, match="isolated browser context"):
+        compat.new_tab(unsupported, new_context=True)
+    assert unsupported.calls == 0
+
+
 def test_quit_browser_supports_quit_close_and_none() -> None:
     compat.quit_browser(None)
 

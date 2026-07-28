@@ -31,7 +31,7 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
     result = await handler(ListToolsRequest(method="tools/list"))
 
     tools = result.root.tools
-    assert len(tools) == 63
+    assert len(tools) == 69
     assert "element_input_text" not in {tool.name for tool in tools}
     assert "wait_sleep" not in {tool.name for tool in tools}
     assert {tool.name for tool in tools} >= {
@@ -69,6 +69,12 @@ async def test_list_tools_handler_returns_current_mcp_tools_with_annotations() -
         "network_listen_wait",
         "network_listen_stop",
         "network_blocked_urls_set",
+        "browser_permission_get",
+        "browser_permission_set",
+        "browser_permissions_reset",
+        "page_export_artifact",
+        "element_click_and_upload",
+        "page_navigate_with_http_auth",
     }
     for tool in tools:
         assert tool.description
@@ -197,7 +203,7 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
             assert init.serverInfo.version == drissionpage_mcp.__version__
 
             tools = await session.list_tools()
-            assert len(tools.tools) == 63
+            assert len(tools.tools) == 69
             assert {tool.name for tool in tools.tools} >= {
                 "page_get_url",
                 "page_navigate",
@@ -225,6 +231,12 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
                 "network_listen_wait",
                 "network_listen_stop",
                 "network_blocked_urls_set",
+                "browser_permission_get",
+                "browser_permission_set",
+                "browser_permissions_reset",
+                "page_export_artifact",
+                "element_click_and_upload",
+                "page_navigate_with_http_auth",
             }
             assert "element_input_text" not in {tool.name for tool in tools.tools}
             assert "wait_sleep" not in {tool.name for tool in tools.tools}

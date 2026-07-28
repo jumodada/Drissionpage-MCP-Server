@@ -120,6 +120,7 @@ POLICY|review_navigation_allowlist|Check whether DP_MCP_NAV_ALLOWLIST or DP_MCP_
 POLICY|review_private_network_policy|If navigating to localhost/private IPs, check DP_MCP_BLOCK_PRIVATE_NETWORK.|||DP_MCP_BLOCK_PRIVATE_NETWORK
 POLICY_UPLOAD|configure_upload_root|Upload files from DP_MCP_UPLOAD_ROOT and pass only paths inside that directory.|||DP_MCP_UPLOAD_ROOT
 POLICY_SCREENSHOT|configure_screenshot_root|Save screenshots under DP_MCP_SCREENSHOT_ROOT or choose an allowed path.|||DP_MCP_SCREENSHOT_ROOT
+POLICY_ARTIFACT|configure_artifact_root|Store generated PDF/MHTML files under DP_MCP_ARTIFACT_ROOT.|||DP_MCP_ARTIFACT_ROOT
 UNSUPPORTED|check_drissionpage_version|Use a supported DrissionPage 4.x release that exposes this browser API.||python -m drissionpage_mcp.cli doctor|
 UNSUPPORTED|run_doctor|Run diagnostics from the same environment as the MCP client.||drissionpage-mcp doctor --launch-browser|
 UNSUPPORTED|use_available_primitives|Use tools/list to choose another atomic page or element capability.|||
@@ -188,6 +189,8 @@ def _timeout_hints(_code: str, tool: str, _message: str) -> list[HintSpec]:
 
 def _policy_hints(_code: str, _tool: str, message: str) -> list[HintSpec]:
     specs = list(_HINT_SPECS["POLICY"])
+    if "artifact" in message or "page export" in message:
+        specs[0:0] = _HINT_SPECS["POLICY_ARTIFACT"]
     if "upload" in message or "file" in message:
         specs[0:0] = _HINT_SPECS["POLICY_UPLOAD"]
     if "screenshot" in message or "path" in message:

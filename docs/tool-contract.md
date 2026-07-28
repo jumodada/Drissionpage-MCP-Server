@@ -119,7 +119,7 @@ The server marks tools with MCP annotations:
 
 ## Tool Inventory
 
-The 0.7.6 registry contains 63 typed browser tools. Site, component, challenge,
+The 0.7.7 registry contains 69 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Reusable Element Targets
@@ -186,12 +186,16 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `browser_headers_set` | Destructive | `headers` | Replace up to 64 extra request headers and echo the accepted values. An empty object clears all configured headers. |
 | `browser_user_agent_set` | Destructive | `user_agent` | Override the current tab user agent and return the accepted and previous values. Optional: `platform`. |
 | `browser_cache_clear` | Destructive | none | Clear HTTP cache while preserving Cookies, localStorage, and sessionStorage. |
+| `browser_permission_get` | Read-only | `permission` | Query one supported Permissions API state for the current document origin without opening an operating-system prompt. |
+| `browser_permission_set` | Destructive | `permission`, `setting` | Set one permission to `granted`, `denied`, or `prompt` for an exact HTTP(S) origin in the current Chromium context. Optional: `origin` (current origin by default). |
+| `browser_permissions_reset` | Destructive | none | Reset all permission overrides in the current Chromium browser context. |
 
 ### Navigation
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
 | `page_navigate` | Destructive | `url` | Open a URL in the active browser tab. Optional: `new_tab`, `observe`. |
+| `page_navigate_with_http_auth` | Destructive | `url`, `username`, `password` | Create a dedicated Chromium BrowserContext, answer one bounded HTTP auth challenge, clean Fetch handlers, and retain the authenticated tab until `tab_close`. Credentials are never returned. Optional: `realm`, `timeout`. |
 | `page_go_back` | Destructive | none | Go back in browser history. |
 | `page_go_forward` | Destructive | none | Go forward in browser history. |
 | `page_refresh` | Destructive | none | Reload the current page. |
@@ -211,6 +215,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `page_resize` | Destructive | `width`, `height` | Resize the browser window. |
 | `page_screenshot` | Read-only | none | Capture an inline viewport or full-page screenshot. Optional: `full_page`. |
 | `page_screenshot_save` | Destructive | `path` | Save a viewport or full-page screenshot under `DP_MCP_SCREENSHOT_ROOT`. Optional: `full_page`. |
+| `page_export_artifact` | Destructive | `format` | Generate one PDF or MHTML file under `DP_MCP_ARTIFACT_ROOT`, returning a safe `ArtifactRef` and exact-once `ActionReceipt`. Optional: `filename`, `operation_key`, and bounded PDF print options. |
 | `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`. |
 | `page_accessibility_snapshot` | Read-only | none | Return a bounded Chromium accessibility tree for the page or an optional scoped element target. Field values and value-like properties are redacted by default; `include_values=true` explicitly returns them. Optional: `scope`, `max_nodes`, `include_ignored`, `include_values`. |
 | `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, recent console summary, and limits. Optional: `max_texts`, `max_text_chars`. |
@@ -242,6 +247,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `element_click_and_download` | Destructive | `selector` | Resolve one string or structured target, perform one native click, and await one correlated completed download under `DP_MCP_DOWNLOAD_ROOT`. Returns an integrity-checked `ArtifactRef` and linked `ActionReceipt`. Optional: `operation_key`, `timeout`, `expected_filename`, `expected_mime_type`. |
 | `element_type` | Destructive | `selector`, `text` | Type into one string or structured selector/accessibility target. Optional: `timeout`, `clear`, `observe`. |
 | `element_upload_file` | Destructive | `selector`, `paths` | Upload one or more files from `DP_MCP_UPLOAD_ROOT` into an `input[type=file]`. Optional: `timeout`. |
+| `element_click_and_upload` | Destructive | `selector`, `paths` | Arm Chromium's file-chooser interception, click one trigger, inject files from `DP_MCP_UPLOAD_ROOT`, and always disarm without user interaction with a native OS picker. Optional: `timeout`. |
 | `element_scroll_into_view` | Destructive | `selector` | Scroll an element into the viewport. Optional: `center`, `timeout`. |
 | `element_hover` | Destructive | `selector` | Hover an element. Optional: `timeout`, `offset_x`, `offset_y`. |
 | `element_select` | Destructive | `selector`, `value` | Select an option from a `<select>` by value, text, or index. Optional: `by`, `timeout`. |
@@ -298,7 +304,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.7.6 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.7.7 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 
@@ -319,6 +325,10 @@ optional Skills.
 - `page_console_logs` returns normalized console messages with `index`, `level`, `text`, `url`, `line`, `column`, and `source`. Use `since` with the previous `next_cursor` to fetch only newer messages.
 - `page_evaluate` accepts a JavaScript function body; use `return` for values you want in `structuredContent.data.result`. The result is bounded by `max_chars`.
 - `element_upload_file` requires `DP_MCP_UPLOAD_ROOT`; absolute input paths are accepted only when they resolve inside that root, and successful responses return file names rather than absolute paths.
+- `element_click_and_upload` uses DrissionPage's one-shot `Page.fileChooserOpened` path and performs cleanup after success, timeout, or failure. It controls the Chromium chooser event only; native operating-system picker windows are neither opened nor automated.
+- `page_export_artifact` treats PDF/MHTML content as sensitive generated output. It requires `DP_MCP_ARTIFACT_ROOT`, exposes no absolute path, and replays a completed `operation_key` without writing a second file.
+- `page_navigate_with_http_auth` removes its Fetch callbacks after the navigation. Chromium has no documented CDP command to purge HTTP auth cache, so the authenticated page lives in a dedicated browser context that `tab_close` disposes. Other tabs do not share that cache.
+- Permission tools use `Browser.setPermission` and `Browser.resetPermissions`. `browser_permission_get` observes through the current document's Permissions API. Notification permission state is supported, but native OS permission dialogs and notification-center contents remain outside the MCP contract.
 - `frame_*` tools are stateless: each call selects by `frame_selector` or zero-based `frame_index`; no global current-frame mode is stored. The DrissionPage 4.x browser path is regression-tested against an attached cross-origin OOPIF.
 - `shadow_*` tools use DrissionPage's native shadow-root object instead of page-JavaScript `host.shadowRoot`. The current supported DrissionPage 4.x path is regression-tested against both open roots and a closed root that is invisible to page JavaScript. Capability failure is reported; the MCP does not inject a piercing fallback.
 - `page_pointer_drag_element` has a different implementation boundary: its synchronous page script remains limited to the top document or one same-origin iframe and nested open Shadow DOM hosts.
@@ -352,8 +362,9 @@ By default, DrissionPage MCP remains a local stdio browser automation server wit
 | `DP_MCP_NAV_BLOCKLIST` | Comma-separated host names or URL prefixes rejected after allowlist checks. |
 | `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost/private/link-local navigation. |
 | `DP_MCP_SCREENSHOT_ROOT` | Required root directory for `page_screenshot_save` file writes. |
-| `DP_MCP_UPLOAD_ROOT` | Required root directory for `element_upload_file` input files. |
+| `DP_MCP_UPLOAD_ROOT` | Required root directory for `element_upload_file` and `element_click_and_upload` input files. |
 | `DP_MCP_DOWNLOAD_ROOT` | Required approved root for `element_click_and_download` artifacts. Public results expose safe relative paths only. |
+| `DP_MCP_ARTIFACT_ROOT` | Required approved root for `page_export_artifact` PDF/MHTML output. Public results expose safe relative paths only. |
 | `DP_MCP_DENY_DOWNLOAD` | Deny `element_click_and_download` before the native click or filesystem allocation. |
 
 Denied navigation is checked before `context.ensure_tab()`, so policy rejection does not start or initialize a browser.

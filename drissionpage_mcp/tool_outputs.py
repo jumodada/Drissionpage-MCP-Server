@@ -115,7 +115,7 @@ class ActionReceipt(ContractData):
     operation_key: Annotated[str, StringConstraints(min_length=1, max_length=128)]
     request_fingerprint: Sha256Hex
     kind: Annotated[str, StringConstraints(min_length=1, max_length=64)]
-    side_effect: Literal["external_download", "dialog_response"]
+    side_effect: Literal["external_download", "dialog_response", "artifact_write"]
     status: Literal[
         "success",
         "validation_failed",
@@ -148,7 +148,7 @@ class ArtifactRef(ContractData):
     artifact_id: ContractId
     task_id: ContractId
     producing_action_id: ContractId
-    kind: Literal["download"]
+    kind: Literal["download", "page_export"]
     filename: Annotated[str, StringConstraints(min_length=1, max_length=255)]
     mime_type: (
         Annotated[str, StringConstraints(min_length=1, max_length=200)] | None
@@ -240,6 +240,21 @@ class PageNavigateData(ToolData):
     changes: dict[str, Any] | None = None
 
 
+class PageNavigateWithHttpAuthData(ToolData):
+    url: str
+    final_url: str
+    authenticated: bool
+    tab_id: str
+    realm: str | None = None
+    challenge_count: int | None = None
+    response_status: int | None = None
+    handlers_cleaned: bool | None = None
+    credential_scope: Literal["isolated_browser_context"] | None = None
+    username_provided: bool | None = None
+    password_provided: bool | None = None
+    credentials_redacted: Literal[True] | None = None
+
+
 class PageGoBackData(ToolData):
     url: str
 
@@ -282,6 +297,36 @@ class PageScreenshotData(ToolData):
 
 class PageScreenshotSaveData(ToolData):
     screenshot: dict[str, Any]
+
+
+class PageExportArtifactReceipt(ActionReceipt):
+    kind: Literal["page_export_artifact"]
+    side_effect: Literal["artifact_write"]
+    status: Literal["success"]
+    artifact_ids: Annotated[tuple[ContractId, ...], Field(min_length=1, max_length=1)]
+
+
+class PageExportArtifactData(ToolData):
+    operation_key: str
+    format: Literal["pdf", "mhtml"]
+    artifact: ArtifactRef
+    receipt: PageExportArtifactReceipt
+
+    @model_validator(mode="after")
+    def validate_correlations(self) -> PageExportArtifactData:
+        if self.receipt.operation_key != self.operation_key:
+            raise ValueError("receipt operation_key must match data operation_key")
+        if self.artifact.kind != "page_export":
+            raise ValueError("page export artifact must use page_export kind")
+        if self.artifact.task_id != self.receipt.task_id:
+            raise ValueError("artifact task_id must match receipt task_id")
+        if self.artifact.producing_action_id != self.receipt.action_id:
+            raise ValueError(
+                "artifact producing_action_id must match receipt action_id"
+            )
+        if self.receipt.artifact_ids != (self.artifact.artifact_id,):
+            raise ValueError("receipt artifact_ids must contain the artifact id")
+        return self
 
 
 class PageSnapshotData(ToolData):
@@ -434,6 +479,28 @@ class BrowserUserAgentSetData(ToolData):
 
 class BrowserCacheClearData(ToolData):
     cleared: Literal[True]
+
+
+class BrowserPermissionGetData(ToolData):
+    permission: str
+    state: Literal["granted", "denied", "prompt", "unsupported"]
+    origin: str
+    query_supported: bool
+
+
+class BrowserPermissionSetData(ToolData):
+    permission: str
+    setting: Literal["granted", "denied", "prompt"]
+    origin: str
+    applied: Literal[True]
+    verified: bool
+    observed_state: Literal["granted", "denied", "prompt", "unsupported"] | None
+    context_scope: Literal["current_browser_context"]
+
+
+class BrowserPermissionsResetData(ToolData):
+    reset: Literal[True]
+    context_scope: Literal["current_browser_context"]
 
 
 class ConsoleLogsData(ToolData):
@@ -603,6 +670,12 @@ class ElementGetHtmlData(ElementTargetData):
 
 
 class ElementUploadFileData(ElementTargetData):
+    uploaded: Literal[True]
+    file_count: int
+    filenames: list[str]
+
+
+class ElementClickAndUploadData(ElementTargetData):
     uploaded: Literal[True]
     file_count: int
     filenames: list[str]

@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Annotated
 
-from pydantic import Field
+from pydantic import Field, StrictStr, StringConstraints
 
 from ..limits import MAX_WAIT_SECONDS
 from ..policy import PolicyDeniedError, validate_upload_paths
 from ..response_errors import ErrorCode
 from ..target import ElementTargetArg, target_label
-from ..tool_outputs import ElementUploadFileData
+from ..tool_outputs import ElementClickAndUploadData, ElementUploadFileData
 from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
@@ -34,6 +34,22 @@ class UploadFileInput(ToolInput):
         le=MAX_WAIT_SECONDS,
         description="Timeout in seconds to wait for the file input.",
     )
+
+
+UploadPath = Annotated[
+    StrictStr,
+    StringConstraints(min_length=1, max_length=4096),
+]
+
+
+class ElementClickAndUploadInput(ToolInput):
+    """Input for one browser-owned file chooser click and upload."""
+
+    selector: ElementTargetArg = Field(
+        ..., description="Selector/accessibility target that opens a file chooser."
+    )
+    paths: list[UploadPath] = Field(..., min_length=1, max_length=20)
+    timeout: float = Field(default=10.0, gt=0, le=MAX_WAIT_SECONDS)
 
 
 @define_tool(
@@ -66,5 +82,40 @@ async def element_upload_file(
     outcome.add_result(
         f"Uploaded {result['file_count']} file{('' if result['file_count'] == 1 else 's')}",
         **result,
+    )
+    return outcome
+
+
+@define_tool(
+    name="element_click_and_upload",
+    title="Click And Upload",
+    description="Arm Chromium's file chooser, click one trigger, inject approved files, and always remove interception without opening a native operating-system picker.",
+    input_schema=ElementClickAndUploadInput,
+    tool_type=ToolType.DESTRUCTIVE,
+    output_model=ElementClickAndUploadData,
+    failure_message=lambda args, exc: (
+        "Browser file chooser upload failed; local paths were redacted."
+    ),
+)
+async def element_click_and_upload(
+    context: DrissionPageContext, args: ElementClickAndUploadInput
+) -> ToolOutcome:
+    outcome = ToolOutcome()
+    try:
+        safe_paths = validate_upload_paths(args.paths)
+    except PolicyDeniedError as exc:
+        outcome.add_error(
+            str(exc), ErrorCode.POLICY_DENIED, rule=exc.rule, value=exc.value
+        )
+        return outcome
+    tab = context.current_tab_or_die()
+    result = await tab.file_chooser.click_and_upload(
+        args.selector,
+        [str(path) for path in safe_paths],
+        timeout=args.timeout,
+    )
+    outcome.set_result(
+        f"Uploaded {result['file_count']} file(s) through the browser chooser",
+        result,
     )
     return outcome

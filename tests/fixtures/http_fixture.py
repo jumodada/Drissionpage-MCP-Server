@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from base64 import b64encode
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -14,6 +15,12 @@ from urllib.parse import parse_qs, urlparse
 
 TASK_COMPLETION_DOWNLOAD = b"employee_id,name,department\n0701,Ada Lovelace,Research\n"
 TASK_COMPLETION_DOWNLOAD_SHA256 = sha256(TASK_COMPLETION_DOWNLOAD).hexdigest()
+HTTP_AUTH_USERNAME = "fixture-agent"
+HTTP_AUTH_PASSWORD = "fixture-secret"
+HTTP_AUTH_REALM = "DrissionMCP Fixture"
+_HTTP_AUTHORIZATION = "Basic " + b64encode(
+    f"{HTTP_AUTH_USERNAME}:{HTTP_AUTH_PASSWORD}".encode()
+).decode()
 
 
 @dataclass(frozen=True)
@@ -103,7 +110,7 @@ class FixtureState:
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             return {
-                "version": "0.7.6",
+                "version": "0.7.7",
                 "counters": dict(sorted(self._counters.items())),
                 "events": [dict(event) for event in self._events],
                 "download": {
@@ -249,6 +256,33 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             self._send_json(self._state.snapshot())
             return
 
+        if path == "/auth/basic":
+            authorized = self.headers.get("Authorization") == _HTTP_AUTHORIZATION
+            self._state.record(
+                "http_auth_requests",
+                authorization_present=bool(self.headers.get("Authorization")),
+                authorized=authorized,
+            )
+            if not authorized:
+                self._send_bytes(
+                    b"authentication required",
+                    status=401,
+                    headers={
+                        "WWW-Authenticate": f'Basic realm="{HTTP_AUTH_REALM}"'
+                    },
+                )
+                return
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Authenticated</title></head>
+                  <body><h1 id="auth-ok">Authenticated Fixture</h1></body>
+                </html>
+                """
+            )
+            return
+
         if path == "/assets/cacheable.js":
             count = self._state.record("cacheable_resource_requests", path=path)
             self._send_bytes(
@@ -355,6 +389,35 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
                         document.getElementById('upload-name').textContent =
                           this.files.length ? this.files[0].name : 'none';
                       });
+                    </script>
+                  </body>
+                </html>
+                """
+            )
+            return
+
+        if path == "/browser-owned":
+            self._send_html(
+                """
+                <!doctype html>
+                <html>
+                  <head><title>Fixture Browser Owned Capabilities</title></head>
+                  <body>
+                    <h1 id="export-marker">Browser Owned Export Marker 0.7.7</h1>
+                    <button id="chooser-trigger" type="button"
+                      onclick="document.getElementById('chooser-input').click()">
+                      Choose file
+                    </button>
+                    <input id="chooser-input" type="file" multiple hidden />
+                    <output id="chooser-result">none</output>
+                    <script>
+                      document.getElementById('chooser-input').addEventListener(
+                        'change',
+                        function () {
+                          document.getElementById('chooser-result').textContent =
+                            Array.from(this.files).map(file => file.name).join(',');
+                        }
+                      );
                     </script>
                   </body>
                 </html>

@@ -98,10 +98,10 @@ class DrissionPageMCPServer:
 
             try:
                 validated_args = tool.input_schema.model_validate(arguments or {})
-            except ValidationError as e:
+            except ValidationError as exc:
                 outcome = ToolOutcome()
                 outcome.add_error(
-                    f"Input validation error: {e}",
+                    _validation_error_message(exc),
                     ErrorCode.MCP_ARGUMENT_INVALID,
                     tool_name=name,
                 )
@@ -251,6 +251,16 @@ def _tool_supports_output_schema() -> bool:
         return "outputSchema" in inspect.signature(Tool).parameters
     except (TypeError, ValueError):
         return False
+
+
+def _validation_error_message(exc: ValidationError) -> str:
+    """Return actionable validation details without echoing rejected input values."""
+
+    issues = []
+    for error in exc.errors(include_input=False, include_url=False):
+        location = ".".join(str(item) for item in error.get("loc", ())) or "input"
+        issues.append(f"{location}: {error['msg']}")
+    return f"Input validation error: {'; '.join(issues)}"
 
 
 REMOVED_TOOL_REPLACEMENTS = {

@@ -3,17 +3,19 @@
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import mimetypes
-import os
 import shutil
-import stat
 from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Any, TypeVar
 
 from ..compat import accepts_parameters
 from ..response_errors import ErrorCode
+from .artifacts import (
+    ArtifactFileChangedError,
+    ArtifactFileValidationError,
+    inspect_artifact_file,
+)
 
 if TYPE_CHECKING:
     from ..tab import PageTab
@@ -148,17 +150,26 @@ class DownloadOperations:
             raise DownloadValidationError("Completed download has no artifact path.")
         path = Path(str(final_path)).expanduser()
         base = download_dir.resolve()
-        resolved, size_bytes, sha256 = _file_integrity(path, approved_root=base)
+        try:
+            artifact = inspect_artifact_file(path, approved_root=base)
+        except ArtifactFileChangedError as exc:
+            raise DownloadIndeterminateError(
+                "The completed artifact changed during integrity validation."
+            ) from exc
+        except ArtifactFileValidationError as exc:
+            raise DownloadValidationError(
+                "Completed download is not a stable regular non-symlink file."
+            ) from exc
         filename = Path(str(getattr(mission, "name", "") or path.name)).name
         if filename != path.name:
             filename = path.name
         mime_type = mimetypes.guess_type(filename)[0]
         return {
-            "path": resolved,
+            "path": artifact.path,
             "filename": filename,
             "mime_type": mime_type,
-            "size_bytes": size_bytes,
-            "sha256": sha256,
+            "size_bytes": artifact.size_bytes,
+            "sha256": artifact.sha256,
             "source_url": str(getattr(mission, "url", "") or ""),
         }
 
@@ -193,59 +204,3 @@ async def _await_terminal(task: asyncio.Task[_T]) -> _T:
     if cancellation is not None:
         raise cancellation
     return result
-
-
-def _file_integrity(path: Path, *, approved_root: Path) -> tuple[Path, int, str]:
-    flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        descriptor = os.open(path, flags)
-    except OSError as exc:
-        raise DownloadValidationError(
-            "Completed download is not a stable regular non-symlink file."
-        ) from exc
-    try:
-        before = os.fstat(descriptor)
-        if not stat.S_ISREG(before.st_mode):
-            raise DownloadValidationError(
-                "Completed download is not a regular non-symlink file."
-            )
-        try:
-            leaf = os.stat(path, follow_symlinks=False)
-            resolved = path.resolve(strict=True)
-            resolved.relative_to(approved_root)
-        except (OSError, ValueError) as exc:
-            raise DownloadValidationError(
-                "Completed download escaped the approved download root."
-            ) from exc
-        if stat.S_ISLNK(leaf.st_mode) or (leaf.st_dev, leaf.st_ino) != (
-            before.st_dev,
-            before.st_ino,
-        ):
-            raise DownloadValidationError(
-                "Completed download path changed during validation."
-            )
-
-        digest = hashlib.sha256()
-        with os.fdopen(descriptor, "rb", closefd=False) as stream:
-            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-                digest.update(chunk)
-        after = os.fstat(descriptor)
-        if (
-            before.st_size,
-            before.st_mtime_ns,
-            before.st_ctime_ns,
-            before.st_dev,
-            before.st_ino,
-        ) != (
-            after.st_size,
-            after.st_mtime_ns,
-            after.st_ctime_ns,
-            after.st_dev,
-            after.st_ino,
-        ):
-            raise DownloadIndeterminateError(
-                "The completed artifact changed while its integrity was being checked."
-            )
-        return resolved, after.st_size, digest.hexdigest()
-    finally:
-        os.close(descriptor)

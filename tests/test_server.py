@@ -154,7 +154,7 @@ class TestToolsIntegration:
             "browser_open_and_snapshot",
             "browser_extract_links",
         }.isdisjoint(tool_names)
-        assert len(tool_names) == 63
+        assert len(tool_names) == 69
 
 
 if __name__ == "__main__":

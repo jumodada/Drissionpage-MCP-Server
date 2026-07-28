@@ -150,6 +150,265 @@
       "idempotentHint": false,
       "openWorldHint": true,
       "readOnlyHint": false,
+      "title": "Navigate With HTTP Authentication"
+    },
+    "description": "Open an isolated Chromium context, answer a bounded HTTP auth challenge, clean Fetch handlers, and retain the isolated authenticated tab until it is closed.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Navigate in an isolated browser context using one HTTP auth challenge.",
+      "properties": {
+        "password": {
+          "format": "password",
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Password",
+          "type": "string",
+          "writeOnly": true
+        },
+        "realm": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional exact HTTP authentication realm constraint.",
+          "title": "Realm"
+        },
+        "timeout": {
+          "default": 30.0,
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "url": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "username": {
+          "format": "password",
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Username",
+          "type": "string",
+          "writeOnly": true
+        }
+      },
+      "required": [
+        "url",
+        "username",
+        "password"
+      ],
+      "title": "PageNavigateWithHttpAuthInput",
+      "type": "object"
+    },
+    "name": "page_navigate_with_http_auth",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "authenticated": {
+                  "title": "Authenticated",
+                  "type": "boolean"
+                },
+                "challenge_count": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Challenge Count"
+                },
+                "credential_scope": {
+                  "anyOf": [
+                    {
+                      "const": "isolated_browser_context",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Credential Scope"
+                },
+                "credentials_redacted": {
+                  "anyOf": [
+                    {
+                      "const": true,
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Credentials Redacted"
+                },
+                "final_url": {
+                  "title": "Final Url",
+                  "type": "string"
+                },
+                "handlers_cleaned": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Handlers Cleaned"
+                },
+                "password_provided": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Password Provided"
+                },
+                "realm": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Realm"
+                },
+                "response_status": {
+                  "anyOf": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Response Status"
+                },
+                "tab_id": {
+                  "title": "Tab Id",
+                  "type": "string"
+                },
+                "url": {
+                  "title": "Url",
+                  "type": "string"
+                },
+                "username_provided": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Username Provided"
+                }
+              },
+              "required": [
+                "url",
+                "final_url",
+                "authenticated",
+                "tab_id"
+              ],
+              "title": "PageNavigateWithHttpAuthData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Navigate With HTTP Authentication"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
       "title": "Go Back"
     },
     "description": "Go back to the previous page in browser history",
@@ -1110,6 +1369,475 @@
       "type": "object"
     },
     "title": "Save Screenshot"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Export Page Artifact"
+    },
+    "description": "Generate one PDF or MHTML file under DP_MCP_ARTIFACT_ROOT and return checksum, safe relative path, and exact-once receipt evidence.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Create one managed PDF or MHTML artifact from the current page.",
+      "properties": {
+        "filename": {
+          "anyOf": [
+            {
+              "maxLength": 255,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Filename"
+        },
+        "format": {
+          "enum": [
+            "pdf",
+            "mhtml"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "landscape": {
+          "default": false,
+          "title": "Landscape",
+          "type": "boolean"
+        },
+        "margin_bottom": {
+          "default": 0.4,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Margin Bottom",
+          "type": "number"
+        },
+        "margin_left": {
+          "default": 0.4,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Margin Left",
+          "type": "number"
+        },
+        "margin_right": {
+          "default": 0.4,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Margin Right",
+          "type": "number"
+        },
+        "margin_top": {
+          "default": 0.4,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Margin Top",
+          "type": "number"
+        },
+        "operation_key": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operation Key"
+        },
+        "page_ranges": {
+          "default": "",
+          "maxLength": 200,
+          "pattern": "^[0-9,\\- ]*$",
+          "title": "Page Ranges",
+          "type": "string"
+        },
+        "paper_height": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Paper Height"
+        },
+        "paper_width": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Paper Width"
+        },
+        "prefer_css_page_size": {
+          "default": false,
+          "title": "Prefer Css Page Size",
+          "type": "boolean"
+        },
+        "print_background": {
+          "default": true,
+          "title": "Print Background",
+          "type": "boolean"
+        },
+        "scale": {
+          "default": 1.0,
+          "maximum": 2.0,
+          "minimum": 0.1,
+          "title": "Scale",
+          "type": "number"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "title": "PageExportArtifactInput",
+      "type": "object"
+    },
+    "name": "page_export_artifact",
+    "outputSchema": {
+      "$defs": {
+        "ArtifactRef": {
+          "additionalProperties": false,
+          "description": "Safe metadata for one complete artifact produced in the live task.",
+          "properties": {
+            "artifact_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Artifact Id",
+              "type": "string"
+            },
+            "created_at": {
+              "format": "date-time",
+              "title": "Created At",
+              "type": "string"
+            },
+            "filename": {
+              "maxLength": 255,
+              "minLength": 1,
+              "title": "Filename",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "download",
+                "page_export"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "mime_type": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Mime Type"
+            },
+            "producing_action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Producing Action Id",
+              "type": "string"
+            },
+            "redacted": {
+              "default": false,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "safe_relative_path": {
+              "maxLength": 500,
+              "minLength": 1,
+              "pattern": "^[^/\\\\:]+(?:/[^/\\\\:]+)*$",
+              "title": "Safe Relative Path",
+              "type": "string"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "sha256": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Sha256",
+              "type": "string"
+            },
+            "size_bytes": {
+              "minimum": 0,
+              "title": "Size Bytes",
+              "type": "integer"
+            },
+            "source_url": {
+              "default": "",
+              "maxLength": 500,
+              "pattern": "^(?:|https?://[^/?#\\s]+(?:/[^?#\\s\\\\]*)?)$",
+              "title": "Source Url",
+              "type": "string"
+            },
+            "status": {
+              "const": "complete",
+              "default": "complete",
+              "title": "Status",
+              "type": "string"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "artifact_id",
+            "task_id",
+            "producing_action_id",
+            "kind",
+            "filename",
+            "size_bytes",
+            "sha256",
+            "safe_relative_path",
+            "created_at"
+          ],
+          "title": "ArtifactRef",
+          "type": "object"
+        },
+        "PageExportArtifactReceipt": {
+          "additionalProperties": false,
+          "properties": {
+            "action_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Action Id",
+              "type": "string"
+            },
+            "artifact_ids": {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+                "type": "string"
+              },
+              "maxItems": 1,
+              "minItems": 1,
+              "title": "Artifact Ids",
+              "type": "array"
+            },
+            "error_code": {
+              "anyOf": [
+                {
+                  "maxLength": 100,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Error Code"
+            },
+            "finished_at": {
+              "format": "date-time",
+              "title": "Finished At",
+              "type": "string"
+            },
+            "kind": {
+              "const": "page_export_artifact",
+              "title": "Kind",
+              "type": "string"
+            },
+            "operation_key": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Operation Key",
+              "type": "string"
+            },
+            "redacted": {
+              "const": true,
+              "default": true,
+              "title": "Redacted",
+              "type": "boolean"
+            },
+            "request_fingerprint": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "Request Fingerprint",
+              "type": "string"
+            },
+            "schema_version": {
+              "const": "1",
+              "default": "1",
+              "title": "Schema Version",
+              "type": "string"
+            },
+            "side_effect": {
+              "const": "artifact_write",
+              "title": "Side Effect",
+              "type": "string"
+            },
+            "started_at": {
+              "format": "date-time",
+              "title": "Started At",
+              "type": "string"
+            },
+            "status": {
+              "const": "success",
+              "title": "Status",
+              "type": "string"
+            },
+            "tab_id": {
+              "maxLength": 128,
+              "minLength": 1,
+              "title": "Tab Id",
+              "type": "string"
+            },
+            "target_fingerprint": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Target Fingerprint"
+            },
+            "task_id": {
+              "pattern": "^[a-z][a-z0-9_-]{2,127}$",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action_id",
+            "task_id",
+            "operation_key",
+            "request_fingerprint",
+            "kind",
+            "side_effect",
+            "status",
+            "started_at",
+            "finished_at",
+            "tab_id",
+            "artifact_ids"
+          ],
+          "title": "PageExportArtifactReceipt",
+          "type": "object"
+        }
+      },
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "artifact": {
+                  "$ref": "#/$defs/ArtifactRef"
+                },
+                "format": {
+                  "enum": [
+                    "pdf",
+                    "mhtml"
+                  ],
+                  "title": "Format",
+                  "type": "string"
+                },
+                "operation_key": {
+                  "title": "Operation Key",
+                  "type": "string"
+                },
+                "receipt": {
+                  "$ref": "#/$defs/PageExportArtifactReceipt"
+                }
+              },
+              "required": [
+                "operation_key",
+                "format",
+                "artifact",
+                "receipt"
+              ],
+              "title": "PageExportArtifactData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Export Page Artifact"
   },
   {
     "annotations": {
@@ -3862,6 +4590,441 @@
       "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": true,
+      "title": "Get Browser Permission"
+    },
+    "description": "Query one browser permission state for the current document origin without opening an operating-system prompt.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Query one permission in the current document origin.",
+      "properties": {
+        "permission": {
+          "enum": [
+            "geolocation",
+            "notifications",
+            "camera",
+            "microphone",
+            "clipboard-read",
+            "clipboard-write",
+            "midi",
+            "midi-sysex",
+            "background-sync",
+            "persistent-storage",
+            "sensors",
+            "payment-handler",
+            "idle-detection"
+          ],
+          "title": "Permission",
+          "type": "string"
+        }
+      },
+      "required": [
+        "permission"
+      ],
+      "title": "BrowserPermissionGetInput",
+      "type": "object"
+    },
+    "name": "browser_permission_get",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "origin": {
+                  "title": "Origin",
+                  "type": "string"
+                },
+                "permission": {
+                  "title": "Permission",
+                  "type": "string"
+                },
+                "query_supported": {
+                  "title": "Query Supported",
+                  "type": "boolean"
+                },
+                "state": {
+                  "enum": [
+                    "granted",
+                    "denied",
+                    "prompt",
+                    "unsupported"
+                  ],
+                  "title": "State",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "permission",
+                "state",
+                "origin",
+                "query_supported"
+              ],
+              "title": "BrowserPermissionGetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Get Browser Permission"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Set Browser Permission"
+    },
+    "description": "Set one permission to granted, denied, or prompt for one bounded origin in the current Chromium context.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Set one Chromium permission for one exact HTTP(S) origin.",
+      "properties": {
+        "origin": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Exact HTTP(S) origin. Defaults to the current page origin.",
+          "title": "Origin"
+        },
+        "permission": {
+          "enum": [
+            "geolocation",
+            "notifications",
+            "camera",
+            "microphone",
+            "clipboard-read",
+            "clipboard-write",
+            "midi",
+            "midi-sysex",
+            "background-sync",
+            "persistent-storage",
+            "sensors",
+            "payment-handler",
+            "idle-detection"
+          ],
+          "title": "Permission",
+          "type": "string"
+        },
+        "setting": {
+          "enum": [
+            "granted",
+            "denied",
+            "prompt"
+          ],
+          "title": "Setting",
+          "type": "string"
+        }
+      },
+      "required": [
+        "permission",
+        "setting"
+      ],
+      "title": "BrowserPermissionSetInput",
+      "type": "object"
+    },
+    "name": "browser_permission_set",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "applied": {
+                  "const": true,
+                  "title": "Applied",
+                  "type": "boolean"
+                },
+                "context_scope": {
+                  "const": "current_browser_context",
+                  "title": "Context Scope",
+                  "type": "string"
+                },
+                "observed_state": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "granted",
+                        "denied",
+                        "prompt",
+                        "unsupported"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Observed State"
+                },
+                "origin": {
+                  "title": "Origin",
+                  "type": "string"
+                },
+                "permission": {
+                  "title": "Permission",
+                  "type": "string"
+                },
+                "setting": {
+                  "enum": [
+                    "granted",
+                    "denied",
+                    "prompt"
+                  ],
+                  "title": "Setting",
+                  "type": "string"
+                },
+                "verified": {
+                  "title": "Verified",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "permission",
+                "setting",
+                "origin",
+                "applied",
+                "verified",
+                "observed_state",
+                "context_scope"
+              ],
+              "title": "BrowserPermissionSetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Set Browser Permission"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Reset Browser Permissions"
+    },
+    "description": "Reset all Chromium permission overrides in the current browser context.",
+    "inputSchema": {
+      "additionalProperties": false,
+      "description": "Empty input schema for tools that don't require arguments.",
+      "properties": {},
+      "title": "EmptyInput",
+      "type": "object"
+    },
+    "name": "browser_permissions_reset",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "context_scope": {
+                  "const": "current_browser_context",
+                  "title": "Context Scope",
+                  "type": "string"
+                },
+                "reset": {
+                  "const": true,
+                  "title": "Reset",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "reset",
+                "context_scope"
+              ],
+              "title": "BrowserPermissionsResetData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Reset Browser Permissions"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
       "title": "Observe Page Dialog"
     },
     "description": "Observe a pending native alert, confirm, or prompt and return its bounded message without handling it.",
@@ -4128,7 +5291,8 @@
             "side_effect": {
               "enum": [
                 "external_download",
-                "dialog_response"
+                "dialog_response",
+                "artifact_write"
               ],
               "title": "Side Effect",
               "type": "string"
@@ -4592,7 +5756,10 @@
               "type": "string"
             },
             "kind": {
-              "const": "download",
+              "enum": [
+                "download",
+                "page_export"
+              ],
               "title": "Kind",
               "type": "string"
             },
@@ -9341,6 +10508,357 @@
       "type": "object"
     },
     "title": "Upload File"
+  },
+  {
+    "annotations": {
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true,
+      "readOnlyHint": false,
+      "title": "Click And Upload"
+    },
+    "description": "Arm Chromium's file chooser, click one trigger, inject approved files, and always remove interception without opening a native operating-system picker.",
+    "inputSchema": {
+      "$defs": {
+        "AccessibilityTargetInput": {
+          "additionalProperties": false,
+          "description": "A unique accessibility role/name target within an optional DOM scope.",
+          "properties": {
+            "exact": {
+              "default": true,
+              "title": "Exact",
+              "type": "boolean"
+            },
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "accessibility",
+              "title": "Kind",
+              "type": "string"
+            },
+            "name": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Name"
+            },
+            "role": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Role",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "role"
+          ],
+          "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "SelectorTargetInput": {
+          "additionalProperties": false,
+          "description": "A selector target with optional frame and shadow-root scope.",
+          "properties": {
+            "frame_selectors": {
+              "description": "Ordered outer-to-inner frame selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 4,
+              "title": "Frame Selectors",
+              "type": "array"
+            },
+            "kind": {
+              "const": "selector",
+              "title": "Kind",
+              "type": "string"
+            },
+            "selector": {
+              "maxLength": 500,
+              "minLength": 1,
+              "title": "Selector",
+              "type": "string"
+            },
+            "shadow_hosts": {
+              "description": "Ordered outer-to-inner shadow host selectors resolved by DrissionPage.",
+              "items": {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 8,
+              "title": "Shadow Hosts",
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "selector"
+          ],
+          "title": "SelectorTargetInput",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "description": "Input for one browser-owned file chooser click and upload.",
+      "properties": {
+        "paths": {
+          "items": {
+            "maxLength": 4096,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Paths",
+          "type": "array"
+        },
+        "selector": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "selector": "#/$defs/SelectorTargetInput"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SelectorTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/AccessibilityTargetInput"
+                }
+              ]
+            }
+          ],
+          "description": "Selector/accessibility target that opens a file chooser.",
+          "title": "Selector"
+        },
+        "timeout": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "maximum": 120,
+          "title": "Timeout",
+          "type": "number"
+        }
+      },
+      "required": [
+        "selector",
+        "paths"
+      ],
+      "title": "ElementClickAndUploadInput",
+      "type": "object"
+    },
+    "name": "element_click_and_upload",
+    "outputSchema": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": false,
+              "properties": {
+                "exact": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Exact"
+                },
+                "file_count": {
+                  "title": "File Count",
+                  "type": "integer"
+                },
+                "filenames": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Filenames",
+                  "type": "array"
+                },
+                "frame_selectors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Frame Selectors",
+                  "type": "array"
+                },
+                "locator": {
+                  "title": "Locator",
+                  "type": "string"
+                },
+                "name": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Name"
+                },
+                "role": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Role"
+                },
+                "selector": {
+                  "title": "Selector",
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "title": "Selector Normalized",
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "title": "Selector Strategy",
+                  "type": "string"
+                },
+                "shadow_hosts": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Shadow Hosts",
+                  "type": "array"
+                },
+                "target_kind": {
+                  "default": "selector",
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "title": "Target Kind",
+                  "type": "string"
+                },
+                "uploaded": {
+                  "const": true,
+                  "title": "Uploaded",
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized",
+                "uploaded",
+                "file_count",
+                "filenames"
+              ],
+              "title": "ElementClickAndUploadData",
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": true
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "data"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "data": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "error": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "details": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "message": {
+              "type": "string"
+            },
+            "ok": {
+              "const": false
+            }
+          },
+          "required": [
+            "ok",
+            "message",
+            "error"
+          ],
+          "type": "object"
+        }
+      ],
+      "type": "object"
+    },
+    "title": "Click And Upload"
   },
   {
     "annotations": {

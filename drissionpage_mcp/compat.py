@@ -127,15 +127,34 @@ def get_latest_tab(browser: Any) -> Any:
     return tab
 
 
-def new_tab(browser: Any, url: str | None = None) -> Any:
+def new_tab(
+    browser: Any,
+    url: str | None = None,
+    *,
+    new_context: bool = False,
+) -> Any:
     """Create a new tab across DrissionPage 4.1/4.2 signature differences."""
 
     if not hasattr(browser, "new_tab"):
+        if new_context:
+            raise RuntimeError(
+                "This DrissionPage runtime cannot create an isolated browser context."
+            )
         return get_latest_tab(browser)
 
     try:
+        if new_context:
+            if not accepts_parameters(browser.new_tab, "new_context"):
+                raise RuntimeError(
+                    "This DrissionPage runtime cannot create an isolated browser context."
+                )
+            return browser.new_tab(url=url, new_context=True)
         return browser.new_tab(url=url)
     except TypeError:
+        if new_context:
+            raise RuntimeError(
+                "This DrissionPage runtime cannot create an isolated browser context."
+            ) from None
         return browser.new_tab(url)
 
 
