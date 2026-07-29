@@ -52,7 +52,7 @@ class ElementScrollIntoViewInput(ToolInput):
     center: bool = Field(
         default=True, description="Center the element in the viewport."
     )
-    timeout: int = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
+    timeout: float = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
 
 
 class ElementHoverInput(ToolInput):
@@ -61,7 +61,7 @@ class ElementHoverInput(ToolInput):
     selector: ElementTargetArg = Field(
         ..., description="String locator or structured element target."
     )
-    timeout: int = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
+    timeout: float = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
     offset_x: int | None = Field(default=None, description="Optional hover X offset.")
     offset_y: int | None = Field(default=None, description="Optional hover Y offset.")
 
@@ -88,7 +88,7 @@ class ElementSelectInput(ToolInput):
     by: SelectBy = Field(
         default="value", description="Select by value, text, or index."
     )
-    timeout: int = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
+    timeout: float = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
 
 
 class ElementCheckInput(ToolInput):
@@ -99,7 +99,7 @@ class ElementCheckInput(ToolInput):
     )
     checked: bool = Field(default=True, description="Desired checked state.")
     by_js: bool = Field(default=False, description="Use JavaScript-backed checking.")
-    timeout: int = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
+    timeout: float = Field(default=10, ge=0, le=MAX_WAIT_SECONDS)
 
 
 @define_tool(

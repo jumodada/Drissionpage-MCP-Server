@@ -82,6 +82,28 @@ async def test_denied_navigation_does_not_initialize_browser(monkeypatch) -> Non
 
 
 @pytest.mark.asyncio
+async def test_denied_navigation_redacts_policy_detail_value(monkeypatch) -> None:
+    _clear_policy_env(monkeypatch)
+    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
+    context = Mock(spec=DrissionPageContext)
+    context.ensure_tab = AsyncMock()
+    secret_url = (
+        "https://user:password@denied.test/private?token=secret-token#fragment"
+    )
+
+    response = await navigate.execute(context, NavigateInput(url=secret_url))
+
+    payload = response.structured_content()
+    encoded = json.dumps(payload, ensure_ascii=False)
+    assert payload["error"]["details"]["value"] == "<redacted>"
+    assert "denied.test" not in encoded
+    assert "password" not in encoded
+    assert "secret-token" not in encoded
+    assert "denied.test/private" not in encoded
+    context.ensure_tab.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_allowed_navigation_still_uses_existing_tab_flow(monkeypatch) -> None:
     _clear_policy_env(monkeypatch)
     monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
@@ -102,6 +124,29 @@ async def test_allowed_navigation_still_uses_existing_tab_flow(monkeypatch) -> N
 
 
 @pytest.mark.asyncio
+async def test_navigation_failure_does_not_reflect_private_destination(
+    monkeypatch,
+) -> None:
+    _clear_policy_env(monkeypatch)
+    secret_url = "https://private.test/report?token=secret-token#section"
+    tab = Mock()
+    tab.navigation = Mock()
+    tab.navigation.navigate = AsyncMock(
+        side_effect=RuntimeError("CDP objectId=private-runtime-object")
+    )
+    context = Mock(spec=DrissionPageContext)
+    context.ensure_tab = AsyncMock(return_value=tab)
+
+    response = await navigate.execute(context, NavigateInput(url=secret_url))
+
+    encoded = json.dumps(response.structured_content(), ensure_ascii=False)
+    assert "private.test" not in encoded
+    assert "secret-token" not in encoded
+    assert "objectId" not in encoded
+    assert response.structured_content()["error"]["code"] == "PAGE_NAVIGATION_FAILED"
+
+
+@pytest.mark.asyncio
 async def test_screenshot_save_root_policy_blocks_path_before_file_write(
     monkeypatch, tmp_path
 ) -> None:
@@ -116,8 +161,11 @@ async def test_screenshot_save_root_policy_blocks_path_before_file_write(
         context, ScreenshotSaveInput(path=str(tmp_path / "outside.png"))
     )
     assert response.is_error is True
-    assert response.structured_content()["error"]["code"] == "POLICY_DENIED"
-    hints = response.structured_content()["error"]["details"]["hints"]
+    payload = response.structured_content()
+    assert payload["error"]["code"] == "POLICY_DENIED"
+    assert payload["error"]["details"]["value"] == "<redacted>"
+    assert str(tmp_path / "outside.png") not in json.dumps(payload)
+    hints = payload["error"]["details"]["hints"]
     assert any(hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in hints)
     context.current_tab_or_die.assert_not_called()
 
@@ -144,6 +192,43 @@ def test_screenshot_save_root_policy_allows_child_path(monkeypatch, tmp_path) ->
     _clear_policy_env(monkeypatch)
     monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(tmp_path))
     SafetyPolicy.from_env().validate_screenshot_path(str(tmp_path / "screen.png"))
+
+
+def test_screenshot_save_resolves_relative_paths_under_configured_root(
+    monkeypatch, tmp_path
+) -> None:
+    _clear_policy_env(monkeypatch)
+    root = tmp_path / "screenshots"
+    root.mkdir()
+    monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(root))
+
+    resolved = SafetyPolicy.from_env().validate_screenshot_path("nested/screen.png")
+
+    assert resolved == (root / "nested" / "screen.png").resolve()
+
+
+@pytest.mark.parametrize("path", ["../escape.png", "nested/../../escape.png"])
+def test_screenshot_save_rejects_relative_traversal(monkeypatch, tmp_path, path) -> None:
+    _clear_policy_env(monkeypatch)
+    root = tmp_path / "screenshots"
+    root.mkdir()
+    monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(root))
+
+    with pytest.raises(PolicyDeniedError, match="DP_MCP_SCREENSHOT_ROOT"):
+        SafetyPolicy.from_env().validate_screenshot_path(path)
+
+
+def test_screenshot_save_rejects_symlink_escape(monkeypatch, tmp_path) -> None:
+    _clear_policy_env(monkeypatch)
+    root = tmp_path / "screenshots"
+    outside = tmp_path / "outside"
+    root.mkdir()
+    outside.mkdir()
+    (root / "linked").symlink_to(outside, target_is_directory=True)
+    monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(root))
+
+    with pytest.raises(PolicyDeniedError, match="DP_MCP_SCREENSHOT_ROOT"):
+        SafetyPolicy.from_env().validate_screenshot_path("linked/escape.png")
 
 
 @pytest.mark.asyncio

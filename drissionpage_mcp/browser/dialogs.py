@@ -31,6 +31,12 @@ class DialogPreconditionError(ValueError):
     code = ErrorCode.PRECONDITION_FAILED
 
 
+class DialogNotFoundError(LookupError):
+    """Raised when no pending dialog exists within the requested observation window."""
+
+    code = ErrorCode.DIALOG_NOT_FOUND
+
+
 class DialogResponseIndeterminateError(RuntimeError):
     """Raised after native invocation when the final dialog state is uncertain."""
 
@@ -94,7 +100,7 @@ class DialogOperations:
                     "message": str(alert.text or ""),
                 }
             if monotonic() >= deadline:
-                raise TimeoutError(
+                raise DialogNotFoundError(
                     "No pending JavaScript dialog was observed within the timeout."
                 )
             sleep(min(0.02, max(0.001, deadline - monotonic())))

@@ -32,7 +32,7 @@ class FrameSnapshotInput(ToolInput):
     include_html: bool = Field(default=False)
     max_elements: int = Field(default=50, ge=1, le=200)
     max_text_chars: int = Field(default=4000, ge=0, le=20000)
-    timeout: int = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
+    timeout: float = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
 
 
 class FrameFindInput(ToolInput):
@@ -41,7 +41,7 @@ class FrameFindInput(ToolInput):
     selector: str = Field(..., description="Selector inside the target frame.")
     frame_selector: str = Field(default="")
     frame_index: int = Field(default=0, ge=0)
-    timeout: int = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
+    timeout: float = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
 
 
 @define_tool(

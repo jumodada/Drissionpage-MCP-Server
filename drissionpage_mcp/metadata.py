@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
+
+from .response_json import strict_json_dumps
 
 APPROX_CHARS_PER_TOKEN = 3.5
 
@@ -28,16 +29,12 @@ def with_response_meta(payload: dict[str, Any], *, truncated: bool | None = None
 
 
 def _json(payload: Any) -> str:
-    try:
-        return json.dumps(
-            payload,
-            ensure_ascii=False,
-            separators=(",", ":"),
-            sort_keys=True,
-            default=str,
-        )
-    except TypeError:
-        return json.dumps(str(payload), ensure_ascii=False)
+    return strict_json_dumps(
+        payload,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
 
 
 def _infer_truncated(value: Any) -> bool:

@@ -18,13 +18,41 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.7.8. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.7.9. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
   MCP workflows to use the documented snake_case field names exactly.
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
+
+## 0.7.8 to 0.7.9 Migration
+
+0.7.9 keeps all 69 public tool names and adds backward-compatible input and
+error-contract improvements based on clean-wheel browser evaluation feedback.
+
+- All public `timeout` fields now use JSON `number` schemas and accept fractional
+  values. Existing integer values remain valid.
+- `page_dialog_respond.timeout` defaults to `0`, which checks immediately. Use a
+  positive timeout when the responder must overlap an action that has not opened
+  the dialog yet. No pending dialog returns `DIALOG_NOT_FOUND`; unrelated browser
+  operations blocked by a native modal return `DIALOG_PENDING` with observe/respond
+  hints.
+- Public runtime failures no longer reflect localized DrissionPage messages,
+  package version suffixes, CDP `objectId` values, stack payloads, or internal
+  exception dictionaries.
+- `network_listen_wait.limit` is a maximum. The tool returns after the first
+  packet and briefly drains already-arriving matches instead of waiting for the
+  requested count or full timeout.
+- Relative `page_screenshot_save.path` values resolve beneath
+  `DP_MCP_SCREENSHOT_ROOT`. Absolute paths remain supported only inside the root;
+  traversal and symlink escapes remain denied.
+- `page_pointer_drag_element` prefers tagged source input and `dx`/`dy` offset
+  fields. Legacy bare source and `x`/`y` offset fields remain accepted.
+- Top-level JavaScript `Infinity`, `-Infinity`, and `NaN` return JSON `null`,
+  retain `result_type: "number"`, and include `non_finite_number`.
+- `docs/tool-contract.md` contains a generated parameter table locked to every
+  Pydantic input schema.
 
 ## 0.7.7 to 0.7.8 Migration
 

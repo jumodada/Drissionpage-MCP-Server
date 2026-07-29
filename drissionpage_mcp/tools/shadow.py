@@ -20,7 +20,7 @@ class ShadowFindInput(ToolInput):
 
     host_selector: str = Field(..., description="Selector for the shadow host element.")
     selector: str = Field(..., description="Selector inside the shadow root.")
-    timeout: int = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
+    timeout: float = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
 
 
 class ShadowFindAllInput(ToolInput):

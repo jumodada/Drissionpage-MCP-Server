@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-import json
-
 from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.types import Resource
 from pydantic import AnyUrl
 
 from . import __version__
+from .response_json import strict_json_dumps
 
 SKILLS_CATALOG_URI = "drissionpage://skills/catalog"
 SKILLS_CATALOG_URL = "https://github.com/jumodada/skills-manager"
@@ -47,7 +46,7 @@ def read_resource(uri: str) -> list[ReadResourceContents]:
         "status": "unpublished",
         "skills": [],
     }
-    content = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    content = strict_json_dumps(payload, ensure_ascii=False, sort_keys=True)
     if len(content) > RESOURCE_JSON_MAX_CHARS:
         raise ValueError("Skills catalog exceeds the resource size limit")
     return [ReadResourceContents(content=content, mime_type="application/json")]

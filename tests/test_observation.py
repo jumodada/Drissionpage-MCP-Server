@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import math
 from types import SimpleNamespace
 
 import pytest
@@ -115,6 +117,10 @@ def test_bounded_json_value_and_result_type_cover_json_edges() -> None:
         "abcdef",
         max_chars=3,
     )
+    non_finite, non_finite_truncated, non_finite_original = bounded_json_value(
+        float("inf"),
+        max_chars=20,
+    )
 
     assert short == {"ok": True}
     assert truncated is False
@@ -125,6 +131,11 @@ def test_bounded_json_value_and_result_type_cover_json_edges() -> None:
     assert long_string == "abc"
     assert string_truncated is True
     assert string_original == 8
+    assert non_finite is None
+    assert non_finite_truncated is False
+    assert non_finite_original == 4
+    assert math.isfinite(float(non_finite_original))
+    assert json.dumps(non_finite, allow_nan=False) == "null"
     assert [result_type(value) for value in (None, True, 1, "x", [], {}, object())] == [
         "null",
         "boolean",

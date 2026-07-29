@@ -7,7 +7,7 @@ Use this guide when the MCP server does not start, tools do not appear, or brows
 Run these commands from a shell:
 
 ```bash
-python -m pip install -U "drissionpage-mcp>=0.7.8"
+python -m pip install -U "drissionpage-mcp>=0.7.9"
 drissionpage-mcp --version
 drissionpage-mcp doctor
 drissionpage-mcp doctor --launch-browser
@@ -35,7 +35,7 @@ If logs show tools loading and then fail with
 incompatible MCP Python SDK 2.x. Repair both packages explicitly:
 
 ```bash
-python -m pip install -U "drissionpage-mcp>=0.7.8" "mcp>=1.0.0,<2"
+python -m pip install -U "drissionpage-mcp>=0.7.9" "mcp>=1.0.0,<2"
 drissionpage-mcp doctor
 ```
 
@@ -114,7 +114,7 @@ user-agent, cache, and URL-blocking tools are included by default; no capability
 profile or `full` mode is required.
 
 
-## Task Completion / Browser-Owned Capabilities 0.7.8 Checks
+## Task Completion / Browser-Owned Capabilities 0.7.9 Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to `profile="direct"`; set `profile="natural"` for a deterministic 24-step eased trajectory with an exact endpoint.
 - In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` explicitly.
@@ -127,8 +127,10 @@ profile or `full` mode is required.
 - Use `browser_permission_get` before and after `browser_permission_set`, and call `browser_permissions_reset` when the workflow no longer needs the override. These tools do not automate native OS permission prompts or notification-center windows.
 - Use `element_click_and_upload` when a button or custom control opens a browser file chooser. It injects files from `DP_MCP_UPLOAD_ROOT` and removes the chooser interception without any user action.
 - Use `page_navigate_with_http_auth` for Basic/Digest-style browser challenges. Credentials are redacted and the authenticated page is isolated in a disposable context; close its returned `tab_id` when the workflow is complete.
-- Start `page_dialog_observe` before the click when the action may open a blocking alert, confirm, or prompt, then call `page_dialog_respond`. These tools overlap the native click without user interaction. Capability gaps and unsupported click variants return `UNSUPPORTED_OPERATION` rather than another action.
-- Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.
+- Start `page_dialog_observe` before the click when the action may open a blocking alert, confirm, or prompt, then call `page_dialog_respond`. The response tool checks immediately by default; pass a positive timeout only when it must overlap a not-yet-opened dialog. `DIALOG_PENDING` points blocked tools back to observe/respond, while `DIALOG_NOT_FOUND` means no response precondition exists yet.
+- Use `network_listen_start` before the action that triggers fetch/XHR, then `network_listen_wait`, then `network_listen_stop`. `limit` is a maximum: wait returns after the first packet and briefly drains already-arriving matches. If the installed DrissionPage tab lacks listener APIs, the tools return `UNSUPPORTED_OPERATION` with recovery hints.
+- Fractional timeouts such as `1.5` are accepted consistently by every public tool timeout field.
+- `page_evaluate` returns top-level non-finite numbers as JSON `null` with `result_type: "number"` and `non_finite_number`; it never emits non-standard JSON NaN/Infinity tokens.
 - Use `browser_headers_set` and `browser_user_agent_set` before navigation when a workflow requires a specific request environment. Successful results echo accepted values; treat sensitive header values as secrets. Use the returned `previous_user_agent` to restore the original value.
 - Use `network_blocked_urls_set` with an empty list to remove URL blocks. Use `browser_cache_clear` when HTTP cache must be invalidated without clearing Cookies or Web Storage.
 - Use `drissionpage-mcp doctor` to inspect browser, headless, sandbox, and environment configuration without starting a workflow.
@@ -141,7 +143,7 @@ For the release reliability gate, run the deterministic public-tool benchmark:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.7.8-task-completion.json
+  --output benchmark-results/0.7.9-task-completion.json
 ```
 
 The report is workload-scoped. Every W01-W08 workload must reach at least 9/10;
@@ -236,7 +238,8 @@ If `page_screenshot` fails:
 If `page_screenshot_save` fails:
 
 - Set `DP_MCP_SCREENSHOT_ROOT` to the directory where screenshots may be written.
-- Save only to a path inside that directory.
+- Pass either a relative path (resolved beneath the configured root) or an absolute path already inside that directory.
+- Directory traversal and symlink escapes are rejected.
 
 ## File Uploads Fail
 

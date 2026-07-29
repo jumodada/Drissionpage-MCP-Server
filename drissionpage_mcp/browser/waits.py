@@ -69,7 +69,7 @@ class WaitOperations:
                 )
             await asyncio.sleep(interval)
 
-    async def element(self, selector: ElementTargetArg, timeout: int = 10) -> bool:
+    async def element(self, selector: ElementTargetArg, timeout: float = 10) -> bool:
         if isinstance(selector, str):
             return await self.for_plan(normalize_selector(selector), timeout)
         try:
@@ -78,7 +78,7 @@ class WaitOperations:
         except ElementNotFoundError:
             return False
 
-    async def for_plan(self, plan: SelectorPlan, timeout: int = 10) -> bool:
+    async def for_plan(self, plan: SelectorPlan, timeout: float = 10) -> bool:
         try:
             waiter = self._page.wait
             if hasattr(waiter, "ele_loaded"):
@@ -88,15 +88,13 @@ class WaitOperations:
             return bool(result)
         except Exception as exc:
             logger.warning(
-                "Element %s (%s) not found within %ss: %s",
-                plan.original,
-                plan.locator,
+                "Element wait failed within %ss (%s)",
                 timeout,
-                exc,
+                type(exc).__name__,
             )
             return False
 
-    async def url(self, url_pattern: str, timeout: int = 10) -> bool:
+    async def url(self, url_pattern: str, timeout: float = 10) -> bool:
         try:
             start_time = time.time()
             while time.time() - start_time < timeout:
@@ -106,10 +104,9 @@ class WaitOperations:
             return False
         except Exception as exc:
             logger.warning(
-                "URL pattern %s not matched within %ss: %s",
-                url_pattern,
+                "URL wait failed within %ss (%s)",
                 timeout,
-                exc,
+                type(exc).__name__,
             )
             return False
 
@@ -223,7 +220,7 @@ class WaitOperations:
                     if isinstance(result, dict):
                         return result
                 except Exception:
-                    logger.debug("selector state JavaScript failed", exc_info=True)
+                    logger.debug("selector state JavaScript failed")
             return self._selector_state_fallback(plan)
         try:
             resolved = await self._tab.dom_targeting.resolve(selector, timeout=0)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timezone
+from time import monotonic
 from typing import TYPE_CHECKING, Any
 
 from ..network_payload import _network_packet_payload
@@ -92,22 +93,34 @@ class NetworkOperations:
         if not bool(getattr(listener, "listening", False)):
             raise NetworkUnsupportedError("Network listener is not listening.")
 
+        deadline = monotonic() + timeout
+        first_timeout = timeout if timeout > 0 else _MIN_LISTENER_POLL_SECONDS
         raw_packets = await asyncio.to_thread(
             listener.wait,
-            count=limit,
-            timeout=timeout,
+            count=1,
+            timeout=first_timeout,
             fit_count=False,
             raise_err=False,
         )
-        timed_out = raw_packets is False
-        if raw_packets is False or raw_packets is None:
-            packets: list[Any] = []
-        elif isinstance(raw_packets, list):
-            packets = raw_packets
-            timed_out = len(packets) < limit
-        else:
-            packets = [raw_packets]
-            timed_out = limit > 1
+        packets = _packet_list(raw_packets)
+        if packets and len(packets) < limit and timeout > 0:
+            drain_deadline = min(deadline, monotonic() + _PACKET_DRAIN_SECONDS)
+            while len(packets) < limit:
+                remaining = drain_deadline - monotonic()
+                if remaining <= 0:
+                    break
+                next_packet = await asyncio.to_thread(
+                    listener.wait,
+                    count=1,
+                    timeout=remaining,
+                    fit_count=False,
+                    raise_err=False,
+                )
+                drained = _packet_list(next_packet)
+                if not drained:
+                    break
+                packets.extend(drained[: limit - len(packets)])
+        timed_out = not packets
 
         normalized = [
             _network_packet_payload(
@@ -175,8 +188,20 @@ class NetworkOperations:
                     listener.stop()
         except AttributeError:
             logger.debug(
-                "Network listener stop hit a partial driver state", exc_info=True
+                "Network listener stop hit a partial driver state"
             )
         except Exception:
-            logger.debug("Network listener stop failed", exc_info=True)
+            logger.debug("Network listener stop failed")
             raise
+
+
+def _packet_list(value: Any) -> list[Any]:
+    if value is False or value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+_MIN_LISTENER_POLL_SECONDS = 0.001
+_PACKET_DRAIN_SECONDS = 0.05

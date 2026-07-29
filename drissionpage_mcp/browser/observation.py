@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
@@ -14,6 +13,7 @@ from ..observation import (
     safe_int,
 )
 from ..outline import build_page_snapshot_script
+from ..response_json import strict_json_dumps
 from ._scripts import run_structured_script
 
 if TYPE_CHECKING:
@@ -52,7 +52,7 @@ class ObservationOperations:
             snapshot.setdefault("url", self._tab.url)
             return snapshot
         except Exception as exc:
-            logger.error("Failed to build page snapshot: %s", exc)
+            logger.error("Failed to build page snapshot (%s)", type(exc).__name__)
             raise
 
     async def observe(
@@ -78,7 +78,7 @@ class ObservationOperations:
             )
             return result
         except Exception as exc:
-            logger.error("Failed to observe page: %s", exc)
+            logger.error("Failed to observe page (%s)", type(exc).__name__)
             raise
 
     def ensure_console_capture(self) -> bool:
@@ -93,7 +93,7 @@ class ObservationOperations:
                 start()
             return bool(getattr(console, "listening", False))
         except Exception:
-            logger.debug("Could not start DrissionPage console capture", exc_info=True)
+            logger.debug("Could not start DrissionPage console capture")
             return False
 
     async def console_logs(
@@ -125,36 +125,49 @@ class ObservationOperations:
         self, script: str, *, args: list[Any] | None = None, max_chars: int = 4000
     ) -> dict[str, Any]:
         try:
-            args_json = json.dumps(args or [], ensure_ascii=False, default=str)
+            args_json = strict_json_dumps(args or [], ensure_ascii=False)
             wrapped = (
                 "(() => {\n"
                 f"  const __mcpArgs = {args_json};\n"
                 "  const __mcpFn = function(...args) {\n"
                 f"{script}\n"
                 "  };\n"
-                "  return __mcpFn(...__mcpArgs);\n"
+                "  const __mcpValue = __mcpFn(...__mcpArgs);\n"
+                "  const __mcpType = __mcpValue === null ? 'null' : "
+                "(Array.isArray(__mcpValue) ? 'array' : typeof __mcpValue);\n"
+                "  if (__mcpType === 'number' && !Number.isFinite(__mcpValue)) {\n"
+                "    return {__drissionpage_mcp_result__: true, kind: "
+                "'non_finite_number', value: String(__mcpValue), "
+                "result_type: 'number'};\n"
+                "  }\n"
+                "  return {__drissionpage_mcp_result__: true, kind: 'value', "
+                "value: __mcpValue, result_type: __mcpType};\n"
                 "})()"
             )
-            value = self._page.run_js(wrapped, as_expr=True)
+            raw_value = self._page.run_js(wrapped, as_expr=True)
+            value, value_type, non_finite = _decode_evaluate_result(raw_value)
             bounded, truncated, original_chars = bounded_json_value(
                 value, max_chars=max_chars
             )
-            return {
+            result = {
                 "result": bounded,
-                "result_type": result_type(value),
+                "result_type": value_type,
                 "truncated": truncated,
                 "original_json_chars": original_chars,
                 "max_chars": max_chars,
             }
+            if non_finite is not None:
+                result["non_finite_number"] = non_finite
+            return result
         except Exception as exc:
-            logger.error("Failed to evaluate script: %s", exc)
+            logger.error("Failed to evaluate script (%s)", type(exc).__name__)
             raise
 
     def _console_surface(self) -> Any | None:
         try:
             return getattr(self._page, "console", None)
         except Exception:
-            logger.debug("Could not access DrissionPage console surface", exc_info=True)
+            logger.debug("Could not access DrissionPage console surface")
             return None
 
     def _normalized_console_messages(self) -> list[dict[str, Any]]:
@@ -164,7 +177,7 @@ class ObservationOperations:
         try:
             raw_messages = getattr(console, "messages", []) or []
         except Exception:
-            logger.debug("Could not read DrissionPage console messages", exc_info=True)
+            logger.debug("Could not read DrissionPage console messages")
             return []
         try:
             iterable = list(raw_messages)
@@ -231,6 +244,17 @@ def _empty_console_logs(*, available: bool) -> dict[str, Any]:
         "next_cursor": -1,
         "logs": [],
     }
+
+
+def _decode_evaluate_result(value: Any) -> tuple[Any, str, str | None]:
+    if not isinstance(value, dict) or value.get("__drissionpage_mcp_result__") is not True:
+        return value, result_type(value), None
+    if value.get("kind") == "non_finite_number":
+        label = str(value.get("value") or "NaN")
+        if label not in {"Infinity", "-Infinity", "NaN"}:
+            label = "NaN"
+        return None, "number", label
+    return value.get("value"), str(value.get("result_type") or "null"), None
 
 
 def _next_console_cursor(messages: list[dict[str, Any]]) -> int:

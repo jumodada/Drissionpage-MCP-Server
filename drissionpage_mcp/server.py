@@ -25,7 +25,7 @@ from .guidance import server_instructions
 from .mcp_compat import ensure_supported_mcp_sdk
 from .resources import list_resources as list_resource_definitions
 from .resources import read_resource as read_resource_definition
-from .response_errors import ErrorCode, classify_error
+from .response_errors import ErrorCode, classify_error, public_failure_message
 from .tools import ToolSpec as DrissionTool
 from .tools import get_all_tools
 from .tools.base import ToolOutcome, ToolType
@@ -120,11 +120,16 @@ class DrissionPageMCPServer:
                         outcome = await tool.execute(context, validated_args)
                 return self._call_result(outcome)
             except Exception as e:
-                logger.exception(f"Error executing tool {name}")
+                logger.error("Error executing tool %s (%s)", name, type(e).__name__)
+                error_code = classify_error(e, name)
                 outcome = ToolOutcome()
                 outcome.add_error(
-                    f"Error executing tool {name}: {str(e)}",
-                    classify_error(e, name),
+                    public_failure_message(
+                        e,
+                        error_code,
+                        f"Error executing tool {name}: {e}",
+                    ),
+                    error_code,
                     tool_name=name,
                 )
                 return self._call_result(outcome)
@@ -199,7 +204,7 @@ class DrissionPageMCPServer:
                 ),
             )
         except Exception as e:
-            logger.error(f"Server run error: {e}")
+            logger.error("Server run error (%s)", type(e).__name__)
             raise
         finally:
             await self.cleanup()

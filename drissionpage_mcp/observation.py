@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
+
+from .response_json import json_safe_value, strict_json_dumps
 
 
 def build_observe_script(*, max_texts: int, max_text_chars: int) -> str:
@@ -133,12 +134,13 @@ def bounded_json_value(
 ) -> tuple[Any, bool, int]:
     """Return a JSON-safe value bounded by *max_chars* serialized characters."""
 
-    text = _json(value)
+    safe_value = json_safe_value(value)
+    text = _json(safe_value)
     if len(text) <= max_chars:
-        return value, False, len(text)
+        return safe_value, False, len(text)
     bounded: Any
-    if isinstance(value, str):
-        bounded = value[:max_chars]
+    if isinstance(safe_value, str):
+        bounded = safe_value[:max_chars]
     else:
         bounded = {"preview": text[:max_chars], "truncated_json": True}
     return bounded, True, len(text)
@@ -163,12 +165,11 @@ def result_type(value: Any) -> str:
 
 
 def _json(value: Any) -> str:
-    return json.dumps(
+    return strict_json_dumps(
         value,
         ensure_ascii=False,
         separators=(",", ":"),
         sort_keys=True,
-        default=str,
     )
 
 

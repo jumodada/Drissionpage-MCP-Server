@@ -267,8 +267,8 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     assert "command -v google-chrome" in benchmark_job
     assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
-    assert "--output benchmark-results/0.7.8-task-completion.json" in benchmark_job
-    assert "name: 0.7.8-task-completion-benchmark" in benchmark_job
+    assert "--output benchmark-results/0.7.9-task-completion.json" in benchmark_job
+    assert "name: 0.7.9-task-completion-benchmark" in benchmark_job
     assert "0.7.2-task-completion" not in benchmark_job
     assert "tests.evals.task_completion_benchmark" not in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
@@ -294,7 +294,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.7.8"
+    assert version == "0.7.9"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")

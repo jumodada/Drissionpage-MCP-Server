@@ -1030,12 +1030,11 @@ async def test_common_tools_success_paths(monkeypatch, tmp_path) -> None:
     inline_payload = inline_response.structured_content()
     assert inline_payload["data"]["screenshot"]["inline"] is True
     assert inline_payload["data"]["screenshot"]["full_page"] is True
-    screenshot_path = tmp_path / "screen.png"
     monkeypatch.setenv("DP_MCP_SCREENSHOT_ROOT", str(tmp_path))
     path_response = await _execute(
         common.screenshot_save,
         ctx,
-        common.ScreenshotSaveInput(path=str(screenshot_path), full_page=False),
+        common.ScreenshotSaveInput(path="screen.png", full_page=False),
     )
     path_payload = path_response.structured_content()
     assert path_payload["data"]["screenshot"]["safe_relative_path"] == "screen.png"

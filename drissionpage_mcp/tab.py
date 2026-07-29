@@ -116,7 +116,7 @@ class PageTab:
             "isolated_context": self.owns_browser_context,
         }
 
-    async def _element_by_plan(self, plan: SelectorPlan, *, timeout: int = 10) -> Any:
+    async def _element_by_plan(self, plan: SelectorPlan, *, timeout: float = 10) -> Any:
         if timeout > 0:
             loaded = await self.waits.for_plan(plan, timeout)
             if not loaded:
@@ -159,7 +159,6 @@ class PageTab:
                     logger.debug(
                         "Post-%s stabilization via doc_loaded failed",
                         action,
-                        exc_info=True,
                     )
                     break
 
@@ -177,7 +176,7 @@ class PageTab:
             logger.info("Tab closed")
             return True
         except Exception as e:
-            logger.error(f"Failed to close tab: {e}")
+            logger.error("Failed to close tab (%s)", type(e).__name__)
             return False
 
     def is_connected(self) -> bool:

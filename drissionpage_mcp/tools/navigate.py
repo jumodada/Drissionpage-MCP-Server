@@ -39,9 +39,7 @@ class NavigateInput(ToolInput):
     input_schema=NavigateInput,
     tool_type=ToolType.DESTRUCTIVE,
     output_model=PageNavigateData,
-    failure_message=lambda args, exc: (
-        lambda e: f"Failed to navigate to {args.url}: {e}"
-    )(exc),
+    failure_message=lambda args, exc: "Page navigation failed.",
 )
 async def navigate(
     context: "DrissionPageContext", args: NavigateInput

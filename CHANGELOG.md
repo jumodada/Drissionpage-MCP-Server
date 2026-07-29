@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.9] - 2026-07-29
+
+### Fixed
+- Sanitized public DrissionPage failures so version suffixes, localized runtime text, CDP `objectId`/stack payloads, and other implementation details do not leak through MCP error messages.
+- Redacted policy-rejection detail values and failed-navigation destinations so query credentials, private URLs, and local paths are not reflected in public failure payloads.
+- Added `DIALOG_PENDING` recovery for browser operations blocked by a native dialog and `DIALOG_NOT_FOUND` for an immediate `page_dialog_respond` precondition failure.
+- Made `page_dialog_respond` check immediately by default while preserving explicit concurrent wait budgets and a bounded response budget for an already-pending dialog.
+- Changed `network_listen_wait.limit` back to a maximum: the tool now returns after the first packet and briefly drains already-arriving matches instead of waiting for the full requested count or timeout.
+- Resolved relative `page_screenshot_save.path` values beneath `DP_MCP_SCREENSHOT_ROOT` while retaining traversal and symlink-escape rejection.
+- Preserved JavaScript non-finite number semantics as `result_type="number"`, JSON `null`, and an additive `non_finite_number` label; all public JSON mirrors now reject NaN/Infinity serialization.
+
+### Changed
+- Standardized every public `timeout` input as a JSON `number`, so fractional values such as `1.5` are accepted consistently.
+- Extended `page_pointer_drag_element.source` with the symmetric tagged element form, added preferred offset names `dx`/`dy`, and retained legacy bare-source plus `x`/`y` input compatibility.
+- Added a schema-derived 69-tool parameter table to `docs/tool-contract.md`, locked to the Pydantic schemas by the schema snapshot test.
+
+### Verification
+- Added unit, schema, policy, strict-JSON, dialog, pointer, and network regressions plus real-Chromium checks for pending-dialog recovery, immediate no-dialog response, first-packet listener return, and non-finite JavaScript results.
+
 ## [0.7.8] - 2026-07-29
 
 ### Fixed
@@ -494,7 +513,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.9...HEAD
+[0.7.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...0.7.9
 [0.7.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.7...0.7.8
 [0.7.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.6...0.7.7
 [0.7.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.5...0.7.6

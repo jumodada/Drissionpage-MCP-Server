@@ -526,6 +526,51 @@ async def test_internal_call_tool_impl_converts_unexpected_exceptions() -> None:
 
 
 @pytest.mark.asyncio
+async def test_internal_call_tool_impl_redacts_runtime_exception_details() -> None:
+    class EmptyArgs(BaseModel):
+        pass
+
+    secret = "secret-object-id"
+
+    async def boom(_context, _args):
+        raise RuntimeError(
+            "CDP failure "
+            + repr(
+                {
+                    "objectId": secret,
+                    "stackTrace": {"callFrames": [{"url": "file:///private/path"}]},
+                    "版本": "4.1.1.4",
+                }
+            )
+        )
+
+    server = DrissionPageMCPServer()
+    from drissionpage_mcp.tool_outputs import PageCloseData
+
+    server.tools["boom"] = ToolSpec(
+        name="boom",
+        title="Boom",
+        description="Raise internal details for tests",
+        input_model=EmptyArgs,
+        output_model=PageCloseData,
+        handler=boom,
+        tool_type=ToolType.READ_ONLY,
+    )
+
+    result = await server._call_tool_impl("boom", {})
+    public = json.dumps(result.structuredContent, ensure_ascii=False)
+
+    assert result.isError is True
+    assert result.structuredContent["error"]["code"] == "UNKNOWN_ERROR"
+    assert secret not in public
+    assert "objectId" not in public
+    assert "stackTrace" not in public
+    assert "file:///private/path" not in public
+    assert "版本" not in public
+    assert "4.1.1.4" not in public
+
+
+@pytest.mark.asyncio
 async def test_run_server_cleans_up_after_server_error() -> None:
 
     class FakeLowLevelServer:

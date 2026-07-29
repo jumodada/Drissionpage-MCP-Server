@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from ..compat import accepts_parameters
 from ..outline import summarize_elements
 from ..response_errors import ErrorCode
-from ..target import ElementTargetArg, target_label
+from ..target import ElementTargetArg
 from .targeting import DomTargetResolver
 
 if TYPE_CHECKING:
@@ -45,7 +45,7 @@ class ElementOperations:
     async def click(
         self,
         selector: ElementTargetArg,
-        timeout: int = 10,
+        timeout: float = 10,
         *,
         button: str = "left",
         click_count: int = 1,
@@ -63,7 +63,7 @@ class ElementOperations:
                 "element_click", timeout=1.0, fallback_sleep=0.02
             )
         except Exception as exc:
-            logger.error("Failed to click element %s: %s", target_label(selector), exc)
+            logger.error("Failed to click element (%s)", type(exc).__name__)
             raise
 
     async def input(
@@ -73,14 +73,14 @@ class ElementOperations:
             resolved = await self._targeting.resolve(selector, timeout=10)
             await self._input_element(resolved.element, text, clear=clear)
         except Exception as exc:
-            logger.error("Failed to input text to %s: %s", target_label(selector), exc)
+            logger.error("Failed to input text (%s)", type(exc).__name__)
             raise
 
     async def type(
         self,
         selector: ElementTargetArg,
         text: str,
-        timeout: int = 10,
+        timeout: float = 10,
         clear: bool = True,
     ) -> dict[str, Any]:
         try:
@@ -88,11 +88,11 @@ class ElementOperations:
             await self._input_element(resolved.element, text, clear=clear)
             return resolved.metadata()
         except Exception as exc:
-            logger.error("Failed to type text to %s: %s", target_label(selector), exc)
+            logger.error("Failed to type text (%s)", type(exc).__name__)
             raise
 
     async def find(
-        self, selector: ElementTargetArg, timeout: int = 10
+        self, selector: ElementTargetArg, timeout: float = 10
     ) -> dict[str, Any]:
         try:
             resolved = await self._targeting.resolve(selector, timeout=timeout)
@@ -106,7 +106,7 @@ class ElementOperations:
                 "visible": True,
             }
         except Exception as exc:
-            logger.error("Failed to find element %s: %s", target_label(selector), exc)
+            logger.error("Failed to find element (%s)", type(exc).__name__)
             raise
 
     async def find_all(
@@ -132,7 +132,7 @@ class ElementOperations:
                 "elements": summaries,
             }
         except Exception as exc:
-            logger.error("Failed to find elements %s: %s", target_label(selector), exc)
+            logger.error("Failed to find elements (%s)", type(exc).__name__)
             raise
 
     async def text(self, selector: ElementTargetArg = "") -> str:
@@ -145,11 +145,7 @@ class ElementOperations:
             body = self._page.ele("tag:body", timeout=0)
             return str(body.text) if body else ""
         except Exception as exc:
-            logger.error(
-                "Failed to get text from %s: %s",
-                target_label(selector) if selector else "page",
-                exc,
-            )
+            logger.error("Failed to get text (%s)", type(exc).__name__)
             raise
 
     async def attribute(
@@ -160,12 +156,7 @@ class ElementOperations:
             value = resolved.element.attr(attribute)
             return None if value is None else str(value)
         except Exception as exc:
-            logger.error(
-                "Failed to get attribute %s from %s: %s",
-                attribute,
-                target_label(selector),
-                exc,
-            )
+            logger.error("Failed to get attribute (%s)", type(exc).__name__)
             raise
 
     async def property(self, selector: ElementTargetArg, property_name: str) -> Any:
@@ -173,12 +164,7 @@ class ElementOperations:
             resolved = await self._targeting.resolve(selector, timeout=0)
             return resolved.element.property(property_name)
         except Exception as exc:
-            logger.error(
-                "Failed to get property %s from %s: %s",
-                property_name,
-                target_label(selector),
-                exc,
-            )
+            logger.error("Failed to get property (%s)", type(exc).__name__)
             raise
 
     async def html(self, selector: ElementTargetArg = "") -> str:
@@ -188,15 +174,11 @@ class ElementOperations:
                 return str(resolved.element.html)
             return str(self._page.html)
         except Exception as exc:
-            logger.error(
-                "Failed to get HTML from %s: %s",
-                target_label(selector) if selector else "page",
-                exc,
-            )
+            logger.error("Failed to get HTML (%s)", type(exc).__name__)
             raise
 
     async def upload(
-        self, selector: ElementTargetArg, paths: list[str], timeout: int = 10
+        self, selector: ElementTargetArg, paths: list[str], timeout: float = 10
     ) -> dict[str, Any]:
         try:
             resolved = await self._targeting.resolve(selector, timeout=timeout)
@@ -209,13 +191,11 @@ class ElementOperations:
                 "filenames": [os.path.basename(path) for path in paths],
             }
         except Exception as exc:
-            logger.error(
-                "Failed to upload file into %s: %s", target_label(selector), exc
-            )
+            logger.error("Failed to upload file (%s)", type(exc).__name__)
             raise
 
     async def state(
-        self, selector: ElementTargetArg, *, timeout: int = 3
+        self, selector: ElementTargetArg, *, timeout: float = 3
     ) -> dict[str, Any]:
         resolved = await self._targeting.resolve(selector, timeout=timeout)
         element = resolved.element

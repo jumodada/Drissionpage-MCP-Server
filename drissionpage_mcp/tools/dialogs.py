@@ -10,6 +10,7 @@ from urllib.parse import urlsplit, urlunsplit
 from pydantic import Field, StrictStr, model_validator
 
 from ..browser.dialogs import (
+    DialogNotFoundError,
     DialogPreconditionError,
     DialogResponseIndeterminateError,
     DialogUnsupportedError,
@@ -39,10 +40,13 @@ class PageDialogRespondInput(ToolInput):
         description="Text for an accepted prompt. The value is never returned.",
     )
     timeout: float = Field(
-        default=5.0,
-        gt=0,
+        default=0.0,
+        ge=0,
         le=MAX_WAIT_SECONDS,
-        description="Maximum seconds to wait for a pending dialog.",
+        description=(
+            "Maximum seconds to wait for a pending dialog. Zero checks immediately; "
+            "an already-pending dialog still receives a bounded native response budget."
+        ),
     )
 
     @model_validator(mode="after")
@@ -86,7 +90,7 @@ async def page_dialog_observe(
     tab = context.current_tab_or_die()
     try:
         pending = await tab.dialogs.wait_for_pending(timeout=args.timeout)
-    except TimeoutError:
+    except (DialogNotFoundError, TimeoutError):
         outcome.set_result(
             "No pending page dialog was observed",
             {
@@ -130,7 +134,9 @@ async def page_dialog_respond(
     """Respond once after capability and pending-dialog preflight."""
 
     outcome = ToolOutcome()
-    deadline = monotonic() + args.timeout
+    deadline = monotonic() + (
+        args.timeout if args.timeout > 0 else _DEFAULT_DIALOG_RESPONSE_SECONDS
+    )
     _validate_dialog_capability(context)
     tab = context.current_tab_or_die()
     try:
@@ -335,6 +341,8 @@ def _dialog_failure_message(exc: Exception) -> str:
 
     if isinstance(exc, DialogResponseIndeterminateError):
         return "Dialog response outcome is indeterminate after native invocation."
+    if isinstance(exc, DialogNotFoundError):
+        return "No pending JavaScript dialog is available to respond to."
     if isinstance(exc, TimeoutError):
         return "Dialog response deadline expired before a terminal state was confirmed."
     if isinstance(
@@ -346,3 +354,6 @@ def _dialog_failure_message(exc: Exception) -> str:
     ):
         return str(exc)
     return "Failed to respond to the pending page dialog."
+
+
+_DEFAULT_DIALOG_RESPONSE_SECONDS = 5.0

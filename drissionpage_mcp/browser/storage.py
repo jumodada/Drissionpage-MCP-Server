@@ -45,7 +45,7 @@ class StorageOperations:
                 "cookies": cookies,
             }
         except Exception as exc:
-            logger.error("Failed to read cookies: %s", exc)
+            logger.error("Failed to read cookies (%s)", type(exc).__name__)
             raise
 
     async def cookies_set(
@@ -59,7 +59,7 @@ class StorageOperations:
             self._page.set.cookies(upstream)
             return {"count": len(normalized), "set": True, "cookies": normalized}
         except Exception as exc:
-            logger.error("Failed to set browser cookies: %s", exc)
+            logger.error("Failed to set browser cookies (%s)", type(exc).__name__)
             raise
 
     async def cookies_delete(
@@ -87,7 +87,7 @@ class StorageOperations:
                 "deleted": True,
             }
         except Exception as exc:
-            logger.error("Failed to delete browser cookie %s: %s", name, exc)
+            logger.error("Failed to delete browser cookie (%s)", type(exc).__name__)
             raise
 
     async def cookies_clear(self) -> dict[str, Any]:
@@ -97,7 +97,7 @@ class StorageOperations:
             self._page.set.cookies.clear()
             return {"cleared": True}
         except Exception as exc:
-            logger.error("Failed to clear browser cookies: %s", exc)
+            logger.error("Failed to clear browser cookies (%s)", type(exc).__name__)
             raise
 
     async def get(
@@ -108,7 +108,7 @@ class StorageOperations:
         try:
             return self._get(area=area, key=key, include_values=include_values)
         except Exception as exc:
-            logger.error("Failed to read %s storage: %s", area, exc)
+            logger.error("Failed to read browser storage (%s)", type(exc).__name__)
             raise
 
     async def set(self, *, area: str, key: str, value: str) -> dict[str, Any]:
@@ -127,7 +127,7 @@ class StorageOperations:
             )
             return {"area": area, "key": key, "set": True}
         except Exception as exc:
-            logger.error("Failed to set %s storage key %s: %s", area, key, exc)
+            logger.error("Failed to set browser storage (%s)", type(exc).__name__)
             raise
 
     async def clear(self, *, area: str, key: str = "") -> dict[str, Any]:
@@ -143,7 +143,7 @@ class StorageOperations:
             self._page.run_js(f"(() => {{{script} return true;}})()", as_expr=True)
             return {"area": area, "key": key, "cleared": True}
         except Exception as exc:
-            logger.error("Failed to clear %s storage: %s", area, exc)
+            logger.error("Failed to clear browser storage (%s)", type(exc).__name__)
             raise
 
     def session_state(self) -> dict[str, Any]:

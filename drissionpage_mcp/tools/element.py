@@ -1,6 +1,5 @@
 """Element interaction tools for DrissionPage MCP."""
 
-import json
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Literal
 
@@ -10,6 +9,7 @@ from ..browser.elements import ClickUnsupportedError
 from ..browser.targeting import DomTarget
 from ..limits import MAX_WAIT_SECONDS
 from ..metadata import with_response_meta
+from ..response_json import json_safe_value
 from ..selector import normalize_selector
 from ..target import ElementTargetArg, PageOrElementTargetArg, target_label
 from ..tool_outputs import (
@@ -38,7 +38,7 @@ class FindElementInput(ToolInput):
         ...,
         description="CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
-    timeout: int = Field(
+    timeout: float = Field(
         default=3,
         ge=0,
         le=MAX_WAIT_SECONDS,
@@ -72,7 +72,7 @@ class ClickElementInput(ToolInput):
         ...,
         description="CSS selector or XPath to find the element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
-    timeout: int = Field(
+    timeout: float = Field(
         default=10,
         ge=0,
         le=MAX_WAIT_SECONDS,
@@ -97,7 +97,7 @@ class TypeTextInput(ToolInput):
         description="CSS selector or XPath to find the input element. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
     text: str = Field(..., description="Text to type into the element")
-    timeout: int = Field(
+    timeout: float = Field(
         default=10,
         ge=0,
         le=MAX_WAIT_SECONDS,
@@ -156,7 +156,7 @@ class ElementStateInput(ToolInput):
         ...,
         description="String locator or structured selector/accessibility target with frame and shadow scope.",
     )
-    timeout: int = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
+    timeout: float = Field(default=3, ge=0, le=MAX_WAIT_SECONDS)
 
 
 @define_tool(
@@ -473,8 +473,4 @@ def _target_metadata(target: ElementTargetArg) -> dict[str, object]:
 
 
 def _json_safe(value):
-    try:
-        json.dumps(value)
-    except TypeError:
-        return str(value)
-    return value
+    return json_safe_value(value)

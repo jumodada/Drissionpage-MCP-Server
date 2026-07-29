@@ -152,6 +152,15 @@ async def test_mcp_browser_tools_use_shared_drissionpage_test_site() -> None:
             {"script": "return document.querySelector('#agree').checked;"},
         )
         assert checked_payload["data"]["result"] is True
+        _content, infinity_payload = await _execute_tool(
+            server,
+            "page_evaluate",
+            {"script": "return 1 / 0;"},
+        )
+        assert infinity_payload["data"]["result"] is None
+        assert infinity_payload["data"]["result_type"] == "number"
+        assert infinity_payload["data"]["non_finite_number"] == "Infinity"
+        json.dumps(infinity_payload, allow_nan=False)
 
         _content, drag_fixture = await _execute_tool(
             server,
@@ -272,6 +281,13 @@ async def test_mcp_browser_tools_can_read_local_fixture_page() -> None:
             )
             _skip_if_browser_unavailable(value)
             assert "Ada" in value
+            _content, infinity_payload = await _execute_tool(
+                server, "page_evaluate", {"script": "return 1 / 0;"}
+            )
+            assert infinity_payload["data"]["result"] is None
+            assert infinity_payload["data"]["result_type"] == "number"
+            assert infinity_payload["data"]["non_finite_number"] == "Infinity"
+            json.dumps(infinity_payload, allow_nan=False)
             screenshot, screenshot_payload = await _execute_tool(
                 server, "page_screenshot", {}
             )
@@ -681,6 +697,41 @@ async def test_mcp_page_dialog_respond_handles_alert_confirm_and_redacted_prompt
                 server, "page_navigate", {"url": base_url + "/dialog"}
             )
             _skip_if_browser_unavailable(navigate)
+
+            started = asyncio.get_running_loop().time()
+            _content, no_dialog = await _execute_tool(
+                server, "page_dialog_respond", {"action": "accept"}
+            )
+            assert no_dialog["ok"] is False
+            assert no_dialog["error"]["code"] == "DIALOG_NOT_FOUND"
+            assert asyncio.get_running_loop().time() - started < 0.5
+
+            _content, scheduled = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                        "script": (
+                            "setTimeout(() => alert('pending-public-error-test'), 100); "
+                            "return true;"
+                        )
+                },
+            )
+            assert scheduled["ok"] is True
+            await asyncio.sleep(0.2)
+            _content, blocked = await _execute_tool(server, "page_observe", {})
+            assert blocked["ok"] is False
+            assert blocked["error"]["code"] == "DIALOG_PENDING"
+            blocked_public = json.dumps(blocked, ensure_ascii=False)
+            assert "版本" not in blocked_public
+            assert "4.1.1.4" not in blocked_public
+            assert {hint.get("tool") for hint in blocked["error"]["details"]["hints"]} >= {
+                "page_dialog_observe",
+                "page_dialog_respond",
+            }
+            _content, cleared = await _execute_tool(
+                server, "page_dialog_respond", {"action": "accept"}
+            )
+            assert cleared["ok"] is True
 
             async def trigger_and_respond(
                 selector: str, *, action: str, prompt_text: str | None = None
@@ -1942,6 +1993,7 @@ async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
                 server, "element_click", {"selector": "#network-action", "timeout": 2}
             )
             assert click_payload["ok"] is True
+            started = asyncio.get_running_loop().time()
             _content, wait_payload = await _execute_tool(
                 server,
                 "network_listen_wait",
@@ -1953,6 +2005,7 @@ async def test_mcp_0_5_6_network_listener_captures_fetch_xhr() -> None:
                     "max_body_chars": 500,
                 },
             )
+            assert asyncio.get_running_loop().time() - started < 2.0
             assert wait_payload["ok"] is True
             urls = {packet["url"] for packet in wait_payload["data"]["packets"]}
             assert any("/api/data.json" in url for url in urls)

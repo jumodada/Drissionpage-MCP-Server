@@ -106,7 +106,7 @@ Common runtime failures include structured recovery hints under
 `page_snapshot`, `element_find_all`, `wait_for_element`, and iframe/dynamic
 content checks.
 
-Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `SCREENSHOT_FAILED`, `POLICY_DENIED`, `UNSUPPORTED_OPERATION`, and `UNKNOWN_ERROR`. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
+Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `DIALOG_PENDING`, `DIALOG_NOT_FOUND`, `SCREENSHOT_FAILED`, `POLICY_DENIED`, `UNSUPPORTED_OPERATION`, and `UNKNOWN_ERROR`. Public messages are normalized by the MCP server and do not reflect DrissionPage version suffixes, localized runtime text, CDP object IDs, stack payloads, or raw internal exception dictionaries. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
 
 ## Tool Annotations
 
@@ -138,8 +138,11 @@ For text waits, `wait_until` uses an exact condition name plus `value`:
 Dialog response uses `action`, not a boolean `accept` field:
 
 ```json
-{"action": "accept", "timeout": 2}
+{"action": "accept"}
 ```
+
+The default `timeout: 0` checks immediately. Set a positive timeout only when the
+response call must overlap an action that has not opened the dialog yet.
 
 Relative page scrolling uses `pixels`:
 
@@ -171,21 +174,107 @@ Permission mutation uses `setting`:
 {"permission": "notifications", "setting": "granted"}
 ```
 
-`page_pointer_drag_element` intentionally has a bare source target and a tagged
-destination. For an offset destination, `x` and `y` are deltas from the freshly
-resolved source point:
+`page_pointer_drag_element` accepts a symmetric tagged source and destination.
+For an offset destination, `dx` and `dy` are deltas from the freshly resolved
+source point:
 
 ```json
 {
-  "source": {"selector": "#thumb"},
-  "destination": {"kind": "offset", "x": 120, "y": 0},
+  "source": {"kind": "element", "target": {"selector": "#thumb"}},
+  "destination": {"kind": "offset", "dx": 120, "dy": 0},
   "profile": "direct"
 }
 ```
 
+Legacy bare `source` and offset `x`/`y` inputs remain accepted for compatibility.
+
+Relative screenshot paths resolve beneath the configured root:
+
+```json
+{"path": "reports/home.png", "full_page": true}
+```
+
+<!-- GENERATED:TOOL-PARAMETERS:START -->
+## Schema-derived Tool Parameters
+
+This table is generated from the strict Pydantic input schemas exposed by `tools/list`. Do not edit rows manually; run `UPDATE_TOOL_CONTRACT=1 python -m pytest tests/test_tool_schema_snapshot.py -q` after an intentional schema change.
+
+| Tool | Required parameters | Optional parameters |
+| --- | --- | --- |
+| `page_navigate` | `url: string` | `new_tab: boolean = false`<br>`observe: boolean = false` |
+| `page_navigate_with_http_auth` | `url: string`<br>`username: string`<br>`password: string` | `realm: string / null = null`<br>`timeout: number = 30.0` |
+| `page_go_back` | — | — |
+| `page_go_forward` | — | — |
+| `page_refresh` | — | — |
+| `tab_list` | — | — |
+| `tab_switch` | `tab_id: string` | — |
+| `tab_close` | `tab_id: string` | — |
+| `page_resize` | `width: integer`<br>`height: integer` | — |
+| `page_screenshot` | — | `full_page: boolean = false` |
+| `page_screenshot_save` | `path: string` | `full_page: boolean = false` |
+| `page_export_artifact` | `format: string` | `filename: string / null = null`<br>`operation_key: string / null = null`<br>`landscape: boolean = false`<br>`print_background: boolean = true`<br>`scale: number = 1.0`<br>`paper_width: number / null = null`<br>`paper_height: number / null = null`<br>`margin_top: number = 0.4`<br>`margin_bottom: number = 0.4`<br>`margin_left: number = 0.4`<br>`margin_right: number = 0.4`<br>`page_ranges: string = ""`<br>`prefer_css_page_size: boolean = false` |
+| `page_snapshot` | — | `include_html: boolean = false`<br>`max_elements: integer = 50`<br>`max_text_chars: integer = 4000` |
+| `page_accessibility_snapshot` | — | `scope: string / SelectorTargetInput / AccessibilityTargetInput / null = null`<br>`max_nodes: integer = 200`<br>`include_ignored: boolean = false`<br>`include_values: boolean = false` |
+| `page_observe` | — | `max_texts: integer = 20`<br>`max_text_chars: integer = 160` |
+| `page_evaluate` | `script: string` | `args: array`<br>`max_chars: integer = 4000` |
+| `page_pointer_move` | `x: number`<br>`y: number` | `element: string = ""`<br>`profile: string = "direct"` |
+| `page_pointer_drag` | `start_x: number`<br>`start_y: number`<br>`end_x: number`<br>`end_y: number` | `waypoints: array`<br>`element: string = ""`<br>`profile: string = "direct"`<br>`button: string = "left"` |
+| `page_pointer_drag_element` | `source: ElementTargetInput / ElementSourceInput`<br>`destination: ElementDestinationInput / OffsetDestinationInput / TrackRatioDestinationInput` | `profile: string = "direct"`<br>`button: string = "left"` |
+| `page_click_xy` | `x: number`<br>`y: number` | `element: string = ""`<br>`profile: string = "direct"`<br>`button: string = "left"`<br>`delay_before_press_ms: integer = 0` |
+| `page_close` | — | — |
+| `page_get_url` | — | — |
+| `browser_headers_set` | `headers: object` | — |
+| `browser_user_agent_set` | `user_agent: string` | `platform: string / null = null` |
+| `browser_cache_clear` | — | — |
+| `browser_permission_get` | `permission: string` | — |
+| `browser_permission_set` | `permission: string`<br>`setting: string` | `origin: string / null = null` |
+| `browser_permissions_reset` | — | — |
+| `page_dialog_observe` | — | `timeout: number = 0`<br>`max_message_chars: integer = 2000` |
+| `page_dialog_respond` | `action: string` | `prompt_text: string / null = null`<br>`timeout: number = 0.0` |
+| `element_click_and_download` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `operation_key: string / null = null`<br>`timeout: number = 30.0`<br>`expected_filename: string / null = null`<br>`expected_mime_type: string / null = null` |
+| `page_console_logs` | — | `level: string = "all"`<br>`since: integer = -1`<br>`limit: integer = 20` |
+| `element_find` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `timeout: number = 3` |
+| `element_find_all` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `limit: integer = 20`<br>`include_html: boolean = false` |
+| `element_click` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `timeout: number = 10`<br>`observe: boolean = false`<br>`button: string = "left"`<br>`click_count: integer = 1` |
+| `element_type` | `selector: string / SelectorTargetInput / AccessibilityTargetInput`<br>`text: string` | `timeout: number = 10`<br>`clear: boolean = true`<br>`observe: boolean = false` |
+| `element_get_text` | — | `selector: string / string / SelectorTargetInput / AccessibilityTargetInput = ""` |
+| `element_get_attribute` | `selector: string / SelectorTargetInput / AccessibilityTargetInput`<br>`attribute: string` | — |
+| `element_get_property` | `selector: string / SelectorTargetInput / AccessibilityTargetInput`<br>`property: string` | — |
+| `element_get_html` | — | `selector: string / string / SelectorTargetInput / AccessibilityTargetInput = ""` |
+| `element_state_get` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `timeout: number = 3` |
+| `element_upload_file` | `selector: string / SelectorTargetInput / AccessibilityTargetInput`<br>`paths: array` | `timeout: number = 10` |
+| `element_click_and_upload` | `selector: string / SelectorTargetInput / AccessibilityTargetInput`<br>`paths: array` | `timeout: number = 10.0` |
+| `page_scroll` | — | `direction: string = "down"`<br>`pixels: integer = 300`<br>`x: integer = 0`<br>`y: integer = 0` |
+| `element_scroll_into_view` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `center: boolean = true`<br>`timeout: number = 10` |
+| `element_hover` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `timeout: number = 10`<br>`offset_x: integer / null = null`<br>`offset_y: integer / null = null` |
+| `keyboard_press` | `keys: string` | `interval: number = 0` |
+| `element_select` | `selector: string / SelectorTargetInput / AccessibilityTargetInput`<br>`value: string` | `by: string = "value"`<br>`timeout: number = 10` |
+| `element_check` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `checked: boolean = true`<br>`by_js: boolean = false`<br>`timeout: number = 10` |
+| `frame_list` | — | `limit: integer = 20` |
+| `frame_snapshot` | — | `frame_selector: string = ""`<br>`frame_index: integer = 0`<br>`include_html: boolean = false`<br>`max_elements: integer = 50`<br>`max_text_chars: integer = 4000`<br>`timeout: number = 3` |
+| `frame_find` | `selector: string` | `frame_selector: string = ""`<br>`frame_index: integer = 0`<br>`timeout: number = 3` |
+| `shadow_find` | `host_selector: string`<br>`selector: string` | `timeout: number = 3` |
+| `shadow_find_all` | `host_selector: string`<br>`selector: string` | `limit: integer = 20`<br>`include_html: boolean = false` |
+| `browser_cookies_get` | — | `all_domains: boolean = false`<br>`all_info: boolean = false`<br>`include_values: boolean = false` |
+| `browser_cookies_set` | `cookies: array` | — |
+| `browser_cookies_delete` | `name: string` | `url: string / null = null`<br>`domain: string / null = null`<br>`path: string / null = null` |
+| `browser_cookies_clear` | — | — |
+| `storage_get` | — | `area: string = "local"`<br>`key: string = ""`<br>`include_values: boolean = true` |
+| `storage_set` | `key: string`<br>`value: string` | `area: string = "local"` |
+| `storage_clear` | — | `area: string = "local"`<br>`key: string = ""` |
+| `wait_for_element` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `timeout: number = 10` |
+| `wait_for_url` | `url_pattern: string` | `timeout: number = 10` |
+| `wait_time` | `seconds: number` | — |
+| `wait_until` | `condition: string` | `selector: string / string / SelectorTargetInput / AccessibilityTargetInput = ""`<br>`value: string = ""`<br>`name: string = ""`<br>`timeout: number = 10`<br>`interval: number = 0.1`<br>`stable_ms: integer = 300` |
+| `network_listen_start` | — | `targets: array`<br>`is_regex: boolean = false`<br>`method: string = ""`<br>`resource_type: string = ""`<br>`clear: boolean = true` |
+| `network_listen_wait` | — | `timeout: number = 5.0`<br>`limit: integer = 10`<br>`include_headers: boolean = false`<br>`include_body: boolean = false`<br>`max_body_chars: integer = 2000` |
+| `network_listen_stop` | — | `clear: boolean = true` |
+| `network_blocked_urls_set` | `urls: array` | — |
+<!-- GENERATED:TOOL-PARAMETERS:END -->
+
 ## Tool Inventory
 
-The 0.7.8 registry contains 69 typed browser tools. Site, component, challenge,
+The 0.7.9 registry contains 69 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Reusable Element Targets
@@ -241,7 +330,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
 | `network_listen_start` | Destructive | none | Start DrissionPage 4.x network observation for HTTP/XHR/Fetch packets. No interception or mocking. Optional: `targets`, `is_regex`, `method`, `resource_type`, `clear`. |
-| `network_listen_wait` | Read-only | none | Wait for bounded network packets with URL, method, resource type, status, MIME type, optional redacted headers, and optional bounded body excerpts. Optional: `timeout`, `limit`, `include_headers`, `include_body`, `max_body_chars`. |
+| `network_listen_wait` | Read-only | none | Return after the first matching packet, then briefly drain already-arriving matches up to `limit`; `limit` is a maximum, not a required count. Optional: `timeout`, `include_headers`, `include_body`, `max_body_chars`. |
 | `network_listen_stop` | Destructive | none | Stop network observation and optionally clear the listener queue. Optional: `clear`. |
 | `network_blocked_urls_set` | Destructive | `urls` | Replace up to 100 blocked URL patterns and echo the accepted values. An empty list clears all patterns. |
 
@@ -280,7 +369,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | --- | --- | --- | --- |
 | `page_resize` | Destructive | `width`, `height` | Resize the browser window. |
 | `page_screenshot` | Read-only | none | Capture an inline viewport or full-page screenshot. Optional: `full_page`. |
-| `page_screenshot_save` | Destructive | `path` | Save a viewport or full-page screenshot under `DP_MCP_SCREENSHOT_ROOT`. Optional: `full_page`. |
+| `page_screenshot_save` | Destructive | `path` | Save a viewport or full-page screenshot under `DP_MCP_SCREENSHOT_ROOT`. Relative paths resolve beneath that root; absolute paths must already be contained by it. Optional: `full_page`. |
 | `page_export_artifact` | Destructive | `format` | Generate one PDF or MHTML file under `DP_MCP_ARTIFACT_ROOT`, returning a safe `ArtifactRef` and exact-once `ActionReceipt`. Optional: `filename`, `operation_key`, and bounded PDF print options. |
 | `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`. |
 | `page_accessibility_snapshot` | Read-only | none | Return a bounded Chromium accessibility tree for the page or an optional scoped element target. Field values and value-like properties are redacted by default; `include_values=true` explicitly returns them. Optional: `scope`, `max_nodes`, `include_ignored`, `include_values`. |
@@ -370,7 +459,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.7.8 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.7.9 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 
@@ -384,12 +473,12 @@ optional Skills.
 - `page_snapshot` and `element_find_all` are preview page-understanding tools. Their outputs are intentionally bounded and include truncation metadata so clients can request narrower selectors instead of pulling full-page HTML by default. `page_snapshot.max_elements` remains a total cap, and the server balances that cap across headings, links, buttons, inputs, and forms before filling remaining capacity.
 - Form and component workflows are composed from element discovery, type/select/check/click/keyboard, upload, wait, and state-read tools. The core does not classify widget libraries or infer business submission intent.
 - `page_dialog_observe` returns a bounded pending-dialog message without accepting or dismissing it. Observation and response bypass ordinary browser-operation serialization so they can overlap the native click that opened a blocking dialog; no user action is required.
-- `page_dialog_respond` handles one currently pending JavaScript dialog. Capability gaps return `UNSUPPORTED_OPERATION`; prompt text and dialog messages are not retained in action history.
+- `page_dialog_respond` checks immediately by default. No pending dialog returns `DIALOG_NOT_FOUND`; a positive `timeout` can overlap a not-yet-opened dialog. Capability gaps return `UNSUPPORTED_OPERATION`; prompt text and dialog messages are not retained in action history.
 - `element_click_and_download` requires an approved `DP_MCP_DOWNLOAD_ROOT`. A successful response includes one checksum-verified regular file, safe relative path, sanitized HTTP(S) source URL, `ArtifactRef`, and correlated `ActionReceipt`. Replaying the same operation key does not click again; failure and indeterminate results contain no artifact.
 - `tab_list` synchronizes with browser tabs opened by normal page behavior, including `target="_blank"` links.
 - `page_observe` is designed for compact state checks. Use `page_snapshot` when you need selectors and structured page outline details. Its `console` field summarizes recent current-tab console messages when DrissionPage console capture is available.
 - `page_console_logs` returns normalized console messages with `index`, `level`, `text`, `url`, `line`, `column`, and `source`. Use `since` with the previous `next_cursor` to fetch only newer messages.
-- `page_evaluate` accepts a JavaScript function body; use `return` for values you want in `structuredContent.data.result`. The result is bounded by `max_chars`.
+- `page_evaluate` accepts a JavaScript function body; use `return` for values you want in `structuredContent.data.result`. The result is bounded by `max_chars`. Top-level `Infinity`, `-Infinity`, and `NaN` preserve `result_type: "number"`, return JSON `null`, and add `non_finite_number`; all public JSON mirrors use strict standards-compliant serialization.
 - `element_upload_file` requires `DP_MCP_UPLOAD_ROOT`; absolute input paths are accepted only when they resolve inside that root, and successful responses return file names rather than absolute paths.
 - `element_click_and_upload` uses DrissionPage's one-shot `Page.fileChooserOpened` path and performs cleanup after success, timeout, or failure. It controls the Chromium chooser event only; native operating-system picker windows are neither opened nor automated.
 - `page_export_artifact` treats PDF/MHTML content as sensitive generated output. It requires `DP_MCP_ARTIFACT_ROOT`, exposes no absolute path, and replays a completed `operation_key` without writing a second file.
@@ -397,7 +486,7 @@ optional Skills.
 - Permission tools use `Browser.setPermission` and `Browser.resetPermissions`. `browser_permission_get` observes through the current document's Permissions API. Notification permission state is supported, but native OS permission dialogs and notification-center contents remain outside the MCP contract.
 - `frame_*` tools are stateless: each call selects by `frame_selector` or zero-based `frame_index`; no global current-frame mode is stored. The DrissionPage 4.x browser path is regression-tested against an attached cross-origin OOPIF.
 - `shadow_*` tools use DrissionPage's native shadow-root object instead of page-JavaScript `host.shadowRoot`. The current supported DrissionPage 4.x path is regression-tested against both open roots and a closed root that is invisible to page JavaScript. Capability failure is reported; the MCP does not inject a piercing fallback.
-- `page_pointer_drag_element` has a different implementation boundary: its synchronous page script remains limited to the top document or one same-origin iframe and nested open Shadow DOM hosts.
+- `page_pointer_drag_element` has a different implementation boundary: its synchronous page script remains limited to the top document or one same-origin iframe and nested open Shadow DOM hosts. Tagged source plus `dx`/`dy` is preferred; legacy bare source plus `x`/`y` remains accepted.
 - `browser_cookies_get` redacts cookie values by default. Use `include_values=true` only when the MCP client/session is allowed to handle cookie secrets.
 - `browser_cookies_set` accepts `name`, `value`, optional `url`, `domain`, `path`, `expires`, `secure`, `http_only`, `same_site`, `priority`, and `source_scheme`. Its successful result echoes values by default, so callbacks and logs must be allowed to handle Cookie secrets.
 - `browser_cookies_delete` and `browser_cookies_clear` use DrissionPage's browser Cookie setter directly; they require no user-side browser action and no tool-loading profile.
@@ -429,7 +518,7 @@ By default, DrissionPage MCP remains a local stdio browser automation server wit
 | `DP_MCP_NAV_ALLOWLIST` | Comma-separated host names or URL prefixes. When set, navigation is allowlist-first. |
 | `DP_MCP_NAV_BLOCKLIST` | Comma-separated host names or URL prefixes rejected after allowlist checks. |
 | `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost/private/link-local navigation. |
-| `DP_MCP_SCREENSHOT_ROOT` | Required root directory for `page_screenshot_save` file writes. |
+| `DP_MCP_SCREENSHOT_ROOT` | Required root directory for `page_screenshot_save` file writes. Relative tool paths resolve beneath this root; traversal and symlink escapes are rejected. |
 | `DP_MCP_UPLOAD_ROOT` | Required root directory for `element_upload_file` and `element_click_and_upload` input files. |
 | `DP_MCP_DOWNLOAD_ROOT` | Required approved root for `element_click_and_download` artifacts. Public results expose safe relative paths only. |
 | `DP_MCP_ARTIFACT_ROOT` | Required approved root for `page_export_artifact` PDF/MHTML output. Public results expose safe relative paths only. |

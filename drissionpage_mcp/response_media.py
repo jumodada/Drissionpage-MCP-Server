@@ -51,7 +51,7 @@ def _image_bytes(image_data: str | bytes) -> bytes | None:
     try:
         return base64.b64decode(image_data, validate=True)
     except Exception:
-        logger.debug("Could not decode screenshot base64 metadata", exc_info=True)
+        logger.debug("Could not decode screenshot base64 metadata")
         return None
 
 
@@ -59,7 +59,7 @@ def _path_bytes(path: str) -> bytes | None:
     try:
         return Path(path).read_bytes()
     except OSError:
-        logger.debug("Could not read screenshot file metadata: %s", path, exc_info=True)
+        logger.debug("Could not read screenshot file metadata")
         return None
 
 

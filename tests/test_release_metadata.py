@@ -1,4 +1,4 @@
-"""Release metadata checks for 0.7.8."""
+"""Release metadata checks for 0.7.9."""
 
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_7_8() -> None:
+def test_package_version_metadata_is_0_7_9() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.7.8"
-    assert drissionpage_mcp.__version__ == "0.7.8"
+    assert pyproject["project"]["version"] == "0.7.9"
+    assert drissionpage_mcp.__version__ == "0.7.9"
 
 
 def test_release_pins_mcp_sdk_to_supported_major_version() -> None:
@@ -36,11 +36,14 @@ def test_changelog_describes_breaking_alias_removal() -> None:
     assert "wait_sleep" in changelog
 
 
-def test_readmes_and_changelog_publish_latest_0_7_8_summary() -> None:
+def test_readmes_and_changelog_publish_latest_0_7_9_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-    current_changelog = changelog.split("## [0.7.8]", 1)[1].split(
+    current_changelog = changelog.split("## [0.7.9]", 1)[1].split(
+        "## [0.7.8]", 1
+    )[0]
+    install_changelog = changelog.split("## [0.7.8]", 1)[1].split(
         "## [0.7.7]", 1
     )[0]
     request_changelog = changelog.split("## [0.7.5]", 1)[1].split(
@@ -64,7 +67,7 @@ def test_readmes_and_changelog_publish_latest_0_7_8_summary() -> None:
     assert "website/public/og-browser-lab.png" not in readme_cn
     assert "Watch the original natural pointer demo" not in readme
     assert "观看原始自然指针演示" not in readme_cn
-    assert "## 🆕 Latest Version: v0.7.8" in readme
+    assert "## 🆕 Latest Version: v0.7.9" in readme
     assert "Released on 2026-07-29" in readme
     assert "69 Typed Browser Tools" in readme
     assert "Form Operations" not in readme
@@ -76,7 +79,7 @@ def test_readmes_and_changelog_publish_latest_0_7_8_summary() -> None:
     assert "### 📸 Page Operations (18 tools)" in readme
     assert "### 🌍 Browser Environment (6 tools)" in readme
     assert "### 🌐 Network Control & Observation (4 tools)" in readme
-    assert "## 🆕 最新版本：v0.7.8" in readme_cn
+    assert "## 🆕 最新版本：v0.7.9" in readme_cn
     assert "发布日期：2026-07-29" in readme_cn
     assert "69 个类型化浏览器工具" in readme_cn
     assert "表单工具（3 个）" not in readme_cn
@@ -88,11 +91,16 @@ def test_readmes_and_changelog_publish_latest_0_7_8_summary() -> None:
     assert "### 📸 页面操作（18 个）" in readme_cn
     assert "### 🌍 浏览器环境（6 个）" in readme_cn
     assert "### 🌐 网络控制与观察（4 个）" in readme_cn
-    assert "## [0.7.8] - 2026-07-29" in changelog
-    assert "mcp>=1.0.0,<2" in current_changelog
-    assert "doctor" in current_changelog
-    assert "wheel" in current_changelog
-    assert "stdio" in current_changelog
+    assert "## [0.7.9] - 2026-07-29" in changelog
+    assert "DIALOG_PENDING" in current_changelog
+    assert "DIALOG_NOT_FOUND" in current_changelog
+    assert "non_finite_number" in current_changelog
+    assert "dx" in current_changelog and "dy" in current_changelog
+    assert "schema-derived" in current_changelog
+    assert "mcp>=1.0.0,<2" in install_changelog
+    assert "doctor" in install_changelog
+    assert "wheel" in install_changelog
+    assert "stdio" in install_changelog
     assert "browser_headers_set" in request_changelog
     assert "network_blocked_urls_set" in request_changelog
     assert "Cookies, localStorage, and sessionStorage are preserved" in request_changelog
@@ -118,7 +126,11 @@ def test_readmes_and_changelog_publish_latest_0_7_8_summary() -> None:
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.9...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.7.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...0.7.9"
         in changelog
     )
     assert (

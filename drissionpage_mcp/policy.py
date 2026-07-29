@@ -34,7 +34,8 @@ class PolicyDeniedError(ValueError):
         super().__init__(message)
         self.code = ErrorCode.POLICY_DENIED
         self.rule = rule
-        self.value = value
+        # Tool handlers expose this field in public error details.
+        self.value = "<redacted>"
 
 
 @dataclass(frozen=True)
@@ -96,7 +97,7 @@ class SafetyPolicy:
             url, host, self.navigation_allowlist
         ):
             raise PolicyDeniedError(
-                f"Navigation to {host or url!r} is not in DP_MCP_NAV_ALLOWLIST.",
+                "Navigation target is not in DP_MCP_NAV_ALLOWLIST.",
                 rule=ENV_NAV_ALLOWLIST,
                 value=url,
             )
@@ -105,14 +106,14 @@ class SafetyPolicy:
             url, host, self.navigation_blocklist
         ):
             raise PolicyDeniedError(
-                f"Navigation to {host or url!r} is blocked by DP_MCP_NAV_BLOCKLIST.",
+                "Navigation target is blocked by DP_MCP_NAV_BLOCKLIST.",
                 rule=ENV_NAV_BLOCKLIST,
                 value=url,
             )
 
         if self.block_private_network and _is_private_or_local_host(host):
             raise PolicyDeniedError(
-                f"Navigation to private/local host {host!r} is blocked.",
+                "Navigation to a private/local host is blocked.",
                 rule=ENV_BLOCK_PRIVATE,
                 value=url,
             )
@@ -134,12 +135,17 @@ class SafetyPolicy:
                 value=path,
             )
 
-        requested = Path(path).expanduser().resolve()
+        candidate = Path(path).expanduser()
+        requested = (
+            candidate.resolve()
+            if candidate.is_absolute()
+            else (self.screenshot_root / candidate).resolve()
+        )
         try:
             requested.relative_to(self.screenshot_root)
         except ValueError as exc:
             raise PolicyDeniedError(
-                f"Screenshot path must be inside {self.screenshot_root}.",
+                "Screenshot path must be inside DP_MCP_SCREENSHOT_ROOT.",
                 rule=ENV_SCREENSHOT_ROOT,
                 value=path,
             ) from exc

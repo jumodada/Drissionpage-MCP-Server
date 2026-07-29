@@ -9,7 +9,12 @@ import re
 import pytest
 from jsonschema import ValidationError, validate
 
-from drissionpage_mcp.response_errors import ErrorCode, classify_error, recovery_hints
+from drissionpage_mcp.response_errors import (
+    ErrorCode,
+    classify_error,
+    public_exception_message,
+    recovery_hints,
+)
 from drissionpage_mcp.response_media import build_screenshot_metadata
 from drissionpage_mcp.tools import get_all_tools
 from drissionpage_mcp.tools.base import ToolOutcome
@@ -120,6 +125,8 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
         tool_name="network_listen_start",
         message="listener unavailable",
     )
+    pending_dialog_hints = recovery_hints(ErrorCode.DIALOG_PENDING)
+    missing_dialog_hints = recovery_hints(ErrorCode.DIALOG_NOT_FOUND)
     assert {hint["action"] for hint in timeout_hints} >= {
         "increase_timeout",
         "inspect_current_page",
@@ -144,6 +151,14 @@ def test_recovery_hints_cover_common_runtime_failures() -> None:
         hint.get("env") == "DP_MCP_SCREENSHOT_ROOT" for hint in screenshot_policy_hints
     )
     assert any(hint["action"] == "verify_listener_api" for hint in unsupported_hints)
+    assert {hint.get("tool") for hint in pending_dialog_hints} >= {
+        "page_dialog_observe",
+        "page_dialog_respond",
+    }
+    assert {hint.get("tool") for hint in missing_dialog_hints} >= {
+        "page_dialog_observe",
+        "page_dialog_respond",
+    }
 
 
 def test_screenshot_result_includes_image_content_and_json_metadata() -> None:
@@ -201,6 +216,11 @@ def test_errors_module_reexports_stable_error_api() -> None:
         (RuntimeError("policy allowlist denied"), "", ErrorCode.POLICY_DENIED),
         (RuntimeError("browser launch failed"), "", ErrorCode.BROWSER_START_FAILED),
         (RuntimeError("listener unsupported"), "", ErrorCode.UNSUPPORTED_OPERATION),
+        (
+            RuntimeError("存在未处理的提示框。 版本: 4.1.1.4"),
+            "page_observe",
+            ErrorCode.DIALOG_PENDING,
+        ),
     ],
 )
 def test_classify_error_maps_mcp_recovery_categories(
@@ -219,6 +239,51 @@ def test_classify_error_accepts_known_string_codes_and_ignores_unknown_ones() ->
 
     assert classify_error(known) is ErrorCode.POLICY_DENIED
     assert classify_error(unknown) is ErrorCode.ELEMENT_NOT_FOUND
+
+
+@pytest.mark.parametrize(
+    ("exc", "code", "expected"),
+    [
+        (
+            RuntimeError("没有找到元素。 版本: 4.1.1.4"),
+            ErrorCode.ELEMENT_NOT_FOUND,
+            "Element not found.",
+        ),
+        (
+            RuntimeError(
+                "CDP error {'objectId': 'secret-object', 'stackTrace': {'callFrames': []}}"
+            ),
+            ErrorCode.UNKNOWN_ERROR,
+            "Unexpected browser operation failure.",
+        ),
+        (
+            RuntimeError("存在未处理的提示框。 版本: 4.1.1.4"),
+            ErrorCode.DIALOG_PENDING,
+            "A JavaScript dialog is pending and blocks this browser operation.",
+        ),
+    ],
+)
+def test_public_exception_message_never_reflects_runtime_internals(
+    exc: Exception, code: ErrorCode, expected: str
+) -> None:
+    message = public_exception_message(exc, code)
+
+    assert message == expected
+    assert "版本" not in message
+    assert "4.1.1.4" not in message
+    assert "objectId" not in message
+    assert "secret-object" not in message
+
+
+def test_tool_outcome_content_is_strict_json_for_non_finite_values() -> None:
+    outcome = ToolOutcome()
+    outcome.add_result("number", value=float("inf"))
+
+    content = outcome.content()
+    encoded = re.search("```json\\n(.*?)\\n```", content[0].text, re.S).group(1)
+    payload = json.loads(encoded, parse_constant=lambda value: pytest.fail(value))
+
+    assert payload["data"]["value"] is None
 
 
 def test_selector_invalid_hints_include_syntax_recovery() -> None:

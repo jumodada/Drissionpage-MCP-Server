@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.7.8 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
+**DrissionPage MCP 0.7.9 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -72,7 +72,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.8 修复全新安装的 MCP SDK 兼容性，让 `doctor` 真正验证 handler 注册，同时保留 0.7.7 引入的浏览器自主管理能力。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.9 加固公开错误与 JSON 边界，让弹窗/网络等待在首个可用状态返回，统一支持小数 timeout，并改善截图路径和 selector 拖拽输入，同时保留旧调用格式。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -100,7 +100,7 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 
 ```bash
 # 从 PyPI 安装
-python -m pip install -U "drissionpage-mcp>=0.7.8"
+python -m pip install -U "drissionpage-mcp>=0.7.9"
 
 # 验证包和本地环境
 drissionpage-mcp --version
@@ -443,7 +443,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.7.8`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.7.9`。
 
 `drissionpage-mcp doctor` 还必须将 `mcp_supported` 和
 `mcp_server_wiring` 都报告为 `ok`；只看到版本号并不能证明 MCP 客户端能够完成初始化。
@@ -475,18 +475,19 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.7.8 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.7.9 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.7.8)
+### 当前版本 (v0.7.9)
 - [x] 69 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
 - [x] 稳定 JSON 镜像、`structuredContent` 和逐工具 typed MCP `outputSchema`
 - [x] 常见失败会在 `error.details.hints` 中返回结构化恢复建议
+- [x] 浏览器异常公开信息脱敏，提供 `DIALOG_PENDING`/`DIALOG_NOT_FOUND` 恢复路径，并为 JavaScript 非有限数提供严格 JSON 结果
 - [x] `page_snapshot` 会平衡输出预算，链接密集页面仍能暴露按钮、输入框和表单
 - [x] 输入、选择、勾选、点击、键盘、上传、等待和状态读取原语覆盖原生控件与框架驱动组件，不包含组件库专用分支
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true)`
@@ -646,12 +647,13 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.7.8
+## 🆕 最新版本：v0.7.9
 
-发布日期：2026-07-29。本补丁版本修复全新安装，并让安装诊断真正覆盖 MCP 连接边界：
+发布日期：2026-07-29。本补丁版本处理 0.7.7/0.7.8 实测反馈中的剩余问题，并保留全部 69 个工具名：
 
-- 将 MCP Python SDK 固定在已验证的 `mcp>=1.0.0,<2`，避免全新安装解析到不兼容的 2.x API。
-- 已存在不兼容 SDK 时，在 handler 注册前直接给出可执行修复命令。
-- `drissionpage-mcp doctor` 会构造真实 server，并验证 tools/list、tools/call、resources/list、resources/read handler。
-- CI 新增无缓存的干净 wheel 安装 job，从 PyPI 解析依赖并完成真实 stdio initialize + tools/list 握手。
-- 为最常被误写的工具补充精确 JSON 字段名；公共 schema 与 69 工具 registry 不变。
+- 对公开 DrissionPage 异常和策略拒绝结果脱敏，新增 `DIALOG_PENDING`/`DIALOG_NOT_FOUND` 恢复建议，不再向 MCP 客户端泄漏中文版本尾缀、CDP `objectId`/stack、私有目标 URL 或被拒绝的本地路径。
+- `page_dialog_respond` 默认立即检查；`network_listen_wait` 在首个可用数据包到达后返回，不再耗完整个 timeout。
+- 截图相对路径按 `DP_MCP_SCREENSHOT_ROOT` 解析，所有公共 timeout 统一为 JSON `number`，目录穿越与符号链接逃逸仍会拒绝。
+- JavaScript `Infinity`、`-Infinity`、`NaN` 保留数值语义，以 JSON-safe `null` 加显式标签返回。
+- selector 拖拽新增 tagged source 与 `dx`/`dy`，同时兼容旧的裸 source 和 `x`/`y`。
+- 69 工具参数索引改由 Pydantic schema 生成，并由测试锁定。

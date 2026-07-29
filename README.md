@@ -16,7 +16,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.7.8 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
+**DrissionPage MCP 0.7.9 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
 
 > **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
@@ -72,7 +72,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.8 fixes fresh-install MCP SDK compatibility, makes `doctor` verify real handler registration, and preserves the browser-owned capabilities introduced in 0.7.7. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.9 hardens public error/JSON boundaries, makes dialog and network waits return at the first usable state, accepts fractional timeouts consistently, and improves screenshot and selector-drag inputs without removing legacy forms. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -100,7 +100,7 @@ DrissionPage MCP is backed by a strict regression suite and browser-backed scena
 
 ```bash
 # Install from PyPI
-python -m pip install -U "drissionpage-mcp>=0.7.8"
+python -m pip install -U "drissionpage-mcp>=0.7.9"
 
 # Verify package and environment
 drissionpage-mcp --version
@@ -443,7 +443,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.7.8`.
+Should output the installed package version, for example `drissionpage-mcp 0.7.9`.
 
 `drissionpage-mcp doctor` must also report both `mcp_supported` and
 `mcp_server_wiring` as `ok`; package-version output alone does not prove that an
@@ -476,18 +476,19 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.7.8 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.7.9 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.7.8)
+### Current (v0.7.9)
 - [x] 69 atomic navigation, tab/frame/shadow, accessibility, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
 - [x] Stable JSON mirror, `structuredContent`, and typed per-tool MCP `outputSchema`
 - [x] Structured recovery hints in `error.details.hints` for common failures
+- [x] Sanitized browser failures with `DIALOG_PENDING`/`DIALOG_NOT_FOUND` recovery and strict standards-compliant JSON for non-finite JavaScript values
 - [x] Balanced `page_snapshot` output so link-heavy pages still expose controls and forms
 - [x] Atomic type, select, check, click, keyboard, upload, wait, and state-read tools cover native controls and framework-driven widgets without library-specific branches
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true)`
@@ -647,12 +648,13 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.7.8
+## 🆕 Latest Version: v0.7.9
 
-Released on 2026-07-29. This patch release repairs fresh installations and makes setup diagnostics prove the real MCP connection boundary:
+Released on 2026-07-29. This patch release resolves the remaining 0.7.7/0.7.8 field feedback while preserving all 69 tool names:
 
-- Pins the MCP Python SDK to the tested `mcp>=1.0.0,<2` range so new installs do not resolve the incompatible 2.x API.
-- Fails early with a repair command if an existing environment already contains an unsupported MCP SDK.
-- Makes `drissionpage-mcp doctor` construct the server and verify the tools/list, tools/call, resources/list, and resources/read handlers.
-- Adds a no-cache clean-wheel CI job that resolves dependencies from PyPI and completes a real stdio initialize + tools/list handshake.
-- Documents exact JSON field names for the most frequently miscalled tools; public schemas and the 69-tool registry remain unchanged.
+- Sanitizes public DrissionPage errors and policy failures, adds `DIALOG_PENDING`/`DIALOG_NOT_FOUND` recovery hints, and prevents localized version/CDP object details, private destinations, or rejected paths from leaking to MCP clients.
+- Makes dialog response check immediately by default and makes network listening return after the first usable packet instead of consuming the full timeout.
+- Accepts relative screenshot paths beneath `DP_MCP_SCREENSHOT_ROOT`, standardizes every public timeout as a JSON number, and keeps traversal/symlink containment checks.
+- Preserves JavaScript `Infinity`, `-Infinity`, and `NaN` as numeric semantics with JSON-safe `null` plus an explicit label.
+- Extends selector-backed drag with tagged source input and `dx`/`dy`, while retaining legacy bare source and `x`/`y` calls.
+- Generates the complete 69-tool parameter index from Pydantic schemas and locks it in tests.

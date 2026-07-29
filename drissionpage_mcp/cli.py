@@ -67,7 +67,7 @@ async def main_async(args: list[str] | None = None) -> None:
     except KeyboardInterrupt:
         logger.info("👋 Server interrupted by user")
     except Exception as e:
-        logger.error(f"❌ Server error: {e}")
+        logger.error("❌ Server error (%s)", type(e).__name__)
         raise
     finally:
         logger.info("🧹 Cleaning up...")
@@ -81,7 +81,7 @@ def main(args: list[str] | None = None) -> None:
     except KeyboardInterrupt:
         sys.exit(0)
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
+        logger.error("Fatal error (%s)", type(e).__name__)
         sys.exit(1)
 
 

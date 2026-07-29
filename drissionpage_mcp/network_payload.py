@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import base64
-import json
 from collections.abc import Mapping
 from typing import Any
+
+from .response_json import strict_json_dumps
 
 SENSITIVE_NETWORK_HEADERS = {
     "authorization",
@@ -114,7 +115,7 @@ def _bounded_body(value: Any, max_chars: int) -> tuple[str, bool, str]:
         text = base64.b64encode(bytes(value)).decode("ascii")
         body_type = "bytes_base64"
     elif isinstance(value, (dict, list, tuple)):
-        text = json.dumps(value, ensure_ascii=False, default=str, sort_keys=True)
+        text = strict_json_dumps(value, ensure_ascii=False, sort_keys=True)
         body_type = "json"
     else:
         text = str(value)

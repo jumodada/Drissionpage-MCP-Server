@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from time import monotonic
@@ -14,6 +13,7 @@ from DrissionPage.items import ChromiumElement
 from pydantic import TypeAdapter
 
 from ..response_errors import ErrorCode
+from ..response_json import strict_json_dumps
 from ..selector import SelectorPlan, normalize_selector
 from ..target import ElementTargetArg
 from .motion import Point
@@ -476,7 +476,7 @@ def _selector_payload(plan: SelectorPlan) -> dict[str, Any]:
 
 
 def _resolution_script(payload: Mapping[str, Any]) -> str:
-    encoded = json.dumps(payload)
+    encoded = strict_json_dumps(payload)
     return f"""
     (() => {{
       const targets = {encoded};

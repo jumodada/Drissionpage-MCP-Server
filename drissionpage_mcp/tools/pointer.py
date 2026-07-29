@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from ..browser.motion import Point, PointerProfile
 from ..browser.targeting import ElementTarget
+from ..response_errors import ErrorCode
 from ..tool_outputs import (
     PageClickXYData,
     PagePointerDragData,
@@ -18,6 +19,11 @@ from .base import ToolInput, ToolOutcome, ToolType, define_tool
 
 if TYPE_CHECKING:
     from ..context import DrissionPageContext
+
+
+class PointerDestinationError(ValueError):
+    code = ErrorCode.PRECONDITION_FAILED
+    public_message = "Resolved drag destination cannot be negative."
 
 
 class PointerCoordinatesInput(ToolInput):
@@ -116,11 +122,29 @@ class ElementDestinationInput(BaseModel):
     target: ElementTargetInput
 
 
+class ElementSourceInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["element"]
+    target: ElementTargetInput
+
+
 class OffsetDestinationInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["offset"]
-    x: float = Field(..., ge=-10000, le=10000)
-    y: float = Field(..., ge=-10000, le=10000)
+    dx: float = Field(
+        ...,
+        ge=-10000,
+        le=10000,
+        validation_alias=AliasChoices("dx", "x"),
+        description="Horizontal delta from the freshly resolved source point.",
+    )
+    dy: float = Field(
+        ...,
+        ge=-10000,
+        le=10000,
+        validation_alias=AliasChoices("dy", "y"),
+        description="Vertical delta from the freshly resolved source point.",
+    )
 
 
 class TrackRatioDestinationInput(BaseModel):
@@ -140,7 +164,7 @@ PointerElementDestination = Annotated[
 class PointerDragElementInput(ToolInput):
     """Resolve an element and structured destination immediately before dragging."""
 
-    source: ElementTargetInput
+    source: ElementTargetInput | ElementSourceInput
     destination: PointerElementDestination
     profile: PointerProfile = "direct"
     button: Literal["left", "right", "middle"] = "left"
@@ -264,7 +288,10 @@ async def pointer_drag_element(
     """Resolve selector geometry atomically and execute one held-button drag."""
     outcome = ToolOutcome()
     tab = context.current_tab_or_die()
-    targets = {"source": args.source.to_target()}
+    source_input = (
+        args.source.target if isinstance(args.source, ElementSourceInput) else args.source
+    )
+    targets = {"source": source_input.to_target()}
     if isinstance(args.destination, ElementDestinationInput):
         targets["target"] = args.destination.target.to_target()
     elif isinstance(args.destination, TrackRatioDestinationInput):
@@ -283,14 +310,14 @@ async def pointer_drag_element(
             "target": target.to_dict(),
         }
     elif isinstance(args.destination, OffsetDestinationInput):
-        end_x = source.point.x + args.destination.x
-        end_y = source.point.y + args.destination.y
+        end_x = source.point.x + args.destination.dx
+        end_y = source.point.y + args.destination.dy
         destination_data = {
             "kind": "offset",
             "x": end_x,
             "y": end_y,
-            "offset_x": args.destination.x,
-            "offset_y": args.destination.y,
+            "offset_x": args.destination.dx,
+            "offset_y": args.destination.dy,
         }
     else:
         track = resolved["track"]
@@ -313,7 +340,7 @@ async def pointer_drag_element(
             "axis": axis,
         }
     if end_x < 0 or end_y < 0:
-        raise ValueError("resolved drag destination cannot be negative")
+        raise PointerDestinationError("resolved drag destination cannot be negative")
     motion = await tab.pointer.drag_to(
         source.point.x,
         source.point.y,

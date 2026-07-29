@@ -53,7 +53,10 @@ class DrissionPageContext(TaskRuntime):
             self._is_initialized = True
             logger.info("DrissionPage context initialized")
         except Exception as exc:
-            logger.error("Failed to initialize DrissionPage context: %s", exc)
+            logger.error(
+                "Failed to initialize DrissionPage context (%s)",
+                type(exc).__name__,
+            )
             raise
 
     async def ensure_initialized(self) -> None:
@@ -129,7 +132,7 @@ class DrissionPageContext(TaskRuntime):
             try:
                 self._browser.activate_tab(tab.native_tab_id or tab.page)
             except Exception:
-                logger.debug("Browser activate_tab failed", exc_info=True)
+                logger.debug("Browser activate_tab failed")
         self._current_tab = tab
         return tab
 
@@ -145,7 +148,7 @@ class DrissionPageContext(TaskRuntime):
             try:
                 await self.sync_tabs()
             except Exception:
-                logger.debug("Post-close tab sync failed", exc_info=True)
+                logger.debug("Post-close tab sync failed")
 
     async def ensure_tab(self) -> PageTab:
         """Ensure there is an active tab, creating one if necessary."""
@@ -264,7 +267,7 @@ class DrissionPageContext(TaskRuntime):
             try:
                 quit_browser(self._browser)
             except Exception as exc:
-                logger.warning("Error closing browser: %s", exc)
+                logger.warning("Error closing browser (%s)", type(exc).__name__)
                 closed = False
             finally:
                 self._browser = None
@@ -360,7 +363,7 @@ class DrissionPageContext(TaskRuntime):
             try:
                 pages.extend(_normalize_browser_tab_list(browser, get_tabs()))
             except Exception:
-                logger.debug("browser.get_tabs() failed", exc_info=True)
+                logger.debug("browser.get_tabs() failed")
 
         if not pages:
             tab_ids = getattr(browser, "tab_ids", None)
@@ -374,9 +377,7 @@ class DrissionPageContext(TaskRuntime):
                     try:
                         pages.append(browser.get_tab(tab_id))
                     except Exception:
-                        logger.debug(
-                            "browser.get_tab(%s) failed", tab_id, exc_info=True
-                        )
+                        logger.debug("browser.get_tab() failed")
 
         latest = get_latest_tab(browser)
         latest_key = self._tab_key(latest)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from ..target import ElementTargetArg, target_label
+from ..target import ElementTargetArg
 
 if TYPE_CHECKING:
     from ..tab import PageTab
@@ -60,11 +60,11 @@ class InteractionOperations:
                 "url": self._tab.url,
             }
         except Exception as exc:
-            logger.error("Failed to scroll page: %s", exc)
+            logger.error("Failed to scroll page (%s)", type(exc).__name__)
             raise
 
     async def scroll_element_into_view(
-        self, selector: ElementTargetArg, *, center: bool = True, timeout: int = 10
+        self, selector: ElementTargetArg, *, center: bool = True, timeout: float = 10
     ) -> dict[str, Any]:
         try:
             resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
@@ -75,7 +75,7 @@ class InteractionOperations:
             return {**resolved.metadata(), "center": center, "url": self._tab.url}
         except Exception as exc:
             logger.error(
-                "Failed to scroll element into view %s: %s", target_label(selector), exc
+                "Failed to scroll element into view (%s)", type(exc).__name__
             )
             raise
 
@@ -83,7 +83,7 @@ class InteractionOperations:
         self,
         selector: ElementTargetArg,
         *,
-        timeout: int = 10,
+        timeout: float = 10,
         offset_x: int | None = None,
         offset_y: int | None = None,
     ) -> dict[str, Any]:
@@ -100,7 +100,7 @@ class InteractionOperations:
                 "offset_y": offset_y,
             }
         except Exception as exc:
-            logger.error("Failed to hover element %s: %s", target_label(selector), exc)
+            logger.error("Failed to hover element (%s)", type(exc).__name__)
             raise
 
     async def keyboard_press(self, keys: str, *, interval: float = 0) -> dict[str, Any]:
@@ -111,7 +111,7 @@ class InteractionOperations:
             )
             return {"keys": keys, "interval": interval, "url": self._tab.url}
         except Exception as exc:
-            logger.error("Failed to press keyboard keys: %s", exc)
+            logger.error("Failed to press keyboard keys (%s)", type(exc).__name__)
             raise
 
     async def select_element(
@@ -120,7 +120,7 @@ class InteractionOperations:
         *,
         value: str,
         by: str = "value",
-        timeout: int = 10,
+        timeout: float = 10,
     ) -> dict[str, Any]:
         try:
             resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
@@ -145,9 +145,7 @@ class InteractionOperations:
                 "value": value,
             }
         except Exception as exc:
-            logger.error(
-                "Failed to select option for %s: %s", target_label(selector), exc
-            )
+            logger.error("Failed to select option (%s)", type(exc).__name__)
             raise
 
     async def check_element(
@@ -156,7 +154,7 @@ class InteractionOperations:
         *,
         checked: bool = True,
         by_js: bool = False,
-        timeout: int = 10,
+        timeout: float = 10,
     ) -> dict[str, Any]:
         try:
             resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
@@ -167,5 +165,5 @@ class InteractionOperations:
             )
             return {**resolved.metadata(), "checked": checked, "by_js": by_js}
         except Exception as exc:
-            logger.error("Failed to check element %s: %s", target_label(selector), exc)
+            logger.error("Failed to check element (%s)", type(exc).__name__)
             raise

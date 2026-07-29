@@ -358,6 +358,7 @@ class PageObservation(ToolData):
 class PageEvaluateData(ToolData):
     result: Any
     result_type: str
+    non_finite_number: Literal["Infinity", "-Infinity", "NaN"] | None = None
     truncated: bool
     original_json_chars: int
     max_chars: int

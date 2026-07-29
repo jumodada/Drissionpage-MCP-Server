@@ -41,7 +41,7 @@ class FrameOperations:
                 "frames": summaries,
             }
         except Exception as exc:
-            logger.error("Failed to list frames: %s", exc)
+            logger.error("Failed to list frames (%s)", type(exc).__name__)
             raise
 
     async def snapshot(
@@ -52,7 +52,7 @@ class FrameOperations:
         include_html: bool = False,
         max_elements: int = 50,
         max_text_chars: int = 4000,
-        timeout: int = 3,
+        timeout: float = 3,
     ) -> dict[str, Any]:
         try:
             frame, index = self._resolve(
@@ -68,7 +68,7 @@ class FrameOperations:
             )
             return {"frame": _frame_summary(frame, index, frame_selector), **result}
         except Exception as exc:
-            logger.error("Failed to capture frame snapshot: %s", exc)
+            logger.error("Failed to capture frame snapshot (%s)", type(exc).__name__)
             raise
 
     async def find(
@@ -77,7 +77,7 @@ class FrameOperations:
         selector: str,
         frame_selector: str = "",
         frame_index: int = 0,
-        timeout: int = 3,
+        timeout: float = 3,
     ) -> dict[str, Any]:
         try:
             frame, index = self._resolve(
@@ -94,7 +94,7 @@ class FrameOperations:
                 "element": _element_info(element, plan),
             }
         except Exception as exc:
-            logger.error("Failed to find frame element %s: %s", selector, exc)
+            logger.error("Failed to find frame element (%s)", type(exc).__name__)
             raise
 
     async def shadow_find(
@@ -102,7 +102,7 @@ class FrameOperations:
         *,
         host_selector: str,
         selector: str,
-        timeout: int = 3,
+        timeout: float = 3,
     ) -> dict[str, Any]:
         try:
             host_plan, root = await self._shadow_root(host_selector, timeout=timeout)
@@ -115,7 +115,7 @@ class FrameOperations:
                 "element": _element_info(element, target_plan),
             }
         except Exception as exc:
-            logger.error("Failed to find shadow element %s: %s", selector, exc)
+            logger.error("Failed to find shadow element (%s)", type(exc).__name__)
             raise
 
     async def shadow_find_all(
@@ -145,7 +145,7 @@ class FrameOperations:
                 "elements": summaries,
             }
         except Exception as exc:
-            logger.error("Failed to find shadow elements %s: %s", selector, exc)
+            logger.error("Failed to find shadow elements (%s)", type(exc).__name__)
             raise
 
     def _frames(self) -> list[Any]:
@@ -174,7 +174,7 @@ class FrameOperations:
         try:
             return get_frame(frame_like, timeout=0)
         except Exception:
-            logger.debug("Could not resolve frame object", exc_info=True)
+            logger.debug("Could not resolve frame object")
             return None
 
     def _resolve(
@@ -182,7 +182,7 @@ class FrameOperations:
         *,
         frame_selector: str = "",
         frame_index: int = 0,
-        timeout: int = 3,
+        timeout: float = 3,
     ) -> tuple[Any, int]:
         if frame_selector:
             plan = normalize_selector(frame_selector)
@@ -205,7 +205,7 @@ class FrameOperations:
         return frames[frame_index], frame_index
 
     async def _shadow_root(
-        self, host_selector: str, *, timeout: int = 3
+        self, host_selector: str, *, timeout: float = 3
     ) -> tuple[SelectorPlan, Any]:
         host_plan = normalize_selector(host_selector)
         host = await self._tab._element_by_plan(host_plan, timeout=timeout)

@@ -39,14 +39,14 @@ class PageOperations:
                 f"unsupported type: {type(screenshot_data).__name__}"
             )
         except Exception as exc:
-            logger.error("Failed to take screenshot: %s", exc)
+            logger.error("Failed to take screenshot (%s)", type(exc).__name__)
             raise
 
     async def resize(self, width: int, height: int) -> None:
         try:
             self._page.set.window.size(width, height)
         except Exception as exc:
-            logger.error("Failed to resize window to %sx%s: %s", width, height, exc)
+            logger.error("Failed to resize window (%s)", type(exc).__name__)
             raise
 
     async def set_headers(self, headers: dict[str, str]) -> dict[str, Any]:
@@ -56,7 +56,9 @@ class PageOperations:
             self._page.set.headers(headers)
             return {"count": len(headers), "headers": headers, "set": True}
         except Exception as exc:
-            logger.error("Failed to set browser request headers: %s", exc)
+            logger.error(
+                "Failed to set browser request headers (%s)", type(exc).__name__
+            )
             raise
 
     async def set_user_agent(
@@ -74,7 +76,7 @@ class PageOperations:
                 "set": True,
             }
         except Exception as exc:
-            logger.error("Failed to set browser user agent: %s", exc)
+            logger.error("Failed to set browser user agent (%s)", type(exc).__name__)
             raise
 
     async def clear_cache(self) -> dict[str, Any]:
@@ -89,5 +91,5 @@ class PageOperations:
             )
             return {"cleared": True}
         except Exception as exc:
-            logger.error("Failed to clear browser cache: %s", exc)
+            logger.error("Failed to clear browser cache (%s)", type(exc).__name__)
             raise

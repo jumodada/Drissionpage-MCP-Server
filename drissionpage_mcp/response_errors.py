@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
@@ -28,6 +29,8 @@ class ErrorCode(str, Enum):
     TASK_LEDGER_FULL = "TASK_LEDGER_FULL"
     PRECONDITION_FAILED = "PRECONDITION_FAILED"
     AMBIGUOUS_TARGET = "AMBIGUOUS_TARGET"
+    DIALOG_PENDING = "DIALOG_PENDING"
+    DIALOG_NOT_FOUND = "DIALOG_NOT_FOUND"
 
 
 @dataclass
@@ -62,6 +65,19 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
     text = str(exc).lower()
     tool = tool_name.lower()
     rules = (
+        (
+            any(
+                marker in text
+                for marker in (
+                    "存在未处理的提示框",
+                    "unhandled alert",
+                    "unexpected alert open",
+                    "javascript dialog is pending",
+                    "pending javascript dialog",
+                )
+            ),
+            ErrorCode.DIALOG_PENDING,
+        ),
         (
             "selector" in text and ("invalid" in text or "syntax" in text),
             ErrorCode.SELECTOR_INVALID,
@@ -102,6 +118,72 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
     return next((code for matches, code in rules if matches), ErrorCode.UNKNOWN_ERROR)
 
 
+_PUBLIC_EXCEPTION_MESSAGES: dict[ErrorCode, str] = {
+    ErrorCode.BROWSER_START_FAILED: "Browser failed to start.",
+    ErrorCode.BROWSER_NOT_INITIALIZED: "Browser context is not initialized.",
+    ErrorCode.PAGE_NAVIGATION_FAILED: "Page navigation failed.",
+    ErrorCode.ELEMENT_NOT_FOUND: "Element not found.",
+    ErrorCode.SELECTOR_INVALID: "Selector is invalid.",
+    ErrorCode.TIMEOUT: "Operation timed out.",
+    ErrorCode.SCREENSHOT_FAILED: "Screenshot operation failed.",
+    ErrorCode.UNKNOWN_ERROR: "Unexpected browser operation failure.",
+    ErrorCode.POLICY_DENIED: "Request was denied by local policy.",
+    ErrorCode.UNSUPPORTED_OPERATION: "This browser operation is unsupported.",
+    ErrorCode.OPERATION_KEY_CONFLICT: "Operation key conflicts with another request.",
+    ErrorCode.OPERATION_IN_FLIGHT: "Operation is already in progress.",
+    ErrorCode.TASK_LEDGER_FULL: "Task operation ledger is full.",
+    ErrorCode.PRECONDITION_FAILED: "Operation precondition failed.",
+    ErrorCode.AMBIGUOUS_TARGET: "Target matched more than one element.",
+    ErrorCode.DIALOG_PENDING: (
+        "A JavaScript dialog is pending and blocks this browser operation."
+    ),
+    ErrorCode.DIALOG_NOT_FOUND: (
+        "No pending JavaScript dialog is available to respond to."
+    ),
+}
+
+_VERSION_SUFFIX_RE = re.compile(
+    r"(?:\s*[。.;,]?\s*)?(?:版本|version)\s*[:：]\s*[0-9A-Za-z_.+-]+\s*$",
+    re.IGNORECASE,
+)
+_INTERNAL_ERROR_MARKERS = (
+    "objectId",
+    "stackTrace",
+    "callFrames",
+    "exceptionDetails",
+    "remoteObjectId",
+)
+
+
+def public_exception_message(exc: Exception, code: ErrorCode) -> str:
+    """Return stable public text without reflecting runtime exception details."""
+
+    explicit = getattr(exc, "public_message", None)
+    if isinstance(explicit, str) and explicit.strip():
+        return _VERSION_SUFFIX_RE.sub("", explicit).strip()
+    return _PUBLIC_EXCEPTION_MESSAGES.get(
+        code, "Unexpected browser operation failure."
+    )
+
+
+def public_failure_message(
+    exc: Exception,
+    code: ErrorCode,
+    candidate: str,
+) -> str:
+    """Replace raw exception text inside a tool-specific failure message."""
+
+    raw = str(exc).strip()
+    safe = public_exception_message(exc, code)
+    message = str(candidate or "").strip()
+    if raw and raw in message:
+        message = message.replace(raw, safe)
+    message = _VERSION_SUFFIX_RE.sub("", message).strip()
+    if not message or any(marker in message for marker in _INTERNAL_ERROR_MARKERS):
+        return safe
+    return message
+
+
 HintSpec = tuple[str, str, str, str, str]
 HintBuilder = Callable[[str, str, str], list[HintSpec]]
 
@@ -139,6 +221,10 @@ BROWSER_NOT_INITIALIZED|navigate_first|Open a page with page_navigate, then insp
 MCP_ARGUMENT_INVALID|check_input_schema|Use exact snake_case argument names from the tool input schema.|||
 MCP_ARGUMENT_INVALID|inspect_tool_schema|Call tools/list and inspect the tool's complete JSON Schema before retrying.|||
 TOOL_NOT_FOUND|list_available_tools|Call tools/list and use one of the public tool names.|||
+DIALOG_PENDING|observe_pending_dialog|Inspect the pending native dialog before continuing.|page_dialog_observe||
+DIALOG_PENDING|respond_to_pending_dialog|Accept or dismiss the pending native dialog, then retry the blocked tool.|page_dialog_respond||
+DIALOG_NOT_FOUND|observe_pending_dialog|Check whether an alert, confirm, or prompt is currently pending.|page_dialog_observe||
+DIALOG_NOT_FOUND|retry_after_dialog_opens|Retry the response only after the browser action opens a native dialog.|page_dialog_respond||
 """
 
 

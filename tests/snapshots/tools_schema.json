@@ -2622,6 +2622,23 @@
                   "title": "Max Chars",
                   "type": "integer"
                 },
+                "non_finite_number": {
+                  "anyOf": [
+                    {
+                      "enum": [
+                        "Infinity",
+                        "-Infinity",
+                        "NaN"
+                      ],
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Non Finite Number"
+                },
                 "original_json_chars": {
                   "title": "Original Json Chars",
                   "type": "integer"
@@ -3224,6 +3241,25 @@
           "title": "ElementDestinationInput",
           "type": "object"
         },
+        "ElementSourceInput": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "element",
+              "title": "Kind",
+              "type": "string"
+            },
+            "target": {
+              "$ref": "#/$defs/ElementTargetInput"
+            }
+          },
+          "required": [
+            "kind",
+            "target"
+          ],
+          "title": "ElementSourceInput",
+          "type": "object"
+        },
         "ElementTargetInput": {
           "additionalProperties": false,
           "description": "Selector path resolved immediately before a pointer action.",
@@ -3295,28 +3331,30 @@
         "OffsetDestinationInput": {
           "additionalProperties": false,
           "properties": {
+            "dx": {
+              "description": "Horizontal delta from the freshly resolved source point.",
+              "maximum": 10000,
+              "minimum": -10000,
+              "title": "Dx",
+              "type": "number"
+            },
+            "dy": {
+              "description": "Vertical delta from the freshly resolved source point.",
+              "maximum": 10000,
+              "minimum": -10000,
+              "title": "Dy",
+              "type": "number"
+            },
             "kind": {
               "const": "offset",
               "title": "Kind",
               "type": "string"
-            },
-            "x": {
-              "maximum": 10000,
-              "minimum": -10000,
-              "title": "X",
-              "type": "number"
-            },
-            "y": {
-              "maximum": 10000,
-              "minimum": -10000,
-              "title": "Y",
-              "type": "number"
             }
           },
           "required": [
             "kind",
-            "x",
-            "y"
+            "dx",
+            "dy"
           ],
           "title": "OffsetDestinationInput",
           "type": "object"
@@ -3402,7 +3440,15 @@
           "type": "string"
         },
         "source": {
-          "$ref": "#/$defs/ElementTargetInput"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElementTargetInput"
+            },
+            {
+              "$ref": "#/$defs/ElementSourceInput"
+            }
+          ],
+          "title": "Source"
         }
       },
       "required": [
@@ -5205,10 +5251,10 @@
           "title": "Prompt Text"
         },
         "timeout": {
-          "default": 5.0,
-          "description": "Maximum seconds to wait for a pending dialog.",
-          "exclusiveMinimum": 0,
+          "default": 0.0,
+          "description": "Maximum seconds to wait for a pending dialog. Zero checks immediately; an already-pending dialog still receives a bounded native response budget.",
           "maximum": 120,
+          "minimum": 0,
           "title": "Timeout",
           "type": "number"
         }
@@ -7183,7 +7229,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -7818,7 +7864,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -8193,7 +8239,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -9842,7 +9888,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -10326,7 +10372,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -11178,7 +11224,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -11534,7 +11580,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -12017,7 +12063,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         },
         "value": {
           "description": "Option value, text, or index string.",
@@ -12371,7 +12417,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -12717,7 +12763,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "title": "FrameSnapshotInput",
@@ -12924,7 +12970,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -13048,7 +13094,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -14656,7 +14702,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         }
       },
       "required": [
@@ -14849,7 +14895,7 @@
           "maximum": 120,
           "minimum": 0,
           "title": "Timeout",
-          "type": "integer"
+          "type": "number"
         },
         "url_pattern": {
           "description": "Substring or pattern expected in the current URL",

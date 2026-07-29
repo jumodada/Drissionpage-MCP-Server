@@ -28,9 +28,9 @@ class NavigationOperations:
                 raise RuntimeError(f"Navigation failed: {result}")
             self._tab._url = getattr(result, "url", None) or self._page.url or url
             await self._tab._stabilize("navigation", timeout=5.0, fallback_sleep=0.05)
-            logger.info("Navigated to: %s", url)
+            logger.info("Navigation completed")
         except Exception as exc:
-            logger.error("Failed to navigate to %s: %s", url, exc)
+            logger.error("Failed to navigate (%s)", type(exc).__name__)
             raise
 
     async def back(self) -> None:
@@ -38,7 +38,7 @@ class NavigationOperations:
             self._page.back()
             await self._tab._stabilize("go_back", timeout=5.0, fallback_sleep=0.05)
         except Exception as exc:
-            logger.error("Failed to go back: %s", exc)
+            logger.error("Failed to go back (%s)", type(exc).__name__)
             raise
 
     async def forward(self) -> None:
@@ -46,7 +46,7 @@ class NavigationOperations:
             self._page.forward()
             await self._tab._stabilize("go_forward", timeout=5.0, fallback_sleep=0.05)
         except Exception as exc:
-            logger.error("Failed to go forward: %s", exc)
+            logger.error("Failed to go forward (%s)", type(exc).__name__)
             raise
 
     async def refresh(self) -> None:
@@ -54,5 +54,5 @@ class NavigationOperations:
             self._page.refresh()
             await self._tab._stabilize("refresh", timeout=5.0, fallback_sleep=0.05)
         except Exception as exc:
-            logger.error("Failed to refresh page: %s", exc)
+            logger.error("Failed to refresh page (%s)", type(exc).__name__)
             raise

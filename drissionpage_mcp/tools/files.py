@@ -28,7 +28,7 @@ class UploadFileInput(ToolInput):
         min_length=1,
         description="One or more local file paths under DP_MCP_UPLOAD_ROOT. Absolute paths are accepted but never echoed back in tool results.",
     )
-    timeout: int = Field(
+    timeout: float = Field(
         default=10,
         ge=0,
         le=MAX_WAIT_SECONDS,

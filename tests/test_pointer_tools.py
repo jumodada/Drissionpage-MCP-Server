@@ -199,7 +199,7 @@ async def test_element_drag_supports_all_destination_modes(kind: str) -> None:
     if kind == "element":
         destination = {"kind": "element", "target": {"selector": "#target"}}
     elif kind == "offset":
-        destination = {"kind": "offset", "x": 50, "y": -5}
+        destination = {"kind": "offset", "dx": 50, "dy": -5}
     else:
         destination = {
             "kind": "track_ratio",
@@ -228,12 +228,47 @@ async def test_element_drag_supports_all_destination_modes(kind: str) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("source", "destination"),
+    [
+        (
+            {"selector": "#source"},
+            {"kind": "offset", "x": 50, "y": -5},
+        ),
+        (
+            {"kind": "element", "target": {"selector": "#source"}},
+            {"kind": "offset", "dx": 50, "dy": -5},
+        ),
+    ],
+)
+async def test_element_drag_accepts_legacy_and_symmetric_input_forms(
+    source: dict[str, object], destination: dict[str, object]
+) -> None:
+    ctx = FakeContext(
+        FakeTargeting({"source": _resolved("source", 10, 10, 20, 20)})
+    )
+    args = pointer.PointerDragElementInput.model_validate(
+        {"source": source, "destination": destination}
+    )
+
+    outcome = await pointer.pointer_drag_element.execute(ctx, args)
+
+    assert outcome.structured_content()["data"]["destination"] == {
+        "kind": "offset",
+        "x": 70.0,
+        "y": 15.0,
+        "offset_x": 50.0,
+        "offset_y": -5.0,
+    }
+
+
+@pytest.mark.asyncio
 async def test_element_drag_rejects_negative_resolved_destination() -> None:
     ctx = FakeContext(FakeTargeting({"source": _resolved("source", 0, 0, 10, 10)}))
     args = pointer.PointerDragElementInput.model_validate(
         {
             "source": {"selector": "#source"},
-            "destination": {"kind": "offset", "x": -20, "y": 0},
+            "destination": {"kind": "offset", "dx": -20, "dy": 0},
         }
     )
 

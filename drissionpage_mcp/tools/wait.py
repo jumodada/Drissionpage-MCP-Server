@@ -26,7 +26,7 @@ class WaitElementInput(ToolInput):
         ...,
         description="CSS selector or XPath to wait for. Bare selectors are CSS; use text:... for text matching or explicit tag:/css:/xpath:/@attr locators.",
     )
-    timeout: int = Field(
+    timeout: float = Field(
         default=10, ge=0, le=MAX_WAIT_SECONDS, description="Timeout in seconds"
     )
 
@@ -45,7 +45,7 @@ class WaitUrlInput(ToolInput):
     url_pattern: str = Field(
         ..., description="Substring or pattern expected in the current URL"
     )
-    timeout: int = Field(
+    timeout: float = Field(
         default=10, ge=0, le=MAX_WAIT_SECONDS, description="Timeout in seconds"
     )
 
@@ -104,7 +104,7 @@ class WaitUntilInput(ToolInput):
     idempotent=True,
     output_model=WaitForElementData,
     failure_message=lambda args, exc: (
-        lambda e: f"Element '{target_label(args.selector)}' did not appear within {args.timeout} seconds: {e}"
+        lambda e: f"Element '{target_label(args.selector)}' did not appear within {args.timeout:g} seconds: {e}"
     )(exc),
 )
 async def wait_for_element(
@@ -117,7 +117,7 @@ async def wait_for_element(
     if not found:
         raise TimeoutError(f"Element '{target_label(args.selector)}' not found")
     outcome.add_result(
-        f"Element '{target_label(args.selector)}' appeared within {args.timeout} seconds",
+        f"Element '{target_label(args.selector)}' appeared within {args.timeout:g} seconds",
         **DomTarget.from_input(args.selector).metadata(),
         found=True,
         timeout=args.timeout,
@@ -134,7 +134,7 @@ async def wait_for_element(
     idempotent=True,
     output_model=WaitForUrlData,
     failure_message=lambda args, exc: (
-        lambda e: f"URL did not match '{args.url_pattern}' within {args.timeout} seconds: {e}"
+        lambda e: f"URL did not match '{args.url_pattern}' within {args.timeout:g} seconds: {e}"
     )(exc),
 )
 async def wait_for_url(
@@ -147,7 +147,7 @@ async def wait_for_url(
     if not matched:
         raise TimeoutError(f"URL did not contain '{args.url_pattern}'")
     outcome.add_result(
-        f"URL matched '{args.url_pattern}' within {args.timeout} seconds",
+        f"URL matched '{args.url_pattern}' within {args.timeout:g} seconds",
         url_pattern=args.url_pattern,
         matched=True,
         url=tab.url,
@@ -187,7 +187,7 @@ async def wait_time(
     idempotent=True,
     output_model=WaitUntilData,
     failure_message=lambda args, exc: (
-        lambda e: f"Condition '{args.condition}' was not met within {args.timeout} seconds: {e}"
+        lambda e: f"Condition '{args.condition}' was not met within {args.timeout:g} seconds: {e}"
     )(exc),
 )
 async def wait_until(
@@ -206,6 +206,6 @@ async def wait_until(
         stable_ms=args.stable_ms,
     )
     outcome.add_result(
-        f"Condition '{args.condition}' matched within {args.timeout} seconds", **result
+        f"Condition '{args.condition}' matched within {args.timeout:g} seconds", **result
     )
     return outcome

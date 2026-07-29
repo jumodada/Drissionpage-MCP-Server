@@ -520,6 +520,33 @@ async def test_observe_evaluate_and_wait_until_return_observable_state() -> None
 
 
 @pytest.mark.asyncio
+async def test_evaluate_preserves_non_finite_number_semantics_as_json_safe_data() -> None:
+    class NonFinitePage(FakePage):
+        def run_js(self, script: str, **kwargs):
+            self.calls.append(("run_js", script[:40], kwargs))
+            assert "Number.isFinite" in script
+            return {
+                "__drissionpage_mcp_result__": True,
+                "kind": "non_finite_number",
+                "value": "Infinity",
+                "result_type": "number",
+            }
+
+    result = await PageTab(NonFinitePage(), FakeContext()).observation.evaluate(
+        "return 1 / 0;"
+    )
+
+    assert result == {
+        "result": None,
+        "result_type": "number",
+        "non_finite_number": "Infinity",
+        "truncated": False,
+        "original_json_chars": 4,
+        "max_chars": 4000,
+    }
+
+
+@pytest.mark.asyncio
 async def test_console_logs_are_normalized_filterable_and_cursor_based() -> None:
     page = FakePage()
     page.console = FakeConsole(
@@ -2020,11 +2047,13 @@ class FakeNetworkListener:
         *,
         listening: bool = False,
         wait_result=None,
+        wait_results=None,
         start_type_error_once: bool = False,
         stop_raises: Exception | None = None,
     ) -> None:
         self.listening = listening
         self.wait_result = wait_result
+        self.wait_results = list(wait_results or [])
         self.start_type_error_once = start_type_error_once
         self.stop_raises = stop_raises
         self.start_calls = []
@@ -2041,6 +2070,8 @@ class FakeNetworkListener:
 
     def wait(self, **kwargs):
         self.wait_calls.append(kwargs)
+        if self.wait_results:
+            return self.wait_results.pop(0)
         return self.wait_result
 
     def stop(self) -> None:
@@ -2236,7 +2267,10 @@ async def test_network_start_uses_clear_and_legacy_start_signature() -> None:
 @pytest.mark.asyncio
 async def test_network_wait_normalizes_packets_and_timeout_shapes() -> None:
     packet = FakePacket()
-    listener = FakeNetworkListener(listening=True, wait_result=[packet])
+    listener = FakeNetworkListener(
+        listening=True,
+        wait_results=[packet, False],
+    )
     tab = PageTab(FakeNetworkPage(listener), FakeContext())
 
     result = await tab.network.wait(
@@ -2247,10 +2281,15 @@ async def test_network_wait_normalizes_packets_and_timeout_shapes() -> None:
         max_body_chars=8,
     )
 
-    assert listener.wait_calls == [
-        {"count": 2, "timeout": 1, "fit_count": False, "raise_err": False}
-    ]
-    assert result["timed_out"] is True
+    assert listener.wait_calls[0] == {
+        "count": 1,
+        "timeout": 1,
+        "fit_count": False,
+        "raise_err": False,
+    }
+    assert listener.wait_calls[1]["count"] == 1
+    assert 0 < listener.wait_calls[1]["timeout"] <= 0.1
+    assert result["timed_out"] is False
     assert result["count"] == 1
     assert result["packets"][0]["request_headers"] == {
         "Authorization": "<redacted>",
@@ -2263,7 +2302,9 @@ async def test_network_wait_normalizes_packets_and_timeout_shapes() -> None:
     assert result["packets"][0]["body_excerpt"] == '{"token"'
     assert result["packets"][0]["body_truncated"] is True
 
-    single_listener = FakeNetworkListener(listening=True, wait_result=FakePacket())
+    single_listener = FakeNetworkListener(
+        listening=True, wait_results=[FakePacket(), False]
+    )
     single = await PageTab(FakeNetworkPage(single_listener), FakeContext()).network.wait(
         limit=1
     )
@@ -2281,7 +2322,7 @@ async def test_network_wait_normalizes_packets_and_timeout_shapes() -> None:
     no_packets = await PageTab(FakeNetworkPage(none_listener), FakeContext()).network.wait(
         limit=3
     )
-    assert no_packets["timed_out"] is False
+    assert no_packets["timed_out"] is True
     assert no_packets["packets"] == []
 
 

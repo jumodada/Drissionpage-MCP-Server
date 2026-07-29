@@ -3,16 +3,22 @@
 from __future__ import annotations
 
 import base64
-import json
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 from mcp.types import ImageContent, TextContent
 from pydantic import BaseModel, ConfigDict
 
-from ..response_errors import ErrorCode, ToolError, classify_error, recovery_hints
+from ..response_errors import (
+    ErrorCode,
+    ToolError,
+    classify_error,
+    public_failure_message,
+    recovery_hints,
+)
+from ..response_json import json_safe_value, strict_json_dumps
 from ..response_media import build_screenshot_metadata
 
 if TYPE_CHECKING:
@@ -121,12 +127,17 @@ class ToolOutcome:
             }
             if self._data:
                 payload["data"] = self._data
-            return payload
-        return {
-            "ok": True,
-            "message": self._message or "Operation completed successfully.",
-            "data": self._data,
-        }
+            return cast(dict[str, Any], json_safe_value(payload))
+        return cast(
+            dict[str, Any],
+            json_safe_value(
+                {
+                    "ok": True,
+                    "message": self._message or "Operation completed successfully.",
+                    "data": self._data,
+                }
+            ),
+        )
 
     def content(self) -> list[TextContent | ImageContent]:
         content = list(self._content)
@@ -138,7 +149,9 @@ class ToolOutcome:
                 else "Operation completed successfully."
             )
             content.append(TextContent(type="text", text=f"### {heading}\n{message}"))
-        body = json.dumps(self.structured_content(), ensure_ascii=False, sort_keys=True)
+        body = strict_json_dumps(
+            self.structured_content(), ensure_ascii=False, sort_keys=True
+        )
         content.insert(
             0,
             TextContent(
@@ -189,12 +202,14 @@ class ToolSpec(Generic[InputT, OutputT]):
             return outcome
         except Exception as exc:
             outcome = ToolOutcome()
-            message = (
+            error_code = classify_error(exc, self.name)
+            candidate = (
                 self.failure_message(args, exc)
                 if self.failure_message is not None
                 else f"Failed to execute {self.name}: {exc}"
             )
-            outcome.add_error(message, classify_error(exc), tool_name=self.name)
+            message = public_failure_message(exc, error_code, candidate)
+            outcome.add_error(message, error_code, tool_name=self.name)
             return outcome
 
     def output_schema(self) -> dict[str, Any]:

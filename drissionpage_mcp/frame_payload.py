@@ -98,7 +98,7 @@ def _frame_elements(frame: Any, locators: tuple[str, ...]) -> list[Any]:
         try:
             return list(frame.eles(locator, timeout=0) or [])
         except Exception:
-            logger.debug("Frame element lookup failed for %s", locator, exc_info=True)
+            logger.debug("Frame element lookup failed")
     return []
 
 

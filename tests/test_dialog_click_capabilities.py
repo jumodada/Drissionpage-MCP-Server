@@ -13,6 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from drissionpage_mcp.browser.dialogs import (
+    DialogNotFoundError,
     DialogOperations,
     DialogPreconditionError,
     DialogResponseIndeterminateError,
@@ -28,13 +29,14 @@ from drissionpage_mcp.tools.element import ClickElementInput, click_element
 def test_dialog_input_is_strict_bounded_and_action_aware() -> None:
     value = PageDialogRespondInput(action="accept", prompt_text="office-safe")
 
-    assert value.timeout == 5.0
+    assert value.timeout == 0.0
     with pytest.raises(ValidationError, match="prompt_text cannot be used"):
         PageDialogRespondInput(action="dismiss", prompt_text="not-allowed")
     with pytest.raises(ValidationError):
         PageDialogRespondInput(action="accept", prompt_text="x" * 4001)
+    assert PageDialogRespondInput(action="accept", timeout=0).timeout == 0
     with pytest.raises(ValidationError):
-        PageDialogRespondInput(action="accept", timeout=0)
+        PageDialogRespondInput(action="accept", timeout=-0.1)
     with pytest.raises(ValidationError):
         PageDialogRespondInput(action="accept", unknown=True)  # type: ignore[call-arg]
 
@@ -130,7 +132,7 @@ async def test_dialog_adapter_classifies_pending_and_native_failure_paths() -> N
     timeout_page = _DialogPage()
     timeout_page.states.has_alert = False
     waiting = DialogOperations(SimpleNamespace(page=timeout_page))  # type: ignore[arg-type]
-    with pytest.raises(TimeoutError, match="No pending"):
+    with pytest.raises(DialogNotFoundError, match="No pending"):
         await waiting.wait_for_pending(timeout=0)
 
     changed_page = _DialogPage()
@@ -491,6 +493,50 @@ async def test_dialog_response_returns_only_redacted_metadata_and_receipt() -> N
     assert secret_message not in encoded
     assert prompt_text not in encoded
     assert "token=secret" not in encoded
+
+
+@pytest.mark.asyncio
+async def test_dialog_response_without_pending_dialog_fails_immediately() -> None:
+    class NoPendingDialogs:
+        response_calls = 0
+
+        def probe(self) -> None:
+            return None
+
+        async def wait_for_pending(self, *, timeout: float) -> dict[str, str]:
+            assert timeout == 0
+            raise DialogNotFoundError(
+                "No pending JavaScript dialog is available to respond to."
+            )
+
+        async def respond(self, **kwargs: object) -> None:
+            self.response_calls += 1
+
+    context = DrissionPageContext()
+    dialogs = NoPendingDialogs()
+    context._current_tab = SimpleNamespace(  # type: ignore[assignment]
+        url="https://example.test/dialog",
+        mcp_tab_id="t0",
+        dialogs=dialogs,
+    )
+
+    started = monotonic()
+    outcome = await page_dialog_respond.execute(
+        context, PageDialogRespondInput(action="accept")
+    )
+    elapsed = monotonic() - started
+
+    payload = outcome.structured_content()
+    assert outcome.is_error is True
+    assert payload["error"]["code"] == "DIALOG_NOT_FOUND"
+    assert {hint.get("tool") for hint in payload["error"]["details"]["hints"]} >= {
+        "page_dialog_observe",
+        "page_dialog_respond",
+    }
+    assert elapsed < 0.1
+    assert dialogs.response_calls == 0
+    assert len(context._operation_fingerprints) == 0
+    assert len(context._operation_receipts) == 0
 
 
 @pytest.mark.asyncio
