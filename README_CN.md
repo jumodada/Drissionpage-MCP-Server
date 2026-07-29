@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.7.7 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
+**DrissionPage MCP 0.7.8 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -35,7 +35,7 @@ page_click_xy(x=442, y=369, profile="natural")
 ### 核心交互保证
 
 - **两种有界 profile**：`direct` 发出一次精确移动；`natural` 发出确定性的 24 步缓动三次曲线，使用可复现的 8-14ms 间隔，并精确到达终点。
-- **没有隐藏随机性**：相同起点、终点和 profile 生成相同轨迹，不包含抖动、overshoot 或反检测逻辑。
+- **没有隐藏随机性**：相同起点、终点和 profile 生成相同轨迹，不包含抖动、overshoot 或反检测逻辑。指针位置有状态，因此重复调用可能从上一次终点开始。
 - **显式动作序列**：点击是选定的移动 profile、可选调用方延迟、按下、释放；拖拽在选定轨迹和有序路径点之间保持一次按下。
 - **失败安全**：按下之后执行失败时，仍会尝试释放鼠标按钮。
 - **新鲜浏览器证据**：基于 selector 的拖拽会在动作前即时解析几何位置。
@@ -72,7 +72,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.7 新增浏览器权限控制、受管 PDF/MHTML 产物、文件选择器自动化和隔离 HTTP 认证。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.7.8 修复全新安装的 MCP SDK 兼容性，让 `doctor` 真正验证 handler 注册，同时保留 0.7.7 引入的浏览器自主管理能力。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -100,7 +100,7 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 
 ```bash
 # 从 PyPI 安装
-python -m pip install -U drissionpage-mcp
+python -m pip install -U "drissionpage-mcp>=0.7.8"
 
 # 验证包和本地环境
 drissionpage-mcp --version
@@ -187,7 +187,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `element_click` - 点击任意元素，并以兼容方式支持左/右/中键和单击/双击语义
 - `element_click_and_download` - 将一次原生点击与 `DP_MCP_DOWNLOAD_ROOT` 下的一份完整性校验产物关联
 - `element_type` - 向元素输入文本
-- `element_upload_file` - 从 `DP_MCP_UPLOAD_ROOT` 上传文件到 `input[type=file]`
+- `element_upload_file` - 使用 `element_upload_file(paths=[...])` 从 `DP_MCP_UPLOAD_ROOT` 上传文件到 `input[type=file]`
 - `element_click_and_upload` - 自动拦截 Chromium 文件选择器、点击触发器并注入受控文件，无需用户操作系统文件窗口
 - `element_scroll_into_view` - 将元素滚动到视口内
 - `element_hover` - 悬停元素以触发菜单/提示状态
@@ -207,7 +207,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_accessibility_snapshot` - 返回整页或指定 scope 的有界 Chromium accessibility tree；字段值默认脱敏，仅在显式请求时返回
 - `page_observe` - 返回紧凑页面指纹，包括 URL、标题、元素数量、可见文本样本、当前焦点元素和最近 console 摘要
 - `page_evaluate` - 在当前页面运行有界 JavaScript，并返回 JSON-safe 结果
-- `page_scroll` - 按方向或坐标滚动页面
+- `page_scroll` - 使用 `page_scroll(pixels=...)` 相对滚动，或传入 `x`/`y` 绝对位置
 - `keyboard_press` - 向当前焦点元素/页面发送键盘输入
 - `page_resize` - 调整浏览器窗口
 - `page_pointer_move` - 使用 `direct` 或有界、确定性的 `natural` 轨迹移动到精确 viewport CSS 坐标
@@ -217,11 +217,11 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_close` - 关闭浏览器
 - `page_get_url` - 获取当前 URL
 - `page_dialog_observe` - 等待并读取待处理原生 alert、confirm 或 prompt，但不进行响应
-- `page_dialog_respond` - 通过能力探测后的原生路径接受或取消一个待处理 alert、confirm 或 prompt
+- `page_dialog_respond` - 使用 `page_dialog_respond(action="accept")`（或 `"dismiss"`）处理待处理 alert、confirm 或 prompt
 
 ### 🧱 iframe / Shadow DOM（5 个）
 - `frame_list` - 列出 iframe/frame，不改变全局 frame 状态
-- `frame_snapshot` - 对指定 iframe 返回有界 outline
+- `frame_snapshot` - 使用 `frame_snapshot(frame_selector="...")` 或 `frame_index` 读取一个 iframe 的有界 outline
 - `frame_find` - 在指定 iframe 内查找元素
 - `shadow_find` - 在当前受支持 DrissionPage 运行时暴露的 shadow root 内查找单个元素，包括已验证的 closed root
 - `shadow_find_all` - 从 DrissionPage 暴露的 shadow root 内提取重复元素
@@ -231,7 +231,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `browser_user_agent_set` - 覆盖 user-agent 和可选 platform，同时返回写入值与原 user-agent
 - `browser_cache_clear` - 仅清理 HTTP cache，保留 Cookie、localStorage 和 sessionStorage
 - `browser_permission_get` - 查询当前文档 origin 的一个浏览器权限，不打开操作系统提示
-- `browser_permission_set` - 在当前 Chromium context 内为精确 origin 设置 granted、denied 或 prompt
+- `browser_permission_set` - 使用 `browser_permission_set(setting="granted")`（或 `"denied"`/`"prompt"`）为精确 origin 设置权限
 - `browser_permissions_reset` - 重置当前 Chromium context 的权限覆盖
 
 ### 🍪 Cookie 与 Storage（7 个）
@@ -248,15 +248,15 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 
 ### ⏱️ 等待操作（4 个）
 - `wait_for_element` - 等待元素出现（带超时）
-- `wait_for_url` - 等待当前 URL 包含指定文本
-- `wait_until` - 等待可观察条件，例如 clickable、hidden、stable、文本或 URL 匹配
+- `wait_for_url` - 使用 `wait_for_url(url_pattern="...")` 等待当前 URL 包含指定文本
+- `wait_until` - 使用 `wait_until(condition="text_contains", value="...")` 或其他已记录的 condition/value 组合
 - `wait_time` - 延迟执行
 
 ### 🌐 网络控制与观察（4 个）
 - `network_listen_start` - 通过 DrissionPage 启动有界 HTTP/XHR/Fetch 观察
 - `network_listen_wait` - 等待有界 packet metadata，可选返回脱敏 header 或 body 摘要
 - `network_listen_stop` - 停止观察，并可选清理排队 packet
-- `network_blocked_urls_set` - 替换 URL 屏蔽 pattern 并回显写入值；传空列表可清空
+- `network_blocked_urls_set` - 使用 `network_blocked_urls_set(urls=[...])` 替换 URL 屏蔽 pattern；传空列表可清空
 
 ### 🧩 可选 Skills 发现
 - Resource：`drissionpage://skills/catalog`
@@ -443,7 +443,10 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.7.7`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.7.8`。
+
+`drissionpage-mcp doctor` 还必须将 `mcp_supported` 和
+`mcp_server_wiring` 都报告为 `ok`；只看到版本号并不能证明 MCP 客户端能够完成初始化。
 
 ### 浏览器问题？
 ```bash
@@ -472,13 +475,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.7.7 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.7.8 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.7.7)
+### 当前版本 (v0.7.8)
 - [x] 69 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -643,12 +646,12 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.7.7
+## 🆕 最新版本：v0.7.8
 
-发布日期：2026-07-28。本补丁版本补齐纯浏览器工作流所需的浏览器权限与产物生命周期：
+发布日期：2026-07-29。本补丁版本修复全新安装，并让安装诊断真正覆盖 MCP 连接边界：
 
-- 新增 6 个默认加载工具，registry 增至 69；不存在能力 profile 或需要选择的 `full` 模式。
-- 新增精确 origin 权限查询/设置和当前 context 重置，不声称控制原生操作系统权限窗口。
-- 新增 `DP_MCP_ARTIFACT_ROOT` 下的 PDF/MHTML 受管产物，包含 SHA-256、安全相对路径、重放和 receipt 关联。
-- 新增无需用户操作原生文件窗口的浏览器 file chooser 自动化。
-- 新增凭证不回显的 HTTP Auth；专用 Chromium context 隔离认证缓存，关闭标签页即销毁该边界。
+- 将 MCP Python SDK 固定在已验证的 `mcp>=1.0.0,<2`，避免全新安装解析到不兼容的 2.x API。
+- 已存在不兼容 SDK 时，在 handler 注册前直接给出可执行修复命令。
+- `drissionpage-mcp doctor` 会构造真实 server，并验证 tools/list、tools/call、resources/list、resources/read handler。
+- CI 新增无缓存的干净 wheel 安装 job，从 PyPI 解析依赖并完成真实 stdio initialize + tools/list 握手。
+- 为最常被误写的工具补充精确 JSON 字段名；公共 schema 与 69 工具 registry 不变。

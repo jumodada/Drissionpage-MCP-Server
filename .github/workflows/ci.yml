@@ -67,6 +67,7 @@ jobs:
             tests/test_tools.py \
             tests/test_response_contract.py \
             tests/test_doctor.py \
+            tests/test_mcp_compat.py \
             tests/test_tool_schema_snapshot.py \
             tests/test_release_metadata.py \
             tests/test_playground_mcp_lab.py \
@@ -138,13 +139,13 @@ jobs:
         run: |
           python -m tests.evals.task_completion_benchmark \
             --iterations 10 \
-            --output benchmark-results/0.7.7-task-completion.json
+            --output benchmark-results/0.7.8-task-completion.json
       - name: Upload task-completion benchmark
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 0.7.7-task-completion-benchmark
-          path: benchmark-results/0.7.7-task-completion.json
+          name: 0.7.8-task-completion-benchmark
+          path: benchmark-results/0.7.8-task-completion.json
           if-no-files-found: warn
 
   browser-boundaries:
@@ -283,6 +284,67 @@ jobs:
           name: python-3.11
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
+
+  wheel-smoke:
+    name: Fresh wheel install and stdio handshake
+    runs-on: ubuntu-latest
+    env:
+      PIP_NO_CACHE_DIR: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build wheel without dependency cache
+        run: |
+          python -m pip install --no-cache-dir build
+          python -m build --wheel
+      - name: Install wheel in a clean virtual environment
+        run: |
+          python -m venv "$RUNNER_TEMP/wheel-smoke"
+          VENV_PYTHON="$RUNNER_TEMP/wheel-smoke/bin/python"
+          "$VENV_PYTHON" -m pip install --no-cache-dir --upgrade pip
+          "$VENV_PYTHON" -m pip install --no-cache-dir dist/*.whl
+          echo "WHEEL_SMOKE_PYTHON=$VENV_PYTHON" >> "$GITHUB_ENV"
+      - name: Verify resolved SDK and doctor server wiring
+        run: |
+          "$WHEEL_SMOKE_PYTHON" - <<'PY'
+          from importlib.metadata import version
+
+          from drissionpage_mcp.doctor import run_diagnostics
+
+          mcp_version = version("mcp")
+          assert mcp_version.split(".", 1)[0] == "1", mcp_version
+          report = run_diagnostics()
+          checks = {item["name"]: item for item in report["checks"]}
+          assert checks["mcp_supported"]["ok"], checks["mcp_supported"]
+          assert checks["mcp_server_wiring"]["ok"], checks["mcp_server_wiring"]
+          PY
+      - name: Complete a real stdio initialize and tools list
+        run: |
+          "$WHEEL_SMOKE_PYTHON" - <<'PY'
+          import asyncio
+          import sys
+
+          from mcp import ClientSession, StdioServerParameters
+          from mcp.client.stdio import stdio_client
+
+
+          async def main() -> None:
+              params = StdioServerParameters(
+                  command=sys.executable,
+                  args=["-m", "drissionpage_mcp.cli", "--log-level", "ERROR"],
+              )
+              async with stdio_client(params) as (read_stream, write_stream):
+                  async with ClientSession(read_stream, write_stream) as session:
+                      init = await session.initialize()
+                      assert init.serverInfo.name == "DrissionPage MCP"
+                      tools = await session.list_tools()
+                      assert len(tools.tools) == 69
+
+
+          asyncio.run(main())
+          PY
 
   package:
     name: Package build

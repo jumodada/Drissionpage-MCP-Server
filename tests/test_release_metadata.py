@@ -1,4 +1,4 @@
-"""Release metadata checks for 0.7.7."""
+"""Release metadata checks for 0.7.8."""
 
 from __future__ import annotations
 
@@ -12,11 +12,19 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_7_7() -> None:
+def test_package_version_metadata_is_0_7_8() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.7.7"
-    assert drissionpage_mcp.__version__ == "0.7.7"
+    assert pyproject["project"]["version"] == "0.7.8"
+    assert drissionpage_mcp.__version__ == "0.7.8"
+
+
+def test_release_pins_mcp_sdk_to_supported_major_version() -> None:
+    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    requirements = Path("requirements.txt").read_text(encoding="utf-8")
+
+    assert "mcp>=1.0.0,<2" in pyproject["project"]["dependencies"]
+    assert "mcp>=1.0.0,<2" in requirements
 
 
 def test_changelog_describes_breaking_alias_removal() -> None:
@@ -28,12 +36,12 @@ def test_changelog_describes_breaking_alias_removal() -> None:
     assert "wait_sleep" in changelog
 
 
-def test_readmes_and_changelog_publish_latest_0_7_7_summary() -> None:
+def test_readmes_and_changelog_publish_latest_0_7_8_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-    current_changelog = changelog.split("## [0.7.7]", 1)[1].split(
-        "## [0.7.6]", 1
+    current_changelog = changelog.split("## [0.7.8]", 1)[1].split(
+        "## [0.7.7]", 1
     )[0]
     request_changelog = changelog.split("## [0.7.5]", 1)[1].split(
         "## [0.7.4]", 1
@@ -56,8 +64,8 @@ def test_readmes_and_changelog_publish_latest_0_7_7_summary() -> None:
     assert "website/public/og-browser-lab.png" not in readme_cn
     assert "Watch the original natural pointer demo" not in readme
     assert "观看原始自然指针演示" not in readme_cn
-    assert "## 🆕 Latest Version: v0.7.7" in readme
-    assert "Released on 2026-07-28" in readme
+    assert "## 🆕 Latest Version: v0.7.8" in readme
+    assert "Released on 2026-07-29" in readme
     assert "69 Typed Browser Tools" in readme
     assert "Form Operations" not in readme
     assert "page_dialog_respond" in readme
@@ -68,8 +76,8 @@ def test_readmes_and_changelog_publish_latest_0_7_7_summary() -> None:
     assert "### 📸 Page Operations (18 tools)" in readme
     assert "### 🌍 Browser Environment (6 tools)" in readme
     assert "### 🌐 Network Control & Observation (4 tools)" in readme
-    assert "## 🆕 最新版本：v0.7.7" in readme_cn
-    assert "发布日期：2026-07-28" in readme_cn
+    assert "## 🆕 最新版本：v0.7.8" in readme_cn
+    assert "发布日期：2026-07-29" in readme_cn
     assert "69 个类型化浏览器工具" in readme_cn
     assert "表单工具（3 个）" not in readme_cn
     assert "page_dialog_respond" in readme_cn
@@ -80,11 +88,11 @@ def test_readmes_and_changelog_publish_latest_0_7_7_summary() -> None:
     assert "### 📸 页面操作（18 个）" in readme_cn
     assert "### 🌍 浏览器环境（6 个）" in readme_cn
     assert "### 🌐 网络控制与观察（4 个）" in readme_cn
-    assert "## [0.7.7] - 2026-07-28" in changelog
-    assert "69 tools" in current_changelog
-    assert "PDF/MHTML" in current_changelog
-    assert "file chooser" in current_changelog.lower()
-    assert "HTTP auth" in current_changelog
+    assert "## [0.7.8] - 2026-07-29" in changelog
+    assert "mcp>=1.0.0,<2" in current_changelog
+    assert "doctor" in current_changelog
+    assert "wheel" in current_changelog
+    assert "stdio" in current_changelog
     assert "browser_headers_set" in request_changelog
     assert "network_blocked_urls_set" in request_changelog
     assert "Cookies, localStorage, and sessionStorage are preserved" in request_changelog
@@ -110,7 +118,11 @@ def test_readmes_and_changelog_publish_latest_0_7_7_summary() -> None:
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.7...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.7.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.7...0.7.8"
         in changelog
     )
     assert (
@@ -173,6 +185,39 @@ def test_public_readmes_advertise_atomic_core_and_optional_skills() -> None:
         ):
             assert removed_surface not in text
     assert pyproject["project"]["urls"]["Skills"].endswith("/skills-manager")
+
+
+def test_public_guides_show_exact_high_confusion_parameter_names() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
+    contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
+
+    exact_calls = (
+        '`wait_for_url(url_pattern="...")`',
+        '`wait_until(condition="text_contains", value="...")`',
+        '`page_dialog_respond(action="accept")`',
+        '`page_scroll(pixels=...)`',
+        '`frame_snapshot(frame_selector="...")`',
+        '`element_upload_file(paths=[...])`',
+        '`network_blocked_urls_set(urls=[...])`',
+        '`browser_permission_set(setting="granted")`',
+    )
+    for text in (readme, readme_cn):
+        for call in exact_calls:
+            assert call in text
+
+    assert "## Common Call Examples" in contract
+    for field in (
+        '"url_pattern"',
+        '"text_contains"',
+        '"action": "accept"',
+        '"pixels"',
+        '"frame_selector"',
+        '"paths"',
+        '"urls"',
+        '"setting": "granted"',
+    ):
+        assert field in contract
 
 
 def test_current_public_readmes_do_not_advertise_removed_workflow_tools() -> None:

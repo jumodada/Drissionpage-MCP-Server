@@ -18,6 +18,8 @@ def test_doctor_reports_versions_and_skips_browser_launch_by_default() -> None:
     assert {
         "python",
         "mcp_package",
+        "mcp_supported",
+        "mcp_server_wiring",
         "drissionpage_package",
         "drissionpage_supported",
         "browser_launch",
@@ -27,6 +29,11 @@ def test_doctor_reports_versions_and_skips_browser_launch_by_default() -> None:
     )
     assert browser_launch["ok"] is True
     assert "skipped" in browser_launch["detail"]
+    server_wiring = next(
+        item for item in report["checks"] if item["name"] == "mcp_server_wiring"
+    )
+    assert server_wiring["ok"] is True
+    assert "69 tools" in server_wiring["detail"]
 
 
 def test_format_diagnostics_includes_parseable_json_result() -> None:
@@ -103,6 +110,54 @@ def test_run_diagnostics_warns_when_chrome_sandbox_is_disabled(monkeypatch) -> N
 
     assert report["ok"] is True
     assert any("Chrome sandbox is disabled" in hint for hint in report["hints"])
+
+
+def test_run_diagnostics_rejects_unsupported_mcp_sdk(monkeypatch) -> None:
+    def fake_package_version(name: str) -> str:
+        return "2.0.0" if name == "mcp" else "4.1.1.4"
+
+    monkeypatch.setattr(doctor, "_package_version", fake_package_version)
+    monkeypatch.setattr(doctor, "_find_browser", lambda: "/tmp/chrome")
+    monkeypatch.setattr(
+        doctor,
+        "_server_wiring_check",
+        lambda: (False, "RuntimeError: unsupported MCP SDK 2.0.0"),
+    )
+
+    report = doctor.run_diagnostics()
+
+    assert report["ok"] is False
+    supported = next(
+        item for item in report["checks"] if item["name"] == "mcp_supported"
+    )
+    wiring = next(
+        item for item in report["checks"] if item["name"] == "mcp_server_wiring"
+    )
+    assert supported["ok"] is False
+    assert "supported range: >=1.0.0,<2" in supported["detail"]
+    assert wiring["ok"] is False
+    assert any("mcp>=1.0.0,<2" in hint for hint in report["hints"])
+
+
+def test_run_diagnostics_fails_when_server_handler_registration_breaks(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(doctor, "_find_browser", lambda: "/tmp/chrome")
+    monkeypatch.setattr(
+        doctor,
+        "_server_wiring_check",
+        lambda: (False, "AttributeError: Server has no list_tools"),
+    )
+
+    report = doctor.run_diagnostics()
+
+    assert report["ok"] is False
+    wiring = next(
+        item for item in report["checks"] if item["name"] == "mcp_server_wiring"
+    )
+    assert wiring["ok"] is False
+    assert "Server has no list_tools" in wiring["detail"]
+    assert any("server wiring" in hint.lower() for hint in report["hints"])
 
 
 def test_doctor_redacts_navigation_patterns_and_counts_entries(monkeypatch) -> None:

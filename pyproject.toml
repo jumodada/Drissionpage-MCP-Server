@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "drissionpage-mcp"
-version = "0.7.7"
+version = "0.7.8"
 description = "Professional browser automation for Codex, Claude Code, and MCP clients powered by DrissionPage"
 authors = [
     { name = "Wukunyun", email = "864353360@qq.com" }
@@ -37,7 +37,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=1.0.0,<2",
     "DrissionPage>=4.1.1.4,<5",
     "pydantic>=2.0.0",
     "typing-extensions>=4.0.0",

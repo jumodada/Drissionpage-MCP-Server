@@ -22,6 +22,7 @@ from pydantic import ValidationError
 from . import __version__
 from .context import DrissionPageContext
 from .guidance import server_instructions
+from .mcp_compat import ensure_supported_mcp_sdk
 from .resources import list_resources as list_resource_definitions
 from .resources import read_resource as read_resource_definition
 from .response_errors import ErrorCode, classify_error
@@ -36,6 +37,7 @@ class DrissionPageMCPServer:
     """MCP Server for DrissionPage automation."""
 
     def __init__(self, name: str = "DrissionPage MCP", version: str = __version__):
+        self.mcp_sdk_version = ensure_supported_mcp_sdk()
         self.name = name
         self.version = version
         self.server = Server(

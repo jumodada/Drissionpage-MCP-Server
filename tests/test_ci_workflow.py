@@ -69,6 +69,7 @@ def test_ci_separates_required_quality_gates() -> None:
         "benchmark",
         "browser-boundaries",
         "coverage",
+        "wheel-smoke",
         "package",
     } <= job_names
     assert "browser-integration" not in job_names
@@ -91,7 +92,7 @@ def test_ci_coverage_is_the_single_strict_browser_integration_gate() -> None:
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
-        "\n  package:\n", maxsplit=1
+        "\n  wheel-smoke:\n", maxsplit=1
     )[0]
 
     assert "python -m pytest tests/" in coverage_job
@@ -123,7 +124,7 @@ def test_ci_browser_gate_starts_shared_drissionpage_test_site_once() -> None:
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
-        "\n  package:\n", maxsplit=1
+        "\n  wheel-smoke:\n", maxsplit=1
     )[0]
     assert coverage_job.count("repository: jumodada/DrissionPage-test-site") == 1
     assert coverage_job.count("npm run build") == 1
@@ -143,7 +144,7 @@ def test_ci_private_shared_test_site_uses_secret_only() -> None:
     assert "DP_TEST_SITE_URL: https://" not in workflow
 
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
-        "\n  package:\n", maxsplit=1
+        "\n  wheel-smoke:\n", maxsplit=1
     )[0]
     assert "RUN_PRIVATE_TEST_SITE" in coverage_job
     assert "github.event_name != 'pull_request'" in coverage_job
@@ -156,7 +157,7 @@ def test_ci_uploads_xml_coverage_to_codecov() -> None:
 
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
-        "\n  package:\n", maxsplit=1
+        "\n  wheel-smoke:\n", maxsplit=1
     )[0]
 
     assert 'python-version: "3.11"' in coverage_job
@@ -189,6 +190,25 @@ def test_ci_checks_wheel_package_contents() -> None:
     assert "/drissionpage_mcp/prompts.py" in package_job
     assert "/drissionpage_mcp/browser/vision.py" in package_job
     assert "/drissionpage_mcp/tools/workflow.py" in package_job
+
+
+def test_ci_installs_built_wheel_without_cache_and_handshakes() -> None:
+    """catches resolver and stdio wiring failures that editable tests can miss."""
+
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    wheel_job = workflow.split("  wheel-smoke:\n", maxsplit=1)[1].split(
+        "\n  package:\n", maxsplit=1
+    )[0]
+
+    assert 'PIP_NO_CACHE_DIR: "1"' in wheel_job
+    assert "python -m build --wheel" in wheel_job
+    assert "python -m venv" in wheel_job
+    assert "--no-cache-dir dist/*.whl" in wheel_job
+    assert "mcp_server_wiring" in wheel_job
+    assert "ClientSession" in wheel_job
+    assert "stdio_client" in wheel_job
+    assert "session.initialize()" in wheel_job
+    assert "session.list_tools()" in wheel_job
 
 
 def test_readmes_publish_ci_and_codecov_badges() -> None:
@@ -239,7 +259,7 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
         "\n  browser-boundaries:\n", maxsplit=1
     )[0]
     coverage_job = workflow.split("  coverage:\n", maxsplit=1)[1].split(
-        "\n  package:\n", maxsplit=1
+        "\n  wheel-smoke:\n", maxsplit=1
     )[0]
 
     assert "DrissionPage-test-site" not in benchmark_job
@@ -247,8 +267,8 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     assert "command -v google-chrome" in benchmark_job
     assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
-    assert "--output benchmark-results/0.7.7-task-completion.json" in benchmark_job
-    assert "name: 0.7.7-task-completion-benchmark" in benchmark_job
+    assert "--output benchmark-results/0.7.8-task-completion.json" in benchmark_job
+    assert "name: 0.7.8-task-completion-benchmark" in benchmark_job
     assert "0.7.2-task-completion" not in benchmark_job
     assert "tests.evals.task_completion_benchmark" not in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
@@ -274,7 +294,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.7.7"
+    assert version == "0.7.8"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")

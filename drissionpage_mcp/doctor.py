@@ -11,6 +11,11 @@ import sys
 from typing import Any
 
 from . import __version__
+from .mcp_compat import (
+    MCP_SDK_RANGE,
+    MCP_SDK_REPAIR_COMMAND,
+    is_supported_mcp_sdk_version,
+)
 
 
 def _package_version(module_name: str, version_attr: str = "__version__") -> str:
@@ -116,6 +121,41 @@ def _config() -> dict[str, Any]:
     return config
 
 
+def _server_wiring_check() -> tuple[bool, str]:
+    """Construct the real server and verify the core request handlers exist."""
+
+    try:
+        from mcp.types import (
+            CallToolRequest,
+            ListResourcesRequest,
+            ListToolsRequest,
+            ReadResourceRequest,
+        )
+
+        from .server import DrissionPageMCPServer
+
+        server = DrissionPageMCPServer()
+        required_handlers = {
+            "tools/list": ListToolsRequest,
+            "tools/call": CallToolRequest,
+            "resources/list": ListResourcesRequest,
+            "resources/read": ReadResourceRequest,
+        }
+        missing = [
+            name
+            for name, request_type in required_handlers.items()
+            if request_type not in server.server.request_handlers
+        ]
+        if missing:
+            return False, f"missing request handlers: {', '.join(missing)}"
+        return (
+            True,
+            f"{len(server.tools)} tools and {len(required_handlers)} core handlers registered",
+        )
+    except Exception as exc:
+        return False, f"{exc.__class__.__name__}: {exc}"
+
+
 def run_diagnostics(launch_browser: bool = False) -> dict[str, Any]:
     """Collect package/config/browser diagnostics without launching by default."""
 
@@ -131,7 +171,26 @@ def run_diagnostics(launch_browser: bool = False) -> dict[str, Any]:
         hints.append("Use Python 3.10 or newer.")
 
     mcp_version = _package_version("mcp")
-    check("mcp_package", not mcp_version.startswith("unavailable"), mcp_version)
+    mcp_available = not mcp_version.startswith("unavailable")
+    check("mcp_package", mcp_available, mcp_version)
+    mcp_supported = mcp_available and is_supported_mcp_sdk_version(mcp_version)
+    check(
+        "mcp_supported",
+        mcp_supported,
+        f"installed: {mcp_version}; supported range: {MCP_SDK_RANGE}",
+    )
+    if not mcp_supported:
+        hints.append(
+            f"Install the supported MCP Python SDK range with: {MCP_SDK_REPAIR_COMMAND}"
+        )
+
+    server_wiring_ok, server_wiring_detail = _server_wiring_check()
+    check("mcp_server_wiring", server_wiring_ok, server_wiring_detail)
+    if not server_wiring_ok:
+        hints.append(
+            "MCP server wiring failed before a client could connect. "
+            f"Repair the installation with: {MCP_SDK_REPAIR_COMMAND}"
+        )
 
     dp_version = _package_version("DrissionPage")
     check("drissionpage_package", not dp_version.startswith("unavailable"), dp_version)

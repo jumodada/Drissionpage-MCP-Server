@@ -8,7 +8,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 | --- | --- | --- |
 | Python | `>=3.10` | Python 3.11+ is recommended for new installs. |
 | DrissionPage | `>=4.1.1.4,<5` | The package includes compatibility helpers for DrissionPage 4.1 and 4.2 browser/tab APIs. |
-| MCP Python SDK | `>=1.0.0` dependency; CI currently tests the resolver-selected SDK on Python 3.10-3.12 | The server uses stdio transport for local MCP clients. This repository does not claim every future MCP SDK release until CI covers it. |
+| MCP Python SDK | `>=1.0.0,<2` | The server uses the MCP 1.x low-level decorator/request-handler API. MCP 2.x is rejected before handler registration with an actionable repair command. |
 | Browser | Chrome or Chromium | A locally installed browser is required for real browser automation. |
 | Operating systems | macOS, Linux, Windows | Browser installation paths and MCP client config paths vary by OS. |
 
@@ -18,13 +18,36 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.7.7. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.7.8. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
   MCP workflows to use the documented snake_case field names exactly.
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
+
+## 0.7.7 to 0.7.8 Migration
+
+0.7.8 is a compatibility repair release. It keeps the 69-tool schema unchanged
+and prevents fresh installs from resolving the incompatible MCP Python SDK 2.x.
+
+- Package metadata now requires `mcp>=1.0.0,<2`.
+- Server construction validates the installed MCP SDK before calling the 1.x
+  handler-registration API, so existing broken environments receive a repair
+  command instead of `AttributeError: 'Server' object has no attribute 'list_tools'`.
+- `drissionpage-mcp doctor` now reports `mcp_supported` and constructs the real
+  server to verify `mcp_server_wiring` for tools/list, tools/call,
+  resources/list, and resources/read.
+- CI builds the wheel, installs it without pip cache into a clean virtual
+  environment, resolves dependencies from PyPI, and completes a real stdio
+  initialize + tools/list handshake.
+
+Upgrade a broken 0.7.7 environment with:
+
+```bash
+python -m pip install -U "drissionpage-mcp>=0.7.8" "mcp>=1.0.0,<2"
+drissionpage-mcp doctor
+```
 
 ## Current Frame And Shadow Boundaries
 

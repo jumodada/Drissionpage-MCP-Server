@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.8] - 2026-07-29
+
+### Fixed
+- Pinned the MCP Python SDK to `mcp>=1.0.0,<2`, preventing fresh installs from resolving MCP 2.x and failing during 1.x handler registration.
+- Added an early SDK compatibility guard so already-broken environments receive an actionable pip repair command instead of an internal `Server.list_tools` `AttributeError`.
+
+### Changed
+- `drissionpage-mcp doctor` now reports the supported MCP range and constructs the real server to verify tools/list, tools/call, resources/list, and resources/read handler wiring.
+- Documented exact argument names and JSON examples for frequently miscalled wait, dialog, scroll, frame, upload, URL-blocking, permission, and element-drag inputs.
+
+### Verification
+- Added a no-cache clean-wheel CI job that resolves dependencies from PyPI, validates doctor server wiring, and completes a real stdio initialize plus tools/list handshake.
+
 ## [0.7.7] - 2026-07-28
 
 ### Added
@@ -481,7 +494,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.7...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...HEAD
+[0.7.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.7...0.7.8
 [0.7.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.6...0.7.7
 [0.7.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.5...0.7.6
 [0.7.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.4...0.7.5

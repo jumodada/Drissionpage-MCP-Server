@@ -117,9 +117,75 @@ The server marks tools with MCP annotations:
 - Advisory idempotent operations use `idempotentHint=true` where supported by the SDK.
 - Tools operate on the open web, so `openWorldHint=true` is set.
 
+## Common Call Examples
+
+The Pydantic schema returned by `tools/list` is the source of truth. The objects
+below show complete `arguments` payloads for fields that are easy to guess
+incorrectly from a short tool description.
+
+Use `url_pattern` with `wait_for_url`:
+
+```json
+{"url_pattern": "/dashboard", "timeout": 10}
+```
+
+For text waits, `wait_until` uses an exact condition name plus `value`:
+
+```json
+{"condition": "text_contains", "selector": "#status", "value": "Ready", "timeout": 10}
+```
+
+Dialog response uses `action`, not a boolean `accept` field:
+
+```json
+{"action": "accept", "timeout": 2}
+```
+
+Relative page scrolling uses `pixels`:
+
+```json
+{"direction": "down", "pixels": 600}
+```
+
+Frame selection is explicit and stateless:
+
+```json
+{"frame_selector": "iframe#checkout"}
+```
+
+Uploads accept a list named `paths`, even for one file:
+
+```json
+{"selector": "input[type=file]", "paths": ["/approved-upload-root/report.csv"]}
+```
+
+Blocked URL replacement uses `urls`, and an empty list clears the override:
+
+```json
+{"urls": ["*analytics*", "*tracking.gif*"]}
+```
+
+Permission mutation uses `setting`:
+
+```json
+{"permission": "notifications", "setting": "granted"}
+```
+
+`page_pointer_drag_element` intentionally has a bare source target and a tagged
+destination. For an offset destination, `x` and `y` are deltas from the freshly
+resolved source point:
+
+```json
+{
+  "source": {"selector": "#thumb"},
+  "destination": {"kind": "offset", "x": 120, "y": 0},
+  "profile": "direct"
+}
+```
+
 ## Tool Inventory
 
-The 0.7.7 registry contains 69 typed browser tools. Site, component, challenge,
+The 0.7.8 registry contains 69 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Reusable Element Targets
@@ -304,7 +370,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.7.7 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.7.8 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 
@@ -343,8 +409,10 @@ optional Skills.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.
 - Pointer tools default to `profile="direct"`. `profile="natural"` uses a fixed,
   reproducible 24-step eased cubic path with bounded 8-14ms intervals and an exact final
-  point. It changes one pointer action's execution semantics; it does not decide
-  targets, challenges, or business workflow progression.
+  point. The path is deterministic for one start/target/profile tuple, while the
+  browser pointer position remains stateful across calls. It changes one pointer
+  action's execution semantics; it does not decide targets, challenges, or business
+  workflow progression.
 - A browser tab must exist before read-only page/element tools can inspect content. In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` as a separate explicit step.
 - Challenge observation, verified multi-click sequences, and site/business rules
   belong in external `skills/<skill-name>/SKILL.md` procedures and must use public

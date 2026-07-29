@@ -38,6 +38,21 @@ class TestDrissionPageMCPServer:
         assert server.name == "Custom MCP"
         assert server.version == "1.0.0"
 
+    def test_server_rejects_unsupported_mcp_sdk_before_handler_registration(
+        self, monkeypatch
+    ):
+        """fails with the compatibility message instead of an SDK AttributeError."""
+
+        def reject_sdk() -> str:
+            raise RuntimeError(
+                'Unsupported MCP Python SDK version 2.0.0; requires mcp>=1.0.0,<2'
+            )
+
+        monkeypatch.setattr(server_module, "ensure_supported_mcp_sdk", reject_sdk)
+
+        with pytest.raises(RuntimeError, match=r"mcp>=1\.0\.0,<2"):
+            DrissionPageMCPServer()
+
     @pytest.mark.asyncio
     async def test_cleanup(self):
         """Test server cleanup."""

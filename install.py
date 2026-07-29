@@ -9,8 +9,6 @@ import json
 import os
 import sys
 from pathlib import Path
-
-
 def find_config_file():
     """Find the appropriate MCP configuration file."""
     home = Path.home()

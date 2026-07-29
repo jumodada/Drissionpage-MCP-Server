@@ -16,7 +16,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.7.7 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
+**DrissionPage MCP 0.7.8 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
 
 > **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
@@ -35,7 +35,7 @@ Observe and verify the resulting page state
 ### Core interaction guarantees
 
 - **Two bounded profiles**: `direct` emits one exact move; `natural` emits a deterministic 24-step eased cubic path with reproducible 8-14ms intervals and exact final arrival.
-- **No hidden randomness**: the same start, target, and profile produce the same path; there is no jitter, overshoot, or anti-detection logic.
+- **No hidden randomness**: the same start, target, and profile produce the same path; there is no jitter, overshoot, or anti-detection logic. Pointer position is stateful, so a repeated call can begin from the previous endpoint.
 - **Explicit sequences**: click is the selected move profile, optional caller-specified delay, press, release; drag keeps one press across the selected path and ordered waypoints.
 - **Failure-safe input**: a pressed pointer button is released if execution fails after the press.
 - **Fresh browser evidence**: selector geometry is resolved immediately before selector-backed drag operations.
@@ -72,7 +72,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.7 adds browser permission controls, managed PDF/MHTML artifacts, file-chooser automation, and isolated HTTP authentication. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.7.8 fixes fresh-install MCP SDK compatibility, makes `doctor` verify real handler registration, and preserves the browser-owned capabilities introduced in 0.7.7. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -100,7 +100,7 @@ DrissionPage MCP is backed by a strict regression suite and browser-backed scena
 
 ```bash
 # Install from PyPI
-python -m pip install -U drissionpage-mcp
+python -m pip install -U "drissionpage-mcp>=0.7.8"
 
 # Verify package and environment
 drissionpage-mcp --version
@@ -187,7 +187,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `element_click` - Click any element with additive left/right/middle and single/double-click semantics
 - `element_click_and_download` - Correlate one native click with one integrity-checked artifact under `DP_MCP_DOWNLOAD_ROOT`
 - `element_type` - Input text into elements
-- `element_upload_file` - Upload files from `DP_MCP_UPLOAD_ROOT` to `input[type=file]`
+- `element_upload_file` - Use `element_upload_file(paths=[...])` to upload files from `DP_MCP_UPLOAD_ROOT` to `input[type=file]`
 - `element_click_and_upload` - Arm Chromium's file chooser, click its trigger, inject approved files, and clean interception without an operating-system picker
 - `element_scroll_into_view` - Bring an element into the viewport before acting
 - `element_hover` - Hover an element to trigger menu/tooltip states
@@ -207,7 +207,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_accessibility_snapshot` - Return a bounded Chromium accessibility tree for the page or a scoped element, with field values redacted unless explicitly requested
 - `page_observe` - Return a compact page fingerprint with URL, title, counts, visible text samples, active element, and recent console summary
 - `page_evaluate` - Run bounded JavaScript in the current page and return a JSON-safe result
-- `page_scroll` - Scroll the page by direction or to a position
+- `page_scroll` - Use `page_scroll(pixels=...)` for relative scrolling, or pass `x`/`y` for an absolute position
 - `keyboard_press` - Send keys to the active element/page
 - `page_resize` - Adjust browser window
 - `page_pointer_move` - Move to exact viewport CSS coordinates with `direct` or bounded deterministic `natural` motion
@@ -217,11 +217,11 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_close` - Close browser
 - `page_get_url` - Get current URL
 - `page_dialog_observe` - Wait for and inspect a pending native alert, confirm, or prompt without handling it
-- `page_dialog_respond` - Accept or dismiss one pending alert, confirm, or prompt through a capability-probed native path
+- `page_dialog_respond` - Use `page_dialog_respond(action="accept")` (or `"dismiss"`) for one pending alert, confirm, or prompt
 
 ### 🧱 Frame / Shadow DOM (5 tools)
 - `frame_list` - List iframe/frame contexts without changing global frame state
-- `frame_snapshot` - Inspect a selected iframe with bounded outline data
+- `frame_snapshot` - Use `frame_snapshot(frame_selector="...")` or `frame_index` to inspect one iframe with bounded outline data
 - `frame_find` - Find an element inside a selected iframe
 - `shadow_find` - Find one element inside a shadow root exposed by the current supported DrissionPage runtime, including tested closed roots
 - `shadow_find_all` - Extract repeated elements from a DrissionPage-exposed shadow root
@@ -231,7 +231,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `browser_user_agent_set` - Override the user agent and optional platform, returning both the accepted and previous user agents
 - `browser_cache_clear` - Clear HTTP cache while preserving Cookies, localStorage, and sessionStorage
 - `browser_permission_get` - Query one browser permission for the current document origin without opening an OS prompt
-- `browser_permission_set` - Set one permission to granted, denied, or prompt for an exact origin/current Chromium context
+- `browser_permission_set` - Use `browser_permission_set(setting="granted")` (or `"denied"`/`"prompt"`) for an exact origin/current Chromium context
 - `browser_permissions_reset` - Reset permission overrides for the current Chromium context
 
 ### 🍪 Cookies & Storage (7 tools)
@@ -248,15 +248,15 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 
 ### ⏱️ Wait Operations (4 tools)
 - `wait_for_element` - Wait for element to appear (with timeout)
-- `wait_for_url` - Wait until the current URL contains text
-- `wait_until` - Wait for observable conditions such as clickable, hidden, stable, text, or URL matches
+- `wait_for_url` - Use `wait_for_url(url_pattern="...")` until the current URL contains the supplied text
+- `wait_until` - Use `wait_until(condition="text_contains", value="...")` or another documented condition/value pair
 - `wait_time` - Delay execution
 
 ### 🌐 Network Control & Observation (4 tools)
 - `network_listen_start` - Start bounded HTTP/XHR/Fetch observation through DrissionPage
 - `network_listen_wait` - Wait for bounded packet metadata with optional redacted headers or body excerpts
 - `network_listen_stop` - Stop observation and optionally clear queued packets
-- `network_blocked_urls_set` - Replace blocked URL patterns and echo the accepted values; an empty list clears them
+- `network_blocked_urls_set` - Use `network_blocked_urls_set(urls=[...])` to replace blocked URL patterns; an empty list clears them
 
 ### 🧩 Optional Skills Discovery
 - Resource: `drissionpage://skills/catalog`
@@ -443,7 +443,11 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.7.7`.
+Should output the installed package version, for example `drissionpage-mcp 0.7.8`.
+
+`drissionpage-mcp doctor` must also report both `mcp_supported` and
+`mcp_server_wiring` as `ok`; package-version output alone does not prove that an
+MCP client can initialize the server.
 
 ### Browser Issues?
 ```bash
@@ -472,13 +476,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.7.7 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.7.8 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.7.7)
+### Current (v0.7.8)
 - [x] 69 atomic navigation, tab/frame/shadow, accessibility, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -643,12 +647,12 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.7.7
+## 🆕 Latest Version: v0.7.8
 
-Released on 2026-07-28. This patch release adds browser-owned permissions and artifact lifetimes for fully automated workflows:
+Released on 2026-07-29. This patch release repairs fresh installations and makes setup diagnostics prove the real MCP connection boundary:
 
-- Added six default-loaded tools, bringing the registry to 69; no profile or opt-in `full` mode is required.
-- Added exact-origin permission query/set plus current-context reset without claiming control of native OS permission dialogs.
-- Added managed PDF/MHTML output under `DP_MCP_ARTIFACT_ROOT` with SHA-256, safe relative paths, replay, and receipt correlation.
-- Added browser file-chooser automation that never requires a user to operate the native file picker.
-- Added credential-redacted HTTP Auth navigation in a disposable isolated Chromium context; closing the tab destroys its authentication cache boundary.
+- Pins the MCP Python SDK to the tested `mcp>=1.0.0,<2` range so new installs do not resolve the incompatible 2.x API.
+- Fails early with a repair command if an existing environment already contains an unsupported MCP SDK.
+- Makes `drissionpage-mcp doctor` construct the server and verify the tools/list, tools/call, resources/list, and resources/read handlers.
+- Adds a no-cache clean-wheel CI job that resolves dependencies from PyPI and completes a real stdio initialize + tools/list handshake.
+- Documents exact JSON field names for the most frequently miscalled tools; public schemas and the 69-tool registry remain unchanged.

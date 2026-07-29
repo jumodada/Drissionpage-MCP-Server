@@ -7,7 +7,7 @@ Use this guide when the MCP server does not start, tools do not appear, or brows
 Run these commands from a shell:
 
 ```bash
-python -m pip install -U drissionpage-mcp
+python -m pip install -U "drissionpage-mcp>=0.7.8"
 drissionpage-mcp --version
 drissionpage-mcp doctor
 drissionpage-mcp doctor --launch-browser
@@ -17,7 +17,7 @@ python playground/run_mcp_lab.py --case registry
 Expected result:
 
 - The version command prints the installed `drissionpage-mcp` version.
-- `drissionpage-mcp doctor` reports Python, package, browser, and environment diagnostics.
+- `drissionpage-mcp doctor` reports Python, package, real MCP handler wiring, browser, and environment diagnostics. Both `mcp_supported` and `mcp_server_wiring` must be `ok`.
 - `drissionpage-mcp doctor --launch-browser` proves Chrome/Chromium can actually start.
 - `playground/run_mcp_lab.py --case registry` proves the stdio MCP registry loads successfully.
 
@@ -27,6 +27,21 @@ For a source checkout, install development dependencies first:
 python -m pip install -e ".[dev]"
 python playground/run_mcp_lab.py --case registry
 ```
+
+## Client Shows `Connection closed` After Tools Load
+
+If logs show tools loading and then fail with
+`'Server' object has no attribute 'list_tools'`, the environment resolved the
+incompatible MCP Python SDK 2.x. Repair both packages explicitly:
+
+```bash
+python -m pip install -U "drissionpage-mcp>=0.7.8" "mcp>=1.0.0,<2"
+drissionpage-mcp doctor
+```
+
+Do not treat `drissionpage-mcp --version` as a connection test. Confirm the
+doctor output contains successful `mcp_supported` and `mcp_server_wiring`
+checks, then restart the MCP client.
 
 ## MCP Client Cannot Find the Server
 
@@ -99,7 +114,7 @@ user-agent, cache, and URL-blocking tools are included by default; no capability
 profile or `full` mode is required.
 
 
-## Task Completion / Browser-Owned Capabilities 0.7.7 Checks
+## Task Completion / Browser-Owned Capabilities 0.7.8 Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to `profile="direct"`; set `profile="natural"` for a deterministic 24-step eased trajectory with an exact endpoint.
 - In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` explicitly.
@@ -126,7 +141,7 @@ For the release reliability gate, run the deterministic public-tool benchmark:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.7.7-task-completion.json
+  --output benchmark-results/0.7.8-task-completion.json
 ```
 
 The report is workload-scoped. Every W01-W08 workload must reach at least 9/10;
