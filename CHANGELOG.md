@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Sanitized public DrissionPage failures so version suffixes, localized runtime text, CDP `objectId`/stack payloads, and other implementation details do not leak through MCP error messages.
 - Redacted policy-rejection detail values and failed-navigation destinations so query credentials, private URLs, and local paths are not reflected in public failure payloads.
+- Classified DrissionPage browser connection failures before navigation fallback so startup failures retain `BROWSER_START_FAILED` and the correct recovery hints.
 - Added `DIALOG_PENDING` recovery for browser operations blocked by a native dialog and `DIALOG_NOT_FOUND` for an immediate `page_dialog_respond` precondition failure.
 - Made `page_dialog_respond` check immediately by default while preserving explicit concurrent wait budgets and a bounded response budget for an already-pending dialog.
 - Changed `network_listen_wait.limit` back to a maximum: the tool now returns after the first packet and briefly drains already-arriving matches instead of waiting for the full requested count or timeout.

@@ -211,6 +211,16 @@ def test_errors_module_reexports_stable_error_api() -> None:
             "",
             ErrorCode.PAGE_NAVIGATION_FAILED,
         ),
+        (
+            type("BrowserConnectError", (Exception,), {})("opaque upstream failure"),
+            "page_navigate",
+            ErrorCode.BROWSER_START_FAILED,
+        ),
+        (
+            RuntimeError("browser initialization failed"),
+            "page_navigate",
+            ErrorCode.BROWSER_START_FAILED,
+        ),
         (RuntimeError("boom"), "page_navigate", ErrorCode.PAGE_NAVIGATION_FAILED),
         (RuntimeError("screenshot failed"), "", ErrorCode.SCREENSHOT_FAILED),
         (RuntimeError("policy allowlist denied"), "", ErrorCode.POLICY_DENIED),

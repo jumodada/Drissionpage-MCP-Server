@@ -3,7 +3,7 @@
 import asyncio
 import json
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from mcp.types import CallToolResult
@@ -437,6 +437,27 @@ async def test_context_initialization_failure_uses_tool_error_contract(
     assert result.structuredContent["error"]["code"] == "BROWSER_START_FAILED"
     assert result.structuredContent["error"]["details"]["tool_name"] == "wait_time"
     assert server.context is None
+    assert server._active_tool_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_navigate_browser_connect_failure_uses_startup_error_code() -> None:
+    from DrissionPage.errors import BrowserConnectError
+
+    server = DrissionPageMCPServer()
+    context = Mock()
+    context.ensure_tab = AsyncMock(
+        side_effect=BrowserConnectError("opaque browser connection failure")
+    )
+    server.context = context
+
+    result = await server._call_tool_impl(
+        "page_navigate", {"url": "https://example.test/"}
+    )
+
+    assert result.isError is True
+    assert result.structuredContent["error"]["code"] == "BROWSER_START_FAILED"
+    assert result.structuredContent["message"] == "Browser failed to start."
     assert server._active_tool_calls == 0
 
 

@@ -61,6 +61,8 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
             pass
     if isinstance(exc, TimeoutError):
         return ErrorCode.TIMEOUT
+    if type(exc).__name__ == "BrowserConnectError":
+        return ErrorCode.BROWSER_START_FAILED
 
     text = str(exc).lower()
     tool = tool_name.lower()
@@ -92,6 +94,19 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
             ErrorCode.BROWSER_NOT_INITIALIZED,
         ),
         (
+            "browser" in text
+            and (
+                "start" in text
+                or "initialize" in text
+                or "initialization" in text
+                or "initialise" in text
+                or "initialisation" in text
+                or "launch" in text
+                or "connect" in text
+            ),
+            ErrorCode.BROWSER_START_FAILED,
+        ),
+        (
             "navigation failed" in text
             or "failed to navigate" in text
             or tool.startswith("page_navigate"),
@@ -108,11 +123,6 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
         (
             "unsupported" in text or "not supported" in text or "unavailable" in text,
             ErrorCode.UNSUPPORTED_OPERATION,
-        ),
-        (
-            "browser" in text
-            and ("start" in text or "initialize" in text or "launch" in text),
-            ErrorCode.BROWSER_START_FAILED,
         ),
     )
     return next((code for matches, code in rules if matches), ErrorCode.UNKNOWN_ERROR)

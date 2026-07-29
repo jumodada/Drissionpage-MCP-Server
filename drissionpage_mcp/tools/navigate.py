@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from pydantic import Field
 
 from ..policy import PolicyDeniedError, validate_navigation
-from ..response_errors import ErrorCode
+from ..response_errors import ErrorCode, classify_error
 from ..tool_outputs import (
     PageGoBackData,
     PageGoForwardData,
@@ -39,7 +39,11 @@ class NavigateInput(ToolInput):
     input_schema=NavigateInput,
     tool_type=ToolType.DESTRUCTIVE,
     output_model=PageNavigateData,
-    failure_message=lambda args, exc: "Page navigation failed.",
+    failure_message=lambda args, exc: (
+        "Browser failed to start."
+        if classify_error(exc, "page_navigate") is ErrorCode.BROWSER_START_FAILED
+        else "Page navigation failed."
+    ),
 )
 async def navigate(
     context: "DrissionPageContext", args: NavigateInput
