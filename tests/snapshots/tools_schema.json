@@ -11780,7 +11780,7 @@
       "readOnlyHint": false,
       "title": "Keyboard Press"
     },
-    "description": "Send keyboard text/keys to the active page element.",
+    "description": "Send keyboard text/keys to the active page element without echoing the input in the result.",
     "inputSchema": {
       "additionalProperties": false,
       "description": "Input schema for sending keys to the active element.",
@@ -11807,6 +11807,34 @@
     },
     "name": "keyboard_press",
     "outputSchema": {
+      "$defs": {
+        "KeyboardInputMetadata": {
+          "additionalProperties": false,
+          "properties": {
+            "length": {
+              "minimum": 0,
+              "title": "Length",
+              "type": "integer"
+            },
+            "provided": {
+              "title": "Provided",
+              "type": "boolean"
+            },
+            "redacted": {
+              "const": true,
+              "title": "Redacted",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "provided",
+            "length",
+            "redacted"
+          ],
+          "title": "KeyboardInputMetadata",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
@@ -11819,8 +11847,7 @@
                   "type": "number"
                 },
                 "keys": {
-                  "title": "Keys",
-                  "type": "string"
+                  "$ref": "#/$defs/KeyboardInputMetadata"
                 },
                 "url": {
                   "title": "Url",

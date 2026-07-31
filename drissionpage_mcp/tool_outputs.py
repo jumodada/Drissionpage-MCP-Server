@@ -701,8 +701,14 @@ class ElementHoverData(ElementTargetData):
     offset_y: int | None
 
 
+class KeyboardInputMetadata(ToolData):
+    provided: bool
+    length: Annotated[int, Field(ge=0)]
+    redacted: Literal[True]
+
+
 class KeyboardPressData(ToolData):
-    keys: str
+    keys: KeyboardInputMetadata
     interval: float
     url: str
 

@@ -376,7 +376,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, recent console summary, and limits. Optional: `max_texts`, `max_text_chars`. |
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
 | `page_scroll` | Destructive | none | Scroll the page by direction or to a position. Optional: `direction`, `pixels`, `x`, `y`. |
-| `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Optional: `interval`. |
+| `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Successful results expose only redacted input metadata. Optional: `interval`. |
 | `page_pointer_move` | Destructive | `x`, `y` | Move to exact viewport CSS coordinates without pressing a button. Optional: `profile` (`direct` default or deterministic 24-step `natural`) and `element`. |
 | `page_pointer_drag` | Destructive | `start_x`, `start_y`, `end_x`, `end_y` | Perform one failure-safe held drag with exact endpoints. Optional: up to six ordered `waypoints`, `profile` (`direct` or `natural`), `element`, and `button`. |
 | `page_pointer_drag_element` | Destructive | `source`, `destination` | Resolve CSS/XPath geometry immediately before an element, offset, or track-ratio drag. Supports one same-origin iframe and CSS paths through nested open Shadow DOM hosts. Optional: `profile` and `button`. |
@@ -495,6 +495,7 @@ optional Skills.
 - `browser_cache_clear` explicitly disables Cookie, localStorage, and sessionStorage clearing while invalidating HTTP cache.
 - `storage_get` redacts non-empty values by default. Use `include_values=true` only when the MCP client/session is allowed to handle storage secrets.
 - `storage_set` does not echo the stored value in its success payload.
+- `keyboard_press` never echoes the supplied text/key sequence. Its successful result reports only whether input was provided, its character length, and `redacted=true`.
 - `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.
 - Pointer tools default to `profile="direct"`. `profile="natural"` uses a fixed,

@@ -208,7 +208,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `page_observe` - 返回紧凑页面指纹，包括 URL、标题、元素数量、可见文本样本、当前焦点元素和最近 console 摘要
 - `page_evaluate` - 在当前页面运行有界 JavaScript，并返回 JSON-safe 结果
 - `page_scroll` - 使用 `page_scroll(pixels=...)` 相对滚动，或传入 `x`/`y` 绝对位置
-- `keyboard_press` - 向当前焦点元素/页面发送键盘输入
+- `keyboard_press` - 向当前焦点元素/页面发送键盘输入，结果不回显输入内容
 - `page_resize` - 调整浏览器窗口
 - `page_pointer_move` - 使用 `direct` 或有界、确定性的 `natural` 轨迹移动到精确 viewport CSS 坐标
 - `page_pointer_drag` - 使用选定 profile 执行失败安全的坐标拖拽，可经过最多六个可选有序路径点

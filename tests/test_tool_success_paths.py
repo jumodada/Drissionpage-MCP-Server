@@ -654,7 +654,15 @@ class FakeTab:
 
     async def keyboard_press(self, keys: str, *, interval: float = 0) -> dict[str, Any]:
         self._record("keyboard_press", keys, interval=interval)
-        return {"keys": keys, "interval": interval, "url": self.url}
+        return {
+            "keys": {
+                "provided": bool(keys),
+                "length": len(keys),
+                "redacted": True,
+            },
+            "interval": interval,
+            "url": self.url,
+        }
 
     async def select_element(
         self, selector: str, *, value: str, by: str = "value", timeout: int = 10
@@ -1288,13 +1296,17 @@ async def test_file_and_interaction_tools_success_paths(monkeypatch, tmp_path) -
     keyboard_response = await _execute(
         interaction.keyboard_press,
         ctx,
-        interaction.KeyboardPressInput(keys="abc", interval=0.01),
+        interaction.KeyboardPressInput(keys="callback-secret", interval=0.01),
     )
     assert keyboard_response.structured_content()["data"] == {
-        "keys": "abc",
+        "keys": {"provided": True, "length": 15, "redacted": True},
         "interval": 0.01,
         "url": "https://example.test/current",
     }
+    response_text = "\n".join(
+        getattr(block, "text", "") for block in keyboard_response.content()
+    )
+    assert "callback-secret" not in response_text
     select_response = await _execute(
         interaction.element_select,
         ctx,

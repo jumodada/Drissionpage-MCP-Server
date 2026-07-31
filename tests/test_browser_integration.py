@@ -1632,10 +1632,16 @@ async def test_mcp_0_5_5_interaction_and_upload_tools_use_local_fixture(
                 server, "element_click", {"selector": "#keyboard-input", "timeout": 2}
             )
             assert click_payload["ok"] is True
-            _content, key_payload = await _execute_tool(
+            key_content, key_payload = await _execute_tool(
                 server, "keyboard_press", {"keys": "XYZ", "interval": 0}
             )
             assert key_payload["ok"] is True
+            assert key_payload["data"]["keys"] == {
+                "provided": True,
+                "length": 3,
+                "redacted": True,
+            }
+            assert "XYZ" not in key_content
             _content, state_payload = await _execute_tool(
                 server,
                 "page_evaluate",

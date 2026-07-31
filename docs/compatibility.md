@@ -26,6 +26,12 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
 
+## Unreleased Contract Changes
+
+- `keyboard_press` successful results no longer echo the supplied text/key
+  sequence. The `keys` field is redacted metadata containing `provided`,
+  `length`, and `redacted=true`.
+
 ## 0.7.8 to 0.7.9 Migration
 
 0.7.9 keeps all 69 public tool names and adds backward-compatible input and

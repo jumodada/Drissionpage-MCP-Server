@@ -208,7 +208,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `page_observe` - Return a compact page fingerprint with URL, title, counts, visible text samples, active element, and recent console summary
 - `page_evaluate` - Run bounded JavaScript in the current page and return a JSON-safe result
 - `page_scroll` - Use `page_scroll(pixels=...)` for relative scrolling, or pass `x`/`y` for an absolute position
-- `keyboard_press` - Send keys to the active element/page
+- `keyboard_press` - Send keys to the active element/page without echoing the input in results
 - `page_resize` - Adjust browser window
 - `page_pointer_move` - Move to exact viewport CSS coordinates with `direct` or bounded deterministic `natural` motion
 - `page_pointer_drag` - Perform one failure-safe coordinate drag through up to six optional ordered waypoints with the selected profile
