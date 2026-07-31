@@ -239,7 +239,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `browser_cookies_set` - Set up to 100 cookies in one call and echo values in the successful result by default
 - `browser_cookies_delete` - Delete one named cookie with optional URL/domain/path scope
 - `browser_cookies_clear` - Clear all browser cookies
-- `storage_get` - Read localStorage/sessionStorage by key or as a map
+- `storage_get` - Read localStorage/sessionStorage by key or as a map, with values redacted unless `include_values=true`
 - `storage_set` - Set one localStorage/sessionStorage item without echoing the value
 - `storage_clear` - Clear one storage key or an entire storage area
 

@@ -239,7 +239,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `browser_cookies_set` - 单次设置最多 100 个 Cookie，成功结果默认回显 value
 - `browser_cookies_delete` - 按名称删除 Cookie，可选 URL/domain/path 精确范围
 - `browser_cookies_clear` - 清空全部浏览器 Cookie
-- `storage_get` - 按 key 或整体读取 localStorage/sessionStorage
+- `storage_get` - 按 key 或整体读取 localStorage/sessionStorage；value 默认脱敏，仅在 `include_values=true` 时返回
 - `storage_set` - 设置一个 storage 项，结果不回显 value
 - `storage_clear` - 清理一个 storage key 或整个区域
 

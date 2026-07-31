@@ -14158,7 +14158,7 @@
       "readOnlyHint": true,
       "title": "Get Web Storage"
     },
-    "description": "Read localStorage or sessionStorage by key or as a bounded map.",
+    "description": "Read localStorage or sessionStorage by key or as a bounded map, with values redacted unless explicitly requested.",
     "inputSchema": {
       "additionalProperties": false,
       "description": "Input schema for reading web storage.",
@@ -14173,7 +14173,8 @@
           "type": "string"
         },
         "include_values": {
-          "default": true,
+          "default": false,
+          "description": "Return storage values instead of redacting non-empty values.",
           "title": "Include Values",
           "type": "boolean"
         },

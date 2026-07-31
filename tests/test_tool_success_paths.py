@@ -923,7 +923,7 @@ class FakeTab:
         return {"count": len(urls), "urls": urls, "set": True}
 
     async def get(
-        self, *, area: str = "local", key: str = "", include_values: bool = True
+        self, *, area: str = "local", key: str = "", include_values: bool = False
     ) -> dict[str, Any]:
         self._record("storage_get", area=area, key=key, include_values=include_values)
         return {
@@ -1410,6 +1410,14 @@ async def test_frame_shadow_and_storage_tools_success_paths() -> None:
         storage.BrowserCookiesClearInput(),
     )
     assert cookies_clear_response.structured_content()["data"] == {"cleared": True}
+    storage_get_response = await _execute(
+        storage.storage_get,
+        ctx,
+        storage.StorageGetInput(area="local"),
+    )
+    assert storage_get_response.structured_content()["data"]["items"] == {
+        "mode": "<redacted>"
+    }
     storage_get_response = await _execute(
         storage.storage_get,
         ctx,

@@ -19,6 +19,7 @@ from drissionpage_mcp.tools.storage import (
     BrowserCookieInput,
     BrowserCookiesDeleteInput,
     BrowserCookiesSetInput,
+    StorageGetInput,
 )
 
 
@@ -74,6 +75,10 @@ def test_cookie_mutation_inputs_are_strict_and_bounded() -> None:
         BrowserCookiesSetInput(cookies=[cookie] * 101)
     with pytest.raises(ValidationError):
         BrowserCookiesDeleteInput(name="")
+
+
+def test_storage_reads_require_explicit_value_opt_in() -> None:
+    assert StorageGetInput().include_values is False
 
 
 def test_browser_environment_inputs_are_strict_and_bounded() -> None:

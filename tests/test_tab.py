@@ -1685,7 +1685,8 @@ async def test_cookie_storage_and_session_state_paths_are_normalized() -> None:
     page.cookie_payload = object()
     assert (await tab.storage.cookies_get())["cookies"] == []
 
-    storage = await tab.storage.get(area="local", include_values=False)
+    storage = await tab.storage.get(area="local")
+    assert storage["include_values"] is False
     assert storage["items"] == {"token": "<redacted>", "empty": ""}
     assert await tab.storage.set(area="session", key="mode", value="test") == {
         "area": "session",

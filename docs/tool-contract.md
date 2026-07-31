@@ -259,7 +259,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 | `browser_cookies_set` | `cookies: array` | — |
 | `browser_cookies_delete` | `name: string` | `url: string / null = null`<br>`domain: string / null = null`<br>`path: string / null = null` |
 | `browser_cookies_clear` | — | — |
-| `storage_get` | — | `area: string = "local"`<br>`key: string = ""`<br>`include_values: boolean = true` |
+| `storage_get` | — | `area: string = "local"`<br>`key: string = ""`<br>`include_values: boolean = false` |
 | `storage_set` | `key: string`<br>`value: string` | `area: string = "local"` |
 | `storage_clear` | — | `area: string = "local"`<br>`key: string = ""` |
 | `wait_for_element` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `timeout: number = 10` |
@@ -431,7 +431,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `browser_cookies_set` | Destructive | `cookies` | Set a bounded batch of 1-100 cookies through DrissionPage. Successful results echo Cookie values by default for MCP callbacks. |
 | `browser_cookies_delete` | Destructive | `name` | Delete one named Cookie. Optional: `url`, `domain`, `path`. |
 | `browser_cookies_clear` | Destructive | none | Clear all browser Cookies. |
-| `storage_get` | Read-only | none | Read localStorage/sessionStorage by optional `key`. Optional: `area`, `include_values`. |
+| `storage_get` | Read-only | none | Read localStorage/sessionStorage by optional `key`. Values are redacted unless `include_values=true`. Optional: `area`, `include_values`. |
 | `storage_set` | Destructive | `key`, `value` | Set one localStorage/sessionStorage value. The value is not echoed in the response. Optional: `area`. |
 | `storage_clear` | Destructive | none | Clear one storage key or the whole selected storage area. Optional: `area`, `key`. |
 
@@ -493,6 +493,7 @@ optional Skills.
 - `browser_headers_set`, `browser_user_agent_set`, and `network_blocked_urls_set` echo accepted values by default for callback and verification flows. Sensitive header values must be handled as secrets. Empty header and URL collections clear their respective overrides.
 - `browser_user_agent_set` also returns `previous_user_agent` so callers can restore the original value without user-side browser action.
 - `browser_cache_clear` explicitly disables Cookie, localStorage, and sessionStorage clearing while invalidating HTTP cache.
+- `storage_get` redacts non-empty values by default. Use `include_values=true` only when the MCP client/session is allowed to handle storage secrets.
 - `storage_set` does not echo the stored value in its success payload.
 - `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.
