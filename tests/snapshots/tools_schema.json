@@ -5574,7 +5574,7 @@
       "readOnlyHint": false,
       "title": "Click And Download"
     },
-    "description": "Perform one native element click, await one completed download, and return an integrity-checked safe artifact receipt.",
+    "description": "Perform one selector, coordinate, or keyboard trigger, await one completed download, and return an integrity-checked safe artifact receipt.",
     "inputSchema": {
       "$defs": {
         "AccessibilityTargetInput": {
@@ -5639,6 +5639,82 @@
             "role"
           ],
           "title": "AccessibilityTargetInput",
+          "type": "object"
+        },
+        "CoordinateDownloadTriggerInput": {
+          "additionalProperties": false,
+          "description": "One left click at bounded viewport coordinates.",
+          "properties": {
+            "delay_before_press_ms": {
+              "default": 0,
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Delay Before Press Ms",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "coordinate",
+              "title": "Kind",
+              "type": "string"
+            },
+            "profile": {
+              "default": "direct",
+              "enum": [
+                "direct",
+                "natural"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "x": {
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "x",
+            "y"
+          ],
+          "title": "CoordinateDownloadTriggerInput",
+          "type": "object"
+        },
+        "KeyboardDownloadTriggerInput": {
+          "additionalProperties": false,
+          "description": "One bounded keyboard input sent to the active page element.",
+          "properties": {
+            "interval": {
+              "default": 0,
+              "maximum": 2,
+              "minimum": 0,
+              "title": "Interval",
+              "type": "number"
+            },
+            "keys": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Keys",
+              "type": "string"
+            },
+            "kind": {
+              "const": "keyboard",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "keys"
+          ],
+          "title": "KeyboardDownloadTriggerInput",
           "type": "object"
         },
         "SelectorTargetInput": {
@@ -5746,6 +5822,8 @@
               "discriminator": {
                 "mapping": {
                   "accessibility": "#/$defs/AccessibilityTargetInput",
+                  "coordinate": "#/$defs/CoordinateDownloadTriggerInput",
+                  "keyboard": "#/$defs/KeyboardDownloadTriggerInput",
                   "selector": "#/$defs/SelectorTargetInput"
                 },
                 "propertyName": "kind"
@@ -5756,11 +5834,17 @@
                 },
                 {
                   "$ref": "#/$defs/AccessibilityTargetInput"
+                },
+                {
+                  "$ref": "#/$defs/CoordinateDownloadTriggerInput"
+                },
+                {
+                  "$ref": "#/$defs/KeyboardDownloadTriggerInput"
                 }
               ]
             }
           ],
-          "description": "CSS/XPath/DrissionPage selector for the download control.",
+          "description": "Selector/accessibility target, viewport coordinate click, or keyboard input that starts one download.",
           "title": "Selector"
         },
         "timeout": {
@@ -5889,8 +5973,148 @@
           "title": "ArtifactRef",
           "type": "object"
         },
+        "CoordinateDownloadTriggerData": {
+          "additionalProperties": false,
+          "properties": {
+            "delay_before_press_ms": {
+              "maximum": 10000,
+              "minimum": 0,
+              "title": "Delay Before Press Ms",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "coordinate",
+              "title": "Kind",
+              "type": "string"
+            },
+            "profile": {
+              "enum": [
+                "direct",
+                "natural"
+              ],
+              "title": "Profile",
+              "type": "string"
+            },
+            "x": {
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "kind",
+            "x",
+            "y",
+            "profile",
+            "delay_before_press_ms"
+          ],
+          "title": "CoordinateDownloadTriggerData",
+          "type": "object"
+        },
         "ElementClickAndDownloadFailedData": {
           "additionalProperties": false,
+          "oneOf": [
+            {
+              "not": {
+                "required": [
+                  "trigger"
+                ]
+              },
+              "properties": {
+                "locator": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized"
+              ]
+            },
+            {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "selector"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "locator"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "selector_strategy"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "selector_normalized"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "target_kind"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "frame_selectors"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "shadow_hosts"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "name"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "exact"
+                    ]
+                  }
+                ]
+              },
+              "properties": {
+                "trigger": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              },
+              "required": [
+                "trigger"
+              ]
+            }
+          ],
           "properties": {
             "artifact": {
               "title": "Artifact",
@@ -5909,15 +6133,31 @@
               "title": "Exact"
             },
             "frame_selectors": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Frame Selectors",
-              "type": "array"
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Frame Selectors"
             },
             "locator": {
-              "title": "Locator",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Locator"
             },
             "name": {
               "anyOf": [
@@ -5951,23 +6191,55 @@
               "title": "Role"
             },
             "selector": {
-              "title": "Selector",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector"
             },
             "selector_normalized": {
-              "title": "Selector Normalized",
-              "type": "boolean"
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector Normalized"
             },
             "selector_strategy": {
-              "title": "Selector Strategy",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector Strategy"
             },
             "shadow_hosts": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Shadow Hosts",
-              "type": "array"
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Shadow Hosts"
             },
             "status": {
               "const": "failed",
@@ -5975,20 +6247,49 @@
               "type": "string"
             },
             "target_kind": {
-              "default": "selector",
-              "enum": [
-                "selector",
-                "accessibility"
+              "anyOf": [
+                {
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ],
-              "title": "Target Kind",
-              "type": "string"
+              "default": null,
+              "title": "Target Kind"
+            },
+            "trigger": {
+              "anyOf": [
+                {
+                  "discriminator": {
+                    "mapping": {
+                      "coordinate": "#/$defs/CoordinateDownloadTriggerData",
+                      "keyboard": "#/$defs/KeyboardDownloadTriggerData"
+                    },
+                    "propertyName": "kind"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/CoordinateDownloadTriggerData"
+                    },
+                    {
+                      "$ref": "#/$defs/KeyboardDownloadTriggerData"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Trigger"
             }
           },
           "required": [
-            "selector",
-            "locator",
-            "selector_strategy",
-            "selector_normalized",
             "operation_key",
             "status",
             "artifact",
@@ -6119,6 +6420,101 @@
         },
         "ElementClickAndDownloadIndeterminateData": {
           "additionalProperties": false,
+          "oneOf": [
+            {
+              "not": {
+                "required": [
+                  "trigger"
+                ]
+              },
+              "properties": {
+                "locator": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized"
+              ]
+            },
+            {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "selector"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "locator"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "selector_strategy"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "selector_normalized"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "target_kind"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "frame_selectors"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "shadow_hosts"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "name"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "exact"
+                    ]
+                  }
+                ]
+              },
+              "properties": {
+                "trigger": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              },
+              "required": [
+                "trigger"
+              ]
+            }
+          ],
           "properties": {
             "artifact": {
               "title": "Artifact",
@@ -6137,15 +6533,31 @@
               "title": "Exact"
             },
             "frame_selectors": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Frame Selectors",
-              "type": "array"
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Frame Selectors"
             },
             "locator": {
-              "title": "Locator",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Locator"
             },
             "name": {
               "anyOf": [
@@ -6179,23 +6591,55 @@
               "title": "Role"
             },
             "selector": {
-              "title": "Selector",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector"
             },
             "selector_normalized": {
-              "title": "Selector Normalized",
-              "type": "boolean"
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector Normalized"
             },
             "selector_strategy": {
-              "title": "Selector Strategy",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector Strategy"
             },
             "shadow_hosts": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Shadow Hosts",
-              "type": "array"
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Shadow Hosts"
             },
             "status": {
               "const": "indeterminate",
@@ -6203,20 +6647,49 @@
               "type": "string"
             },
             "target_kind": {
-              "default": "selector",
-              "enum": [
-                "selector",
-                "accessibility"
+              "anyOf": [
+                {
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ],
-              "title": "Target Kind",
-              "type": "string"
+              "default": null,
+              "title": "Target Kind"
+            },
+            "trigger": {
+              "anyOf": [
+                {
+                  "discriminator": {
+                    "mapping": {
+                      "coordinate": "#/$defs/CoordinateDownloadTriggerData",
+                      "keyboard": "#/$defs/KeyboardDownloadTriggerData"
+                    },
+                    "propertyName": "kind"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/CoordinateDownloadTriggerData"
+                    },
+                    {
+                      "$ref": "#/$defs/KeyboardDownloadTriggerData"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Trigger"
             }
           },
           "required": [
-            "selector",
-            "locator",
-            "selector_strategy",
-            "selector_normalized",
             "operation_key",
             "status",
             "artifact",
@@ -6347,6 +6820,101 @@
         },
         "ElementClickAndDownloadSuccessData": {
           "additionalProperties": false,
+          "oneOf": [
+            {
+              "not": {
+                "required": [
+                  "trigger"
+                ]
+              },
+              "properties": {
+                "locator": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized"
+              ]
+            },
+            {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "selector"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "locator"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "selector_strategy"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "selector_normalized"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "target_kind"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "frame_selectors"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "shadow_hosts"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "name"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "exact"
+                    ]
+                  }
+                ]
+              },
+              "properties": {
+                "trigger": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              },
+              "required": [
+                "trigger"
+              ]
+            }
+          ],
           "properties": {
             "artifact": {
               "$ref": "#/$defs/ArtifactRef"
@@ -6364,15 +6932,31 @@
               "title": "Exact"
             },
             "frame_selectors": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Frame Selectors",
-              "type": "array"
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Frame Selectors"
             },
             "locator": {
-              "title": "Locator",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Locator"
             },
             "name": {
               "anyOf": [
@@ -6406,23 +6990,55 @@
               "title": "Role"
             },
             "selector": {
-              "title": "Selector",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector"
             },
             "selector_normalized": {
-              "title": "Selector Normalized",
-              "type": "boolean"
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector Normalized"
             },
             "selector_strategy": {
-              "title": "Selector Strategy",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector Strategy"
             },
             "shadow_hosts": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Shadow Hosts",
-              "type": "array"
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Shadow Hosts"
             },
             "status": {
               "const": "success",
@@ -6430,20 +7046,49 @@
               "type": "string"
             },
             "target_kind": {
-              "default": "selector",
-              "enum": [
-                "selector",
-                "accessibility"
+              "anyOf": [
+                {
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ],
-              "title": "Target Kind",
-              "type": "string"
+              "default": null,
+              "title": "Target Kind"
+            },
+            "trigger": {
+              "anyOf": [
+                {
+                  "discriminator": {
+                    "mapping": {
+                      "coordinate": "#/$defs/CoordinateDownloadTriggerData",
+                      "keyboard": "#/$defs/KeyboardDownloadTriggerData"
+                    },
+                    "propertyName": "kind"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/CoordinateDownloadTriggerData"
+                    },
+                    {
+                      "$ref": "#/$defs/KeyboardDownloadTriggerData"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Trigger"
             }
           },
           "required": [
-            "selector",
-            "locator",
-            "selector_strategy",
-            "selector_normalized",
             "operation_key",
             "status",
             "artifact",
@@ -6575,6 +7220,101 @@
         },
         "ElementClickAndDownloadValidationFailedData": {
           "additionalProperties": false,
+          "oneOf": [
+            {
+              "not": {
+                "required": [
+                  "trigger"
+                ]
+              },
+              "properties": {
+                "locator": {
+                  "type": "string"
+                },
+                "selector": {
+                  "type": "string"
+                },
+                "selector_normalized": {
+                  "type": "boolean"
+                },
+                "selector_strategy": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "selector",
+                "locator",
+                "selector_strategy",
+                "selector_normalized"
+              ]
+            },
+            {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "selector"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "locator"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "selector_strategy"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "selector_normalized"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "target_kind"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "frame_selectors"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "shadow_hosts"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "role"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "name"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "exact"
+                    ]
+                  }
+                ]
+              },
+              "properties": {
+                "trigger": {
+                  "not": {
+                    "type": "null"
+                  }
+                }
+              },
+              "required": [
+                "trigger"
+              ]
+            }
+          ],
           "properties": {
             "artifact": {
               "title": "Artifact",
@@ -6593,15 +7333,31 @@
               "title": "Exact"
             },
             "frame_selectors": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Frame Selectors",
-              "type": "array"
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Frame Selectors"
             },
             "locator": {
-              "title": "Locator",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Locator"
             },
             "name": {
               "anyOf": [
@@ -6635,23 +7391,55 @@
               "title": "Role"
             },
             "selector": {
-              "title": "Selector",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector"
             },
             "selector_normalized": {
-              "title": "Selector Normalized",
-              "type": "boolean"
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector Normalized"
             },
             "selector_strategy": {
-              "title": "Selector Strategy",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Selector Strategy"
             },
             "shadow_hosts": {
-              "items": {
-                "type": "string"
-              },
-              "title": "Shadow Hosts",
-              "type": "array"
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Shadow Hosts"
             },
             "status": {
               "const": "validation_failed",
@@ -6659,20 +7447,49 @@
               "type": "string"
             },
             "target_kind": {
-              "default": "selector",
-              "enum": [
-                "selector",
-                "accessibility"
+              "anyOf": [
+                {
+                  "enum": [
+                    "selector",
+                    "accessibility"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
               ],
-              "title": "Target Kind",
-              "type": "string"
+              "default": null,
+              "title": "Target Kind"
+            },
+            "trigger": {
+              "anyOf": [
+                {
+                  "discriminator": {
+                    "mapping": {
+                      "coordinate": "#/$defs/CoordinateDownloadTriggerData",
+                      "keyboard": "#/$defs/KeyboardDownloadTriggerData"
+                    },
+                    "propertyName": "kind"
+                  },
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/CoordinateDownloadTriggerData"
+                    },
+                    {
+                      "$ref": "#/$defs/KeyboardDownloadTriggerData"
+                    }
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Trigger"
             }
           },
           "required": [
-            "selector",
-            "locator",
-            "selector_strategy",
-            "selector_normalized",
             "operation_key",
             "status",
             "artifact",
@@ -6799,6 +7616,58 @@
             "tab_id"
           ],
           "title": "ElementClickAndDownloadValidationFailedReceipt",
+          "type": "object"
+        },
+        "KeyboardDownloadTriggerData": {
+          "additionalProperties": false,
+          "properties": {
+            "interval": {
+              "maximum": 2,
+              "minimum": 0,
+              "title": "Interval",
+              "type": "number"
+            },
+            "keys": {
+              "$ref": "#/$defs/KeyboardInputMetadata"
+            },
+            "kind": {
+              "const": "keyboard",
+              "title": "Kind",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "keys",
+            "interval"
+          ],
+          "title": "KeyboardDownloadTriggerData",
+          "type": "object"
+        },
+        "KeyboardInputMetadata": {
+          "additionalProperties": false,
+          "properties": {
+            "length": {
+              "minimum": 0,
+              "title": "Length",
+              "type": "integer"
+            },
+            "provided": {
+              "title": "Provided",
+              "type": "boolean"
+            },
+            "redacted": {
+              "const": true,
+              "title": "Redacted",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "provided",
+            "length",
+            "redacted"
+          ],
+          "title": "KeyboardInputMetadata",
           "type": "object"
         }
       },

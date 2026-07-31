@@ -1074,6 +1074,142 @@ async def test_mcp_element_click_and_download_returns_one_safe_integrity_checked
 
 
 @pytest.mark.asyncio
+async def test_mcp_coordinate_and_keyboard_download_triggers_correlate_once(
+    monkeypatch, tmp_path
+) -> None:
+    server = DrissionPageMCPServer()
+    download_root = tmp_path / "mcp-trigger-downloads"
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(download_root))
+    monkeypatch.delenv("DP_MCP_DENY_DOWNLOAD", raising=False)
+    try:
+        with local_http_fixture() as base_url:
+            navigate = await _execute_tool_text(
+                server, "page_navigate", {"url": base_url + "/download"}
+            )
+            _skip_if_browser_unavailable(navigate)
+            _content, center_payload = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": (
+                        "const rect = document.querySelector('#download-link')"
+                        ".getBoundingClientRect(); "
+                        "return {x: rect.left + rect.width / 2, "
+                        "y: rect.top + rect.height / 2};"
+                    )
+                },
+            )
+            center = center_payload["data"]["result"]
+            coordinate_args = {
+                "selector": {
+                    "kind": "coordinate",
+                    "x": center["x"],
+                    "y": center["y"],
+                    "profile": "direct",
+                    "delay_before_press_ms": 0,
+                },
+                "operation_key": "fixture-coordinate-download",
+                "timeout": 10,
+                "expected_filename": "fixture-report.csv",
+                "expected_mime_type": "text/csv",
+            }
+
+            _content, coordinate = await _execute_tool(
+                server,
+                "element_click_and_download",
+                coordinate_args,
+            )
+            _content, coordinate_replay = await _execute_tool(
+                server,
+                "element_click_and_download",
+                coordinate_args,
+            )
+
+            assert coordinate["ok"] is True
+            coordinate_data = coordinate["data"]
+            assert coordinate_replay["data"] == coordinate_data
+            assert coordinate_data["trigger"] == {
+                "kind": "coordinate",
+                "x": center["x"],
+                "y": center["y"],
+                "profile": "direct",
+                "delay_before_press_ms": 0,
+            }
+            assert "selector" not in coordinate_data
+            assert _json(base_url + "/__fixture__/state")["counters"] == {
+                "download_requests": 1
+            }
+
+            enter_key = "\ue007"
+            _content, focus = await _execute_tool(
+                server,
+                "page_evaluate",
+                {
+                    "script": (
+                        "document.querySelector('#download-link').focus(); "
+                        "return document.activeElement.id;"
+                    )
+                },
+            )
+            assert focus["data"]["result"] == "download-link"
+            keyboard_args = {
+                "selector": {
+                    "kind": "keyboard",
+                    "keys": enter_key,
+                    "interval": 0,
+                },
+                "operation_key": "fixture-keyboard-download",
+                "timeout": 10,
+                "expected_filename": "fixture-report.csv",
+                "expected_mime_type": "text/csv",
+            }
+
+            _content, keyboard = await _execute_tool(
+                server,
+                "element_click_and_download",
+                keyboard_args,
+            )
+            _content, keyboard_replay = await _execute_tool(
+                server,
+                "element_click_and_download",
+                keyboard_args,
+            )
+
+            assert keyboard["ok"] is True
+            keyboard_data = keyboard["data"]
+            assert keyboard_replay["data"] == keyboard_data
+            assert keyboard_data["trigger"] == {
+                "kind": "keyboard",
+                "keys": {"provided": True, "length": 1, "redacted": True},
+                "interval": 0,
+            }
+            assert enter_key not in json.dumps(keyboard, ensure_ascii=False)
+            assert "selector" not in keyboard_data
+            assert _json(base_url + "/__fixture__/state")["counters"] == {
+                "download_requests": 2
+            }
+
+            artifacts = [
+                coordinate_data["artifact"],
+                keyboard_data["artifact"],
+            ]
+            assert {artifact["sha256"] for artifact in artifacts} == {
+                TASK_COMPLETION_DOWNLOAD_SHA256
+            }
+            paths = [
+                download_root / artifact["safe_relative_path"]
+                for artifact in artifacts
+            ]
+            assert len({path.parent for path in paths}) == 2
+            assert all(path.read_bytes() == TASK_COMPLETION_DOWNLOAD for path in paths)
+            assert sorted(path for path in download_root.rglob("*") if path.is_file()) == (
+                sorted(paths)
+            )
+    finally:
+        await server.cleanup()
+
+
+@pytest.mark.asyncio
 async def test_mcp_element_click_and_download_failure_has_no_artifact_or_success(
     monkeypatch, tmp_path
 ) -> None:

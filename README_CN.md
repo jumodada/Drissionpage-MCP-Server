@@ -185,7 +185,7 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - `element_find` - 通过 CSS 选择器或 XPath 查找单个元素；`h1` 等裸选择器按 CSS 处理
 - `element_find_all` - 提取重复列表、卡片和表格元素，返回有界文本、属性和推荐 selector
 - `element_click` - 点击任意元素，并以兼容方式支持左/右/中键和单击/双击语义
-- `element_click_and_download` - 将一次原生点击与 `DP_MCP_DOWNLOAD_ROOT` 下的一份完整性校验产物关联
+- `element_click_and_download` - 将一次 selector、坐标或键盘触发与 `DP_MCP_DOWNLOAD_ROOT` 下的一份完整性校验产物关联
 - `element_type` - 向元素输入文本
 - `element_upload_file` - 使用 `element_upload_file(paths=[...])` 从 `DP_MCP_UPLOAD_ROOT` 上传文件到 `input[type=file]`
 - `element_click_and_upload` - 自动拦截 Chromium 文件选择器、点击触发器并注入受控文件，无需用户操作系统文件窗口
@@ -495,7 +495,7 @@ which chromium         # macOS
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
 - [x] 表单、组件库、验证挑战和便利工作流留在 MCP 核心之外
 - [x] 可选 Skills 通过单一静态 resource 发现，不进入 wheel 和 sdist
-- [x] 能力探测后的 `page_dialog_respond`、兼容扩展的双击/右键语义，以及返回安全 `ArtifactRef` 的 `element_click_and_download`
+- [x] 能力探测后的 `page_dialog_respond`、兼容扩展的双击/右键语义，以及返回安全 `ArtifactRef` 的 selector/坐标/键盘下载关联
 - [x] 可复现的 W01-W08 公共工具 benchmark，每个工作负载运行十轮，保存机器可读证据且重复副作用为零
 - [x] Network listener beta：`network_listen_start`、`network_listen_wait`、`network_listen_stop`，用于 HTTP/XHR/Fetch 观察
 - [x] 纯浏览器请求环境控制：header、user-agent 和 URL 屏蔽写操作回显写入值，cache-only 清理保留 Cookie 与 Web Storage

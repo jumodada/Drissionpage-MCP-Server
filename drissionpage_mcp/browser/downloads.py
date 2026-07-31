@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import mimetypes
 import shutil
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
 
 
 _T = TypeVar("_T")
+_TRIGGER_TIMEOUT_GUARD_SECONDS = 0.25
 
 
 class DownloadUnsupportedError(RuntimeError):
@@ -77,6 +79,11 @@ class DownloadOperations:
             raise DownloadUnsupportedError("CLICK_TO_DOWNLOAD_API_UNAVAILABLE")
         return downloader
 
+    def probe_trigger(self) -> None:
+        """Fail closed unless generic trigger correlation primitives exist."""
+
+        self._trigger_primitives()
+
     async def click_and_wait(
         self,
         element: Any,
@@ -96,6 +103,31 @@ class DownloadOperations:
             operation = asyncio.create_task(
                 self._click_and_wait(
                     element, download_dir=download_dir, timeout=remaining
+                )
+            )
+            return await _await_terminal(operation)
+
+    async def trigger_and_wait(
+        self,
+        trigger: Callable[[], Awaitable[Any]],
+        *,
+        download_dir: Path,
+        timeout: float,
+    ) -> dict[str, Any]:
+        """Correlate one async pointer/keyboard trigger with one mission."""
+
+        lock_started = monotonic()
+        async with self._download_lock:
+            remaining = timeout - (monotonic() - lock_started)
+            if remaining <= 0:
+                raise DownloadIndeterminateError(
+                    "The download deadline expired while waiting for the tab boundary."
+                )
+            operation = asyncio.create_task(
+                self._trigger_and_wait(
+                    trigger,
+                    download_dir=download_dir,
+                    timeout=remaining,
                 )
             )
             return await _await_terminal(operation)
@@ -127,6 +159,171 @@ class DownloadOperations:
         if not mission:
             raise DownloadIndeterminateError(
                 "The native click did not produce a confirmed download mission."
+            )
+
+        return await self._mission_result(
+            mission,
+            download_dir=download_dir,
+            deadline=deadline,
+        )
+
+    async def _trigger_and_wait(
+        self,
+        trigger: Callable[[], Awaitable[Any]],
+        *,
+        download_dir: Path,
+        timeout: float,
+    ) -> dict[str, Any]:
+        manager, tab_id, set_download_path = self._trigger_primitives()
+        deadline = monotonic() + timeout
+        previous_path = str(getattr(self._page, "download_path", "") or ".")
+        mission: Any = None
+        trigger_error: BaseException | None = None
+        cleanup_error: Exception | None = None
+        deadline_expired = False
+        boundary_armed = False
+        trigger_task: asyncio.Task[Any] | None = None
+
+        try:
+            set_download_path(str(download_dir))
+            manager._waiting_tab.add(tab_id)
+            manager.set_flag(tab_id, True)
+            boundary_armed = True
+
+            async def invoke_trigger() -> Any:
+                return await trigger()
+
+            trigger_task = asyncio.create_task(invoke_trigger())
+            while trigger_error is None:
+                candidate = manager.get_flag(tab_id)
+                if not isinstance(candidate, bool):
+                    mission = candidate
+                if trigger_task.done():
+                    try:
+                        trigger_task.result()
+                    except asyncio.CancelledError as exc:
+                        trigger_error = exc
+                    except Exception as exc:
+                        trigger_error = exc
+                    if mission is not None or trigger_error is not None:
+                        break
+                if monotonic() >= deadline:
+                    deadline_expired = True
+                    manager.set_flag(tab_id, False)
+                    await _cancel_and_drain(trigger_task)
+                    candidate = manager.get_flag(tab_id)
+                    if not isinstance(candidate, bool):
+                        mission = candidate
+                    manager.set_flag(tab_id, False)
+                    break
+                await asyncio.sleep(
+                    min(0.005, max(0.001, deadline - monotonic()))
+                )
+        except asyncio.CancelledError as exc:
+            trigger_error = exc
+        except Exception as exc:
+            trigger_error = exc
+        finally:
+            if trigger_task is not None and not trigger_task.done():
+                try:
+                    manager.set_flag(tab_id, False)
+                except Exception as exc:
+                    cleanup_error = exc
+                await _cancel_and_drain(trigger_task)
+                try:
+                    candidate = manager.get_flag(tab_id)
+                    if not isinstance(candidate, bool):
+                        mission = candidate
+                except Exception as exc:
+                    if cleanup_error is None:
+                        cleanup_error = exc
+            if boundary_armed and (deadline_expired or trigger_error is not None):
+                try:
+                    manager.set_flag(tab_id, False)
+                    await self._guard_late_missions(manager, tab_id)
+                except asyncio.CancelledError as exc:
+                    trigger_error = exc
+                except Exception as exc:
+                    if cleanup_error is None:
+                        cleanup_error = exc
+            cleanup_steps = (
+                lambda: manager.set_flag(tab_id, None),
+                lambda: manager._waiting_tab.discard(tab_id),
+                lambda: set_download_path(previous_path),
+            )
+            for cleanup_step in cleanup_steps:
+                try:
+                    cleanup_step()
+                except Exception as exc:
+                    if cleanup_error is None:
+                        cleanup_error = exc
+
+        if isinstance(trigger_error, asyncio.CancelledError):
+            if mission is not None:
+                await self._cancel_mission(mission)
+            raise trigger_error
+        if deadline_expired or trigger_error is not None or cleanup_error is not None:
+            if mission is not None:
+                await self._cancel_mission(mission)
+            raise DownloadIndeterminateError(
+                "The browser download trigger outcome is indeterminate."
+            ) from (trigger_error or cleanup_error)
+        if not mission:
+            raise DownloadIndeterminateError(
+                "The browser trigger did not produce a confirmed download mission."
+            )
+        return await self._mission_result(
+            mission,
+            download_dir=download_dir,
+            deadline=deadline,
+        )
+
+    def _trigger_primitives(self) -> tuple[Any, str, Callable[[str], Any]]:
+        browser = getattr(self._page, "browser", None)
+        manager = getattr(browser, "_dl_mgr", None)
+        if manager is None or not isinstance(getattr(manager, "missions", None), dict):
+            raise DownloadUnsupportedError("DOWNLOAD_MANAGER_UNAVAILABLE")
+        if not callable(getattr(manager, "set_flag", None)) or not callable(
+            getattr(manager, "get_flag", None)
+        ):
+            raise DownloadUnsupportedError("DOWNLOAD_MISSION_API_UNAVAILABLE")
+        if not isinstance(getattr(manager, "_waiting_tab", None), set):
+            raise DownloadUnsupportedError("DOWNLOAD_WAITING_TAB_API_UNAVAILABLE")
+        tab_id = str(getattr(self._page, "tab_id", "") or "")
+        if not tab_id:
+            raise DownloadUnsupportedError("DOWNLOAD_TAB_ID_UNAVAILABLE")
+        setter = getattr(getattr(self._page, "set", None), "download_path", None)
+        if not callable(setter):
+            raise DownloadUnsupportedError("DOWNLOAD_PATH_API_UNAVAILABLE")
+        return manager, tab_id, setter
+
+    async def _guard_late_missions(self, manager: Any, tab_id: str) -> None:
+        """Keep indeterminate trigger downloads fail-closed for a bounded drain."""
+
+        guard_deadline = monotonic() + _TRIGGER_TIMEOUT_GUARD_SECONDS
+        while monotonic() < guard_deadline:
+            candidate = manager.get_flag(tab_id)
+            if not isinstance(candidate, bool):
+                if candidate is not None:
+                    await self._cancel_mission(candidate)
+                manager.set_flag(tab_id, False)
+            await asyncio.sleep(
+                min(0.005, max(0.001, guard_deadline - monotonic()))
+            )
+
+    async def _mission_result(
+        self,
+        mission: Any,
+        *,
+        download_dir: Path,
+        deadline: float,
+    ) -> dict[str, Any]:
+        """Await and validate one already-correlated download mission."""
+
+        if monotonic() >= deadline:
+            await self._cancel_mission(mission)
+            raise DownloadIndeterminateError(
+                "The download deadline expired before artifact validation."
             )
 
         while not bool(getattr(mission, "is_done", False)):
@@ -204,3 +401,16 @@ async def _await_terminal(task: asyncio.Task[_T]) -> _T:
     if cancellation is not None:
         raise cancellation
     return result
+
+
+async def _cancel_and_drain(task: asyncio.Task[Any]) -> None:
+    task.cancel()
+    while not task.done():
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            continue
+    try:
+        task.result()
+    except (asyncio.CancelledError, Exception):
+        pass

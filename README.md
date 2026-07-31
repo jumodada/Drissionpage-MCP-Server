@@ -185,7 +185,7 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - `element_find` - Find one element by CSS selector or XPath; bare selectors like `h1` are treated as CSS
 - `element_find_all` - Extract bounded repeated elements with text, attributes, and recommended selectors
 - `element_click` - Click any element with additive left/right/middle and single/double-click semantics
-- `element_click_and_download` - Correlate one native click with one integrity-checked artifact under `DP_MCP_DOWNLOAD_ROOT`
+- `element_click_and_download` - Correlate one selector, coordinate, or keyboard trigger with one integrity-checked artifact under `DP_MCP_DOWNLOAD_ROOT`
 - `element_type` - Input text into elements
 - `element_upload_file` - Use `element_upload_file(paths=[...])` to upload files from `DP_MCP_UPLOAD_ROOT` to `input[type=file]`
 - `element_click_and_upload` - Arm Chromium's file chooser, click its trigger, inject approved files, and clean interception without an operating-system picker
@@ -496,7 +496,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Console observability with `page_console_logs`, console summary in `page_observe`, and console change fields in `observe=true`
 - [x] Form, component-library, challenge, and convenience workflows remain outside the MCP core
 - [x] Optional Skills are discoverable through one static resource and excluded from wheel and sdist packages
-- [x] Capability-probed `page_dialog_respond`, additive double/context click behavior, and `element_click_and_download` with safe `ArtifactRef` metadata
+- [x] Capability-probed `page_dialog_respond`, additive double/context click behavior, and selector/coordinate/keyboard download correlation with safe `ArtifactRef` metadata
 - [x] Reproducible W01-W08 public-tool benchmark with ten isolated runs per workload, machine-readable evidence, and zero duplicate side effects
 - [x] Network listener beta with `network_listen_start`, `network_listen_wait`, and `network_listen_stop` for HTTP/XHR/Fetch observation
 - [x] Browser-only request environment control with echoed header, user-agent, and blocked-URL writes plus cache-only clearing that preserves Cookies and Web Storage

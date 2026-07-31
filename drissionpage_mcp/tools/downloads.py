@@ -10,7 +10,14 @@ from pathlib import Path
 from time import monotonic
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
-from pydantic import Field, StrictStr, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictStr,
+    StringConstraints,
+    model_validator,
+)
 
 from ..browser.downloads import (
     DownloadFailedError,
@@ -18,12 +25,18 @@ from ..browser.downloads import (
     DownloadUnsupportedError,
     DownloadValidationError,
 )
+from ..browser.motion import PointerProfile
 from ..browser.targeting import DomTargetResolver
 from ..limits import MAX_WAIT_SECONDS
 from ..policy import PolicyDeniedError, SafetyPolicy
 from ..response_errors import ErrorCode
 from ..runtime import OperationClaim
-from ..target import ElementTargetArg, target_payload
+from ..target import (
+    AccessibilityTargetInput,
+    SelectorTargetInput,
+    TargetString,
+    target_payload,
+)
 from ..tool_outputs import (
     ActionReceipt,
     ArtifactRef,
@@ -51,12 +64,47 @@ MimeType = Annotated[
 ]
 
 
+class CoordinateDownloadTriggerInput(BaseModel):
+    """One left click at bounded viewport coordinates."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["coordinate"]
+    x: float = Field(..., ge=0, le=100000)
+    y: float = Field(..., ge=0, le=100000)
+    profile: PointerProfile = "direct"
+    delay_before_press_ms: int = Field(default=0, ge=0, le=10000)
+
+
+class KeyboardDownloadTriggerInput(BaseModel):
+    """One bounded keyboard input sent to the active page element."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["keyboard"]
+    keys: Annotated[StrictStr, StringConstraints(min_length=1, max_length=256)]
+    interval: float = Field(default=0, ge=0, le=2)
+
+
+StructuredDownloadTrigger = Annotated[
+    SelectorTargetInput
+    | AccessibilityTargetInput
+    | CoordinateDownloadTriggerInput
+    | KeyboardDownloadTriggerInput,
+    Field(discriminator="kind"),
+]
+DownloadTriggerArg = TargetString | StructuredDownloadTrigger
+
+
 class ElementClickAndDownloadInput(ToolInput):
     """Strict request for one native click and one correlated download."""
 
-    selector: ElementTargetArg = Field(
+    selector: DownloadTriggerArg = Field(
         ...,
-        description="CSS/XPath/DrissionPage selector for the download control.",
+        description=(
+            "Selector/accessibility target, viewport coordinate click, or keyboard "
+            "input that starts one download."
+        ),
     )
     operation_key: OperationKey | None = Field(
         default=None,
@@ -94,7 +142,8 @@ class _DownloadPreflight:
     tab: PageTab
     deadline: float
     target_metadata: dict[str, Any]
-    element: Any
+    trigger: DownloadTriggerArg
+    element: Any | None
     action_id: str
     operation_key: str
     fingerprint: str
@@ -115,7 +164,10 @@ class _ClaimedDownload:
 @define_tool(
     name="element_click_and_download",
     title="Click And Download",
-    description="Perform one native element click, await one completed download, and return an integrity-checked safe artifact receipt.",
+    description=(
+        "Perform one selector, coordinate, or keyboard trigger, await one completed "
+        "download, and return an integrity-checked safe artifact receipt."
+    ),
     input_schema=ElementClickAndDownloadInput,
     tool_type=ToolType.DESTRUCTIVE,
     output_model=ElementClickAndDownloadData,
@@ -165,7 +217,7 @@ def _download_identity(
     fingerprint = context.request_fingerprint(
         {
             "tool": "element_click_and_download",
-            "selector": target_payload(args.selector),
+            "selector": _download_trigger_payload(args.selector),
             "operation_key": operation_key,
             "timeout": args.timeout,
             "expected_filename": args.expected_filename,
@@ -205,24 +257,41 @@ async def _download_preflight(
     operation_key: str,
     fingerprint: str,
 ) -> _DownloadPreflight:
-    _validate_download_capability(context)
+    capability_name = _download_capability_name(args.selector)
+    _validate_download_capability(context, capability_name)
     tab = context.current_tab_or_die()
     deadline = monotonic() + args.timeout
-    target_timeout = max(0, math.ceil(deadline - monotonic()))
-    targeting = getattr(tab, "dom_targeting", DomTargetResolver(tab))
-    resolved = await targeting.resolve(args.selector, timeout=target_timeout)
-    element = resolved.element
+    element: Any | None = None
     try:
-        tab.downloads.probe(element)
+        if isinstance(
+            args.selector,
+            (CoordinateDownloadTriggerInput, KeyboardDownloadTriggerInput),
+        ):
+            tab.downloads.probe_trigger()
+            target_metadata = {"trigger": _public_trigger_metadata(args.selector)}
+        else:
+            target_timeout = max(0, math.ceil(deadline - monotonic()))
+            targeting = getattr(tab, "dom_targeting", DomTargetResolver(tab))
+            resolved = await targeting.resolve(args.selector, timeout=target_timeout)
+            element = resolved.element
+            tab.downloads.probe(element)
+            target_metadata = resolved.metadata()
     except DownloadUnsupportedError as exc:
-        context.record_capability_probe(_download_probe("unsupported", exc.reason_code))
+        context.record_capability_probe(
+            _download_probe(
+                "unsupported",
+                exc.reason_code,
+                name=capability_name,
+            )
+        )
         raise
     _validate_task_download_directory(root, context.task_id)
     return _DownloadPreflight(
         root=root,
         tab=tab,
         deadline=deadline,
-        target_metadata=resolved.metadata(),
+        target_metadata=target_metadata,
+        trigger=args.selector,
         element=element,
         action_id=action_id or context.new_action_id(),
         operation_key=operation_key,
@@ -262,7 +331,7 @@ async def _claim_download(
     target_fingerprint = context.request_fingerprint(
         {
             "tab_id": preflight.tab.mcp_tab_id or "untracked-tab",
-            "selector": preflight.target_metadata["locator"],
+            "trigger": _download_trigger_payload(preflight.trigger),
             "url": preflight.tab.url,
         }
     )
@@ -300,11 +369,42 @@ async def _invoke_download(
     remaining = state.preflight.deadline - monotonic()
     if remaining <= 0:
         raise TimeoutError("Download deadline expired before native invocation.")
-    result = await state.preflight.tab.downloads.click_and_wait(
-        state.preflight.element,
-        download_dir=state.download_dir,
-        timeout=remaining,
-    )
+    trigger = state.preflight.trigger
+    if isinstance(trigger, CoordinateDownloadTriggerInput):
+
+        async def invoke() -> Any:
+            return await state.preflight.tab.pointer.click_at(
+                trigger.x,
+                trigger.y,
+                profile=trigger.profile,
+                button="left",
+                delay_before_press_ms=trigger.delay_before_press_ms,
+            )
+
+        result = await state.preflight.tab.downloads.trigger_and_wait(
+            invoke,
+            download_dir=state.download_dir,
+            timeout=remaining,
+        )
+    elif isinstance(trigger, KeyboardDownloadTriggerInput):
+
+        async def invoke() -> Any:
+            return await state.preflight.tab.interaction.keyboard_press(
+                trigger.keys,
+                interval=trigger.interval,
+            )
+
+        result = await state.preflight.tab.downloads.trigger_and_wait(
+            invoke,
+            download_dir=state.download_dir,
+            timeout=remaining,
+        )
+    else:
+        result = await state.preflight.tab.downloads.click_and_wait(
+            state.preflight.element,
+            download_dir=state.download_dir,
+            timeout=remaining,
+        )
     if (
         args.expected_filename is not None
         and result["filename"] != args.expected_filename
@@ -359,7 +459,12 @@ def _complete_download_success(
     state.reserved = False
     state.committed = True
     try:
-        context.record_capability_probe(_download_probe("supported"))
+        context.record_capability_probe(
+            _download_probe(
+                "supported",
+                name=_download_capability_name(preflight.trigger),
+            )
+        )
     except Exception:
         pass
 
@@ -474,7 +579,54 @@ def _download_data(
     validated: dict[str, Any] = ElementClickAndDownloadData.model_validate(
         data
     ).model_dump(mode="json")
+    selector_fields = (
+        "selector",
+        "locator",
+        "selector_strategy",
+        "selector_normalized",
+        "target_kind",
+        "frame_selectors",
+        "shadow_hosts",
+        "role",
+        "name",
+        "exact",
+    )
+    if "trigger" in state.preflight.target_metadata:
+        for field in selector_fields:
+            validated.pop(field, None)
+    else:
+        validated.pop("trigger", None)
+        validated["target_kind"] = validated["target_kind"] or "selector"
+        validated["frame_selectors"] = validated["frame_selectors"] or []
+        validated["shadow_hosts"] = validated["shadow_hosts"] or []
     return validated
+
+
+def _download_trigger_payload(
+    trigger: DownloadTriggerArg,
+) -> str | dict[str, object]:
+    if isinstance(
+        trigger,
+        (CoordinateDownloadTriggerInput, KeyboardDownloadTriggerInput),
+    ):
+        return trigger.model_dump(mode="json")
+    return target_payload(trigger)
+
+
+def _public_trigger_metadata(
+    trigger: CoordinateDownloadTriggerInput | KeyboardDownloadTriggerInput,
+) -> dict[str, Any]:
+    if isinstance(trigger, CoordinateDownloadTriggerInput):
+        return trigger.model_dump(mode="json")
+    return {
+        "kind": "keyboard",
+        "keys": {
+            "provided": bool(trigger.keys),
+            "length": len(trigger.keys),
+            "redacted": True,
+        },
+        "interval": trigger.interval,
+    }
 
 
 async def _drain_cleanup(
@@ -546,9 +698,12 @@ def _validate_task_download_directory(root: Path, task_id: str) -> None:
         )
 
 
-def _validate_download_capability(context: DrissionPageContext) -> None:
+def _validate_download_capability(
+    context: DrissionPageContext,
+    capability_name: str,
+) -> None:
     for capability in context.capability_set().capabilities:
-        if capability.name == "download.click_and_wait" and capability.status in {
+        if capability.name == capability_name and capability.status in {
             "unsupported",
             "degraded",
         }:
@@ -558,10 +713,13 @@ def _validate_download_capability(context: DrissionPageContext) -> None:
 
 
 def _download_probe(
-    status: Literal["supported", "unsupported"], reason: str | None = None
+    status: Literal["supported", "unsupported"],
+    reason: str | None = None,
+    *,
+    name: str = "download.click_and_wait",
 ) -> CapabilityProbe:
     return CapabilityProbe(
-        name="download.click_and_wait",
+        name=name,
         status=status,
         evidence_source="runtime_probe"
         if status == "unsupported"
@@ -569,6 +727,15 @@ def _download_probe(
         reason_code=reason,
         checked_at=datetime.now(timezone.utc),
     )
+
+
+def _download_capability_name(trigger: DownloadTriggerArg) -> str:
+    if isinstance(
+        trigger,
+        (CoordinateDownloadTriggerInput, KeyboardDownloadTriggerInput),
+    ):
+        return "download.trigger_and_wait"
+    return "download.click_and_wait"
 
 
 def _receipt(
