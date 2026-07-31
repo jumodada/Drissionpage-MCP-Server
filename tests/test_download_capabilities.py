@@ -9,6 +9,7 @@ import os
 import shutil
 import threading
 import time
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
@@ -52,6 +53,20 @@ def test_click_and_download_input_is_strict_bounded_and_path_safe() -> None:
         }
     )
     assert structured.selector.kind == "accessibility"
+    coordinate = ElementClickAndDownloadInput(
+        selector={
+            "kind": "coordinate",
+            "x": 125.5,
+            "y": 80,
+            "profile": "natural",
+            "delay_before_press_ms": 25,
+        }
+    )
+    assert coordinate.selector.kind == "coordinate"
+    keyboard = ElementClickAndDownloadInput(
+        selector={"kind": "keyboard", "keys": "\ue007", "interval": 0.1}
+    )
+    assert keyboard.selector.kind == "keyboard"
     with pytest.raises(ValidationError):
         ElementClickAndDownloadInput(selector="")
     with pytest.raises(ValidationError):
@@ -68,6 +83,19 @@ def test_click_and_download_input_is_strict_bounded_and_path_safe() -> None:
     for timeout in (0, 121):
         with pytest.raises(ValidationError):
             ElementClickAndDownloadInput(selector="#download", timeout=timeout)
+    for trigger in (
+        {"kind": "coordinate", "x": -1, "y": 0},
+        {"kind": "coordinate", "x": 0, "y": 100001},
+        {"kind": "coordinate", "x": 0, "y": 0, "profile": "curved"},
+        {"kind": "coordinate", "x": 0, "y": 0, "delay_before_press_ms": 10001},
+        {"kind": "keyboard", "keys": ""},
+        {"kind": "keyboard", "keys": "x" * 257},
+        {"kind": "keyboard", "keys": "x", "interval": -0.1},
+        {"kind": "keyboard", "keys": "x", "interval": 2.1},
+        {"kind": "keyboard", "keys": "x", "unexpected": True},
+    ):
+        with pytest.raises(ValidationError):
+            ElementClickAndDownloadInput(selector=trigger)  # type: ignore[arg-type]
     with pytest.raises(ValidationError):
         ElementClickAndDownloadInput(  # type: ignore[call-arg]
             selector="#download", unexpected=True
@@ -95,10 +123,14 @@ class _FakeDownloads:
         self.started = started
         self.probed: list[object] = []
         self.clicked: list[object] = []
+        self.generic_triggers = 0
         self.cleanup_dirs: list[Path] = []
 
     def probe(self, element: object) -> None:
         self.probed.append(element)
+
+    def probe_trigger(self) -> None:
+        self.probed.append("trigger")
 
     async def click_and_wait(
         self,
@@ -125,9 +157,69 @@ class _FakeDownloads:
             "source_url": self.source_url,
         }
 
+    async def trigger_and_wait(
+        self,
+        trigger: Callable[[], Awaitable[object]],
+        *,
+        download_dir: Path,
+        timeout: float,
+    ) -> dict[str, object]:
+        self.generic_triggers += 1
+        await trigger()
+        if self.started is not None:
+            self.started.append(download_dir.name)
+        if self.barrier is not None:
+            await self.barrier.wait()
+        path = download_dir / self.filename
+        path.write_bytes(self.content)
+        if self.fail is not None:
+            raise self.fail
+        return {
+            "path": path.resolve(),
+            "filename": self.filename,
+            "mime_type": self.mime_type,
+            "size_bytes": len(self.content),
+            "sha256": hashlib.sha256(self.content).hexdigest(),
+            "source_url": self.source_url,
+        }
+
     async def cleanup(self, download_dir: Path) -> None:
         self.cleanup_dirs.append(download_dir)
         shutil.rmtree(download_dir, ignore_errors=True)
+
+
+class _FakePointer:
+    def __init__(self) -> None:
+        self.clicks: list[dict[str, object]] = []
+
+    async def click_at(
+        self,
+        x: float,
+        y: float,
+        *,
+        profile: str,
+        button: str,
+        delay_before_press_ms: int,
+    ) -> object:
+        self.clicks.append(
+            {
+                "x": x,
+                "y": y,
+                "profile": profile,
+                "button": button,
+                "delay_before_press_ms": delay_before_press_ms,
+            }
+        )
+        return object()
+
+
+class _FakeInteraction:
+    def __init__(self) -> None:
+        self.key_presses: list[dict[str, object]] = []
+
+    async def keyboard_press(self, keys: str, *, interval: float) -> object:
+        self.key_presses.append({"keys": keys, "interval": interval})
+        return object()
 
 
 class _FakeTab:
@@ -135,6 +227,8 @@ class _FakeTab:
         self.url = "https://example.test/download?private=secret"
         self.mcp_tab_id = "t0"
         self.downloads = downloads
+        self.pointer = _FakePointer()
+        self.interaction = _FakeInteraction()
         self.element = element if element is not None else object()
         self.element_lookups = 0
 
@@ -166,6 +260,126 @@ def _artifact(context: DrissionPageContext, artifact_id: str) -> ArtifactRef:
         source_url="https://example.test/existing.csv",
         created_at=datetime.now(timezone.utc),
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("trigger_kind", ["coordinate", "keyboard"])
+async def test_coordinate_and_keyboard_downloads_trigger_once_and_replay_redacted(
+    monkeypatch, tmp_path: Path, trigger_kind: str
+) -> None:
+    root = tmp_path / "downloads"
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(root))
+    downloads = _FakeDownloads()
+    context, tab = _context_with_downloads(downloads)
+    secret_keys = "secret-enter-\ue007"
+    trigger: dict[str, object]
+    if trigger_kind == "coordinate":
+        trigger = {
+            "kind": "coordinate",
+            "x": 125.5,
+            "y": 80,
+            "profile": "natural",
+            "delay_before_press_ms": 25,
+        }
+    else:
+        trigger = {"kind": "keyboard", "keys": secret_keys, "interval": 0.1}
+    args = ElementClickAndDownloadInput(
+        selector=trigger,  # type: ignore[arg-type]
+        operation_key=f"{trigger_kind}-download",
+        timeout=2,
+    )
+
+    outcome = await element_click_and_download.execute(context, args)
+
+    assert outcome.is_error is False
+    data = outcome.structured_content()["data"]
+    assert data["status"] == "success"
+    assert "selector" not in data
+    assert "locator" not in data
+    assert data["trigger"]["kind"] == trigger_kind
+    assert downloads.probed == ["trigger"]
+    assert downloads.generic_triggers == 1
+    if trigger_kind == "coordinate":
+        assert tab.pointer.clicks == [
+            {
+                "x": 125.5,
+                "y": 80.0,
+                "profile": "natural",
+                "button": "left",
+                "delay_before_press_ms": 25,
+            }
+        ]
+        changed = {**trigger, "x": 126}
+    else:
+        assert tab.interaction.key_presses == [
+            {"keys": secret_keys, "interval": 0.1}
+        ]
+        assert data["trigger"]["keys"] == {
+            "provided": True,
+            "length": len(secret_keys),
+            "redacted": True,
+        }
+        assert secret_keys not in json.dumps(data, ensure_ascii=False)
+        changed = {**trigger, "keys": "different-secret"}
+
+    replay = await element_click_and_download.execute(context, args)
+    assert replay.is_error is False
+    assert replay.structured_content()["data"] == data
+    assert downloads.generic_triggers == 1
+
+    conflict = await element_click_and_download.execute(
+        context,
+        ElementClickAndDownloadInput(
+            selector=changed,  # type: ignore[arg-type]
+            operation_key=args.operation_key,
+            timeout=args.timeout,
+        ),
+    )
+    assert conflict.is_error is True
+    assert conflict.structured_content()["error"]["code"] == "OPERATION_KEY_CONFLICT"
+    assert downloads.generic_triggers == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("trigger_kind", ["coordinate", "keyboard"])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        DownloadFailedError("browser canceled"),
+        DownloadIndeterminateError("mission timed out"),
+    ],
+    ids=["terminal-failure", "timeout"],
+)
+async def test_coordinate_and_keyboard_download_failures_clean_and_do_not_retrigger(
+    monkeypatch,
+    tmp_path: Path,
+    trigger_kind: str,
+    failure: Exception,
+) -> None:
+    root = tmp_path / "downloads"
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(root))
+    downloads = _FakeDownloads(fail=failure)
+    context, _tab = _context_with_downloads(downloads)
+    trigger = (
+        {"kind": "coordinate", "x": 10, "y": 20}
+        if trigger_kind == "coordinate"
+        else {"kind": "keyboard", "keys": "\ue007"}
+    )
+    args = ElementClickAndDownloadInput(
+        selector=trigger,  # type: ignore[arg-type]
+        operation_key=f"{trigger_kind}-failure",
+        timeout=1,
+    )
+
+    first = await element_click_and_download.execute(context, args)
+    replay = await element_click_and_download.execute(context, args)
+
+    assert first.is_error is True
+    assert replay.is_error is True
+    assert replay.structured_content()["data"] == first.structured_content()["data"]
+    assert downloads.generic_triggers == 1
+    assert not [path for path in root.rglob("*") if path.is_file()]
+    assert list(context._artifacts.values()) == []
 
 
 def test_artifact_reservations_are_bound_to_their_artifact_ids() -> None:
@@ -284,6 +498,45 @@ async def test_recorded_unsupported_download_denies_before_tab_or_click(
 
 
 @pytest.mark.asyncio
+async def test_recorded_selector_download_failure_does_not_block_generic_trigger(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(tmp_path / "downloads"))
+    downloads = _FakeDownloads()
+    context, _tab = _context_with_downloads(downloads)
+    context.set_capability_set(
+        CapabilitySet(
+            overall_status="unsupported",
+            capabilities=(
+                CapabilityProbe(
+                    name="download.click_and_wait",
+                    status="unsupported",
+                    evidence_source="runtime_probe",
+                    reason_code="CLICK_TO_DOWNLOAD_API_UNAVAILABLE",
+                    checked_at=datetime.now(timezone.utc),
+                ),
+            ),
+        )
+    )
+
+    outcome = await element_click_and_download.execute(
+        context,
+        ElementClickAndDownloadInput(
+            selector={"kind": "coordinate", "x": 10, "y": 20},
+            operation_key="generic-after-selector-probe",
+            timeout=1,
+        ),
+    )
+
+    assert outcome.is_error is False
+    assert downloads.probed == ["trigger"]
+    assert downloads.generic_triggers == 1
+    probes = {probe.name: probe for probe in context.capability_set().capabilities}
+    assert probes["download.click_and_wait"].status == "unsupported"
+    assert probes["download.trigger_and_wait"].status == "supported"
+
+
+@pytest.mark.asyncio
 async def test_artifact_ledger_full_denies_before_claim_click_or_receipt(
     monkeypatch, tmp_path: Path
 ) -> None:
@@ -331,6 +584,13 @@ async def test_download_success_uses_preflight_element_and_returns_safe_artifact
     data = outcome.structured_content()["data"]
     assert data["status"] == "success"
     assert data["operation_key"] == "download-success"
+    assert data["target_kind"] == "selector"
+    assert data["frame_selectors"] == []
+    assert data["shadow_hosts"] == []
+    assert data["role"] is None
+    assert data["name"] is None
+    assert data["exact"] is None
+    assert "trigger" not in data
     artifact = data["artifact"]
     assert artifact["filename"] == "fixture-report.csv"
     assert artifact["mime_type"] == "text/csv"
@@ -1120,6 +1380,39 @@ async def test_browser_probe_unsupported_api_records_probe_without_click(
     assert list(context._artifacts.values()) == []
 
 
+@pytest.mark.asyncio
+async def test_generic_browser_probe_unsupported_records_distinct_capability(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("DP_MCP_DOWNLOAD_ROOT", str(tmp_path / "downloads"))
+
+    class UnsupportedDownloads(_FakeDownloads):
+        def probe_trigger(self) -> None:
+            self.probed.append("trigger")
+            raise DownloadUnsupportedError("DOWNLOAD_MISSION_API_UNAVAILABLE")
+
+    downloads = UnsupportedDownloads()
+    context, _tab = _context_with_downloads(downloads)
+
+    outcome = await element_click_and_download.execute(
+        context,
+        ElementClickAndDownloadInput(
+            selector={"kind": "keyboard", "keys": "\ue007"},
+            operation_key="unsupported-generic-download",
+            timeout=1,
+        ),
+    )
+
+    assert outcome.is_error is True
+    assert outcome.structured_content()["error"]["code"] == "UNSUPPORTED_OPERATION"
+    assert downloads.probed == ["trigger"]
+    assert downloads.generic_triggers == 0
+    probe = context.capability_set().capabilities[-1]
+    assert probe.name == "download.trigger_and_wait"
+    assert probe.status == "unsupported"
+    assert probe.reason_code == "DOWNLOAD_MISSION_API_UNAVAILABLE"
+
+
 def test_browser_probe_rejects_missing_download_manager() -> None:
     downloads = DownloadOperations(SimpleNamespace(page=SimpleNamespace(browser=None)))  # type: ignore[arg-type]
 
@@ -1144,6 +1437,693 @@ def test_browser_probe_rejects_incompatible_click_api() -> None:
         )
 
     assert exc_info.value.reason_code == "CLICK_TO_DOWNLOAD_API_UNAVAILABLE"
+
+
+@pytest.mark.parametrize(
+    ("page", "reason_code"),
+    [
+        (SimpleNamespace(browser=None), "DOWNLOAD_MANAGER_UNAVAILABLE"),
+        (
+            SimpleNamespace(
+                browser=SimpleNamespace(
+                    _dl_mgr=SimpleNamespace(missions={}, _waiting_tab=set())
+                ),
+                tab_id="tab-1",
+                set=SimpleNamespace(download_path=lambda _path: None),
+            ),
+            "DOWNLOAD_MISSION_API_UNAVAILABLE",
+        ),
+        (
+            SimpleNamespace(
+                browser=SimpleNamespace(
+                    _dl_mgr=SimpleNamespace(
+                        missions={},
+                        _waiting_tab=[],
+                        set_flag=lambda _tab_id, _value: None,
+                        get_flag=lambda _tab_id: True,
+                    )
+                ),
+                tab_id="tab-1",
+                set=SimpleNamespace(download_path=lambda _path: None),
+            ),
+            "DOWNLOAD_WAITING_TAB_API_UNAVAILABLE",
+        ),
+        (
+            SimpleNamespace(
+                browser=SimpleNamespace(
+                    _dl_mgr=SimpleNamespace(
+                        missions={},
+                        _waiting_tab=set(),
+                        set_flag=lambda _tab_id, _value: None,
+                        get_flag=lambda _tab_id: True,
+                    )
+                ),
+                tab_id="",
+                set=SimpleNamespace(download_path=lambda _path: None),
+            ),
+            "DOWNLOAD_TAB_ID_UNAVAILABLE",
+        ),
+        (
+            SimpleNamespace(
+                browser=SimpleNamespace(
+                    _dl_mgr=SimpleNamespace(
+                        missions={},
+                        _waiting_tab=set(),
+                        set_flag=lambda _tab_id, _value: None,
+                        get_flag=lambda _tab_id: True,
+                    )
+                ),
+                tab_id="tab-1",
+                set=SimpleNamespace(),
+            ),
+            "DOWNLOAD_PATH_API_UNAVAILABLE",
+        ),
+    ],
+)
+def test_generic_download_probe_rejects_missing_native_primitives(
+    page: object,
+    reason_code: str,
+) -> None:
+    downloads = DownloadOperations(SimpleNamespace(page=page))  # type: ignore[arg-type]
+
+    with pytest.raises(DownloadUnsupportedError) as exc_info:
+        downloads.probe_trigger()
+
+    assert exc_info.value.reason_code == reason_code
+
+
+def _generic_download_boundary(
+    tmp_path: Path,
+) -> tuple[DownloadOperations, object, object]:
+    class Manager:
+        def __init__(self) -> None:
+            self.missions: dict[str, object] = {}
+            self._waiting_tab: set[str] = set()
+            self.flags: dict[str, object] = {}
+
+        def set_flag(self, tab_id: str, value: object) -> None:
+            self.flags[tab_id] = value
+
+        def get_flag(self, tab_id: str) -> object:
+            return self.flags.get(tab_id)
+
+    manager = Manager()
+    page = SimpleNamespace(
+        browser=SimpleNamespace(_dl_mgr=manager),
+        tab_id="native-tab-1",
+        download_path=str(tmp_path / "original"),
+    )
+
+    class Setter:
+        def __init__(self) -> None:
+            self.paths: list[str] = []
+
+        def download_path(self, value: str) -> None:
+            self.paths.append(value)
+            page.download_path = value
+
+    setter = Setter()
+    page.set = setter
+    return (
+        DownloadOperations(SimpleNamespace(page=page)),  # type: ignore[arg-type]
+        manager,
+        setter,
+    )
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_arms_before_callback_and_restores_native_state(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+
+    async def trigger() -> None:
+        assert manager.flags["native-tab-1"] is True
+        assert manager._waiting_tab == {"native-tab-1"}
+        assert setter.paths[-1] == str(download_dir)
+        path = download_dir / "report.csv"
+        path.write_bytes(DOWNLOAD_BYTES)
+        manager.set_flag("native-tab-1", Mission(path))
+
+    result = await downloads.trigger_and_wait(
+        trigger,
+        download_dir=download_dir,
+        timeout=1,
+    )
+
+    assert result["path"] == (download_dir / "report.csv").resolve()
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_timeout_restores_native_state(tmp_path: Path) -> None:
+    download_dir = tmp_path / "action-timeout"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+
+    async def trigger() -> None:
+        return None
+
+    with pytest.raises(DownloadIndeterminateError):
+        await downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=0.01,
+        )
+
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_kind", ["exception", "cancelled"])
+async def test_generic_trigger_failure_restores_state(
+    tmp_path: Path,
+    failure_kind: str,
+) -> None:
+    download_dir = tmp_path / f"action-{failure_kind}"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+
+    async def trigger() -> None:
+        if failure_kind == "cancelled":
+            raise asyncio.CancelledError
+        raise RuntimeError("trigger failed")
+
+    expected = (
+        asyncio.CancelledError
+        if failure_kind == "cancelled"
+        else DownloadIndeterminateError
+    )
+    with pytest.raises(expected):
+        await downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=1,
+        )
+
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_polls_until_mission_is_correlated(tmp_path: Path) -> None:
+    download_dir = tmp_path / "action-delayed-mission"
+    download_dir.mkdir()
+    downloads, manager, _setter = _generic_download_boundary(tmp_path)
+    published = asyncio.Event()
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+
+    async def publish() -> None:
+        await asyncio.sleep(0.01)
+        path = download_dir / "report.csv"
+        path.write_bytes(DOWNLOAD_BYTES)
+        manager.set_flag("native-tab-1", Mission(path))
+        published.set()
+
+    async def trigger() -> None:
+        asyncio.create_task(publish())
+
+    result = await downloads.trigger_and_wait(
+        trigger,
+        download_dir=download_dir,
+        timeout=1,
+    )
+
+    assert published.is_set()
+    assert result["path"] == (download_dir / "report.csv").resolve()
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_manager_failure_is_indeterminate_and_restores_path(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action-manager-failure"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+
+    def fail_get_flag(_tab_id: str) -> object:
+        raise RuntimeError("manager failed")
+
+    manager.get_flag = fail_get_flag
+
+    async def trigger() -> None:
+        return None
+
+    with pytest.raises(DownloadIndeterminateError):
+        await downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=1,
+        )
+
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_restore_failure_cancels_correlated_mission(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action-restore-failure"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+    real_set_download_path = setter.download_path
+
+    class Mission:
+        state = "running"
+        is_done = False
+        final_path = None
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self) -> None:
+            self.cancel_calls = 0
+
+        def cancel(self) -> None:
+            self.cancel_calls += 1
+
+    mission = Mission()
+
+    def fail_restore(value: str) -> None:
+        if setter.paths:
+            raise RuntimeError("restore failed")
+        real_set_download_path(value)
+
+    setter.download_path = fail_restore
+
+    async def trigger() -> None:
+        manager.set_flag("native-tab-1", mission)
+
+    with pytest.raises(DownloadIndeterminateError):
+        await downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=1,
+        )
+
+    assert mission.cancel_calls == 1
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_cancels_mission_discovered_after_deadline(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action-late-mission"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+            self.cancel_calls = 0
+
+        def cancel(self) -> None:
+            self.cancel_calls += 1
+
+    path = download_dir / "report.csv"
+    path.write_bytes(DOWNLOAD_BYTES)
+    mission = Mission(path)
+
+    async def trigger() -> None:
+        manager.set_flag("native-tab-1", mission)
+        await asyncio.sleep(0.02)
+
+    with pytest.raises(DownloadIndeterminateError):
+        await downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=0.01,
+        )
+
+    assert mission.cancel_calls == 1
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_cancels_mission_started_during_timeout_drain(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action-drain-mission"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+
+    class Mission:
+        state = "running"
+        is_done = False
+        final_path = None
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self) -> None:
+            self.cancel_calls = 0
+
+        def cancel(self) -> None:
+            self.cancel_calls += 1
+
+    mission = Mission()
+
+    async def trigger() -> None:
+        try:
+            await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            manager.set_flag("native-tab-1", mission)
+
+    with pytest.raises(DownloadIndeterminateError):
+        await downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=0.01,
+        )
+
+    assert mission.cancel_calls == 1
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_guards_delayed_browser_mission_after_timeout(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action-delayed-browser-event"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+    published = asyncio.Event()
+
+    class Mission:
+        state = "running"
+        is_done = False
+        final_path = None
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self) -> None:
+            self.cancel_calls = 0
+
+        def cancel(self) -> None:
+            self.cancel_calls += 1
+
+    mission = Mission()
+
+    async def publish_late() -> None:
+        await asyncio.sleep(0.03)
+        assert manager.flags["native-tab-1"] is False
+        assert manager._waiting_tab == {"native-tab-1"}
+        assert setter.paths[-1] == str(download_dir)
+        manager.set_flag("native-tab-1", mission)
+        published.set()
+
+    async def trigger() -> None:
+        asyncio.create_task(publish_late())
+
+    with pytest.raises(DownloadIndeterminateError):
+        await downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=0.01,
+        )
+
+    assert published.is_set()
+    assert mission.cancel_calls == 1
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_guards_delayed_browser_mission_after_error(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action-delayed-error-event"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+    published = asyncio.Event()
+    observed_state: dict[str, object] = {}
+
+    class Mission:
+        state = "running"
+        is_done = False
+        final_path = None
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self) -> None:
+            self.cancel_calls = 0
+
+        def cancel(self) -> None:
+            self.cancel_calls += 1
+
+    mission = Mission()
+
+    async def publish_late() -> None:
+        await asyncio.sleep(0.03)
+        observed_state["flag"] = manager.flags["native-tab-1"]
+        observed_state["waiting"] = set(manager._waiting_tab)
+        observed_state["path"] = setter.paths[-1]
+        manager.set_flag("native-tab-1", mission)
+        published.set()
+
+    async def trigger() -> None:
+        asyncio.create_task(publish_late())
+        raise RuntimeError("trigger failed after dispatch")
+
+    with pytest.raises(DownloadIndeterminateError):
+        await downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=1,
+        )
+
+    await asyncio.wait_for(published.wait(), timeout=0.5)
+    assert observed_state == {
+        "flag": False,
+        "waiting": {"native-tab-1"},
+        "path": str(download_dir),
+    }
+    assert mission.cancel_calls == 1
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_deadline_can_expire_while_waiting_for_lock(
+    tmp_path: Path,
+) -> None:
+    first_dir = tmp_path / "first-trigger-lock"
+    second_dir = tmp_path / "second-trigger-lock"
+    first_dir.mkdir()
+    second_dir.mkdir()
+    downloads, manager, _setter = _generic_download_boundary(tmp_path)
+    first_started = asyncio.Event()
+    release_first = asyncio.Event()
+    second_calls = 0
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+
+    async def first_trigger() -> None:
+        first_started.set()
+        await release_first.wait()
+        path = first_dir / "report.csv"
+        path.write_bytes(DOWNLOAD_BYTES)
+        manager.set_flag("native-tab-1", Mission(path))
+
+    async def second_trigger() -> None:
+        nonlocal second_calls
+        second_calls += 1
+
+    first = asyncio.create_task(
+        downloads.trigger_and_wait(
+            first_trigger,
+            download_dir=first_dir,
+            timeout=1,
+        )
+    )
+    await first_started.wait()
+    second = asyncio.create_task(
+        downloads.trigger_and_wait(
+            second_trigger,
+            download_dir=second_dir,
+            timeout=0.01,
+        )
+    )
+    await asyncio.sleep(0.02)
+    release_first.set()
+
+    await first
+    with pytest.raises(DownloadIndeterminateError):
+        await second
+    assert second_calls == 0
+
+
+@pytest.mark.asyncio
+async def test_generic_trigger_cancellation_drains_callback_and_restores_state(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action-cancel"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self, path: Path) -> None:
+            self.final_path = str(path)
+
+    async def trigger() -> None:
+        started.set()
+        await release.wait()
+        path = download_dir / "report.csv"
+        path.write_bytes(DOWNLOAD_BYTES)
+        manager.set_flag("native-tab-1", Mission(path))
+
+    task = asyncio.create_task(
+        downloads.trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=1,
+        )
+    )
+    await started.wait()
+    task.cancel()
+    await asyncio.sleep(0)
+    assert task.done() is False
+    release.set()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_internal_generic_boundary_cancellation_cancels_trigger_and_mission(
+    tmp_path: Path,
+) -> None:
+    download_dir = tmp_path / "action-internal-cancel"
+    download_dir.mkdir()
+    downloads, manager, setter = _generic_download_boundary(tmp_path)
+    started = asyncio.Event()
+
+    class Mission:
+        state = "running"
+        is_done = False
+        final_path = None
+        name = "report.csv"
+        url = "https://example.test/report.csv"
+
+        def __init__(self) -> None:
+            self.cancel_calls = 0
+
+        def cancel(self) -> None:
+            self.cancel_calls += 1
+
+    mission = Mission()
+
+    async def trigger() -> None:
+        manager.set_flag("native-tab-1", mission)
+        started.set()
+        await asyncio.sleep(1)
+
+    task = asyncio.create_task(
+        downloads._trigger_and_wait(
+            trigger,
+            download_dir=download_dir,
+            timeout=1,
+        )
+    )
+    await started.wait()
+    await asyncio.sleep(0.01)
+    task.cancel()
+
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert mission.cancel_calls == 1
+    assert manager.flags["native-tab-1"] is None
+    assert manager._waiting_tab == set()
+    assert setter.paths == [str(download_dir), str(tmp_path / "original")]
+
+
+@pytest.mark.asyncio
+async def test_correlated_completed_mission_cannot_validate_after_deadline(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "expired.csv"
+    path.write_bytes(DOWNLOAD_BYTES)
+
+    class Mission:
+        state = "completed"
+        is_done = True
+        name = "expired.csv"
+        url = "https://example.test/expired.csv"
+
+        def __init__(self) -> None:
+            self.final_path = str(path)
+            self.cancel_calls = 0
+
+        def cancel(self) -> None:
+            self.cancel_calls += 1
+
+    mission = Mission()
+    downloads = DownloadOperations(SimpleNamespace(page=SimpleNamespace()))  # type: ignore[arg-type]
+
+    with pytest.raises(DownloadIndeterminateError):
+        await downloads._mission_result(
+            mission,
+            download_dir=tmp_path,
+            deadline=time.monotonic() - 1,
+        )
+
+    assert mission.cancel_calls == 1
 
 
 @pytest.mark.asyncio

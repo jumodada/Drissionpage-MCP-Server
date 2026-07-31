@@ -574,8 +574,110 @@ class ElementClickAndDownloadIndeterminateReceipt(ActionReceipt):
     artifact_ids: Annotated[tuple[ContractId, ...], Field(max_length=0)] = ()
 
 
-class _ElementClickAndDownloadDataBase(ElementTargetData):
+class CoordinateDownloadTriggerData(ToolData):
+    kind: Literal["coordinate"]
+    x: Annotated[float, Field(ge=0, le=100000)]
+    y: Annotated[float, Field(ge=0, le=100000)]
+    profile: Literal["direct", "natural"]
+    delay_before_press_ms: Annotated[int, Field(ge=0, le=10000)]
+
+
+class KeyboardInputMetadata(ToolData):
+    provided: bool
+    length: Annotated[int, Field(ge=0)]
+    redacted: Literal[True]
+
+
+class KeyboardDownloadTriggerData(ToolData):
+    kind: Literal["keyboard"]
+    keys: KeyboardInputMetadata
+    interval: Annotated[float, Field(ge=0, le=2)]
+
+
+DownloadTriggerData = Annotated[
+    CoordinateDownloadTriggerData | KeyboardDownloadTriggerData,
+    Field(discriminator="kind"),
+]
+
+
+class _ElementClickAndDownloadDataBase(ToolData):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "oneOf": [
+                {
+                    "required": [
+                        "selector",
+                        "locator",
+                        "selector_strategy",
+                        "selector_normalized",
+                    ],
+                    "properties": {
+                        "selector": {"type": "string"},
+                        "locator": {"type": "string"},
+                        "selector_strategy": {"type": "string"},
+                        "selector_normalized": {"type": "boolean"},
+                    },
+                    "not": {"required": ["trigger"]},
+                },
+                {
+                    "required": ["trigger"],
+                    "properties": {"trigger": {"not": {"type": "null"}}},
+                    "not": {
+                        "anyOf": [
+                            {"required": ["selector"]},
+                            {"required": ["locator"]},
+                            {"required": ["selector_strategy"]},
+                            {"required": ["selector_normalized"]},
+                            {"required": ["target_kind"]},
+                            {"required": ["frame_selectors"]},
+                            {"required": ["shadow_hosts"]},
+                            {"required": ["role"]},
+                            {"required": ["name"]},
+                            {"required": ["exact"]},
+                        ]
+                    },
+                },
+            ]
+        }
+    )
+
     operation_key: str
+    selector: str | None = None
+    locator: str | None = None
+    selector_strategy: str | None = None
+    selector_normalized: bool | None = None
+    target_kind: Literal["selector", "accessibility"] | None = None
+    frame_selectors: list[str] | None = None
+    shadow_hosts: list[str] | None = None
+    role: str | None = None
+    name: str | None = None
+    exact: bool | None = None
+    trigger: DownloadTriggerData | None = None
+
+    @model_validator(mode="after")
+    def validate_target_shape(self) -> _ElementClickAndDownloadDataBase:
+        selector_fields = (
+            self.selector,
+            self.locator,
+            self.selector_strategy,
+            self.selector_normalized,
+        )
+        if self.trigger is None and any(value is None for value in selector_fields):
+            raise ValueError("selector download results require selector metadata")
+        if self.trigger is not None and any(
+            value is not None
+            for value in (
+                *selector_fields,
+                self.target_kind,
+                self.frame_selectors,
+                self.shadow_hosts,
+                self.role,
+                self.name,
+                self.exact,
+            )
+        ):
+            raise ValueError("non-selector download results cannot include selector metadata")
+        return self
 
 
 class ElementClickAndDownloadSuccessData(_ElementClickAndDownloadDataBase):
@@ -702,7 +804,7 @@ class ElementHoverData(ElementTargetData):
 
 
 class KeyboardPressData(ToolData):
-    keys: str
+    keys: KeyboardInputMetadata
     interval: float
     url: str
 

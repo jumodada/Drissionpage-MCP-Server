@@ -654,7 +654,15 @@ class FakeTab:
 
     async def keyboard_press(self, keys: str, *, interval: float = 0) -> dict[str, Any]:
         self._record("keyboard_press", keys, interval=interval)
-        return {"keys": keys, "interval": interval, "url": self.url}
+        return {
+            "keys": {
+                "provided": bool(keys),
+                "length": len(keys),
+                "redacted": True,
+            },
+            "interval": interval,
+            "url": self.url,
+        }
 
     async def select_element(
         self, selector: str, *, value: str, by: str = "value", timeout: int = 10
@@ -923,7 +931,7 @@ class FakeTab:
         return {"count": len(urls), "urls": urls, "set": True}
 
     async def get(
-        self, *, area: str = "local", key: str = "", include_values: bool = True
+        self, *, area: str = "local", key: str = "", include_values: bool = False
     ) -> dict[str, Any]:
         self._record("storage_get", area=area, key=key, include_values=include_values)
         return {
@@ -1288,13 +1296,17 @@ async def test_file_and_interaction_tools_success_paths(monkeypatch, tmp_path) -
     keyboard_response = await _execute(
         interaction.keyboard_press,
         ctx,
-        interaction.KeyboardPressInput(keys="abc", interval=0.01),
+        interaction.KeyboardPressInput(keys="callback-secret", interval=0.01),
     )
     assert keyboard_response.structured_content()["data"] == {
-        "keys": "abc",
+        "keys": {"provided": True, "length": 15, "redacted": True},
         "interval": 0.01,
         "url": "https://example.test/current",
     }
+    response_text = "\n".join(
+        getattr(block, "text", "") for block in keyboard_response.content()
+    )
+    assert "callback-secret" not in response_text
     select_response = await _execute(
         interaction.element_select,
         ctx,
@@ -1410,6 +1422,14 @@ async def test_frame_shadow_and_storage_tools_success_paths() -> None:
         storage.BrowserCookiesClearInput(),
     )
     assert cookies_clear_response.structured_content()["data"] == {"cleared": True}
+    storage_get_response = await _execute(
+        storage.storage_get,
+        ctx,
+        storage.StorageGetInput(area="local"),
+    )
+    assert storage_get_response.structured_content()["data"]["items"] == {
+        "mode": "<redacted>"
+    }
     storage_get_response = await _execute(
         storage.storage_get,
         ctx,

@@ -101,7 +101,7 @@ class StorageOperations:
             raise
 
     async def get(
-        self, *, area: str = "local", key: str = "", include_values: bool = True
+        self, *, area: str = "local", key: str = "", include_values: bool = False
     ) -> dict[str, Any]:
         """Read localStorage or sessionStorage."""
 
@@ -188,7 +188,7 @@ class StorageOperations:
         ]
 
     def _get(
-        self, *, area: str = "local", key: str = "", include_values: bool = True
+        self, *, area: str = "local", key: str = "", include_values: bool = False
     ) -> dict[str, Any]:
         storage_name = _storage_name(area)
         script = f"""

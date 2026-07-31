@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- `storage_get` now redacts non-empty localStorage and sessionStorage values by default; callers must set `include_values=true` to return values.
+- `keyboard_press` now returns redacted input metadata instead of echoing the supplied text/key sequence.
+
 ## [0.7.9] - 2026-07-29
 
 ### Fixed

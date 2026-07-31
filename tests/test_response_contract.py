@@ -557,6 +557,54 @@ def test_click_and_download_output_schema_validates_artifact_receipt_link() -> N
         validate(payload, schema)
 
 
+def test_click_and_download_output_schema_accepts_redacted_keyboard_trigger() -> None:
+    payload = _click_and_download_error_payload()
+    data = payload["data"]
+    assert isinstance(data, dict)
+    for field in (
+        "selector",
+        "locator",
+        "selector_strategy",
+        "selector_normalized",
+    ):
+        data.pop(field)
+    data["trigger"] = {
+        "kind": "keyboard",
+        "keys": {"provided": True, "length": 1, "redacted": True},
+        "interval": 0,
+    }
+
+    validate(payload, tool_result_output_schema("element_click_and_download"))
+
+
+@pytest.mark.parametrize("target_shape", ["missing", "mixed"])
+def test_click_and_download_output_schema_requires_exactly_one_target_shape(
+    target_shape: str,
+) -> None:
+    payload = _click_and_download_error_payload()
+    data = payload["data"]
+    assert isinstance(data, dict)
+    if target_shape == "missing":
+        for field in (
+            "selector",
+            "locator",
+            "selector_strategy",
+            "selector_normalized",
+        ):
+            data.pop(field)
+    else:
+        data["trigger"] = {
+            "kind": "coordinate",
+            "x": 10,
+            "y": 20,
+            "profile": "direct",
+            "delay_before_press_ms": 0,
+        }
+
+    with pytest.raises(ValidationError):
+        validate(payload, tool_result_output_schema("element_click_and_download"))
+
+
 def _click_and_download_error_payload() -> dict[str, object]:
     return {
         "ok": False,

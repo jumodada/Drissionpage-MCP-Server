@@ -109,7 +109,15 @@ class InteractionOperations:
             await self._tab._stabilize(
                 "keyboard_press", timeout=0.5, fallback_sleep=0.02
             )
-            return {"keys": keys, "interval": interval, "url": self._tab.url}
+            return {
+                "keys": {
+                    "provided": bool(keys),
+                    "length": len(keys),
+                    "redacted": True,
+                },
+                "interval": interval,
+                "url": self._tab.url,
+            }
         except Exception as exc:
             logger.error("Failed to press keyboard keys (%s)", type(exc).__name__)
             raise

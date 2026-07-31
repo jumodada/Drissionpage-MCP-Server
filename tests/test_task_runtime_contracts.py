@@ -307,6 +307,32 @@ def test_click_and_download_contract_accepts_correlated_success_and_failures() -
     assert failure.model_dump(mode="json")["artifact"] is None
 
 
+@pytest.mark.parametrize("target_shape", ["missing", "mixed"])
+def test_click_and_download_contract_requires_exactly_one_target_shape(
+    target_shape: str,
+) -> None:
+    payload = _download_data_payload(status="failed")
+    if target_shape == "missing":
+        for field in (
+            "selector",
+            "locator",
+            "selector_strategy",
+            "selector_normalized",
+        ):
+            payload.pop(field)
+    else:
+        payload["trigger"] = {
+            "kind": "coordinate",
+            "x": 10,
+            "y": 20,
+            "profile": "direct",
+            "delay_before_press_ms": 0,
+        }
+
+    with pytest.raises(ValidationError):
+        ElementClickAndDownloadData.model_validate(payload)
+
+
 @pytest.mark.parametrize(
     ("path", "value"),
     [

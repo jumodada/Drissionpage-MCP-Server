@@ -177,7 +177,10 @@ async def element_hover(
 @define_tool(
     name="keyboard_press",
     title="Keyboard Press",
-    description="Send keyboard text/keys to the active page element.",
+    description=(
+        "Send keyboard text/keys to the active page element without echoing the "
+        "input in the result."
+    ),
     input_schema=KeyboardPressInput,
     tool_type=ToolType.DESTRUCTIVE,
     output_model=KeyboardPressData,

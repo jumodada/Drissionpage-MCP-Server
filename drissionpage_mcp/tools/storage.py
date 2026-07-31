@@ -77,7 +77,10 @@ class StorageGetInput(ToolInput):
 
     area: StorageArea = Field(default="local")
     key: str = Field(default="", description="Optional key. Empty returns all keys.")
-    include_values: bool = Field(default=True)
+    include_values: bool = Field(
+        default=False,
+        description="Return storage values instead of redacting non-empty values.",
+    )
 
 
 class StorageSetInput(ToolInput):
@@ -193,7 +196,10 @@ async def browser_cookies_clear(
 @define_tool(
     name="storage_get",
     title="Get Web Storage",
-    description="Read localStorage or sessionStorage by key or as a bounded map.",
+    description=(
+        "Read localStorage or sessionStorage by key or as a bounded map, with "
+        "values redacted unless explicitly requested."
+    ),
     input_schema=StorageGetInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,

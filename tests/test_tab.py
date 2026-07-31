@@ -1297,7 +1297,7 @@ async def test_page_and_element_interaction_tools_cover_success_branches() -> No
 
     scrolled = await tab.interaction.scroll_element_into_view("#file", center=False)
     hovered = await tab.interaction.hover_element("#file", offset_x=3, offset_y=4)
-    await tab.interaction.keyboard_press("Hello", interval=0.01)
+    keyboard = await tab.interaction.keyboard_press("Hello", interval=0.01)
     uploaded = await tab.elements.upload("#file", ["/tmp/a.txt", "/var/tmp/b.bin"])
     await tab.interaction.select_element("#file", value="admin", by="value")
     await tab.interaction.select_element("#file", value="Admin", by="text")
@@ -1308,6 +1308,11 @@ async def test_page_and_element_interaction_tools_cover_success_branches() -> No
     assert element.scroll.center is False
     assert hovered["offset_x"] == 3
     assert element.hover_calls == [(3, 4)]
+    assert keyboard == {
+        "keys": {"provided": True, "length": 5, "redacted": True},
+        "interval": 0.01,
+        "url": "about:blank",
+    }
     assert page.actions.typed == ("Hello", 0.01)
     assert uploaded["file_count"] == 2
     assert uploaded["filenames"] == ["a.txt", "b.bin"]
@@ -1685,7 +1690,8 @@ async def test_cookie_storage_and_session_state_paths_are_normalized() -> None:
     page.cookie_payload = object()
     assert (await tab.storage.cookies_get())["cookies"] == []
 
-    storage = await tab.storage.get(area="local", include_values=False)
+    storage = await tab.storage.get(area="local")
+    assert storage["include_values"] is False
     assert storage["items"] == {"token": "<redacted>", "empty": ""}
     assert await tab.storage.set(area="session", key="mode", value="test") == {
         "area": "session",

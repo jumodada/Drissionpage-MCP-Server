@@ -26,6 +26,19 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
 
+## Unreleased Contract Changes
+
+- `keyboard_press` successful results no longer echo the supplied text/key
+  sequence. The `keys` field is redacted metadata containing `provided`,
+  `length`, and `redacted=true`.
+- `element_click_and_download.selector` keeps all existing string and structured
+  selector/accessibility forms and additionally accepts strict `coordinate` and
+  `keyboard` trigger objects. The public registry remains at 69 tools. Keyboard
+  trigger values are represented only by redacted length metadata; operation-key
+  replay and conflict detection still fingerprint the original request. Timed-out
+  generic triggers retain the approved path and download-cancel flag for a bounded
+  post-timeout guard before restoring the tab's prior download state.
+
 ## 0.7.8 to 0.7.9 Migration
 
 0.7.9 keeps all 69 public tool names and adds backward-compatible input and

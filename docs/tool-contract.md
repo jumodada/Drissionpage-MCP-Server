@@ -231,7 +231,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 | `browser_permissions_reset` | — | — |
 | `page_dialog_observe` | — | `timeout: number = 0`<br>`max_message_chars: integer = 2000` |
 | `page_dialog_respond` | `action: string` | `prompt_text: string / null = null`<br>`timeout: number = 0.0` |
-| `element_click_and_download` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `operation_key: string / null = null`<br>`timeout: number = 30.0`<br>`expected_filename: string / null = null`<br>`expected_mime_type: string / null = null` |
+| `element_click_and_download` | `selector: string / SelectorTargetInput / AccessibilityTargetInput / CoordinateDownloadTriggerInput / KeyboardDownloadTriggerInput` | `operation_key: string / null = null`<br>`timeout: number = 30.0`<br>`expected_filename: string / null = null`<br>`expected_mime_type: string / null = null` |
 | `page_console_logs` | — | `level: string = "all"`<br>`since: integer = -1`<br>`limit: integer = 20` |
 | `element_find` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `timeout: number = 3` |
 | `element_find_all` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `limit: integer = 20`<br>`include_html: boolean = false` |
@@ -259,7 +259,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 | `browser_cookies_set` | `cookies: array` | — |
 | `browser_cookies_delete` | `name: string` | `url: string / null = null`<br>`domain: string / null = null`<br>`path: string / null = null` |
 | `browser_cookies_clear` | — | — |
-| `storage_get` | — | `area: string = "local"`<br>`key: string = ""`<br>`include_values: boolean = true` |
+| `storage_get` | — | `area: string = "local"`<br>`key: string = ""`<br>`include_values: boolean = false` |
 | `storage_set` | `key: string`<br>`value: string` | `area: string = "local"` |
 | `storage_clear` | — | `area: string = "local"`<br>`key: string = ""` |
 | `wait_for_element` | `selector: string / SelectorTargetInput / AccessibilityTargetInput` | `timeout: number = 10` |
@@ -376,7 +376,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, recent console summary, and limits. Optional: `max_texts`, `max_text_chars`. |
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
 | `page_scroll` | Destructive | none | Scroll the page by direction or to a position. Optional: `direction`, `pixels`, `x`, `y`. |
-| `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Optional: `interval`. |
+| `keyboard_press` | Destructive | `keys` | Send keys to the active page element. Successful results expose only redacted input metadata. Optional: `interval`. |
 | `page_pointer_move` | Destructive | `x`, `y` | Move to exact viewport CSS coordinates without pressing a button. Optional: `profile` (`direct` default or deterministic 24-step `natural`) and `element`. |
 | `page_pointer_drag` | Destructive | `start_x`, `start_y`, `end_x`, `end_y` | Perform one failure-safe held drag with exact endpoints. Optional: up to six ordered `waypoints`, `profile` (`direct` or `natural`), `element`, and `button`. |
 | `page_pointer_drag_element` | Destructive | `source`, `destination` | Resolve CSS/XPath geometry immediately before an element, offset, or track-ratio drag. Supports one same-origin iframe and CSS paths through nested open Shadow DOM hosts. Optional: `profile` and `button`. |
@@ -399,7 +399,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `element_find` | Read-only | `selector` | Find one string or structured selector/accessibility target. Optional: `timeout` (default 3s). |
 | `element_find_all` | Read-only | `selector` | Find multiple matching string or structured targets with bounded text, attributes, optional HTML, count/truncation metadata, and recommended selectors. Optional: `limit` (default 20), `include_html`. |
 | `element_click` | Destructive | `selector` | Click one string or structured selector/accessibility target. Optional: `timeout`, `observe`, `button` (`left`, `right`, `middle`), `click_count` (`1`, `2`). Existing calls remain left single-clicks. Unsupported native variants return `UNSUPPORTED_OPERATION` rather than substituting another click. |
-| `element_click_and_download` | Destructive | `selector` | Resolve one string or structured target, perform one native click, and await one correlated completed download under `DP_MCP_DOWNLOAD_ROOT`. Returns an integrity-checked `ArtifactRef` and linked `ActionReceipt`. Optional: `operation_key`, `timeout`, `expected_filename`, `expected_mime_type`. |
+| `element_click_and_download` | Destructive | `selector` | Perform one string/structured selector click, bounded coordinate left click, or bounded keyboard input and await one correlated completed download under `DP_MCP_DOWNLOAD_ROOT`. Coordinate triggers accept `x`, `y`, optional `profile`, and optional `delay_before_press_ms`; keyboard triggers accept `keys` and optional `interval`. Returns an integrity-checked `ArtifactRef` and linked `ActionReceipt`. Optional: `operation_key`, `timeout`, `expected_filename`, `expected_mime_type`. |
 | `element_type` | Destructive | `selector`, `text` | Type into one string or structured selector/accessibility target. Optional: `timeout`, `clear`, `observe`. |
 | `element_upload_file` | Destructive | `selector`, `paths` | Upload one or more files from `DP_MCP_UPLOAD_ROOT` into an `input[type=file]`. Optional: `timeout`. |
 | `element_click_and_upload` | Destructive | `selector`, `paths` | Arm Chromium's file-chooser interception, click one trigger, inject files from `DP_MCP_UPLOAD_ROOT`, and always disarm without user interaction with a native OS picker. Optional: `timeout`. |
@@ -431,7 +431,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `browser_cookies_set` | Destructive | `cookies` | Set a bounded batch of 1-100 cookies through DrissionPage. Successful results echo Cookie values by default for MCP callbacks. |
 | `browser_cookies_delete` | Destructive | `name` | Delete one named Cookie. Optional: `url`, `domain`, `path`. |
 | `browser_cookies_clear` | Destructive | none | Clear all browser Cookies. |
-| `storage_get` | Read-only | none | Read localStorage/sessionStorage by optional `key`. Optional: `area`, `include_values`. |
+| `storage_get` | Read-only | none | Read localStorage/sessionStorage by optional `key`. Values are redacted unless `include_values=true`. Optional: `area`, `include_values`. |
 | `storage_set` | Destructive | `key`, `value` | Set one localStorage/sessionStorage value. The value is not echoed in the response. Optional: `area`. |
 | `storage_clear` | Destructive | none | Clear one storage key or the whole selected storage area. Optional: `area`, `key`. |
 
@@ -474,7 +474,7 @@ optional Skills.
 - Form and component workflows are composed from element discovery, type/select/check/click/keyboard, upload, wait, and state-read tools. The core does not classify widget libraries or infer business submission intent.
 - `page_dialog_observe` returns a bounded pending-dialog message without accepting or dismissing it. Observation and response bypass ordinary browser-operation serialization so they can overlap the native click that opened a blocking dialog; no user action is required.
 - `page_dialog_respond` checks immediately by default. No pending dialog returns `DIALOG_NOT_FOUND`; a positive `timeout` can overlap a not-yet-opened dialog. Capability gaps return `UNSUPPORTED_OPERATION`; prompt text and dialog messages are not retained in action history.
-- `element_click_and_download` requires an approved `DP_MCP_DOWNLOAD_ROOT`. A successful response includes one checksum-verified regular file, safe relative path, sanitized HTTP(S) source URL, `ArtifactRef`, and correlated `ActionReceipt`. Replaying the same operation key does not click again; failure and indeterminate results contain no artifact.
+- `element_click_and_download` requires an approved `DP_MCP_DOWNLOAD_ROOT`. Its required `selector` field accepts existing selector/accessibility values plus strict `{kind: "coordinate", ...}` and `{kind: "keyboard", ...}` triggers; arbitrary scripts and action sequences are rejected. A successful response includes one checksum-verified regular file, safe relative path, sanitized HTTP(S) source URL, `ArtifactRef`, and correlated `ActionReceipt`. Keyboard trigger output contains redacted key length metadata, never the keys. Replaying the same operation key does not trigger again; failure and indeterminate results contain no artifact.
 - `tab_list` synchronizes with browser tabs opened by normal page behavior, including `target="_blank"` links.
 - `page_observe` is designed for compact state checks. Use `page_snapshot` when you need selectors and structured page outline details. Its `console` field summarizes recent current-tab console messages when DrissionPage console capture is available.
 - `page_console_logs` returns normalized console messages with `index`, `level`, `text`, `url`, `line`, `column`, and `source`. Use `since` with the previous `next_cursor` to fetch only newer messages.
@@ -493,7 +493,9 @@ optional Skills.
 - `browser_headers_set`, `browser_user_agent_set`, and `network_blocked_urls_set` echo accepted values by default for callback and verification flows. Sensitive header values must be handled as secrets. Empty header and URL collections clear their respective overrides.
 - `browser_user_agent_set` also returns `previous_user_agent` so callers can restore the original value without user-side browser action.
 - `browser_cache_clear` explicitly disables Cookie, localStorage, and sessionStorage clearing while invalidating HTTP cache.
+- `storage_get` redacts non-empty values by default. Use `include_values=true` only when the MCP client/session is allowed to handle storage secrets.
 - `storage_set` does not echo the stored value in its success payload.
+- `keyboard_press` never echoes the supplied text/key sequence. Its successful result reports only whether input was provided, its character length, and `redacted=true`.
 - `observe=true` on `page_navigate`, `element_click`, and `element_type` adds an optional `changes` field with URL/title changes, count deltas, appeared/removed text samples, active element, `console_errors_added`, `console_warnings_added`, and `new_console_messages`. It is omitted by default.
 - `wait_until` is the preferred recovery path for dynamic UI state such as delayed clickability, disappearing spinners, stable elements, text updates, or URL transitions.
 - Pointer tools default to `profile="direct"`. `profile="natural"` uses a fixed,
