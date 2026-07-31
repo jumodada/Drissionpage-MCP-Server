@@ -87,6 +87,15 @@ def test_ci_enforces_pre_0_8_production_loc_budget() -> None:
     assert 'test "$NET_PRODUCTION_LOC" -le 200' in lint_job
 
 
+def test_ci_runs_mypy_as_a_required_lint_gate() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    lint_job = workflow.split("  lint:\n", maxsplit=1)[1].split(
+        "\n  unit:\n", maxsplit=1
+    )[0]
+
+    assert "python -m mypy drissionpage_mcp" in lint_job
+
+
 def test_ci_coverage_is_the_single_strict_browser_integration_gate() -> None:
     """runs the full browser suite once while collecting release coverage."""
 
