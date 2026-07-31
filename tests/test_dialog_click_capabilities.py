@@ -421,7 +421,7 @@ async def test_dialog_response_is_indeterminate_when_alert_never_closes() -> Non
             pending={"dialog_type": "alert", "message": "message"},
             action="dismiss",
             prompt_text=None,
-            timeout=0.001,
+            timeout=0.05,
         )
 
 

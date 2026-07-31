@@ -33,6 +33,12 @@ class ErrorCode(str, Enum):
     DIALOG_NOT_FOUND = "DIALOG_NOT_FOUND"
 
 
+_UPSTREAM_EXCEPTION_CODES = {
+    "AlertExistsError": ErrorCode.DIALOG_PENDING,
+    "BrowserConnectError": ErrorCode.BROWSER_START_FAILED,
+}
+
+
 @dataclass
 class ToolError:
     """Stable tool error payload."""
@@ -61,8 +67,9 @@ def classify_error(exc: Exception, tool_name: str = "") -> ErrorCode:
             pass
     if isinstance(exc, TimeoutError):
         return ErrorCode.TIMEOUT
-    if type(exc).__name__ == "BrowserConnectError":
-        return ErrorCode.BROWSER_START_FAILED
+    named_code = _UPSTREAM_EXCEPTION_CODES.get(type(exc).__name__)
+    if named_code is not None:
+        return named_code
 
     text = str(exc).lower()
     tool = tool_name.lower()

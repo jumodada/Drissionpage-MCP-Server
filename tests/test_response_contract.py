@@ -217,6 +217,11 @@ def test_errors_module_reexports_stable_error_api() -> None:
             ErrorCode.BROWSER_START_FAILED,
         ),
         (
+            type("AlertExistsError", (Exception,), {})("opaque upstream failure"),
+            "page_observe",
+            ErrorCode.DIALOG_PENDING,
+        ),
+        (
             RuntimeError("browser initialization failed"),
             "page_navigate",
             ErrorCode.BROWSER_START_FAILED,
