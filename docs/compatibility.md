@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.7.9. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.8.0. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -26,8 +26,16 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
 
-## Unreleased Contract Changes
+## 0.7.9 to 0.8.0 Migration
 
+0.8.0 stabilizes the 69-tool registry without adding or removing public tool
+names. Existing selector/accessibility download calls remain valid, zero MCP
+prompts are exposed, and Skills, component adapters, and business workflows
+remain outside the Python distribution.
+
+- `storage_get` now redacts non-empty localStorage/sessionStorage values by
+  default. Set `include_values=true` only when the MCP client and session may
+  handle storage secrets.
 - `keyboard_press` successful results no longer echo the supplied text/key
   sequence. The `keys` field is redacted metadata containing `provided`,
   `length`, and `redacted=true`.
@@ -35,9 +43,15 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   selector/accessibility forms and additionally accepts strict `coordinate` and
   `keyboard` trigger objects. The public registry remains at 69 tools. Keyboard
   trigger values are represented only by redacted length metadata; operation-key
-  replay and conflict detection still fingerprint the original request. Timed-out
-  generic triggers retain the approved path and download-cancel flag for a bounded
-  post-timeout guard before restoring the tab's prior download state.
+  replay and conflict detection still fingerprint the original request. Generic
+  triggers are serialized per tab under one deadline; terminal paths restore the
+  prior download state, and indeterminate outcomes keep a 250ms fail-closed guard
+  that cancels late missions.
+- Browser startup and native-dialog exceptions are classified before generic
+  navigation/runtime fallback. Public messages continue to redact localized
+  DrissionPage text, CDP internals, private destinations, and rejected paths.
+- Held-key lifetimes, IME/composition, touch/pinch, and clipboard access remain
+  deferred. No compatibility support should be inferred for those capabilities.
 
 ## 0.7.8 to 0.7.9 Migration
 

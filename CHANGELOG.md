@@ -7,9 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-07-31
+
 ### Changed
 - `storage_get` now redacts non-empty localStorage and sessionStorage values by default; callers must set `include_values=true` to return values.
-- `keyboard_press` now returns redacted input metadata instead of echoing the supplied text/key sequence.
+- `keyboard_press` and keyboard-triggered download results now return redacted input metadata instead of echoing the supplied text/key sequence.
+- `element_click_and_download` preserves every selector/accessibility form and adds strict coordinate and keyboard triggers without adding another public tool.
+
+### Fixed
+- Classified `BrowserConnectError` and native-dialog failures before generic navigation/runtime fallback so browser startup and `DIALOG_PENDING` errors retain stable recovery codes while localized DrissionPage and CDP details stay redacted.
+- Serialized coordinate and keyboard download triggers per tab under one shared deadline, restored prior download state on every terminal path, preserved operation-key replay/conflict detection, and added a 250 ms fail-closed guard that cancels late missions after indeterminate outcomes.
+
+### Verification
+- Made mypy a required GitHub CI lint gate alongside Ruff, multi-version unit/protocol jobs, browser-boundary and full-coverage jobs, W01-W08 reliability benchmarking, clean-wheel stdio smoke tests, and wheel/sdist privacy audits.
+- Added focused security, response-contract, download success/failure/timeout/cleanup/replay, real-Chromium, schema snapshot, and CI structure regressions.
+
+### Release Scope
+- No new public tool names: the ordered registry remains at 69 typed tools, with zero MCP prompts and one bounded optional-Skills catalog resource.
+- No bundled Skills, component-library adapters, site procedures, business workflows, held-key lifetimes, IME/composition, touch/pinch, or clipboard access were added to the Python distribution.
 
 ## [0.7.9] - 2026-07-29
 
@@ -518,7 +533,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.9...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.9...0.8.0
 [0.7.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...0.7.9
 [0.7.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.7...0.7.8
 [0.7.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.6...0.7.7
