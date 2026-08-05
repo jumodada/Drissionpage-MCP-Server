@@ -1,5 +1,7 @@
 # DrissionPage MCP Server
 
+[![MCP Toplist](https://mcptoplist.com/badge/glama%2Fjumodada%2FDrissionpage-MCP-Server.svg)](https://mcptoplist.com/server/glama%2Fjumodada%2FDrissionpage-MCP-Server)
+
 > Professional browser automation for Codex, Claude Code, and MCP clients, powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 >
 > DrissionPage is a Python web automation library built around direct Chromium/CDP control with requests-style HTTP session support. This server exposes its browser-facing capabilities as typed, atomic MCP tools.
