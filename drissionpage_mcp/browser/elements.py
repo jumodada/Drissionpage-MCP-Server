@@ -100,7 +100,7 @@ class ElementOperations:
             return {
                 "found": True,
                 **resolved.metadata(),
-                "text": element.text or "",
+                "text": (element.text or "") if hasattr(element, "text") else "",
                 "tag": element.tag if hasattr(element, "tag") else "unknown",
                 "html": element.html if hasattr(element, "html") else "",
                 "visible": True,
@@ -139,7 +139,8 @@ class ElementOperations:
         try:
             if selector:
                 resolved = await self._targeting.resolve(selector, timeout=0)
-                return str(resolved.element.text)
+                element = resolved.element
+                return str(element.text) if hasattr(element, "text") else ""
             if hasattr(self._page, "text"):
                 return str(self._page.text)
             body = self._page.ele("tag:body", timeout=0)
@@ -200,30 +201,46 @@ class ElementOperations:
         resolved = await self._targeting.resolve(selector, timeout=timeout)
         element = resolved.element
         states = element.states
-        covered_by = states.is_covered
+        covered_by = getattr(states, "is_covered", False)
         rect = element.rect
         return {
             **resolved.metadata(),
             "tag": str(getattr(element, "tag", "") or ""),
             "text": str(getattr(element, "text", "") or "")[:500],
-            "displayed": bool(states.is_displayed),
-            "enabled": bool(states.is_enabled),
-            "alive": bool(states.is_alive),
-            "clickable": bool(states.is_clickable),
-            "checked": bool(states.is_checked),
-            "selected": bool(states.is_selected),
-            "in_viewport": bool(states.is_in_viewport),
-            "whole_in_viewport": bool(states.is_whole_in_viewport),
+            "displayed": bool(getattr(states, "is_displayed", False)),
+            "enabled": bool(getattr(states, "is_enabled", False)),
+            "alive": bool(getattr(states, "is_alive", False)),
+            "clickable": bool(getattr(states, "is_clickable", False)),
+            "checked": bool(getattr(states, "is_checked", False)),
+            "selected": bool(getattr(states, "is_selected", False)),
+            "in_viewport": bool(getattr(states, "is_in_viewport", False)),
+            "whole_in_viewport": bool(getattr(states, "is_whole_in_viewport", False)),
             "covered": bool(covered_by),
             "covering_backend_node_id": int(covered_by) if covered_by else None,
             "rect": {
                 "location": _point(rect.location),
                 "size": _size(rect.size),
-                "midpoint": _point(rect.midpoint),
-                "click_point": _point(rect.click_point),
-                "viewport_location": _point(rect.viewport_location),
-                "viewport_midpoint": _point(rect.viewport_midpoint),
-                "viewport_click_point": _point(rect.viewport_click_point),
+                "midpoint": _rect_point(
+                    rect, "midpoint", location_attr="location", size_attr="size"
+                ),
+                "click_point": _rect_point(
+                    rect, "click_point", location_attr="location", size_attr="size"
+                ),
+                "viewport_location": _point(
+                    getattr(rect, "viewport_location", None) or rect.location
+                ),
+                "viewport_midpoint": _rect_point(
+                    rect,
+                    "viewport_midpoint",
+                    location_attr="viewport_location",
+                    size_attr="viewport_size",
+                ),
+                "viewport_click_point": _rect_point(
+                    rect,
+                    "viewport_click_point",
+                    location_attr="viewport_location",
+                    size_attr="viewport_size",
+                ),
                 "coordinate_space": "target_document",
             },
         }
@@ -269,3 +286,26 @@ def _point(value: Any) -> dict[str, float]:
 def _size(value: Any) -> dict[str, float]:
     width, height = value
     return {"width": float(width), "height": float(height)}
+
+
+def _midpoint_from_location_size(location: Any, size: Any) -> dict[str, float]:
+    x, y = location
+    width, height = size
+    return {"x": float(x) + float(width) / 2, "y": float(y) + float(height) / 2}
+
+
+def _rect_point(rect: Any, attr: str, *, location_attr: str, size_attr: str) -> dict[str, float]:
+    """Return a rect point, falling back to a location+size midpoint.
+
+    Some DrissionPage element types (notably ``ChromiumFrame`` for
+    cross-origin iframes) expose only ``location``/``size`` and omit the
+    richer ``midpoint``/``click_point`` attributes normal elements have.
+    """
+    value = getattr(rect, attr, None)
+    if value is not None:
+        return _point(value)
+    location = getattr(rect, location_attr, None)
+    size = getattr(rect, size_attr, None)
+    if location is not None and size is not None:
+        return _midpoint_from_location_size(location, size)
+    return {"x": 0.0, "y": 0.0}
