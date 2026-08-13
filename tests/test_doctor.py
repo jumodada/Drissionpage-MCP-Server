@@ -22,6 +22,9 @@ def test_doctor_reports_versions_and_skips_browser_launch_by_default() -> None:
         "mcp_server_wiring",
         "drissionpage_package",
         "drissionpage_supported",
+        "package_import",
+        "package_metadata",
+        "public_surface",
         "browser_launch",
     } <= check_names
     browser_launch = next(
@@ -34,6 +37,44 @@ def test_doctor_reports_versions_and_skips_browser_launch_by_default() -> None:
     )
     assert server_wiring["ok"] is True
     assert "69 tools" in server_wiring["detail"]
+
+
+def test_doctor_reports_installation_source_and_public_surface() -> None:
+    report = run_diagnostics()
+    checks = {item["name"]: item for item in report["checks"]}
+
+    assert (
+        "drissionpage_mcp/__init__.py; source_tree="
+        in checks["package_import"]["detail"]
+    )
+    assert "source_tree=" in checks["package_import"]["detail"]
+    assert checks["package_metadata"]["ok"] is True
+    assert "metadata_version=" in checks["package_metadata"]["detail"]
+    assert checks["public_surface"]["ok"] is True
+    assert "69 tools" in checks["public_surface"]["detail"]
+    assert "0 prompts" in checks["public_surface"]["detail"]
+    assert "1 resource" in checks["public_surface"]["detail"]
+
+
+def test_doctor_flags_installed_metadata_version_mismatch(monkeypatch) -> None:
+    monkeypatch.setattr(
+        doctor,
+        "_distribution_metadata",
+        lambda: {
+            "version": "0.8.0",
+            "location": "/tmp/site-packages",
+        },
+    )
+    monkeypatch.setattr(doctor, "_is_source_tree", lambda: False)
+    monkeypatch.setattr(doctor, "_find_browser", lambda: "/tmp/chrome")
+
+    report = run_diagnostics()
+    metadata_check = next(
+        item for item in report["checks"] if item["name"] == "package_metadata"
+    )
+    assert report["ok"] is False
+    assert metadata_check["ok"] is False
+    assert "match=no" in metadata_check["detail"]
 
 
 def test_format_diagnostics_includes_parseable_json_result() -> None:
@@ -205,9 +246,7 @@ def test_doctor_warns_when_profile_parent_is_not_writable(monkeypatch) -> None:
     monkeypatch.setattr(doctor.os.path, "isdir", lambda _path: False)
 
     report = doctor.run_diagnostics()
-    profile = next(
-        item for item in report["checks"] if item["name"] == "profile_path"
-    )
+    profile = next(item for item in report["checks"] if item["name"] == "profile_path")
 
     assert profile["ok"] is False
     assert profile["detail"].endswith("parent not writable")
@@ -267,8 +306,14 @@ def test_run_diagnostics_launch_browser_success_and_failure(monkeypatch) -> None
     success = doctor.run_diagnostics(launch_browser=True)
 
     assert success["ok"] is True
-    launch = next(item for item in success["checks"] if item["name"] == "browser_launch")
-    assert launch == {"name": "browser_launch", "ok": True, "detail": "launched successfully"}
+    launch = next(
+        item for item in success["checks"] if item["name"] == "browser_launch"
+    )
+    assert launch == {
+        "name": "browser_launch",
+        "ok": True,
+        "detail": "launched successfully",
+    }
     assert compat.quit_calls
 
     failing_compat = FakeCompat(fail=True)
@@ -284,7 +329,9 @@ def test_run_diagnostics_launch_browser_success_and_failure(monkeypatch) -> None
     failure = doctor.run_diagnostics(launch_browser=True)
 
     assert failure["ok"] is False
-    launch = next(item for item in failure["checks"] if item["name"] == "browser_launch")
+    launch = next(
+        item for item in failure["checks"] if item["name"] == "browser_launch"
+    )
     assert launch["ok"] is False
     assert "RuntimeError: launch failed" in launch["detail"]
     assert any("Browser launch failed" in hint for hint in failure["hints"])

@@ -18,13 +18,25 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.8.0. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.8.1. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
   MCP workflows to use the documented snake_case field names exactly.
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
+
+## 0.8.0 to 0.8.1 Migration
+
+0.8.1 is a release-verification update. It keeps the 69-tool, zero-prompt,
+one-resource MCP contract and browser behavior unchanged.
+
+- `drissionpage-mcp doctor` now reports the imported package path, whether the
+  process appears to run from a source checkout, installed distribution
+  metadata, and the public surface counts.
+- For release validation, use a clean environment with a built wheel or sdist.
+  A source checkout is intentionally marked in doctor output and is not
+  evidence that the published package contents are correct.
 
 ## 0.7.9 to 0.8.0 Migration
 

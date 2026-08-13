@@ -1,4 +1,4 @@
-"""Release metadata checks for 0.8.0."""
+"""Release metadata checks for the current release and historical contracts."""
 
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_8_0() -> None:
+def test_package_version_metadata_is_0_8_1() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.8.0"
-    assert drissionpage_mcp.__version__ == "0.8.0"
+    assert pyproject["project"]["version"] == "0.8.1"
+    assert drissionpage_mcp.__version__ == "0.8.1"
 
 
 def test_release_pins_mcp_sdk_to_supported_major_version() -> None:
@@ -36,28 +36,17 @@ def test_changelog_describes_breaking_alias_removal() -> None:
     assert "wait_sleep" in changelog
 
 
-def test_readmes_and_changelog_publish_latest_0_8_0_summary() -> None:
+def test_readmes_and_changelog_publish_latest_0_8_1_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-    current_changelog = changelog.split("## [0.8.0]", 1)[1].split(
-        "## [0.7.9]", 1
-    )[0]
-    install_changelog = changelog.split("## [0.7.8]", 1)[1].split(
-        "## [0.7.7]", 1
-    )[0]
-    request_changelog = changelog.split("## [0.7.5]", 1)[1].split(
-        "## [0.7.4]", 1
-    )[0]
-    cookie_changelog = changelog.split("## [0.7.4]", 1)[1].split(
-        "## [0.7.3]", 1
-    )[0]
-    boundary_changelog = changelog.split("## [0.7.3]", 1)[1].split(
-        "## [0.7.2]", 1
-    )[0]
-    cleanup_changelog = changelog.split("## [0.7.2]", 1)[1].split(
-        "## [0.7.1]", 1
-    )[0]
+    latest_changelog = changelog.split("## [0.8.1]", 1)[1].split("## [0.8.0]", 1)[0]
+    current_changelog = changelog.split("## [0.8.0]", 1)[1].split("## [0.7.9]", 1)[0]
+    install_changelog = changelog.split("## [0.7.8]", 1)[1].split("## [0.7.7]", 1)[0]
+    request_changelog = changelog.split("## [0.7.5]", 1)[1].split("## [0.7.4]", 1)[0]
+    cookie_changelog = changelog.split("## [0.7.4]", 1)[1].split("## [0.7.3]", 1)[0]
+    boundary_changelog = changelog.split("## [0.7.3]", 1)[1].split("## [0.7.2]", 1)[0]
+    cleanup_changelog = changelog.split("## [0.7.2]", 1)[1].split("## [0.7.1]", 1)[0]
 
     browser_lab_url = "https://raw.githubusercontent.com/jumodada/Drissionpage-MCP-Server/assets/drissionpage-mcp-browser-lab.gif"
     assert browser_lab_url in readme and browser_lab_url in readme_cn
@@ -67,8 +56,8 @@ def test_readmes_and_changelog_publish_latest_0_8_0_summary() -> None:
     assert "website/public/og-browser-lab.png" not in readme_cn
     assert "Watch the original natural pointer demo" not in readme
     assert "观看原始自然指针演示" not in readme_cn
-    assert "## 🆕 Latest Version: v0.8.0" in readme
-    assert "Released on 2026-07-31" in readme
+    assert "## 🆕 Latest Version: v0.8.1" in readme
+    assert "Released on 2026-08-13" in readme
     assert "69 Typed Browser Tools" in readme
     assert "Form Operations" not in readme
     assert "page_dialog_respond" in readme
@@ -79,8 +68,8 @@ def test_readmes_and_changelog_publish_latest_0_8_0_summary() -> None:
     assert "### 📸 Page Operations (18 tools)" in readme
     assert "### 🌍 Browser Environment (6 tools)" in readme
     assert "### 🌐 Network Control & Observation (4 tools)" in readme
-    assert "## 🆕 最新版本：v0.8.0" in readme_cn
-    assert "发布日期：2026-07-31" in readme_cn
+    assert "## 🆕 最新版本：v0.8.1" in readme_cn
+    assert "发布日期：2026-08-13" in readme_cn
     assert "69 个类型化浏览器工具" in readme_cn
     assert "表单工具（3 个）" not in readme_cn
     assert "page_dialog_respond" in readme_cn
@@ -91,6 +80,9 @@ def test_readmes_and_changelog_publish_latest_0_8_0_summary() -> None:
     assert "### 📸 页面操作（18 个）" in readme_cn
     assert "### 🌍 浏览器环境（6 个）" in readme_cn
     assert "### 🌐 网络控制与观察（4 个）" in readme_cn
+    assert "## [0.8.1] - 2026-08-13" in changelog
+    assert "source-tree" in latest_changelog
+    assert "zero MCP prompts" in latest_changelog
     assert "## [0.8.0] - 2026-07-31" in changelog
     assert "include_values=true" in current_changelog
     assert "keyboard_press" in current_changelog
@@ -105,7 +97,9 @@ def test_readmes_and_changelog_publish_latest_0_8_0_summary() -> None:
     assert "stdio" in install_changelog
     assert "browser_headers_set" in request_changelog
     assert "network_blocked_urls_set" in request_changelog
-    assert "Cookies, localStorage, and sessionStorage are preserved" in request_changelog
+    assert (
+        "Cookies, localStorage, and sessionStorage are preserved" in request_changelog
+    )
     assert "browser_cookies_set" in cookie_changelog
     assert "56 tools" in cookie_changelog
     assert "echoes Cookie values" in cookie_changelog
@@ -128,7 +122,11 @@ def test_readmes_and_changelog_publish_latest_0_8_0_summary() -> None:
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.0...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.8.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.0...0.8.1"
         in changelog
     )
     assert (
@@ -193,11 +191,11 @@ def test_release_guides_publish_0_8_0_contract_state() -> None:
 
     assert "## 0.7.9 to 0.8.0 Migration" in compatibility
     assert "## Unreleased Contract Changes" not in compatibility
-    assert "The 0.8.0 registry contains 69 typed browser tools" in contract
-    assert "DrissionPage MCP 0.8.0 exposes no MCP prompts" in contract
-    assert "Browser-Owned Capabilities 0.8.0 Checks" in troubleshooting
-    assert "benchmark-results/0.8.0-task-completion.json" in troubleshooting
-    assert "benchmark-results/0.8.0-task-completion.json" in eval_readme
+    assert "The 0.8.1 registry contains 69 typed browser tools" in contract
+    assert "DrissionPage MCP 0.8.1 exposes no MCP prompts" in contract
+    assert "Browser-Owned Capabilities 0.8.1 Checks" in troubleshooting
+    assert "benchmark-results/0.8.1-task-completion.json" in troubleshooting
+    assert "benchmark-results/0.8.1-task-completion.json" in eval_readme
 
 
 def test_public_readmes_advertise_atomic_core_and_optional_skills() -> None:
@@ -229,10 +227,10 @@ def test_public_guides_show_exact_high_confusion_parameter_names() -> None:
         '`wait_for_url(url_pattern="...")`',
         '`wait_until(condition="text_contains", value="...")`',
         '`page_dialog_respond(action="accept")`',
-        '`page_scroll(pixels=...)`',
+        "`page_scroll(pixels=...)`",
         '`frame_snapshot(frame_selector="...")`',
-        '`element_upload_file(paths=[...])`',
-        '`network_blocked_urls_set(urls=[...])`',
+        "`element_upload_file(paths=[...])`",
+        "`network_blocked_urls_set(urls=[...])`",
         '`browser_permission_set(setting="granted")`',
     )
     for text in (readme, readme_cn):

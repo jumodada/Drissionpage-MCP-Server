@@ -274,7 +274,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 
 ## Tool Inventory
 
-The 0.8.0 registry contains 69 typed browser tools. Site, component, challenge,
+The 0.8.1 registry contains 69 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Reusable Element Targets
@@ -459,7 +459,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.8.0 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.8.1 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 

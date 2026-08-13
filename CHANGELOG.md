@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-08-13
+
+### Changed
+- Synchronized package, runtime, README, playground, and troubleshooting
+  version metadata for the 0.8.1 release.
+- Extended `drissionpage-mcp doctor` with imported package path, source-tree
+  detection, installed distribution metadata, and public surface checks for 69
+  tools, zero MCP prompts, and one Skills catalog resource.
+
+### Release Scope
+- No new public tool names, input/output schema changes, browser behavior
+  changes, network/download capability changes, or bundled Skills.
+- Release verification must use a built wheel or sdist in a clean environment;
+  doctor marks source-tree execution explicitly.
+
 ## [0.8.0] - 2026-07-31
 
 ### Changed
@@ -533,7 +548,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...HEAD
+[0.8.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.9...0.8.0
 [0.7.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...0.7.9
 [0.7.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.7...0.7.8

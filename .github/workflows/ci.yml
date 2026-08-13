@@ -141,13 +141,13 @@ jobs:
         run: |
           python -m tests.evals.task_completion_benchmark \
             --iterations 10 \
-            --output benchmark-results/0.8.0-task-completion.json
+            --output benchmark-results/0.8.1-task-completion.json
       - name: Upload task-completion benchmark
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 0.8.0-task-completion-benchmark
-          path: benchmark-results/0.8.0-task-completion.json
+          name: 0.8.1-task-completion-benchmark
+          path: benchmark-results/0.8.1-task-completion.json
           if-no-files-found: warn
 
   browser-boundaries:
@@ -310,20 +310,29 @@ jobs:
           echo "WHEEL_SMOKE_PYTHON=$VENV_PYTHON" >> "$GITHUB_ENV"
       - name: Verify resolved SDK and doctor server wiring
         run: |
+          cd "$RUNNER_TEMP"
           "$WHEEL_SMOKE_PYTHON" - <<'PY'
+          from pathlib import Path
           from importlib.metadata import version
 
+          import drissionpage_mcp
           from drissionpage_mcp.doctor import run_diagnostics
 
           mcp_version = version("mcp")
           assert mcp_version.split(".", 1)[0] == "1", mcp_version
+          assert version("drissionpage-mcp") == "0.8.1"
+          assert "site-packages" in str(Path(drissionpage_mcp.__file__).resolve())
           report = run_diagnostics()
           checks = {item["name"]: item for item in report["checks"]}
           assert checks["mcp_supported"]["ok"], checks["mcp_supported"]
           assert checks["mcp_server_wiring"]["ok"], checks["mcp_server_wiring"]
+          assert checks["package_metadata"]["ok"], checks["package_metadata"]
+          assert checks["package_import"]["detail"].endswith("source_tree=no"), checks["package_import"]
+          assert checks["public_surface"]["detail"] == "69 tools, 0 prompts, 1 resource"
           PY
       - name: Complete a real stdio initialize and tools list
         run: |
+          cd "$RUNNER_TEMP"
           "$WHEEL_SMOKE_PYTHON" - <<'PY'
           import asyncio
           import sys
@@ -341,8 +350,11 @@ jobs:
                   async with ClientSession(read_stream, write_stream) as session:
                       init = await session.initialize()
                       assert init.serverInfo.name == "DrissionPage MCP"
+                      assert init.serverInfo.version == "0.8.1"
                       tools = await session.list_tools()
                       assert len(tools.tools) == 69
+                      resources = await session.list_resources()
+                      assert len(resources.resources) == 1
 
 
           asyncio.run(main())
@@ -389,6 +401,7 @@ jobs:
               "/SKILL.md",
               "/docs/core-and-skills-strategy.md",
               "/docs/0.7.3-to-0.8.0-capability-plan.md",
+              "/docs/0.9.0-field-evaluation-and-roadmap.md",
               "/drissionpage_mcp/prompts.py",
               "/drissionpage_mcp/browser/vision.py",
               "/drissionpage_mcp/browser/workflows.py",
@@ -402,6 +415,25 @@ jobs:
                   or "/.omx/" in ("/" + name)
                   for name in names
               ), names
+          PY
+      - name: Install sdist in a clean virtual environment
+        run: |
+          python -m venv "$RUNNER_TEMP/sdist-smoke"
+          SDIST_PYTHON="$RUNNER_TEMP/sdist-smoke/bin/python"
+          "$SDIST_PYTHON" -m pip install --no-cache-dir dist/*.tar.gz
+          cd "$RUNNER_TEMP"
+          "$SDIST_PYTHON" - <<'PY'
+          from importlib.metadata import version
+
+          from drissionpage_mcp.doctor import run_diagnostics
+
+          assert version("drissionpage-mcp") == "0.8.1"
+          report = run_diagnostics()
+          checks = {item["name"]: item for item in report["checks"]}
+          assert report["ok"], report
+          assert checks["package_import"]["detail"].endswith("source_tree=no")
+          assert checks["package_metadata"]["ok"]
+          assert checks["public_surface"]["detail"] == "69 tools, 0 prompts, 1 resource"
           PY
       - name: Check package metadata
         run: python -m twine check dist/*

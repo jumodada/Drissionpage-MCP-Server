@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.8.0 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
+**DrissionPage MCP 0.8.1 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -72,7 +72,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.0 稳定这套注册表：Web Storage value 改为显式选择返回，键盘结果默认脱敏，下载支持 selector/坐标/键盘触发关联，timeout 后失败闭合清理，并改善浏览器启动/运行时错误分类。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.1 保持这套注册表稳定，并增加发行包来源诊断，可区分干净 wheel/sdist 安装与源码目录运行。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -100,7 +100,7 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 
 ```bash
 # 从 PyPI 安装
-python -m pip install -U "drissionpage-mcp>=0.8.0"
+python -m pip install -U "drissionpage-mcp>=0.8.1"
 
 # 验证包和本地环境
 drissionpage-mcp --version
@@ -443,7 +443,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.8.0`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.8.1`。
 
 `drissionpage-mcp doctor` 还必须将 `mcp_supported` 和
 `mcp_server_wiring` 都报告为 `ok`；只看到版本号并不能证明 MCP 客户端能够完成初始化。
@@ -475,13 +475,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.8.0 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.8.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.8.0)
+### 当前版本 (v0.8.1)
 - [x] 69 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -649,9 +649,9 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.8.0
+## 🆕 最新版本：v0.8.1
 
-发布日期：2026-07-31。本版本稳定 69 工具合同，不新增公共工具名，也不捆绑 Skills、组件适配器或业务流程：
+发布日期：2026-08-13。本版本保持 69 工具合同稳定，不新增公共工具名，也不捆绑 Skills、组件适配器或业务流程：
 
 - localStorage/sessionStorage value 需通过 `include_values=true` 显式获取；`keyboard_press` 和键盘触发下载结果只返回脱敏元数据。
 - `element_click_and_download` 新增严格的坐标/键盘触发，同时保留 selector/accessibility 调用、operation-key replay 和单触发/单 mission 关联。
@@ -659,3 +659,4 @@ codex mcp list
 - 浏览器启动与 dialog 失败在通用运行时回退前分类，且持续脱敏 DrissionPage 本地化文本、CDP 细节、私有目标和被拒绝路径。
 - GitHub CI 强制 Ruff 与 mypy，并运行多 Python 版本 unit/protocol、浏览器边界、完整浏览器 coverage、W01-W08、干净 wheel stdio 和包隐私门禁。
 - 按键保持、IME/composition、touch/pinch 和 clipboard 能力继续延期，直到能验证其生命周期、清理、策略与浏览器支持。
+- doctor 新增导入路径、源码目录运行、已安装 metadata 版本，以及 69 工具/零 Prompt/单资源公开表面检查。

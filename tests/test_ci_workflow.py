@@ -194,11 +194,15 @@ def test_ci_checks_wheel_package_contents() -> None:
     assert "/SKILL.md" in package_job
     assert "/docs/core-and-skills-strategy.md" in package_job
     assert "/docs/0.7.3-to-0.8.0-capability-plan.md" in package_job
+    assert "/docs/0.9.0-field-evaluation-and-roadmap.md" in package_job
     assert '"/skills/" in ("/" + name)' in package_job
     assert '"/.omx/" in ("/" + name)' in package_job
     assert "/drissionpage_mcp/prompts.py" in package_job
     assert "/drissionpage_mcp/browser/vision.py" in package_job
     assert "/drissionpage_mcp/tools/workflow.py" in package_job
+    assert "Install sdist in a clean virtual environment" in package_job
+    assert "--no-cache-dir dist/*.tar.gz" in package_job
+    assert "source_tree=no" in package_job
 
 
 def test_ci_installs_built_wheel_without_cache_and_handshakes() -> None:
@@ -214,10 +218,14 @@ def test_ci_installs_built_wheel_without_cache_and_handshakes() -> None:
     assert "python -m venv" in wheel_job
     assert "--no-cache-dir dist/*.whl" in wheel_job
     assert "mcp_server_wiring" in wheel_job
+    assert "package_metadata" in wheel_job
+    assert "source_tree=no" in wheel_job
+    assert "public_surface" in wheel_job
     assert "ClientSession" in wheel_job
     assert "stdio_client" in wheel_job
     assert "session.initialize()" in wheel_job
     assert "session.list_tools()" in wheel_job
+    assert "session.list_resources()" in wheel_job
 
 
 def test_readmes_publish_ci_and_codecov_badges() -> None:
@@ -276,8 +284,8 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     assert "command -v google-chrome" in benchmark_job
     assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
-    assert "--output benchmark-results/0.8.0-task-completion.json" in benchmark_job
-    assert "name: 0.8.0-task-completion-benchmark" in benchmark_job
+    assert "--output benchmark-results/0.8.1-task-completion.json" in benchmark_job
+    assert "name: 0.8.1-task-completion-benchmark" in benchmark_job
     assert "0.7.2-task-completion" not in benchmark_job
     assert "tests.evals.task_completion_benchmark" not in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
@@ -303,7 +311,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.8.0"
+    assert version == "0.8.1"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")

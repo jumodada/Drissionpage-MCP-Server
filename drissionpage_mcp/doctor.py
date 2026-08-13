@@ -3,11 +3,13 @@
 import importlib
 import importlib.metadata
 import json
+import logging
 import os
 import platform
 import re
 import shutil
 import sys
+from pathlib import Path
 from typing import Any
 
 from . import __version__
@@ -37,6 +39,33 @@ def _package_version(module_name: str, version_attr: str = "__version__") -> str
         return str(getattr(module, version_attr, "unknown"))
     except Exception as exc:
         return f"unavailable: {exc}"
+
+
+def _distribution_metadata() -> dict[str, str]:
+    """Return the installed distribution version and location when available."""
+
+    try:
+        distribution = importlib.metadata.distribution("drissionpage-mcp")
+        return {
+            "version": distribution.version,
+            "location": str(distribution.locate_file("")),
+        }
+    except importlib.metadata.PackageNotFoundError:
+        return {"version": "unavailable", "location": "unavailable"}
+
+
+def _import_path() -> Path:
+    """Return the resolved package path used by this process."""
+
+    module = importlib.import_module("drissionpage_mcp")
+    return Path(str(module.__file__)).resolve()
+
+
+def _is_source_tree() -> bool:
+    """Detect imports from a checkout or editable install source directory."""
+
+    package_dir = _import_path().parent
+    return (package_dir.parent / "pyproject.toml").is_file()
 
 
 def _find_browser() -> str | None:
@@ -156,6 +185,28 @@ def _server_wiring_check() -> tuple[bool, str]:
         return False, f"{exc.__class__.__name__}: {exc}"
 
 
+def _public_surface_check() -> tuple[bool, str]:
+    """Verify the stable public counts without starting a browser."""
+
+    try:
+        from mcp.types import ListPromptsRequest
+
+        from .resources import list_resources
+        from .server import DrissionPageMCPServer
+        from .tools import get_all_tools
+
+        server = DrissionPageMCPServer()
+        tool_count = len(get_all_tools())
+        prompt_count = int(ListPromptsRequest in server.server.request_handlers)
+        resource_count = len(list_resources())
+        detail = (
+            f"{tool_count} tools, {prompt_count} prompts, {resource_count} resource"
+        )
+        return (tool_count == 69 and prompt_count == 0 and resource_count == 1, detail)
+    except Exception as exc:
+        return False, f"{exc.__class__.__name__}: {exc}"
+
+
 def run_diagnostics(launch_browser: bool = False) -> dict[str, Any]:
     """Collect package/config/browser diagnostics without launching by default."""
 
@@ -184,7 +235,14 @@ def run_diagnostics(launch_browser: bool = False) -> dict[str, Any]:
             f"Install the supported MCP Python SDK range with: {MCP_SDK_REPAIR_COMMAND}"
         )
 
-    server_wiring_ok, server_wiring_detail = _server_wiring_check()
+    server_logger = logging.getLogger("drissionpage_mcp.server")
+    previous_server_log_level = server_logger.level
+    server_logger.setLevel(logging.WARNING)
+    try:
+        server_wiring_ok, server_wiring_detail = _server_wiring_check()
+        public_surface_ok, public_surface_detail = _public_surface_check()
+    finally:
+        server_logger.setLevel(previous_server_log_level)
     check("mcp_server_wiring", server_wiring_ok, server_wiring_detail)
     if not server_wiring_ok:
         hints.append(
@@ -200,6 +258,40 @@ def run_diagnostics(launch_browser: bool = False) -> dict[str, Any]:
         hints.append(
             f"DrissionPage 5.x is not supported by drissionpage-mcp {__version__}; "
             "install DrissionPage>=4.1.1.4,<5."
+        )
+
+    import_path = _import_path()
+    source_tree = _is_source_tree()
+    import_detail = f"path={import_path}; source_tree={'yes' if source_tree else 'no'}"
+    check("package_import", True, import_detail)
+    if source_tree:
+        hints.append(
+            "This process appears to run from a source checkout. "
+            "Use a wheel or sdist in a clean environment to verify release contents."
+        )
+
+    distribution = _distribution_metadata()
+    metadata_version = distribution.get("version", "unavailable")
+    metadata_location = distribution.get("location", "unavailable")
+    metadata_matches = metadata_version == __version__
+    metadata_detail = (
+        f"metadata_version={metadata_version}; location={metadata_location}; "
+        f"imported_version={__version__}; "
+        f"match={'yes' if metadata_matches else 'no'}"
+    )
+    # Editable/source installs can retain stale egg-info while developing. The
+    # clean wheel/sdist gate remains responsible for enforcing this invariant.
+    check("package_metadata", metadata_matches or source_tree, metadata_detail)
+    if not metadata_matches and not source_tree:
+        hints.append(
+            "Installed package metadata does not match the imported code. "
+            "Reinstall the wheel or sdist in a clean environment."
+        )
+
+    check("public_surface", public_surface_ok, public_surface_detail)
+    if not public_surface_ok:
+        hints.append(
+            "The public MCP surface must contain 69 tools, zero prompts, and one resource."
         )
 
     browser_path = _find_browser()
@@ -227,7 +319,11 @@ def run_diagnostics(launch_browser: bool = False) -> dict[str, Any]:
             "profile_path",
             exists or parent_ok,
             "DP_USER_DATA_PATH configured (<redacted>); "
-            + ("exists" if exists else "parent writable" if parent_ok else "parent not writable"),
+            + (
+                "exists"
+                if exists
+                else "parent writable" if parent_ok else "parent not writable"
+            ),
         )
         if not exists and not parent_ok:
             hints.append(
