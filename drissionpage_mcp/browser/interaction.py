@@ -68,7 +68,19 @@ class InteractionOperations:
     ) -> dict[str, Any]:
         try:
             resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
-            resolved.element.scroll.to_see(center=center)
+            element = resolved.element
+            scroller = element.scroll
+            try:
+                scroller.to_see(center=center)
+            except TypeError:
+                # Frame-like elements (e.g. ChromiumFrame for cross-origin
+                # iframes) expose a FrameScroller whose to_see() takes a
+                # loc_or_ele argument with a JS-side "this" the frame object
+                # itself doesn't satisfy (raises JavaScriptError if passed
+                # directly). Fall back to scrolling the page's own viewport
+                # to the frame's location, computed from its own rect.
+                x, y = element.rect.location
+                self._page.scroll.to_location(int(x), int(y))
             await self._tab._stabilize(
                 "element_scroll_into_view", timeout=0.5, fallback_sleep=0.02
             )
