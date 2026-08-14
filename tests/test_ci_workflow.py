@@ -122,6 +122,11 @@ def test_ci_runs_focused_browser_boundaries_across_supported_runner_os() -> None
     assert "macos-latest" in boundary_job
     assert "windows-latest" in boundary_job
     assert "tests/test_browser_capability_boundaries.py" in boundary_job
+    assert "Locate Chrome or Chromium (Linux)" in boundary_job
+    assert "if: runner.os == 'Linux'" in boundary_job
+    assert "command -v google-chrome" in boundary_job
+    assert "CHROME_PATH=$BROWSER_BIN" in boundary_job
+    assert "drissionpage-mcp doctor --launch-browser" in boundary_job
     assert 'DP_HEADLESS: "1"' in boundary_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in boundary_job
     assert 'no_sandbox: "1"' in boundary_job

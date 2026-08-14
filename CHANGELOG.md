@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   including descriptions, paths, source URLs, and `repository_example` status.
 - Rewrote English and Chinese README Skills sections and current-release
   guidance to distinguish host-loaded Markdown Skills from the atomic MCP core.
+- Made the Linux browser-boundary CI matrix resolve `CHROME_PATH` explicitly
+  and verify browser launch before running strict Chromium evidence tests.
 
 ### Release Scope
 - No new MCP tools, prompts, browser capabilities, or input/output schemas.
