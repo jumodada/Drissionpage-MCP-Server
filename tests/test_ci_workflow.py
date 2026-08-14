@@ -195,6 +195,7 @@ def test_ci_checks_wheel_package_contents() -> None:
     assert "/docs/core-and-skills-strategy.md" in package_job
     assert "/docs/0.7.3-to-0.8.0-capability-plan.md" in package_job
     assert "/docs/0.9.0-field-evaluation-and-roadmap.md" in package_job
+    assert "/docs/skills.md" in package_job
     assert '"/skills/" in ("/" + name)' in package_job
     assert '"/.omx/" in ("/" + name)' in package_job
     assert "/drissionpage_mcp/prompts.py" in package_job
@@ -284,8 +285,8 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     assert "command -v google-chrome" in benchmark_job
     assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
-    assert "--output benchmark-results/0.8.1-task-completion.json" in benchmark_job
-    assert "name: 0.8.1-task-completion-benchmark" in benchmark_job
+    assert "--output benchmark-results/0.8.2-task-completion.json" in benchmark_job
+    assert "name: 0.8.2-task-completion-benchmark" in benchmark_job
     assert "0.7.2-task-completion" not in benchmark_job
     assert "tests.evals.task_completion_benchmark" not in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
@@ -311,7 +312,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.8.1"
+    assert version == "0.8.2"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")

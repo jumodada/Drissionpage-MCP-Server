@@ -274,7 +274,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 
 ## Tool Inventory
 
-The 0.8.1 registry contains 69 typed browser tools. Site, component, challenge,
+The 0.8.2 registry contains 69 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Reusable Element Targets
@@ -451,7 +451,7 @@ browser or perform a network request:
 
 | URI | Purpose |
 | --- | --- |
-| `drissionpage://skills/catalog` | Versioned discovery metadata for optional Skills published outside the Python distribution. It declares the `skills/` catalog path and `skills/<skill-name>/SKILL.md` entrypoint convention. |
+| `drissionpage://skills/catalog` | Versioned discovery metadata for optional repository example Skills. It declares each example's `source_url`, the `skills/` catalog path, and the `skills/<skill-name>/SKILL.md` entrypoint convention. |
 
 Resource caps:
 
@@ -459,7 +459,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.8.1 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.8.2 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 

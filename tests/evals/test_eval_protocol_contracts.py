@@ -70,6 +70,11 @@ async def test_eval_skills_catalog_is_optional_and_static() -> None:
     assert catalog["optional"] is True
     assert catalog["catalog_path"] == "skills/"
     assert catalog["skill_entrypoint"] == "skills/<skill-name>/SKILL.md"
-    assert catalog["status"] == "unpublished"
-    assert catalog["skills"] == []
+    assert catalog["status"] == "repository_examples"
+    assert catalog["repository_url"].endswith("/Drissionpage-MCP-Server")
+    assert {skill["name"] for skill in catalog["skills"]} >= {
+        "cross-origin-iframe-probe",
+        "turnstile-testing",
+        "xiaohongshu-content-research",
+    }
     assert server.context is None

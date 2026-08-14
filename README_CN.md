@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.8.1 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
+**DrissionPage MCP 0.8.2 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -61,6 +61,7 @@ page_click_xy(x=442, y=369, profile="natural")
 - [安装与截图指引](#-首次成功路径)
 - [Codex CLI/IDE 快速配置](#-在-codex-cliide-中配置30-秒)
 - [Codex CLI/IDE 集成示例](#codex-cli--ide)
+- [Skills 与可复用流程](#-skills-与可复用流程)
 - [Claude Code 配置](#claude-code)
 - [Cursor 配置](#cursor)
 - [Claude Desktop 配置](#claude-desktop)
@@ -72,7 +73,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.1 保持这套注册表稳定，并增加发行包来源诊断，可区分干净 wheel/sdist 安装与源码目录运行。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.2 保持这套注册表稳定，通过 catalog 元数据发布仓库示例 Skill，并增加发行包来源诊断，可区分干净 wheel/sdist 安装与源码目录运行。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -100,7 +101,7 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 
 ```bash
 # 从 PyPI 安装
-python -m pip install -U "drissionpage-mcp>=0.8.1"
+python -m pip install -U "drissionpage-mcp>=0.8.2"
 
 # 验证包和本地环境
 drissionpage-mcp --version
@@ -261,8 +262,23 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 ### 🧩 可选 Skills 发现
 - Resource：`drissionpage://skills/catalog`
 - Prompts：无
-- 仓库目录约定：`skills/<skill-name>/SKILL.md`，例如 `skills/drissionpage-visual-workflows/SKILL.md`
-- Skills 独立发布且完全可选；不安装 Skill 也不影响 MCP 服务使用。
+- 仓库示例：`cross-origin-iframe-probe`、`turnstile-testing`、`xiaohongshu-content-research`
+- 入口：`skills/<skill-name>/SKILL.md`；catalog 条目包含仓库 `source_url`
+- Skills 是提供给 MCP host 的 Markdown 流程，不是 Python 模块，不由服务器执行，并且不会进入 wheel/sdist。
+
+### 📖 Skills 与可复用流程
+
+MCP 核心提供原子浏览器操作，Skills 在服务之外提供可审阅、可复用的流程：
+
+| 示例 Skill | 展示内容 | 停止边界 |
+| --- | --- | --- |
+| [`cross-origin-iframe-probe`](skills/cross-origin-iframe-probe/SKILL.md) | frame 发现、跨源判断、坐标回退和外部验证 | 不能读取跨源 iframe 内部 DOM |
+| [`turnstile-testing`](skills/turnstile-testing/SKILL.md) | 授权测试 fixture、坐标几何和父页面 token 校验 | 不绕过生产挑战或安全控制 |
+| [`xiaohongshu-content-research`](skills/xiaohongshu-content-research/SKILL.md) | 有界只读笔记研究和确定性的 `social-notes` fixture | 遇到 robots、登录、验证码、安全页或限流立即停止 |
+
+完整规范见 [Skills 指南](docs/skills.md)。Skill 必须复用已有 typed
+tools，采集新证据，验证后置条件，脱敏秘密并声明不支持场景；不能新增 MCP
+工具或覆盖服务器的导航与安全策略。
 
 ---
 
@@ -443,7 +459,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.8.1`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.8.2`。
 
 `drissionpage-mcp doctor` 还必须将 `mcp_supported` 和
 `mcp_server_wiring` 都报告为 `ok`；只看到版本号并不能证明 MCP 客户端能够完成初始化。
@@ -475,13 +491,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.8.1 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.8.2 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.8.1)
+### 当前版本 (v0.8.2)
 - [x] 69 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -494,7 +510,7 @@ which chromium         # macOS
 - [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
 - [x] 表单、组件库、验证挑战和便利工作流留在 MCP 核心之外
-- [x] 可选 Skills 通过单一静态 resource 发现，不进入 wheel 和 sdist
+- [x] 跨源 iframe、授权 Turnstile fixture、有界小红书类研究三个仓库示例 Skill 通过静态 catalog 发现，且不进入 wheel/sdist
 - [x] 能力探测后的 `page_dialog_respond`、兼容扩展的双击/右键语义，以及返回安全 `ArtifactRef` 的 selector/坐标/键盘下载关联
 - [x] Web Storage 敏感 value 需显式设置 `include_values=true`；键盘和键盘下载结果只返回脱敏元数据
 - [x] 下载触发按 tab 加锁，共享 deadline，保证 cleanup/replay，并在超时后使用 250ms 失败闭合的延迟 mission 保护
@@ -513,7 +529,7 @@ which chromium         # macOS
 - [x] 默认保持 Chrome sandbox 开启；`DP_NO_SANDBOX=1` 仅用于受限容器/root 环境
 - [x] 不保留动作历史，不生成代码片段，公开截图结果不暴露绝对路径
 - [x] 针对导航和截图路径的可选本地安全策略
-- [x] 一个可选 Skills 目录 resource、零个 prompts，以及 eval、兼容性和故障排除文档
+- [x] 一个包含仓库示例元数据的可选 Skills resource、零个 prompts，以及 Skills、eval、兼容性和故障排除文档
 - [x] PyPI 发布
 
 ---
@@ -649,9 +665,9 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.8.1
+## 🆕 最新版本：v0.8.2
 
-发布日期：2026-08-13。本版本保持 69 工具合同稳定，不新增公共工具名，也不捆绑 Skills、组件适配器或业务流程：
+发布日期：2026-08-14。本版本保持 69 工具合同稳定，让仓库示例 Skills 可发现，但不打包或执行它们：
 
 - localStorage/sessionStorage value 需通过 `include_values=true` 显式获取；`keyboard_press` 和键盘触发下载结果只返回脱敏元数据。
 - `element_click_and_download` 新增严格的坐标/键盘触发，同时保留 selector/accessibility 调用、operation-key replay 和单触发/单 mission 关联。
@@ -660,3 +676,4 @@ codex mcp list
 - GitHub CI 强制 Ruff 与 mypy，并运行多 Python 版本 unit/protocol、浏览器边界、完整浏览器 coverage、W01-W08、干净 wheel stdio 和包隐私门禁。
 - 按键保持、IME/composition、touch/pinch 和 clipboard 能力继续延期，直到能验证其生命周期、清理、策略与浏览器支持。
 - doctor 新增导入路径、源码目录运行、已安装 metadata 版本，以及 69 工具/零 Prompt/单资源公开表面检查。
+- 提供 `cross-origin-iframe-probe`、`turnstile-testing`、`xiaohongshu-content-research` 三个仓库示例 Skill、catalog 元数据和独立 Skills 指南。

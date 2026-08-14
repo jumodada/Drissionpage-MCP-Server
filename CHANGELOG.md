@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-08-14
+
+### Added
+- Added repository example Skills for cross-origin iframe diagnosis,
+  authorized Turnstile fixtures, and bounded Xiaohongshu-like content research.
+- Added `docs/skills.md` with the Skill contract, catalog, safety boundaries,
+  and clean-release fixture validation example.
+
+### Changed
+- Updated `drissionpage://skills/catalog` to list repository example metadata,
+  including descriptions, paths, source URLs, and `repository_example` status.
+- Rewrote English and Chinese README Skills sections and current-release
+  guidance to distinguish host-loaded Markdown Skills from the atomic MCP core.
+
+### Release Scope
+- No new MCP tools, prompts, browser capabilities, or input/output schemas.
+- Skills are not imported or executed by the server and remain excluded from
+  wheel/sdist packages.
+
 ## [0.8.1] - 2026-08-13
 
 ### Changed
@@ -548,7 +567,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.2...HEAD
+[0.8.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.9...0.8.0
 [0.7.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.8...0.7.9

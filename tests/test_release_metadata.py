@@ -12,11 +12,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_8_1() -> None:
+def test_package_version_metadata_is_0_8_2() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.8.1"
-    assert drissionpage_mcp.__version__ == "0.8.1"
+    assert pyproject["project"]["version"] == "0.8.2"
+    assert drissionpage_mcp.__version__ == "0.8.2"
 
 
 def test_release_pins_mcp_sdk_to_supported_major_version() -> None:
@@ -36,11 +36,11 @@ def test_changelog_describes_breaking_alias_removal() -> None:
     assert "wait_sleep" in changelog
 
 
-def test_readmes_and_changelog_publish_latest_0_8_1_summary() -> None:
+def test_readmes_and_changelog_publish_latest_0_8_2_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
-    latest_changelog = changelog.split("## [0.8.1]", 1)[1].split("## [0.8.0]", 1)[0]
+    latest_changelog = changelog.split("## [0.8.2]", 1)[1].split("## [0.8.1]", 1)[0]
     current_changelog = changelog.split("## [0.8.0]", 1)[1].split("## [0.7.9]", 1)[0]
     install_changelog = changelog.split("## [0.7.8]", 1)[1].split("## [0.7.7]", 1)[0]
     request_changelog = changelog.split("## [0.7.5]", 1)[1].split("## [0.7.4]", 1)[0]
@@ -56,8 +56,8 @@ def test_readmes_and_changelog_publish_latest_0_8_1_summary() -> None:
     assert "website/public/og-browser-lab.png" not in readme_cn
     assert "Watch the original natural pointer demo" not in readme
     assert "观看原始自然指针演示" not in readme_cn
-    assert "## 🆕 Latest Version: v0.8.1" in readme
-    assert "Released on 2026-08-13" in readme
+    assert "## 🆕 Latest Version: v0.8.2" in readme
+    assert "Released on 2026-08-14" in readme
     assert "69 Typed Browser Tools" in readme
     assert "Form Operations" not in readme
     assert "page_dialog_respond" in readme
@@ -68,8 +68,8 @@ def test_readmes_and_changelog_publish_latest_0_8_1_summary() -> None:
     assert "### 📸 Page Operations (18 tools)" in readme
     assert "### 🌍 Browser Environment (6 tools)" in readme
     assert "### 🌐 Network Control & Observation (4 tools)" in readme
-    assert "## 🆕 最新版本：v0.8.1" in readme_cn
-    assert "发布日期：2026-08-13" in readme_cn
+    assert "## 🆕 最新版本：v0.8.2" in readme_cn
+    assert "发布日期：2026-08-14" in readme_cn
     assert "69 个类型化浏览器工具" in readme_cn
     assert "表单工具（3 个）" not in readme_cn
     assert "page_dialog_respond" in readme_cn
@@ -80,9 +80,9 @@ def test_readmes_and_changelog_publish_latest_0_8_1_summary() -> None:
     assert "### 📸 页面操作（18 个）" in readme_cn
     assert "### 🌍 浏览器环境（6 个）" in readme_cn
     assert "### 🌐 网络控制与观察（4 个）" in readme_cn
-    assert "## [0.8.1] - 2026-08-13" in changelog
-    assert "source-tree" in latest_changelog
-    assert "zero MCP prompts" in latest_changelog
+    assert "## [0.8.2] - 2026-08-14" in changelog
+    assert "repository example Skills" in latest_changelog
+    assert "repository_example" in latest_changelog
     assert "## [0.8.0] - 2026-07-31" in changelog
     assert "include_values=true" in current_changelog
     assert "keyboard_press" in current_changelog
@@ -122,7 +122,11 @@ def test_readmes_and_changelog_publish_latest_0_8_1_summary() -> None:
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.2...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.8.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...0.8.2"
         in changelog
     )
     assert (
@@ -183,7 +187,7 @@ def test_readmes_and_changelog_publish_latest_0_8_1_summary() -> None:
     )
 
 
-def test_release_guides_publish_0_8_0_contract_state() -> None:
+def test_release_guides_publish_0_8_2_contract_state() -> None:
     compatibility = Path("docs/compatibility.md").read_text(encoding="utf-8")
     contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
     troubleshooting = Path("docs/troubleshooting.md").read_text(encoding="utf-8")
@@ -191,11 +195,32 @@ def test_release_guides_publish_0_8_0_contract_state() -> None:
 
     assert "## 0.7.9 to 0.8.0 Migration" in compatibility
     assert "## Unreleased Contract Changes" not in compatibility
-    assert "The 0.8.1 registry contains 69 typed browser tools" in contract
-    assert "DrissionPage MCP 0.8.1 exposes no MCP prompts" in contract
-    assert "Browser-Owned Capabilities 0.8.1 Checks" in troubleshooting
-    assert "benchmark-results/0.8.1-task-completion.json" in troubleshooting
-    assert "benchmark-results/0.8.1-task-completion.json" in eval_readme
+    assert "The 0.8.2 registry contains 69 typed browser tools" in contract
+    assert "DrissionPage MCP 0.8.2 exposes no MCP prompts" in contract
+    assert "Browser-Owned Capabilities 0.8.2 Checks" in troubleshooting
+    assert "benchmark-results/0.8.2-task-completion.json" in troubleshooting
+    assert "benchmark-results/0.8.2-task-completion.json" in eval_readme
+
+
+def test_repository_example_skills_have_frontmatter_and_documented_entries() -> None:
+    skills = {
+        path.parent.name: path.read_text(encoding="utf-8")
+        for path in Path("skills").glob("*/SKILL.md")
+    }
+    assert {
+        "cross-origin-iframe-probe",
+        "turnstile-testing",
+        "xiaohongshu-content-research",
+    } <= skills.keys()
+    for name, text in skills.items():
+        assert text.startswith("---\n")
+        assert f"name: {name}" in text
+        assert "description:" in text
+        assert "drissionpage-mcp" in text
+    guide = Path("docs/skills.md").read_text(encoding="utf-8")
+    for name in skills:
+        assert name in guide
+    assert "--args -I -m drissionpage_mcp.cli" in guide
 
 
 def test_public_readmes_advertise_atomic_core_and_optional_skills() -> None:
@@ -363,6 +388,8 @@ def test_distribution_configuration_excludes_private_guidance_and_skills() -> No
         "skills/",
         "docs/core-and-skills-strategy.md",
         "docs/0.7.3-to-0.8.0-capability-plan.md",
+        "docs/0.9.0-field-evaluation-and-roadmap.md",
+        "docs/skills.md",
         ".omx/",
     )
 

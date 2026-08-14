@@ -12,7 +12,11 @@ from mcp.types import (
     ReadResourceRequestParams,
 )
 
-from drissionpage_mcp.resources import RESOURCE_JSON_MAX_CHARS, SKILLS_CATALOG_URI
+from drissionpage_mcp.resources import (
+    RESOURCE_JSON_MAX_CHARS,
+    SKILL_EXAMPLES,
+    SKILLS_CATALOG_URI,
+)
 from drissionpage_mcp.server import DrissionPageMCPServer
 
 
@@ -33,7 +37,9 @@ async def test_only_optional_skills_catalog_is_listed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_catalog_read_is_static_bounded_and_browser_independent(monkeypatch) -> None:
+async def test_catalog_read_is_static_bounded_and_browser_independent(
+    monkeypatch,
+) -> None:
     def deny_network(*_args, **_kwargs):
         raise AssertionError("Skills catalog reads must not access the network")
 
@@ -56,13 +62,14 @@ async def test_catalog_read_is_static_bounded_and_browser_independent(monkeypatc
     payload = json.loads(content.text)
     assert payload == {
         "schema_version": "1",
-        "mcp_version": "0.8.1",
+        "mcp_version": "0.8.2",
         "optional": True,
         "catalog_url": "https://github.com/jumodada/skills-manager",
+        "repository_url": "https://github.com/jumodada/Drissionpage-MCP-Server",
         "catalog_path": "skills/",
         "skill_entrypoint": "skills/<skill-name>/SKILL.md",
-        "status": "unpublished",
-        "skills": [],
+        "status": "repository_examples",
+        "skills": list(SKILL_EXAMPLES),
     }
 
 

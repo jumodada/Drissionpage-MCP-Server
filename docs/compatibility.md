@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.8.1. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.8.2. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -37,6 +37,21 @@ one-resource MCP contract and browser behavior unchanged.
 - For release validation, use a clean environment with a built wheel or sdist.
   A source checkout is intentionally marked in doctor output and is not
   evidence that the published package contents are correct.
+
+## 0.8.1 to 0.8.2 Migration
+
+0.8.2 keeps the 69-tool, zero-prompt core unchanged and updates Skills
+discovery. The catalog now lists three repository examples with descriptions,
+paths, source URLs, and `repository_example` status:
+
+- `cross-origin-iframe-probe` for cross-origin iframe decision procedures.
+- `turnstile-testing` for authorized Cloudflare test fixtures.
+- `xiaohongshu-content-research` for bounded, read-only research and the local
+  `social-notes` fixture.
+
+The Skills remain Markdown outside the Python wheel and sdist. Hosts choose
+whether to load a Skill and must preserve its authorization, privacy, robots,
+login, captcha, rate-limit, and submission stop conditions.
 
 ## 0.7.9 to 0.8.0 Migration
 
@@ -251,11 +266,11 @@ orchestration from the core package.
   randomized jitter, overshoot, reaction/hold timing, `precise`, and explicit
   synthetic start-coordinate fields are removed.
 - MCP prompts are removed. The only resource is the static
-  `drissionpage://skills/catalog`, which declares the external
-  `skills/<skill-name>/SKILL.md` directory convention without installing or
-  executing Skills.
-- Reusable form, challenge-observation, verified multi-click, and site/business
-  recipes are available as optional Skills outside the wheel and sdist.
+  `drissionpage://skills/catalog`, which lists repository examples and their
+  `source_url` values without installing or executing Skills.
+- Reusable iframe diagnosis, authorized challenge fixtures, and bounded
+  Xiaohongshu-like research are available as optional Skills outside the wheel
+  and sdist.
 
 ## 0.6.2 to 0.7.0 Migration
 
