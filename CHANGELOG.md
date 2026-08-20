@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] - 2026-08-17
+
+### Added
+- Added a versioned Skills catalog schema with per-Skill versions, MCP
+  compatibility, required public tools, fixtures, verification status, pinned
+  source revision, and SHA-256 content integrity.
+- Added `playground/validate_skills.py` to validate cross-host frontmatter,
+  catalog paths, public-tool dependencies, pinned source URLs, and content
+  hashes without initializing a browser.
+
+### Changed
+- Pinned repository example Skill metadata to the `skills-manager` `v0.8.3`
+  source revision instead of mutable `main` URLs.
+- Increased the bounded optional catalog payload limit to 8192 characters for
+  versioned dependency and integrity metadata.
+- Updated English and Chinese release guidance, compatibility notes, tool
+  contracts, troubleshooting, benchmark artifact names, and clean-package
+  checks for 0.8.3.
+
+### Verification
+- Added repository Skill catalog, static resource, eval protocol, release
+  metadata, and CI structure regressions.
+- Kept catalog reads static and browser-independent and kept Skills excluded
+  from wheel/sdist packages.
+
+### Release Scope
+- No new public tool names, prompts, browser behavior, input/output schemas, or
+  server-side Skill execution. The public surface remains 69 tools, zero MCP
+  prompts, and one optional Skills catalog resource.
+
 ## [0.8.2] - 2026-08-14
 
 ### Added
@@ -569,7 +599,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.2...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.3...HEAD
+[0.8.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.2...0.8.3
 [0.8.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.7.9...0.8.0

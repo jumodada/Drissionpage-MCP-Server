@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.8.2. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.8.3. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -37,6 +37,24 @@ one-resource MCP contract and browser behavior unchanged.
 - For release validation, use a clean environment with a built wheel or sdist.
   A source checkout is intentionally marked in doctor output and is not
   evidence that the published package contents are correct.
+
+## 0.8.2 to 0.8.3 Migration
+
+0.8.3 keeps the 69-tool, zero-prompt core unchanged and upgrades the optional
+Skills catalog to schema version 2. Each repository example now declares its
+Skill version, supported MCP range, required tools, fixture, verification
+status, pinned `skills-manager` source revision, and SHA-256 content hash.
+
+Clients that only read the existing `name`, `description`, `path`,
+`source_url`, and `status` fields remain compatible. New clients can reject a
+Skill before installation when its MCP range, source revision, or content hash
+does not match. The server still does not fetch, install, or execute Skills.
+
+Source checkouts can validate all repository examples with:
+
+```bash
+python playground/validate_skills.py --json
+```
 
 ## 0.8.1 to 0.8.2 Migration
 

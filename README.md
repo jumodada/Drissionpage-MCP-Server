@@ -16,7 +16,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.8.2 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
+**DrissionPage MCP 0.8.3 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, or business workflow.
 
 > **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
@@ -73,7 +73,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.8.2 keeps that registry stable, publishes repository example Skills through catalog metadata, and adds release-source diagnostics so clean wheel/sdist installs can be distinguished from source-tree execution. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.8.3 keeps that registry stable and publishes versioned Skill metadata with MCP compatibility, required tools, a fixed source revision, and SHA-256 integrity. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -101,7 +101,7 @@ DrissionPage MCP is backed by a strict regression suite and browser-backed scena
 
 ```bash
 # Install from PyPI
-python -m pip install -U "drissionpage-mcp>=0.8.2"
+python -m pip install -U "drissionpage-mcp>=0.8.3"
 
 # Verify package and environment
 drissionpage-mcp --version
@@ -263,8 +263,14 @@ For Claude Code, Claude Desktop, and other JSON-based MCP clients, see [Integrat
 - Resource: `drissionpage://skills/catalog`
 - Prompts: none
 - Repository examples: `cross-origin-iframe-probe`, `turnstile-testing`, and `xiaohongshu-content-research`
-- Entry point: `skills/<skill-name>/SKILL.md`; each catalog item includes a repository `source_url`
+- Entry point: `skills/<skill-name>/SKILL.md`; catalog schema v2 includes Skill/MCP versions, required tools, fixture, fixed `v0.8.3` source revision, verification status, and SHA-256
 - Skills are Markdown procedures for the MCP host. They are not Python modules, are not executed by the server, and are excluded from wheel/sdist packages.
+
+Validate a source checkout with `python playground/validate_skills.py --json`.
+Install the fixed catalog release from
+[`skills-manager@v0.8.3`](https://github.com/jumodada/skills-manager/tree/v0.8.3)
+with `python install.py install --client codex --json` or
+`python install.py install --client claude --json`.
 
 ### 📖 Skills and Reusable Procedures
 
@@ -274,7 +280,7 @@ reviewable procedures outside the server:
 | Example Skill | What it demonstrates | Stop boundary |
 | --- | --- | --- |
 | [`cross-origin-iframe-probe`](skills/cross-origin-iframe-probe/SKILL.md) | Frame discovery, cross-origin diagnosis, coordinate fallback, and outside verification | Cannot read the inner DOM of a cross-origin iframe |
-| [`turnstile-testing`](skills/turnstile-testing/SKILL.md) | Authorized Cloudflare test fixtures, coordinate geometry, and parent-page token checks | Do not bypass production challenges or safety controls |
+| [`turnstile-testing`](skills/turnstile-testing/SKILL.md) | Cloudflare test fixtures, authorized production challenge interaction, coordinate geometry, and parent-page checks | Use the documented support matrix and verify the resulting page state |
 | [`xiaohongshu-content-research`](skills/xiaohongshu-content-research/SKILL.md) | Bounded read-only note research and the deterministic `social-notes` fixture | Stop on robots, login, captcha, safety page, or rate limit |
 
 Read the full [Skills guide](docs/skills.md) before publishing a new procedure.
@@ -461,7 +467,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.8.2`.
+Should output the installed package version, for example `drissionpage-mcp 0.8.3`.
 
 `drissionpage-mcp doctor` must also report both `mcp_supported` and
 `mcp_server_wiring` as `ok`; package-version output alone does not prove that an
@@ -494,13 +500,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.8.2 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.8.3 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.8.2)
+### Current (v0.8.3)
 - [x] 69 atomic navigation, tab/frame/shadow, accessibility, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -668,15 +674,13 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.8.2
+## 🆕 Latest Version: v0.8.3
 
-Released on 2026-08-14. This release keeps the 69-tool contract stable and makes repository example Skills discoverable without bundling or executing them:
+Released on 2026-08-17. This release keeps the 69-tool contract stable and makes repository example Skills versioned and integrity-checkable without bundling or executing them:
 
-- Makes localStorage/sessionStorage values opt-in through `include_values=true`, and returns redacted metadata from `keyboard_press` and keyboard-triggered downloads.
-- Extends `element_click_and_download` with strict coordinate and keyboard triggers while preserving selector/accessibility calls, operation-key replay, and one-trigger/one-mission correlation.
-- Serializes generic download triggers per tab under one shared deadline, restores prior state on all terminal paths, and cancels late missions during a 250ms fail-closed guard.
-- Classifies browser-start and dialog failures before generic runtime fallback while redacting localized DrissionPage, CDP, private destination, and rejected-path details.
-- Enforces Ruff and mypy in GitHub CI, then runs multi-version unit/protocol tests, browser boundaries, full browser coverage, W01-W08, clean-wheel stdio, and package privacy gates.
-- Keeps advanced held-key, IME/composition, touch/pinch, and clipboard capabilities deferred until their lifetime, cleanup, policy, and browser support can be verified.
-- Adds doctor checks for imported package path, source-tree execution, installed metadata version, and the 69-tool/zero-prompt/one-resource public surface.
-- Publishes `cross-origin-iframe-probe`, `turnstile-testing`, and `xiaohongshu-content-research` as repository examples, with catalog metadata and a standalone Skills guide.
+- Publishes catalog schema v2 metadata for the three repository Skills.
+- Pins each Skill to the `skills-manager` `v0.8.3` source revision and records its SHA-256.
+- Declares per-Skill MCP compatibility, required tools, fixture, and verification status.
+- Adds a deterministic source-checkout validator and CI gate for Skill metadata, tool dependencies, paths, and hashes.
+- Keeps Skills outside wheel/sdist and keeps the server from downloading or executing Skill content.
+- Adds no MCP tools, prompts, browser behavior, or tool schema changes.

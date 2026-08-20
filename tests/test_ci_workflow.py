@@ -290,8 +290,8 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     assert "command -v google-chrome" in benchmark_job
     assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
-    assert "--output benchmark-results/0.8.2-task-completion.json" in benchmark_job
-    assert "name: 0.8.2-task-completion-benchmark" in benchmark_job
+    assert "--output benchmark-results/0.8.3-task-completion.json" in benchmark_job
+    assert "name: 0.8.3-task-completion-benchmark" in benchmark_job
     assert "0.7.2-task-completion" not in benchmark_job
     assert "tests.evals.task_completion_benchmark" not in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
@@ -317,7 +317,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.8.2"
+    assert version == "0.8.3"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")
@@ -329,6 +329,8 @@ def test_ci_runs_resource_and_eval_gates() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
 
     assert "tests/test_mcp_resources.py" in workflow
+    assert "tests/test_skill_catalog.py" in workflow
+    assert "playground/validate_skills.py --json" in workflow
     assert "tests/test_mcp_prompts.py" not in workflow
     assert "python -m pytest tests/evals -q" in workflow
     assert "tests.evals.task_completion_benchmark" in workflow

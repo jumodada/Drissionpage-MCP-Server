@@ -61,11 +61,12 @@ async def test_catalog_read_is_static_bounded_and_browser_independent(
     assert len(content.text) <= RESOURCE_JSON_MAX_CHARS
     payload = json.loads(content.text)
     assert payload == {
-        "schema_version": "1",
-        "mcp_version": "0.8.2",
+        "schema_version": "2",
+        "mcp_version": "0.8.3",
         "optional": True,
         "catalog_url": "https://github.com/jumodada/skills-manager",
-        "repository_url": "https://github.com/jumodada/Drissionpage-MCP-Server",
+        "repository_url": "https://github.com/jumodada/skills-manager",
+        "source_revision": "v0.8.3",
         "catalog_path": "skills/",
         "skill_entrypoint": "skills/<skill-name>/SKILL.md",
         "status": "repository_examples",

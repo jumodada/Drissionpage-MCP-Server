@@ -10,22 +10,24 @@ postcondition checks for one bounded class of work.
 The repository contains example Skills under `skills/<name>/SKILL.md`. They are
 source documentation, not Python modules: the wheel and sdist intentionally do
 not include them. The MCP server exposes discovery metadata through
-`drissionpage://skills/catalog`; clients can use the listed `source_url` values
-to inspect the examples from the repository or an external Skills catalog.
+`drissionpage://skills/catalog`. In 0.8.3, catalog schema v2 publishes a fixed
+`v0.8.3` source revision from `skills-manager`, a SHA-256 for each `SKILL.md`,
+the Skill and compatible MCP versions, required public tools, fixture, and
+verification status.
 
 ## Example catalog
 
 | Skill | Use it for | Important boundary |
 | --- | --- | --- |
 | `cross-origin-iframe-probe` | Decide whether an iframe is DOM-reachable and choose frame, coordinate, or keyboard fallbacks | Cross-origin documents cannot be read through the parent DOM |
-| `turnstile-testing` | Authorized Turnstile test fixtures and parent-page verification | Never bypass production challenges or treat a safety page as a selector bug |
+| `turnstile-testing` | Turnstile test fixtures, authorized production challenge interaction, coordinate geometry, and parent-page verification | Use the documented support matrix and verify the resulting page state |
 | `xiaohongshu-content-research` | Bounded, read-only note research and the local `social-notes` fixture | Stop on robots, login, captcha, safety restriction, or rate-limit boundaries |
 
 ## Skill contract
 
 Every Skill should:
 
-1. Declare a stable `name` and a one-sentence `description` in YAML frontmatter.
+1. Declare only a stable `name` and a one-sentence `description` in YAML frontmatter.
 2. State authorization, privacy, rate, login, captcha, and submission boundaries.
 3. Compose existing atomic tools instead of inventing tool names or hidden APIs.
 4. Re-observe after navigation and consequential actions; verify explicit
@@ -33,9 +35,29 @@ Every Skill should:
 5. Describe unsupported cases and a stop condition.
 6. Prefer deterministic local fixtures for repeatable tests.
 
-Skills must not add browser capabilities, silently change safety policy, echo
-secrets, or claim to defeat anti-bot systems. Site-specific business decisions
-belong in the host application and require the operator's authorization.
+Skills must not add browser capabilities, silently change safety policy, or echo
+secrets. Site-specific challenge and business decisions belong in the Skill or
+host application and require the operator's authorization.
+
+Validate all repository examples and their catalog metadata with:
+
+```bash
+python playground/validate_skills.py --json
+```
+
+Install the fixed 0.8.3 Skills release for Codex or Claude Code:
+
+```bash
+git clone --branch v0.8.3 https://github.com/jumodada/skills-manager.git
+cd skills-manager
+python install.py verify --json
+python install.py install --client codex --json
+# Or: python install.py install --client claude --json
+```
+
+Use `--skill turnstile-testing` to install one Skill or `--target` for another
+host directory. Existing Skill directories are not overwritten unless the
+operator supplies `--force`.
 
 ## Using a repository example
 
@@ -44,9 +66,9 @@ Skill context. The Skill itself does not run a browser. The host performs the
 tool calls against the connected DrissionPage MCP server:
 
 ```text
-Repository: https://github.com/jumodada/Drissionpage-MCP-Server
+Repository: https://github.com/jumodada/skills-manager/tree/v0.8.3
 Skill: skills/xiaohongshu-content-research/SKILL.md
-Core server: drissionpage-mcp 0.8.2
+Core server: drissionpage-mcp 0.8.3
 ```
 
 For release validation, install a built wheel or sdist in a clean environment,

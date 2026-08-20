@@ -71,10 +71,24 @@ async def test_eval_skills_catalog_is_optional_and_static() -> None:
     assert catalog["catalog_path"] == "skills/"
     assert catalog["skill_entrypoint"] == "skills/<skill-name>/SKILL.md"
     assert catalog["status"] == "repository_examples"
-    assert catalog["repository_url"].endswith("/Drissionpage-MCP-Server")
+    assert catalog["schema_version"] == "2"
+    assert catalog["source_revision"] == "v0.8.3"
+    assert catalog["repository_url"].endswith("/skills-manager")
     assert {skill["name"] for skill in catalog["skills"]} >= {
         "cross-origin-iframe-probe",
         "turnstile-testing",
         "xiaohongshu-content-research",
     }
+    for skill in catalog["skills"]:
+        assert skill["skill_version"] == "0.1.0"
+        assert skill["mcp_compatibility"] == ">=0.8.2,<0.9.0"
+        assert skill["required_tools"]
+        assert skill["source_revision"] == catalog["source_revision"]
+        assert skill["source_url"].startswith(catalog["repository_url"])
+        assert skill["source_revision"] in skill["source_url"]
+        assert len(skill["sha256"]) == 64
+        assert skill["verification_status"] in {
+            "fixture_verified",
+            "field_evaluated",
+        }
     assert server.context is None
