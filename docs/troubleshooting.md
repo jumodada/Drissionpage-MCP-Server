@@ -7,7 +7,7 @@ Use this guide when the MCP server does not start, tools do not appear, or brows
 Run these commands from a shell:
 
 ```bash
-python -m pip install -U "drissionpage-mcp>=0.8.3"
+python -m pip install -U "drissionpage-mcp>=0.8.4"
 drissionpage-mcp --version
 drissionpage-mcp doctor
 drissionpage-mcp doctor --launch-browser
@@ -35,7 +35,7 @@ If logs show tools loading and then fail with
 incompatible MCP Python SDK 2.x. Repair both packages explicitly:
 
 ```bash
-python -m pip install -U "drissionpage-mcp>=0.8.3" "mcp>=1.0.0,<2"
+python -m pip install -U "drissionpage-mcp>=0.8.4" "mcp>=1.0.0,<2"
 drissionpage-mcp doctor
 ```
 
@@ -114,7 +114,7 @@ user-agent, cache, and URL-blocking tools are included by default; no capability
 profile or `full` mode is required.
 
 
-## Task Completion / Browser-Owned Capabilities 0.8.3 Checks
+## Task Completion / Challenge Surface 0.8.4 Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to `profile="direct"`; set `profile="natural"` for a deterministic 24-step eased trajectory with an exact endpoint.
 - In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` explicitly.
@@ -136,6 +136,7 @@ profile or `full` mode is required.
 - Use `drissionpage-mcp doctor` to inspect browser, headless, sandbox, and environment configuration without starting a workflow.
 - Use `tools/list` for the current typed core contract. Optional Skills are discovered through `drissionpage://skills/catalog` and follow the external `skills/<skill-name>/SKILL.md` path convention.
 - Keep challenge observation, repeated-click sequencing, and site/business decisions in an external Skill. Re-observe and verify between individual MCP actions instead of replaying stale coordinates.
+- For iframe challenges, use `frame_list.boundary` and `document_access` to choose a frame-DOM or outer-element path. Read `outer.presentation.coordinate_actionability` or `element_state_get.presentation` before coordinate input; only `top_level_viewport` geometry is directly valid for `page_click_xy`.
 
 For the release reliability gate, run the deterministic public-tool benchmark:
 
@@ -143,7 +144,19 @@ For the release reliability gate, run the deterministic public-tool benchmark:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.8.3-task-completion.json
+  --output benchmark-results/0.8.4-task-completion.json
+```
+
+Run the local challenge-surface matrix and the explicitly opt-in official
+Turnstile dummy-key matrix separately:
+
+```bash
+DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
+python -m tests.evals.challenge_surface_benchmark --iterations 10
+
+DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
+python -m tests.evals.turnstile_testkey_benchmark \
+  --iterations 10 --allow-external
 ```
 
 The report is workload-scoped. Every W01-W08 workload must reach at least 9/10;

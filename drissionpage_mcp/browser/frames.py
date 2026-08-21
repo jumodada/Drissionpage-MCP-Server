@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Any
 
 from DrissionPage.errors import ElementNotFoundError
 
-from ..frame_payload import _frame_snapshot_payload, _frame_summary, _safe_string_attr
 from ..outline import summarize_elements
 from ..selector import SelectorPlan, normalize_selector
+from .frame_payload import _frame_snapshot_payload, _frame_summary, _safe_string_attr
 
 if TYPE_CHECKING:
     from ..tab import PageTab
@@ -31,7 +31,7 @@ class FrameOperations:
         try:
             frames = self._frames()
             summaries = [
-                _frame_summary(frame, index)
+                _frame_summary(frame, index, top_page=self._page)
                 for index, frame in enumerate(frames[: max(0, limit)])
             ]
             return {
@@ -66,7 +66,15 @@ class FrameOperations:
                 max_elements=max_elements,
                 max_text_chars=max_text_chars,
             )
-            return {"frame": _frame_summary(frame, index, frame_selector), **result}
+            return {
+                "frame": _frame_summary(
+                    frame,
+                    index,
+                    frame_selector,
+                    top_page=self._page,
+                ),
+                **result,
+            }
         except Exception as exc:
             logger.error("Failed to capture frame snapshot (%s)", type(exc).__name__)
             raise
@@ -90,7 +98,12 @@ class FrameOperations:
             if not element:
                 raise ElementNotFoundError(f"Element not found: {selector}")
             return {
-                "frame": _frame_summary(frame, index, frame_selector),
+                "frame": _frame_summary(
+                    frame,
+                    index,
+                    frame_selector,
+                    top_page=self._page,
+                ),
                 "element": _element_info(element, plan),
             }
         except Exception as exc:

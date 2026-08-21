@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from drissionpage_mcp.frame_payload import _frame_snapshot_payload, _frame_summary
+from drissionpage_mcp.browser.frame_payload import (
+    _frame_snapshot_payload,
+    _frame_summary,
+)
 
 
 class AttrElement:
@@ -11,6 +14,55 @@ class AttrElement:
 
     def attr(self, name: str):
         return self.attrs.get(name)
+
+
+class SummaryStates:
+    is_alive = True
+    is_displayed = True
+    is_enabled = True
+    is_clickable = True
+    is_checked = False
+    is_selected = False
+    is_in_viewport = True
+    is_whole_in_viewport = True
+    is_covered = False
+
+
+class SummaryRect:
+    location = (20.0, 40.0)
+    size = (300.0, 65.0)
+    midpoint = (170.0, 72.5)
+    click_point = (170.0, 43.0)
+    viewport_location = (20.0, 40.0)
+    viewport_midpoint = (170.0, 72.5)
+    viewport_click_point = (170.0, 43.0)
+
+
+class SummaryElement(AttrElement):
+    states = SummaryStates()
+    rect = SummaryRect()
+
+    def run_js(self, _script: str):
+        return {
+            "display": "inline",
+            "visibility": "visible",
+            "opacity": 1.0,
+            "pointer_events": "auto",
+            "transform": "matrix3d(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)",
+            "transform_style": "preserve-3d",
+            "perspective": "600px",
+            "ancestor_3d": True,
+        }
+
+
+class SummaryFrame:
+    frame_ele = SummaryElement({"id": "challenge-frame"})
+    title = "Challenge"
+    url = "https://frame.example.test/"
+    _is_diff_domain = True
+
+    def run_js(self, _script: str):
+        return True
 
 
 class TextElement:
@@ -49,6 +101,37 @@ def test_frame_summary_selector_fallbacks() -> None:
     assert _frame_summary(AttrElement({"id": "ignored"}), 3, "css:iframe.special")[
         "selector"
     ] == "css:iframe.special"
+
+
+def test_frame_summary_reports_boundary_access_and_outer_actionability() -> None:
+    summary = _frame_summary(SummaryFrame(), 0)
+
+    assert summary["boundary"] == "cross_origin"
+    assert summary["document_access"] == "readable"
+    assert summary["outer"]["rect"]["viewport_coordinate_space"] == (
+        "top_level_viewport"
+    )
+    assert summary["outer"]["presentation"]["three_dimensional"] is True
+    assert summary["outer"]["presentation"]["coordinate_actionability"] == (
+        "transformed_3d"
+    )
+
+
+def test_frame_summary_marks_nested_owner_viewport_as_target_document() -> None:
+    top_page = object()
+    nested_owner = object()
+    frame = SummaryFrame()
+    frame.frame_ele = SummaryElement({"id": "nested-frame"})
+    frame.frame_ele.owner = nested_owner
+
+    summary = _frame_summary(frame, 0, top_page=top_page)
+
+    assert summary["outer"]["rect"]["viewport_coordinate_space"] == (
+        "target_document_viewport"
+    )
+    assert summary["outer"]["presentation"]["coordinate_actionability"] == (
+        "transformed_3d"
+    )
 
 
 def test_frame_snapshot_lookup_failure_returns_empty_groups_and_body_fallback() -> None:

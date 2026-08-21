@@ -6,6 +6,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from ..target import ElementTargetArg
+from .geometry import element_viewport_evidence
 
 if TYPE_CHECKING:
     from ..tab import PageTab
@@ -69,7 +70,13 @@ class InteractionOperations:
         try:
             resolved = await self._tab.dom_targeting.resolve(selector, timeout=timeout)
             element = resolved.element
+            before = element_viewport_evidence(
+                element,
+                owner=resolved.owner,
+                top_page=self._page,
+            )
             scroller = element.scroll
+            scroll_method = "element"
             try:
                 scroller.to_see(center=center)
             except TypeError:
@@ -81,10 +88,23 @@ class InteractionOperations:
                 # to the frame's location, computed from its own rect.
                 x, y = element.rect.location
                 self._page.scroll.to_location(int(x), int(y))
+                scroll_method = "page_fallback"
             await self._tab._stabilize(
                 "element_scroll_into_view", timeout=0.5, fallback_sleep=0.02
             )
-            return {**resolved.metadata(), "center": center, "url": self._tab.url}
+            after = element_viewport_evidence(
+                element,
+                owner=resolved.owner,
+                top_page=self._page,
+            )
+            return {
+                **resolved.metadata(),
+                "center": center,
+                "scroll_method": scroll_method,
+                "before": before,
+                "after": after,
+                "url": self._tab.url,
+            }
         except Exception as exc:
             logger.error(
                 "Failed to scroll element into view (%s)", type(exc).__name__

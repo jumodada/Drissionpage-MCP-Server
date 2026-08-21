@@ -11,6 +11,7 @@ from ..compat import accepts_parameters
 from ..outline import summarize_elements
 from ..response_errors import ErrorCode
 from ..target import ElementTargetArg
+from .geometry import element_viewport_evidence
 from .targeting import DomTargetResolver
 
 if TYPE_CHECKING:
@@ -200,49 +201,15 @@ class ElementOperations:
     ) -> dict[str, Any]:
         resolved = await self._targeting.resolve(selector, timeout=timeout)
         element = resolved.element
-        states = element.states
-        covered_by = getattr(states, "is_covered", False)
-        rect = element.rect
         return {
             **resolved.metadata(),
             "tag": str(getattr(element, "tag", "") or ""),
             "text": str(getattr(element, "text", "") or "")[:500],
-            "displayed": bool(getattr(states, "is_displayed", False)),
-            "enabled": bool(getattr(states, "is_enabled", False)),
-            "alive": bool(getattr(states, "is_alive", False)),
-            "clickable": bool(getattr(states, "is_clickable", False)),
-            "checked": bool(getattr(states, "is_checked", False)),
-            "selected": bool(getattr(states, "is_selected", False)),
-            "in_viewport": bool(getattr(states, "is_in_viewport", False)),
-            "whole_in_viewport": bool(getattr(states, "is_whole_in_viewport", False)),
-            "covered": bool(covered_by),
-            "covering_backend_node_id": int(covered_by) if covered_by else None,
-            "rect": {
-                "location": _point(rect.location),
-                "size": _size(rect.size),
-                "midpoint": _rect_point(
-                    rect, "midpoint", location_attr="location", size_attr="size"
-                ),
-                "click_point": _rect_point(
-                    rect, "click_point", location_attr="location", size_attr="size"
-                ),
-                "viewport_location": _point(
-                    getattr(rect, "viewport_location", None) or rect.location
-                ),
-                "viewport_midpoint": _rect_point(
-                    rect,
-                    "viewport_midpoint",
-                    location_attr="viewport_location",
-                    size_attr="viewport_size",
-                ),
-                "viewport_click_point": _rect_point(
-                    rect,
-                    "viewport_click_point",
-                    location_attr="viewport_location",
-                    size_attr="viewport_size",
-                ),
-                "coordinate_space": "target_document",
-            },
+            **element_viewport_evidence(
+                element,
+                owner=resolved.owner,
+                top_page=getattr(self._tab, "page", resolved.owner),
+            ),
         }
 
     async def _input_element(self, element: Any, text: str, *, clear: bool) -> None:
@@ -276,36 +243,3 @@ class ElementOperations:
             if not callable(at) or not accepts_parameters(at, "button", "count"):
                 raise ClickUnsupportedError("BUTTON_COUNT_CLICK_UNAVAILABLE")
             at(button=button, count=click_count)
-
-
-def _point(value: Any) -> dict[str, float]:
-    x, y = value
-    return {"x": float(x), "y": float(y)}
-
-
-def _size(value: Any) -> dict[str, float]:
-    width, height = value
-    return {"width": float(width), "height": float(height)}
-
-
-def _midpoint_from_location_size(location: Any, size: Any) -> dict[str, float]:
-    x, y = location
-    width, height = size
-    return {"x": float(x) + float(width) / 2, "y": float(y) + float(height) / 2}
-
-
-def _rect_point(rect: Any, attr: str, *, location_attr: str, size_attr: str) -> dict[str, float]:
-    """Return a rect point, falling back to a location+size midpoint.
-
-    Some DrissionPage element types (notably ``ChromiumFrame`` for
-    cross-origin iframes) expose only ``location``/``size`` and omit the
-    richer ``midpoint``/``click_point`` attributes normal elements have.
-    """
-    value = getattr(rect, attr, None)
-    if value is not None:
-        return _point(value)
-    location = getattr(rect, location_attr, None)
-    size = getattr(rect, size_attr, None)
-    if location is not None and size is not None:
-        return _midpoint_from_location_size(location, size)
-    return {"x": 0.0, "y": 0.0}

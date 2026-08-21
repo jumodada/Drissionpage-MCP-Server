@@ -12,6 +12,15 @@ from urllib.request import Request, urlopen
 import pytest
 
 import tests.evals.task_completion_benchmark as benchmark
+from tests.evals.challenge_surface_benchmark import (
+    SCENARIOS as CHALLENGE_SCENARIOS,
+)
+from tests.evals.challenge_surface_benchmark import (
+    _failure_category as challenge_failure_category,
+)
+from tests.evals.challenge_surface_benchmark import (
+    _summarize as summarize_challenge_surfaces,
+)
 from tests.evals.task_completion_benchmark import (
     SIDE_EFFECT_BASELINES,
     WORKLOAD_TOOL_REQUIREMENTS,
@@ -22,6 +31,7 @@ from tests.evals.task_completion_benchmark import (
     _side_effect_evidence,
     _summarize,
 )
+from tests.evals.turnstile_testkey_benchmark import TEST_KEYS
 from tests.fixtures.http_fixture import (
     TASK_COMPLETION_DOWNLOAD,
     TASK_COMPLETION_DOWNLOAD_SHA256,
@@ -42,6 +52,71 @@ def test_eval_task_completion_catalog_covers_eight_workloads() -> None:
     assert (
         len({scenario.terminal_selector for scenario in TASK_COMPLETION_SCENARIOS}) == 9
     )
+
+
+def test_eval_challenge_surface_catalog_covers_0_8_4_matrix() -> None:
+    assert CHALLENGE_SCENARIOS == (
+        "normal",
+        "hidden",
+        "below_viewport",
+        "delayed_mount",
+        "transformed_3d",
+    )
+
+
+def test_eval_challenge_surface_summary_requires_nine_of_ten() -> None:
+    runs = [
+        {
+            "scenario": scenario,
+            "success": iteration != 10,
+            "tool_call_count": 4,
+            "first_geometry_error_px": 0.5 if scenario == "normal" else None,
+        }
+        for scenario in CHALLENGE_SCENARIOS
+        for iteration in range(1, 11)
+    ]
+
+    summary = summarize_challenge_surfaces(runs, 10)
+
+    assert summary["passed"] is True
+    assert summary["total_runs"] == 50
+    assert summary["scenarios"]["normal"]["max_first_geometry_error_px"] == 0.5
+    assert challenge_failure_category("geometry error") == "geometry_mismatch"
+
+
+def test_eval_turnstile_matrix_matches_official_dummy_keys() -> None:
+    assert TEST_KEYS == {
+        "visible_pass": {
+            "sitekey": "1x00000000000000000000AA",
+            "size": "normal",
+            "expected": "passed",
+            "click_if_pending": True,
+        },
+        "visible_fail": {
+            "sitekey": "2x00000000000000000000AB",
+            "size": "normal",
+            "expected": "failed",
+            "click_if_pending": True,
+        },
+        "invisible_pass": {
+            "sitekey": "1x00000000000000000000BB",
+            "size": "invisible",
+            "expected": "passed",
+            "click_if_pending": False,
+        },
+        "invisible_fail": {
+            "sitekey": "2x00000000000000000000BB",
+            "size": "invisible",
+            "expected": "failed",
+            "click_if_pending": False,
+        },
+        "forced_interactive": {
+            "sitekey": "3x00000000000000000000FF",
+            "size": "normal",
+            "expected": "passed",
+            "click_if_pending": True,
+        },
+    }
 
 
 def test_eval_task_completion_enforces_declared_public_tool_path() -> None:

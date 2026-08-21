@@ -22,7 +22,7 @@ def test_skill_catalog_matches_repository_sources_and_public_tools() -> None:
         assert path.is_file()
         assert path.parent.name == skill["name"]
         assert set(skill["required_tools"]) <= tool_names
-        assert skill["source_revision"] == "v0.8.3"
+        assert skill["source_revision"] == "v0.8.4"
         assert f"/tree/{skill['source_revision']}/" in skill["source_url"]
         assert skill["source_url"].endswith(path.parent.as_posix())
         assert skill["sha256"] == hashlib.sha256(content).hexdigest()
@@ -52,7 +52,7 @@ def test_skill_validator_cli_reports_versioned_catalog() -> None:
     report = json.loads(completed.stdout)
 
     assert report["ok"] is True
-    assert report["source_revision"] == "v0.8.3"
+    assert report["source_revision"] == "v0.8.4"
     assert report["tool_count"] == 69
     assert {item["name"] for item in report["skills"]} == {
         "cross-origin-iframe-probe",

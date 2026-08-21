@@ -5,12 +5,19 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from .outline import summarize_elements
+from ..outline import summarize_elements
+from .geometry import element_viewport_evidence
 
 logger = logging.getLogger(__name__)
 
 
-def _frame_summary(frame: Any, index: int, selector: str = "") -> dict[str, Any]:
+def _frame_summary(
+    frame: Any,
+    index: int,
+    selector: str = "",
+    *,
+    top_page: Any | None = None,
+) -> dict[str, Any]:
     frame_ele = getattr(frame, "frame_ele", None) or frame
     frame_id = _safe_element_attr(frame_ele, "id")
     frame_name = _safe_element_attr(frame_ele, "name")
@@ -23,6 +30,8 @@ def _frame_summary(frame: Any, index: int, selector: str = "") -> dict[str, Any]
     else:
         frame_selector = f"iframe:nth-of-type({index + 1})"
 
+    boundary = _frame_boundary(frame)
+    owner = getattr(frame_ele, "owner", None)
     return {
         "index": index,
         "selector": frame_selector,
@@ -30,7 +39,34 @@ def _frame_summary(frame: Any, index: int, selector: str = "") -> dict[str, Any]
         "name": frame_name,
         "title": _safe_string_attr(frame, "title"),
         "url": _safe_string_attr(frame, "url"),
+        "boundary": boundary,
+        "document_access": _frame_document_access(frame),
+        "outer": element_viewport_evidence(
+            frame_ele,
+            owner=owner,
+            top_page=owner if top_page is None else top_page,
+        ),
     }
+
+
+def _frame_boundary(frame: Any) -> str:
+    different_domain = getattr(frame, "_is_diff_domain", None)
+    if different_domain is True:
+        return "cross_origin"
+    if different_domain is False:
+        return "same_origin"
+    return "unknown"
+
+
+def _frame_document_access(frame: Any) -> str:
+    run_js = getattr(frame, "run_js", None)
+    if not callable(run_js):
+        return "unknown"
+    try:
+        readable = run_js("return Boolean(document.documentElement);")
+    except Exception:
+        return "outer_only"
+    return "readable" if readable else "outer_only"
 
 
 def _frame_snapshot_payload(

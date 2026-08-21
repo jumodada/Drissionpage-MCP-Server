@@ -17,6 +17,24 @@ from drissionpage_mcp.browser.targeting import DomTargetResolver
 
 class _FrameRect:
     location = (8.0, 900.0)
+    size = (300.0, 65.0)
+    midpoint = (158.0, 932.5)
+    click_point = (158.0, 903.0)
+    viewport_location = (8.0, 900.0)
+    viewport_midpoint = (158.0, 932.5)
+    viewport_click_point = (158.0, 903.0)
+
+
+class _FrameStates:
+    is_alive = True
+    is_displayed = True
+    is_enabled = True
+    is_clickable = True
+    is_checked = False
+    is_selected = False
+    is_in_viewport = False
+    is_whole_in_viewport = False
+    is_covered = False
 
 
 class _FrameScroller:
@@ -34,6 +52,19 @@ class _ChromiumFrameLike:
     tag = "iframe"
     rect = _FrameRect()
     scroll = _FrameScroller()
+    states = _FrameStates()
+
+    def run_js(self, _script: str):
+        return {
+            "display": "inline",
+            "visibility": "visible",
+            "opacity": 1.0,
+            "pointer_events": "auto",
+            "transform": "none",
+            "transform_style": "flat",
+            "perspective": "none",
+            "ancestor_3d": False,
+        }
 
 
 class _PageScroll:
@@ -70,6 +101,11 @@ async def test_scroll_element_into_view_falls_back_for_frame_like_elements() -> 
     result = await InteractionOperations(tab).scroll_element_into_view("iframe")  # type: ignore[arg-type]
 
     assert result["center"] is True
+    assert result["scroll_method"] == "page_fallback"
+    assert result["before"]["rect"]["viewport_location"]["y"] == 900.0
+    assert result["after"]["rect"]["viewport_coordinate_space"] == (
+        "top_level_viewport"
+    )
     assert tab.page.scroll.calls == [(8, 900)]
 
 
@@ -84,10 +120,25 @@ async def test_scroll_element_into_view_uses_native_to_see_for_normal_elements()
     class _NormalElement:
         tag = "button"
         scroll = _NormalScroller()
+        rect = _FrameRect()
+        states = _FrameStates()
+
+        def run_js(self, _script: str):
+            return {
+                "display": "block",
+                "visibility": "visible",
+                "opacity": 1.0,
+                "pointer_events": "auto",
+                "transform": "none",
+                "transform_style": "flat",
+                "perspective": "none",
+                "ancestor_3d": False,
+            }
 
     tab = _ElementTab(_NormalElement())
 
-    await InteractionOperations(tab).scroll_element_into_view("button", center=False)  # type: ignore[arg-type]
+    result = await InteractionOperations(tab).scroll_element_into_view("button", center=False)  # type: ignore[arg-type]
 
+    assert result["scroll_method"] == "element"
     assert calls == [False]
     assert tab.page.scroll.calls == []

@@ -10769,6 +10769,86 @@
     "name": "element_state_get",
     "outputSchema": {
       "$defs": {
+        "ElementPresentationData": {
+          "additionalProperties": false,
+          "properties": {
+            "ancestor_3d": {
+              "title": "Ancestor 3D",
+              "type": "boolean"
+            },
+            "coordinate_actionability": {
+              "enum": [
+                "ready",
+                "hidden",
+                "off_viewport",
+                "covered",
+                "pointer_disabled",
+                "transformed_3d",
+                "target_document_only"
+              ],
+              "title": "Coordinate Actionability",
+              "type": "string"
+            },
+            "display": {
+              "title": "Display",
+              "type": "string"
+            },
+            "opacity": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Opacity"
+            },
+            "perspective": {
+              "title": "Perspective",
+              "type": "string"
+            },
+            "pointer_events": {
+              "title": "Pointer Events",
+              "type": "string"
+            },
+            "three_dimensional": {
+              "title": "Three Dimensional",
+              "type": "boolean"
+            },
+            "transform": {
+              "title": "Transform",
+              "type": "string"
+            },
+            "transform_style": {
+              "title": "Transform Style",
+              "type": "string"
+            },
+            "transformed": {
+              "title": "Transformed",
+              "type": "boolean"
+            },
+            "visibility": {
+              "title": "Visibility",
+              "type": "string"
+            }
+          },
+          "required": [
+            "display",
+            "visibility",
+            "opacity",
+            "pointer_events",
+            "transform",
+            "transform_style",
+            "perspective",
+            "transformed",
+            "ancestor_3d",
+            "three_dimensional",
+            "coordinate_actionability"
+          ],
+          "title": "ElementPresentationData",
+          "type": "object"
+        },
         "ElementRectData": {
           "additionalProperties": false,
           "properties": {
@@ -10792,6 +10872,14 @@
             "viewport_click_point": {
               "$ref": "#/$defs/PointData"
             },
+            "viewport_coordinate_space": {
+              "enum": [
+                "top_level_viewport",
+                "target_document_viewport"
+              ],
+              "title": "Viewport Coordinate Space",
+              "type": "string"
+            },
             "viewport_location": {
               "$ref": "#/$defs/PointData"
             },
@@ -10807,7 +10895,8 @@
             "viewport_location",
             "viewport_midpoint",
             "viewport_click_point",
-            "coordinate_space"
+            "coordinate_space",
+            "viewport_coordinate_space"
           ],
           "title": "ElementRectData",
           "type": "object"
@@ -10932,6 +11021,9 @@
                   "default": null,
                   "title": "Name"
                 },
+                "presentation": {
+                  "$ref": "#/$defs/ElementPresentationData"
+                },
                 "rect": {
                   "$ref": "#/$defs/ElementRectData"
                 },
@@ -11009,7 +11101,8 @@
                 "whole_in_viewport",
                 "covered",
                 "covering_backend_node_id",
-                "rect"
+                "rect",
+                "presentation"
               ],
               "title": "ElementStateData",
               "type": "object"
@@ -12104,6 +12197,252 @@
     },
     "name": "element_scroll_into_view",
     "outputSchema": {
+      "$defs": {
+        "ElementPresentationData": {
+          "additionalProperties": false,
+          "properties": {
+            "ancestor_3d": {
+              "title": "Ancestor 3D",
+              "type": "boolean"
+            },
+            "coordinate_actionability": {
+              "enum": [
+                "ready",
+                "hidden",
+                "off_viewport",
+                "covered",
+                "pointer_disabled",
+                "transformed_3d",
+                "target_document_only"
+              ],
+              "title": "Coordinate Actionability",
+              "type": "string"
+            },
+            "display": {
+              "title": "Display",
+              "type": "string"
+            },
+            "opacity": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Opacity"
+            },
+            "perspective": {
+              "title": "Perspective",
+              "type": "string"
+            },
+            "pointer_events": {
+              "title": "Pointer Events",
+              "type": "string"
+            },
+            "three_dimensional": {
+              "title": "Three Dimensional",
+              "type": "boolean"
+            },
+            "transform": {
+              "title": "Transform",
+              "type": "string"
+            },
+            "transform_style": {
+              "title": "Transform Style",
+              "type": "string"
+            },
+            "transformed": {
+              "title": "Transformed",
+              "type": "boolean"
+            },
+            "visibility": {
+              "title": "Visibility",
+              "type": "string"
+            }
+          },
+          "required": [
+            "display",
+            "visibility",
+            "opacity",
+            "pointer_events",
+            "transform",
+            "transform_style",
+            "perspective",
+            "transformed",
+            "ancestor_3d",
+            "three_dimensional",
+            "coordinate_actionability"
+          ],
+          "title": "ElementPresentationData",
+          "type": "object"
+        },
+        "ElementRectData": {
+          "additionalProperties": false,
+          "properties": {
+            "click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "coordinate_space": {
+              "const": "target_document",
+              "title": "Coordinate Space",
+              "type": "string"
+            },
+            "location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "midpoint": {
+              "$ref": "#/$defs/PointData"
+            },
+            "size": {
+              "$ref": "#/$defs/SizeData"
+            },
+            "viewport_click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_coordinate_space": {
+              "enum": [
+                "top_level_viewport",
+                "target_document_viewport"
+              ],
+              "title": "Viewport Coordinate Space",
+              "type": "string"
+            },
+            "viewport_location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_midpoint": {
+              "$ref": "#/$defs/PointData"
+            }
+          },
+          "required": [
+            "location",
+            "size",
+            "midpoint",
+            "click_point",
+            "viewport_location",
+            "viewport_midpoint",
+            "viewport_click_point",
+            "coordinate_space",
+            "viewport_coordinate_space"
+          ],
+          "title": "ElementRectData",
+          "type": "object"
+        },
+        "ElementViewportEvidenceData": {
+          "additionalProperties": false,
+          "properties": {
+            "alive": {
+              "title": "Alive",
+              "type": "boolean"
+            },
+            "checked": {
+              "title": "Checked",
+              "type": "boolean"
+            },
+            "clickable": {
+              "title": "Clickable",
+              "type": "boolean"
+            },
+            "covered": {
+              "title": "Covered",
+              "type": "boolean"
+            },
+            "covering_backend_node_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Covering Backend Node Id"
+            },
+            "displayed": {
+              "title": "Displayed",
+              "type": "boolean"
+            },
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean"
+            },
+            "in_viewport": {
+              "title": "In Viewport",
+              "type": "boolean"
+            },
+            "presentation": {
+              "$ref": "#/$defs/ElementPresentationData"
+            },
+            "rect": {
+              "$ref": "#/$defs/ElementRectData"
+            },
+            "selected": {
+              "title": "Selected",
+              "type": "boolean"
+            },
+            "whole_in_viewport": {
+              "title": "Whole In Viewport",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "displayed",
+            "enabled",
+            "alive",
+            "clickable",
+            "checked",
+            "selected",
+            "in_viewport",
+            "whole_in_viewport",
+            "covered",
+            "covering_backend_node_id",
+            "rect",
+            "presentation"
+          ],
+          "title": "ElementViewportEvidenceData",
+          "type": "object"
+        },
+        "PointData": {
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "title": "PointData",
+          "type": "object"
+        },
+        "SizeData": {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "title": "Height",
+              "type": "number"
+            },
+            "width": {
+              "title": "Width",
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "title": "SizeData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
@@ -12111,6 +12450,12 @@
             "data": {
               "additionalProperties": false,
               "properties": {
+                "after": {
+                  "$ref": "#/$defs/ElementViewportEvidenceData"
+                },
+                "before": {
+                  "$ref": "#/$defs/ElementViewportEvidenceData"
+                },
                 "center": {
                   "title": "Center",
                   "type": "boolean"
@@ -12162,6 +12507,14 @@
                   "default": null,
                   "title": "Role"
                 },
+                "scroll_method": {
+                  "enum": [
+                    "element",
+                    "page_fallback"
+                  ],
+                  "title": "Scroll Method",
+                  "type": "string"
+                },
                 "selector": {
                   "title": "Selector",
                   "type": "string"
@@ -12201,6 +12554,9 @@
                 "selector_strategy",
                 "selector_normalized",
                 "center",
+                "scroll_method",
+                "before",
+                "after",
                 "url"
               ],
               "title": "ElementScrollIntoViewData",
@@ -13512,6 +13868,315 @@
     },
     "name": "frame_list",
     "outputSchema": {
+      "$defs": {
+        "ElementPresentationData": {
+          "additionalProperties": false,
+          "properties": {
+            "ancestor_3d": {
+              "title": "Ancestor 3D",
+              "type": "boolean"
+            },
+            "coordinate_actionability": {
+              "enum": [
+                "ready",
+                "hidden",
+                "off_viewport",
+                "covered",
+                "pointer_disabled",
+                "transformed_3d",
+                "target_document_only"
+              ],
+              "title": "Coordinate Actionability",
+              "type": "string"
+            },
+            "display": {
+              "title": "Display",
+              "type": "string"
+            },
+            "opacity": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Opacity"
+            },
+            "perspective": {
+              "title": "Perspective",
+              "type": "string"
+            },
+            "pointer_events": {
+              "title": "Pointer Events",
+              "type": "string"
+            },
+            "three_dimensional": {
+              "title": "Three Dimensional",
+              "type": "boolean"
+            },
+            "transform": {
+              "title": "Transform",
+              "type": "string"
+            },
+            "transform_style": {
+              "title": "Transform Style",
+              "type": "string"
+            },
+            "transformed": {
+              "title": "Transformed",
+              "type": "boolean"
+            },
+            "visibility": {
+              "title": "Visibility",
+              "type": "string"
+            }
+          },
+          "required": [
+            "display",
+            "visibility",
+            "opacity",
+            "pointer_events",
+            "transform",
+            "transform_style",
+            "perspective",
+            "transformed",
+            "ancestor_3d",
+            "three_dimensional",
+            "coordinate_actionability"
+          ],
+          "title": "ElementPresentationData",
+          "type": "object"
+        },
+        "ElementRectData": {
+          "additionalProperties": false,
+          "properties": {
+            "click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "coordinate_space": {
+              "const": "target_document",
+              "title": "Coordinate Space",
+              "type": "string"
+            },
+            "location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "midpoint": {
+              "$ref": "#/$defs/PointData"
+            },
+            "size": {
+              "$ref": "#/$defs/SizeData"
+            },
+            "viewport_click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_coordinate_space": {
+              "enum": [
+                "top_level_viewport",
+                "target_document_viewport"
+              ],
+              "title": "Viewport Coordinate Space",
+              "type": "string"
+            },
+            "viewport_location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_midpoint": {
+              "$ref": "#/$defs/PointData"
+            }
+          },
+          "required": [
+            "location",
+            "size",
+            "midpoint",
+            "click_point",
+            "viewport_location",
+            "viewport_midpoint",
+            "viewport_click_point",
+            "coordinate_space",
+            "viewport_coordinate_space"
+          ],
+          "title": "ElementRectData",
+          "type": "object"
+        },
+        "ElementViewportEvidenceData": {
+          "additionalProperties": false,
+          "properties": {
+            "alive": {
+              "title": "Alive",
+              "type": "boolean"
+            },
+            "checked": {
+              "title": "Checked",
+              "type": "boolean"
+            },
+            "clickable": {
+              "title": "Clickable",
+              "type": "boolean"
+            },
+            "covered": {
+              "title": "Covered",
+              "type": "boolean"
+            },
+            "covering_backend_node_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Covering Backend Node Id"
+            },
+            "displayed": {
+              "title": "Displayed",
+              "type": "boolean"
+            },
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean"
+            },
+            "in_viewport": {
+              "title": "In Viewport",
+              "type": "boolean"
+            },
+            "presentation": {
+              "$ref": "#/$defs/ElementPresentationData"
+            },
+            "rect": {
+              "$ref": "#/$defs/ElementRectData"
+            },
+            "selected": {
+              "title": "Selected",
+              "type": "boolean"
+            },
+            "whole_in_viewport": {
+              "title": "Whole In Viewport",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "displayed",
+            "enabled",
+            "alive",
+            "clickable",
+            "checked",
+            "selected",
+            "in_viewport",
+            "whole_in_viewport",
+            "covered",
+            "covering_backend_node_id",
+            "rect",
+            "presentation"
+          ],
+          "title": "ElementViewportEvidenceData",
+          "type": "object"
+        },
+        "FrameSummaryData": {
+          "additionalProperties": false,
+          "properties": {
+            "boundary": {
+              "enum": [
+                "same_origin",
+                "cross_origin",
+                "unknown"
+              ],
+              "title": "Boundary",
+              "type": "string"
+            },
+            "document_access": {
+              "enum": [
+                "readable",
+                "outer_only",
+                "unknown"
+              ],
+              "title": "Document Access",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "index": {
+              "title": "Index",
+              "type": "integer"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "outer": {
+              "$ref": "#/$defs/ElementViewportEvidenceData"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "index",
+            "selector",
+            "id",
+            "name",
+            "title",
+            "url",
+            "boundary",
+            "document_access",
+            "outer"
+          ],
+          "title": "FrameSummaryData",
+          "type": "object"
+        },
+        "PointData": {
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "title": "PointData",
+          "type": "object"
+        },
+        "SizeData": {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "title": "Height",
+              "type": "number"
+            },
+            "width": {
+              "title": "Width",
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "title": "SizeData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
@@ -13525,8 +14190,7 @@
                 },
                 "frames": {
                   "items": {
-                    "additionalProperties": true,
-                    "type": "object"
+                    "$ref": "#/$defs/FrameSummaryData"
                   },
                   "title": "Frames",
                   "type": "array"
@@ -13667,6 +14331,315 @@
     },
     "name": "frame_snapshot",
     "outputSchema": {
+      "$defs": {
+        "ElementPresentationData": {
+          "additionalProperties": false,
+          "properties": {
+            "ancestor_3d": {
+              "title": "Ancestor 3D",
+              "type": "boolean"
+            },
+            "coordinate_actionability": {
+              "enum": [
+                "ready",
+                "hidden",
+                "off_viewport",
+                "covered",
+                "pointer_disabled",
+                "transformed_3d",
+                "target_document_only"
+              ],
+              "title": "Coordinate Actionability",
+              "type": "string"
+            },
+            "display": {
+              "title": "Display",
+              "type": "string"
+            },
+            "opacity": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Opacity"
+            },
+            "perspective": {
+              "title": "Perspective",
+              "type": "string"
+            },
+            "pointer_events": {
+              "title": "Pointer Events",
+              "type": "string"
+            },
+            "three_dimensional": {
+              "title": "Three Dimensional",
+              "type": "boolean"
+            },
+            "transform": {
+              "title": "Transform",
+              "type": "string"
+            },
+            "transform_style": {
+              "title": "Transform Style",
+              "type": "string"
+            },
+            "transformed": {
+              "title": "Transformed",
+              "type": "boolean"
+            },
+            "visibility": {
+              "title": "Visibility",
+              "type": "string"
+            }
+          },
+          "required": [
+            "display",
+            "visibility",
+            "opacity",
+            "pointer_events",
+            "transform",
+            "transform_style",
+            "perspective",
+            "transformed",
+            "ancestor_3d",
+            "three_dimensional",
+            "coordinate_actionability"
+          ],
+          "title": "ElementPresentationData",
+          "type": "object"
+        },
+        "ElementRectData": {
+          "additionalProperties": false,
+          "properties": {
+            "click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "coordinate_space": {
+              "const": "target_document",
+              "title": "Coordinate Space",
+              "type": "string"
+            },
+            "location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "midpoint": {
+              "$ref": "#/$defs/PointData"
+            },
+            "size": {
+              "$ref": "#/$defs/SizeData"
+            },
+            "viewport_click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_coordinate_space": {
+              "enum": [
+                "top_level_viewport",
+                "target_document_viewport"
+              ],
+              "title": "Viewport Coordinate Space",
+              "type": "string"
+            },
+            "viewport_location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_midpoint": {
+              "$ref": "#/$defs/PointData"
+            }
+          },
+          "required": [
+            "location",
+            "size",
+            "midpoint",
+            "click_point",
+            "viewport_location",
+            "viewport_midpoint",
+            "viewport_click_point",
+            "coordinate_space",
+            "viewport_coordinate_space"
+          ],
+          "title": "ElementRectData",
+          "type": "object"
+        },
+        "ElementViewportEvidenceData": {
+          "additionalProperties": false,
+          "properties": {
+            "alive": {
+              "title": "Alive",
+              "type": "boolean"
+            },
+            "checked": {
+              "title": "Checked",
+              "type": "boolean"
+            },
+            "clickable": {
+              "title": "Clickable",
+              "type": "boolean"
+            },
+            "covered": {
+              "title": "Covered",
+              "type": "boolean"
+            },
+            "covering_backend_node_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Covering Backend Node Id"
+            },
+            "displayed": {
+              "title": "Displayed",
+              "type": "boolean"
+            },
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean"
+            },
+            "in_viewport": {
+              "title": "In Viewport",
+              "type": "boolean"
+            },
+            "presentation": {
+              "$ref": "#/$defs/ElementPresentationData"
+            },
+            "rect": {
+              "$ref": "#/$defs/ElementRectData"
+            },
+            "selected": {
+              "title": "Selected",
+              "type": "boolean"
+            },
+            "whole_in_viewport": {
+              "title": "Whole In Viewport",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "displayed",
+            "enabled",
+            "alive",
+            "clickable",
+            "checked",
+            "selected",
+            "in_viewport",
+            "whole_in_viewport",
+            "covered",
+            "covering_backend_node_id",
+            "rect",
+            "presentation"
+          ],
+          "title": "ElementViewportEvidenceData",
+          "type": "object"
+        },
+        "FrameSummaryData": {
+          "additionalProperties": false,
+          "properties": {
+            "boundary": {
+              "enum": [
+                "same_origin",
+                "cross_origin",
+                "unknown"
+              ],
+              "title": "Boundary",
+              "type": "string"
+            },
+            "document_access": {
+              "enum": [
+                "readable",
+                "outer_only",
+                "unknown"
+              ],
+              "title": "Document Access",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "index": {
+              "title": "Index",
+              "type": "integer"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "outer": {
+              "$ref": "#/$defs/ElementViewportEvidenceData"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "index",
+            "selector",
+            "id",
+            "name",
+            "title",
+            "url",
+            "boundary",
+            "document_access",
+            "outer"
+          ],
+          "title": "FrameSummaryData",
+          "type": "object"
+        },
+        "PointData": {
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "title": "PointData",
+          "type": "object"
+        },
+        "SizeData": {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "title": "Height",
+              "type": "number"
+            },
+            "width": {
+              "title": "Width",
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "title": "SizeData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
@@ -13698,9 +14671,7 @@
                   "type": "array"
                 },
                 "frame": {
-                  "additionalProperties": true,
-                  "title": "Frame",
-                  "type": "object"
+                  "$ref": "#/$defs/FrameSummaryData"
                 },
                 "headings": {
                   "items": {
@@ -13877,6 +14848,315 @@
     },
     "name": "frame_find",
     "outputSchema": {
+      "$defs": {
+        "ElementPresentationData": {
+          "additionalProperties": false,
+          "properties": {
+            "ancestor_3d": {
+              "title": "Ancestor 3D",
+              "type": "boolean"
+            },
+            "coordinate_actionability": {
+              "enum": [
+                "ready",
+                "hidden",
+                "off_viewport",
+                "covered",
+                "pointer_disabled",
+                "transformed_3d",
+                "target_document_only"
+              ],
+              "title": "Coordinate Actionability",
+              "type": "string"
+            },
+            "display": {
+              "title": "Display",
+              "type": "string"
+            },
+            "opacity": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Opacity"
+            },
+            "perspective": {
+              "title": "Perspective",
+              "type": "string"
+            },
+            "pointer_events": {
+              "title": "Pointer Events",
+              "type": "string"
+            },
+            "three_dimensional": {
+              "title": "Three Dimensional",
+              "type": "boolean"
+            },
+            "transform": {
+              "title": "Transform",
+              "type": "string"
+            },
+            "transform_style": {
+              "title": "Transform Style",
+              "type": "string"
+            },
+            "transformed": {
+              "title": "Transformed",
+              "type": "boolean"
+            },
+            "visibility": {
+              "title": "Visibility",
+              "type": "string"
+            }
+          },
+          "required": [
+            "display",
+            "visibility",
+            "opacity",
+            "pointer_events",
+            "transform",
+            "transform_style",
+            "perspective",
+            "transformed",
+            "ancestor_3d",
+            "three_dimensional",
+            "coordinate_actionability"
+          ],
+          "title": "ElementPresentationData",
+          "type": "object"
+        },
+        "ElementRectData": {
+          "additionalProperties": false,
+          "properties": {
+            "click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "coordinate_space": {
+              "const": "target_document",
+              "title": "Coordinate Space",
+              "type": "string"
+            },
+            "location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "midpoint": {
+              "$ref": "#/$defs/PointData"
+            },
+            "size": {
+              "$ref": "#/$defs/SizeData"
+            },
+            "viewport_click_point": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_coordinate_space": {
+              "enum": [
+                "top_level_viewport",
+                "target_document_viewport"
+              ],
+              "title": "Viewport Coordinate Space",
+              "type": "string"
+            },
+            "viewport_location": {
+              "$ref": "#/$defs/PointData"
+            },
+            "viewport_midpoint": {
+              "$ref": "#/$defs/PointData"
+            }
+          },
+          "required": [
+            "location",
+            "size",
+            "midpoint",
+            "click_point",
+            "viewport_location",
+            "viewport_midpoint",
+            "viewport_click_point",
+            "coordinate_space",
+            "viewport_coordinate_space"
+          ],
+          "title": "ElementRectData",
+          "type": "object"
+        },
+        "ElementViewportEvidenceData": {
+          "additionalProperties": false,
+          "properties": {
+            "alive": {
+              "title": "Alive",
+              "type": "boolean"
+            },
+            "checked": {
+              "title": "Checked",
+              "type": "boolean"
+            },
+            "clickable": {
+              "title": "Clickable",
+              "type": "boolean"
+            },
+            "covered": {
+              "title": "Covered",
+              "type": "boolean"
+            },
+            "covering_backend_node_id": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Covering Backend Node Id"
+            },
+            "displayed": {
+              "title": "Displayed",
+              "type": "boolean"
+            },
+            "enabled": {
+              "title": "Enabled",
+              "type": "boolean"
+            },
+            "in_viewport": {
+              "title": "In Viewport",
+              "type": "boolean"
+            },
+            "presentation": {
+              "$ref": "#/$defs/ElementPresentationData"
+            },
+            "rect": {
+              "$ref": "#/$defs/ElementRectData"
+            },
+            "selected": {
+              "title": "Selected",
+              "type": "boolean"
+            },
+            "whole_in_viewport": {
+              "title": "Whole In Viewport",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "displayed",
+            "enabled",
+            "alive",
+            "clickable",
+            "checked",
+            "selected",
+            "in_viewport",
+            "whole_in_viewport",
+            "covered",
+            "covering_backend_node_id",
+            "rect",
+            "presentation"
+          ],
+          "title": "ElementViewportEvidenceData",
+          "type": "object"
+        },
+        "FrameSummaryData": {
+          "additionalProperties": false,
+          "properties": {
+            "boundary": {
+              "enum": [
+                "same_origin",
+                "cross_origin",
+                "unknown"
+              ],
+              "title": "Boundary",
+              "type": "string"
+            },
+            "document_access": {
+              "enum": [
+                "readable",
+                "outer_only",
+                "unknown"
+              ],
+              "title": "Document Access",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "index": {
+              "title": "Index",
+              "type": "integer"
+            },
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "outer": {
+              "$ref": "#/$defs/ElementViewportEvidenceData"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "index",
+            "selector",
+            "id",
+            "name",
+            "title",
+            "url",
+            "boundary",
+            "document_access",
+            "outer"
+          ],
+          "title": "FrameSummaryData",
+          "type": "object"
+        },
+        "PointData": {
+          "additionalProperties": false,
+          "properties": {
+            "x": {
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ],
+          "title": "PointData",
+          "type": "object"
+        },
+        "SizeData": {
+          "additionalProperties": false,
+          "properties": {
+            "height": {
+              "title": "Height",
+              "type": "number"
+            },
+            "width": {
+              "title": "Width",
+              "type": "number"
+            }
+          },
+          "required": [
+            "width",
+            "height"
+          ],
+          "title": "SizeData",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
@@ -13890,9 +15170,7 @@
                   "type": "object"
                 },
                 "frame": {
-                  "additionalProperties": true,
-                  "title": "Frame",
-                  "type": "object"
+                  "$ref": "#/$defs/FrameSummaryData"
                 }
               },
               "required": [

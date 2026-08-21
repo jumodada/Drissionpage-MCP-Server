@@ -1,57 +1,81 @@
 ---
 name: cross-origin-iframe-probe
-description: Use when a drissionpage-mcp task targets content inside an iframe (payment widgets, captchas, SSO popups, embedded checkouts) and element/frame tools start returning UNKNOWN_ERROR or ELEMENT_NOT_FOUND. Gives a decision procedure for same-origin vs cross-origin iframes and the fallback tool sequence for each case.
+description: Use when a drissionpage-mcp task targets an iframe such as a payment widget, challenge, SSO flow, or embedded checkout. Classifies frame document access and outer presentation evidence, then selects a DOM, viewport-coordinate, scroll, keyboard, or parent-page verification path.
 ---
 
-# Probing iframe content with drissionpage-mcp
+# Probe iframe boundaries with drissionpage-mcp
+
+Use this Skill for an authorized iframe workflow. Cross-origin is a security
+boundary, but it is not by itself proof that DrissionPage cannot inspect the
+frame document. Make the decision from current capability evidence instead of
+from the URL or origin alone.
 
 ## Decision procedure
 
-1. Try `frame_list`. If it returns frames with non-zero `count`, they're
-   enumerable (same-origin, or DrissionPage could bridge them) — use
-   `frame_snapshot` / `frame_find` directly against `frame_index` or
-   `frame_selector`.
-2. If `frame_list` returns `count: 0` but `element_find_all` with
-   `selector: "iframe"` still finds iframe elements, you're looking at a
-   cross-origin iframe. DrissionPage can see the `<iframe>` tag and its
-   attributes (`src`, size, position) but not cross into its document.
-3. Confirm with `element_get_property` (`property: "src"`) — read-only outer
-   metadata always works even when inner access doesn't.
-4. Do NOT call `element_click`, `element_find`, `frame_find`, or
-   `page_evaluate` expecting to read/act inside a cross-origin frame's DOM.
-   `element_find`, `element_get_text`, and `element_state_get` have since
-   been patched (this session) to degrade gracefully instead of throwing
-   `UNKNOWN_ERROR` when the selector resolves to the `<iframe>` element
-   itself — but they still can't reach content *inside* the frame's
-   document, which remains a genuine cross-origin limitation, not a bug.
-   `element_scroll_into_view` on a frame element has also been patched to
-   fall back to scrolling the page to the frame's own location, since the
-   frame's native `.scroll.to_see()` has an incompatible signature.
-5. For interaction with cross-origin content, fall back to physical
-   coordinate operations, which pass through the browser's real input
-   pipeline instead of the DOM:
-   - Compute a target point from the iframe's `rect` (position + size).
-   - Use `page_click_xy` (and `page_pointer_move` / `page_pointer_drag` for
-     more complex gestures) at that point.
-   - Use `keyboard_press` for keyboard-driven flows once focus lands inside
-     the frame from a prior click.
-6. Verify effects from the outside: page-level hidden inputs, URL changes
-   (`wait_for_url`), cookies (`browser_cookies_get`), or a screenshot — never
-   assume you can read a success/failure state from inside the frame.
-7. If a frame's `rect.viewport_location` never changes no matter how much
-   you scroll or resize, check the page's CSS for `perspective` /
-   `transform-style: preserve-3d` before assuming a tooling bug — a
-   3D-transformed element can report `is_displayed: True` while its
-   currently-rendered face is rotated away from the camera, which makes it
-   genuinely unreachable by coordinate clicks regardless of any fix on the
-   MCP side. See `turnstile-testing` for a concrete case of this on
-   nowsecure.nl.
+1. Call `frame_list` and inspect each candidate's `boundary`,
+   `document_access`, and `outer` evidence.
+   - `boundary` is `same_origin`, `cross_origin`, or `unknown`.
+   - `document_access=readable` means the current DrissionPage runtime can
+     bridge the document. Use `frame_snapshot` or `frame_find` with the returned
+     `index` or `selector`, including for a readable cross-origin OOPIF.
+   - `document_access=outer_only` means frame DOM reads are unavailable. Keep
+     the workflow on the iframe's outer element and parent page.
+   - `unknown` is not success or failure. Confirm with the focused frame or
+     element tools before choosing a path.
+2. If `frame_list` does not enumerate the widget, use `element_find_all` with a
+   specific iframe selector. Managed widgets may mount an iframe under a
+   provider-owned Shadow DOM that top-level `document.querySelectorAll()` does
+   not reveal even though DrissionPage selector lookup can resolve it.
+3. Read `element_state_get` on the iframe selector. The returned geometry is
+   for the outer iframe element. Preserve both coordinate-space labels:
+   - `rect.coordinate_space=target_document` is the compatibility field.
+   - Only `rect.viewport_coordinate_space=top_level_viewport` can be passed
+     directly to `page_click_xy`, `page_pointer_move`, or `page_pointer_drag`.
+   - `target_document_viewport` requires a higher-level coordinate conversion;
+     do not treat it as a top-level click point.
+4. Branch on `presentation.coordinate_actionability` before a coordinate
+   action:
+   - `ready`: compute the component-specific point from fresh
+     `rect.viewport_location` evidence and continue.
+   - `off_viewport`: call `element_scroll_into_view`, then use its `after`
+     evidence or call `element_state_get` again.
+   - `hidden`: wait for the widget to mount or become visible; do not click its
+     zero or stale box.
+   - `covered` or `pointer_disabled`: wait for the overlay/state transition or
+     operate the page control that removes it, then re-observe.
+   - `transformed_3d`: drive or wait for the page interaction that presents the
+     target face, then re-read geometry. A static coordinate captured while the
+     face is rotated is not actionable.
+   - `target_document_only`: use a frame-scoped DOM action when readable, or
+     obtain a top-level outer-frame point before coordinate input.
+5. Use `element_scroll_into_view.before`, `after`, and `scroll_method` as the
+   scroll receipt. Frame elements may use `page_fallback`; the action is usable
+   when the `after` evidence is in the top-level viewport and reports the
+   expected actionability.
+6. For an `outer_only` widget with `ready` top-level geometry, use physical
+   input through the browser pipeline:
+   - `page_click_xy` for one fresh viewport point.
+   - `page_pointer_move` or `page_pointer_drag` only when the interaction
+     requires those gestures.
+   - `keyboard_press` after a prior click establishes focus.
+7. Verify from the parent page after every consequential action. Prefer a
+   callback status, hidden-field presence or length, URL/title change, visible
+   text, or another explicit element postcondition. Capture a screenshot as
+   visual evidence, but do not expose a challenge token, Cookie, or credential.
 
-## Why this matters for atomic MCP tools generally
+## Retry discipline
 
-Atomic tools (`element_find`, `frame_find`, `page_evaluate`, ...) each assume
-a DOM-reachable target. Cross-origin iframes are the sharpest edge case where
-that assumption breaks silently with a generic `UNKNOWN_ERROR` rather than a
-clear "this is cross-origin" message. When you hit that error on an iframe
-boundary, stop retrying the same tool with different selectors — switch
-register from DOM-based tools to coordinate/keyboard-based tools instead.
+Use a bounded attempt budget. Before each retry, reacquire the frame, check its
+current `document_access`, re-read actionability and geometry, and verify that
+the previous attempt did not already satisfy the parent-page postcondition.
+Never replay stale coordinates after a refresh, layout shift, scroll, frame
+replacement, transform, or tab change.
+
+## Why this matters for atomic tools
+
+`frame_*`, element, pointer, keyboard, wait, and screenshot tools deliberately
+remain separate. The Skill owns the boundary decision and the observable
+workflow postcondition; the MCP core supplies generic browser evidence and one
+explicit action per call. This keeps production challenge, payment, SSO, and
+embedded checkout procedures reusable without adding a provider-specific core
+tool.

@@ -60,6 +60,13 @@ def test_local_http_fixture_serves_required_routes() -> None:
         assert "Interaction Workflow" in _read(base_url + "/interactions")[1]
         assert "shadow-host" in _read(base_url + "/shadow")[1]
         assert "Document Boundaries" in _read(base_url + "/document-boundaries")[1]
+        assert "Challenge Surfaces" in _read(base_url + "/challenge-surfaces")[1]
+        assert "Fixture Challenge Frame" in _read(
+            base_url + "/challenge-frame?widget=normal"
+        )[1]
+        assert "Fixture Turnstile Test Key" in _read(
+            base_url + "/turnstile-test?sitekey=test"
+        )[1]
         assert "Slider iframe" in _read(base_url + "/slider")[1]
         assert "Same-origin iframe slider" in _read(base_url + "/slider-frame")[1]
         assert "Storage Workflow" in _read(base_url + "/storage")[1]

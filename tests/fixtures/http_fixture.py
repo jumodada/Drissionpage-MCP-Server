@@ -528,6 +528,24 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if path == "/challenge-surfaces":
+            self._send_html(
+                _challenge_surfaces_html(int(self.server.server_address[1]))
+            )
+            return
+
+        if path == "/challenge-frame":
+            widget = parse_qs(parsed.query).get("widget", ["unknown"])[0]
+            self._send_html(_challenge_frame_html(widget))
+            return
+
+        if path == "/turnstile-test":
+            query = parse_qs(parsed.query)
+            sitekey = query.get("sitekey", [""])[0]
+            size = query.get("size", ["normal"])[0]
+            self._send_html(_turnstile_test_html(sitekey, size))
+            return
+
         if path == "/slider":
             self._send_html(_slider_host_html())
             return
@@ -1466,6 +1484,146 @@ def _document_boundaries_html(port: int) -> str:
             root.getElementById('closed-shadow-status').textContent = 'clicked';
           }});
         </script>
+      </body>
+    </html>
+    """
+
+
+def _challenge_surfaces_html(port: int) -> str:
+    """Return cross-origin surfaces for generic challenge interaction evidence."""
+
+    frame_url = f"http://localhost:{port}/challenge-frame"
+    return f"""
+    <!doctype html>
+    <html>
+      <head>
+        <title>Fixture Challenge Surfaces</title>
+        <style>
+          html, body {{ margin: 0; min-height: 2800px; font-family: sans-serif; }}
+          iframe {{ width: 300px; height: 65px; border: 0; }}
+          #normal-widget {{ display: block; margin: 80px 20px; }}
+          #hidden-widget {{ display: none; }}
+          #below-widget {{ position: absolute; left: 20px; top: 1900px; }}
+          .scene {{ position: absolute; left: 380px; top: 120px; perspective: 600px; }}
+          .cube {{ transform-style: preserve-3d; transform: rotateY(35deg); }}
+          .face {{ transform: rotateY(180deg); backface-visibility: hidden; }}
+        </style>
+      </head>
+      <body>
+        <h1>Challenge Surfaces</h1>
+        <output id="challenge-status">pending</output>
+        <iframe id="normal-widget" src="{frame_url}?widget=normal" title="Normal widget"></iframe>
+        <iframe id="hidden-widget" src="{frame_url}?widget=hidden" title="Hidden widget"></iframe>
+        <iframe id="below-widget" src="{frame_url}?widget=below" title="Below viewport widget"></iframe>
+        <div class="scene"><div class="cube"><div class="face">
+          <iframe id="transformed-widget" src="{frame_url}?widget=transformed" title="Transformed widget"></iframe>
+        </div></div></div>
+        <div id="delayed-mount"></div>
+        <script>
+          window.addEventListener('message', event => {{
+            if (event.data && event.data.type === 'fixture-challenge-result') {{
+              document.getElementById('challenge-status').textContent =
+                `${{event.data.widget}}:${{event.data.status}}`;
+            }}
+          }});
+          setTimeout(() => {{
+            const frame = document.createElement('iframe');
+            frame.id = 'delayed-widget';
+            frame.title = 'Delayed widget';
+            frame.src = '{frame_url}?widget=delayed';
+            document.getElementById('delayed-mount').appendChild(frame);
+          }}, 100);
+        </script>
+      </body>
+    </html>
+    """
+
+
+def _challenge_frame_html(widget: str) -> str:
+    """Return one cross-origin widget with a parent-page postcondition."""
+
+    safe_widget = _escape_html(widget)
+    return f"""
+    <!doctype html>
+    <html>
+      <head>
+        <title>Fixture Challenge Frame {safe_widget}</title>
+        <style>
+          html, body {{ margin: 0; width: 300px; height: 65px; overflow: hidden; }}
+          button {{ margin: 10px; width: 44px; height: 44px; }}
+        </style>
+      </head>
+      <body>
+        <button id="challenge-control" type="button" aria-label="Verify">OK</button>
+        <script>
+          document.getElementById('challenge-control').addEventListener('click', () => {{
+            parent.postMessage({{
+              type: 'fixture-challenge-result',
+              widget: '{safe_widget}',
+              status: 'passed'
+            }}, '*');
+          }});
+        </script>
+      </body>
+    </html>
+    """
+
+
+def _turnstile_test_html(sitekey: str, size: str) -> str:
+    """Embed one official Turnstile dummy sitekey with parent-page evidence."""
+
+    safe_sitekey = _escape_html(sitekey)
+    safe_size = "invisible" if size == "invisible" else "normal"
+    return f"""
+    <!doctype html>
+    <html>
+      <head><title>Fixture Turnstile Test Key</title></head>
+      <body>
+        <main>
+          <h1>Turnstile Test Key</h1>
+          <form id="turnstile-form">
+            <div id="turnstile-widget"></div>
+          </form>
+          <output id="turnstile-status">loading</output>
+        </main>
+        <script>
+          window.__turnstileEvidence = {{
+            status: 'loading', tokenLength: 0, interactiveSeen: false,
+            interactiveExited: false, errorCode: ''
+          }};
+          const setStatus = value => {{
+            window.__turnstileEvidence.status = value;
+            document.getElementById('turnstile-status').textContent = value;
+          }};
+          window.__renderTurnstile = () => {{
+            const widgetId = turnstile.render('#turnstile-widget', {{
+              sitekey: '{safe_sitekey}',
+              size: '{safe_size}',
+              retry: 'never',
+              callback: token => {{
+                window.__turnstileEvidence.tokenLength = token.length;
+                setStatus('passed');
+              }},
+              'error-callback': code => {{
+                window.__turnstileEvidence.errorCode = String(code || 'error');
+                setStatus('failed');
+              }},
+              'before-interactive-callback': () => {{
+                window.__turnstileEvidence.interactiveSeen = true;
+                setStatus('interactive');
+              }},
+              'after-interactive-callback': () => {{
+                window.__turnstileEvidence.interactiveExited = true;
+              }}
+            }});
+            window.__turnstileWidgetId = widgetId;
+            setStatus('pending');
+            if ('{safe_size}' === 'invisible') turnstile.execute(widgetId);
+          }};
+        </script>
+        <script
+          src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=__renderTurnstile&render=explicit"
+          async defer></script>
       </body>
     </html>
     """

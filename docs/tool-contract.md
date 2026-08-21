@@ -274,7 +274,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 
 ## Tool Inventory
 
-The 0.8.3 registry contains 69 typed browser tools. Site, component, challenge,
+The 0.8.4 registry contains 69 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Reusable Element Targets
@@ -459,7 +459,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.8.3 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.8.4 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 
@@ -484,7 +484,9 @@ optional Skills.
 - `page_export_artifact` treats PDF/MHTML content as sensitive generated output. It requires `DP_MCP_ARTIFACT_ROOT`, exposes no absolute path, and replays a completed `operation_key` without writing a second file.
 - `page_navigate_with_http_auth` removes its Fetch callbacks after the navigation. Chromium has no documented CDP command to purge HTTP auth cache, so the authenticated page lives in a dedicated browser context that `tab_close` disposes. Other tabs do not share that cache.
 - Permission tools use `Browser.setPermission` and `Browser.resetPermissions`. `browser_permission_get` observes through the current document's Permissions API. Notification permission state is supported, but native OS permission dialogs and notification-center contents remain outside the MCP contract.
-- `frame_*` tools are stateless: each call selects by `frame_selector` or zero-based `frame_index`; no global current-frame mode is stored. The DrissionPage 4.x browser path is regression-tested against an attached cross-origin OOPIF.
+- `frame_*` tools are stateless: each call selects by `frame_selector` or zero-based `frame_index`; no global current-frame mode is stored. Frame summaries report `boundary`, `document_access`, and outer presentation/geometry evidence. The DrissionPage 4.x browser path is regression-tested against an attached cross-origin OOPIF that is parent-DOM-isolated but bridge-readable.
+- `element_state_get` reports outer iframe geometry when its selector resolves to a frame. `rect.coordinate_space="target_document"` remains for compatibility; `viewport_coordinate_space` distinguishes top-level pointer coordinates from a nested target-document viewport. `presentation.coordinate_actionability` classifies ready, hidden, off-viewport, covered, pointer-disabled, 3D-transformed, and target-document-only evidence without choosing an action.
+- `element_scroll_into_view` returns before/after evidence and `scroll_method`. Frame elements can report `page_fallback` when DrissionPage's frame scroller cannot scroll the outer iframe into the top-level viewport directly.
 - `shadow_*` tools use DrissionPage's native shadow-root object instead of page-JavaScript `host.shadowRoot`. The current supported DrissionPage 4.x path is regression-tested against both open roots and a closed root that is invisible to page JavaScript. Capability failure is reported; the MCP does not inject a piercing fallback.
 - `page_pointer_drag_element` has a different implementation boundary: its synchronous page script remains limited to the top document or one same-origin iframe and nested open Shadow DOM hosts. Tagged source plus `dx`/`dy` is preferred; legacy bare source plus `x`/`y` remains accepted.
 - `browser_cookies_get` redacts cookie values by default. Use `include_values=true` only when the MCP client/session is allowed to handle cookie secrets.

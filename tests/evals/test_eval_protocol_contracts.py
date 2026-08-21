@@ -72,16 +72,23 @@ async def test_eval_skills_catalog_is_optional_and_static() -> None:
     assert catalog["skill_entrypoint"] == "skills/<skill-name>/SKILL.md"
     assert catalog["status"] == "repository_examples"
     assert catalog["schema_version"] == "2"
-    assert catalog["source_revision"] == "v0.8.3"
+    assert catalog["source_revision"] == "v0.8.4"
     assert catalog["repository_url"].endswith("/skills-manager")
     assert {skill["name"] for skill in catalog["skills"]} >= {
         "cross-origin-iframe-probe",
         "turnstile-testing",
         "xiaohongshu-content-research",
     }
+    versions = {
+        skill["name"]: (skill["skill_version"], skill["mcp_compatibility"])
+        for skill in catalog["skills"]
+    }
+    assert versions == {
+        "cross-origin-iframe-probe": ("0.2.0", ">=0.8.4,<0.9.0"),
+        "turnstile-testing": ("0.2.0", ">=0.8.4,<0.9.0"),
+        "xiaohongshu-content-research": ("0.1.0", ">=0.8.2,<0.9.0"),
+    }
     for skill in catalog["skills"]:
-        assert skill["skill_version"] == "0.1.0"
-        assert skill["mcp_compatibility"] == ">=0.8.2,<0.9.0"
         assert skill["required_tools"]
         assert skill["source_revision"] == catalog["source_revision"]
         assert skill["source_url"].startswith(catalog["repository_url"])

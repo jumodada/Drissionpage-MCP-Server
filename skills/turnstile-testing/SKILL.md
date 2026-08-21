@@ -1,150 +1,131 @@
 ---
 name: turnstile-testing
-description: Use when verifying that a Cloudflare Turnstile widget (or a page embedding one) can be solved through the drissionpage-mcp browser tools — covers Cloudflare's official test sitekeys (visible/invisible, always-pass/always-fail, forced-interactive-challenge), production sites like nowsecure.nl, and pages that wrap the widget in a CSS 3D transform. Includes the coordinate-click technique, how to compute click points from element_state_get, and the one scenario coordinate clicks genuinely cannot solve.
+description: Use when testing an authorized Cloudflare Turnstile integration or operating an authorized production challenge with drissionpage-mcp. Covers official visible, invisible, pass, fail, and forced-interactive test keys; fresh iframe geometry; bounded coordinate interaction; refresh recovery; parent-page postconditions; screenshots; and token-safe evidence.
 ---
 
-# Turnstile widget testing with drissionpage-mcp
+# Test and operate Turnstile with drissionpage-mcp
 
-## Why the "obvious" tools don't work here
+Turnstile is a workflow composed from generic MCP tools. Keep provider-specific
+selection, click offsets, retries, and callback interpretation in this Skill;
+do not add a Turnstile-only tool to the MCP core. Use production targets only
+when the operator is authorized to complete their challenge.
 
-Cloudflare Turnstile renders inside a cross-origin `<iframe>` from
-`challenges.cloudflare.com`. DrissionPage represents that `<iframe>` as a
-`ChromiumFrame` object, which has a much smaller surface than a normal
-element — no `.text`, and its `.states`/`.rect` objects
-(`FrameStates`/`FrameRect`) are missing most of the attributes a normal
-element's states/rect expose (`is_covered`, `is_checked`, `midpoint`,
-`click_point`, ...). Tools that assume every element has the full surface
-throw `AttributeError`, which the MCP layer reports as an opaque
-`UNKNOWN_ERROR`. As of this skill, `element_find`, `element_get_text`, and
-`element_state_get` have been patched (see "Fixed upstream" below) to
-degrade gracefully instead of crashing — but two things remain genuinely
-impossible from outside the frame regardless of any fix:
+## Capability model
 
-- Reading/acting on content *inside* the iframe's document (its own DOM).
-- `frame_list`/`frame_snapshot`/`frame_find` still return empty/error for
-  cross-origin frames — that's a real limitation of cross-origin isolation,
-  not a bug.
+Turnstile normally renders in a cross-origin iframe from
+`challenges.cloudflare.com`. That origin boundary does not determine the
+available DrissionPage capability by itself:
 
-What you CAN always do: read the iframe's outer attributes
-(`element_get_property` for `src`), get its outer box
-(`element_state_get` for `rect`), and physically click a point on screen
-(`page_click_xy`) — a real synthetic click crosses the origin boundary the
-same way a human's cursor does.
+- `frame_list` reports `boundary` and `document_access`. When
+  `document_access=readable`, `frame_snapshot` and `frame_find` can inspect the
+  OOPIF through the supported DrissionPage bridge.
+- `document_access=outer_only` still supports outer iframe geometry and
+  presentation evidence through `element_state_get`.
+- Provider-managed Shadow DOM can make a top-level page script report zero
+  iframes while DrissionPage selector lookup and `element_state_get` still find
+  the widget. Treat that as a discovery-path difference, not proof that the
+  widget is absent.
+- `page_click_xy` consumes top-level viewport CSS coordinates. Only use a rect
+  whose `viewport_coordinate_space` is `top_level_viewport`.
 
-## The technique
+## Bounded procedure
 
-1. `page_navigate` to the target URL.
-2. `wait_for_element` with `selector: "iframe"` (or a more specific selector
-   if the page has several) — confirms the widget mounted, not that the
-   challenge has rendered. Add 1-3s of `wait_time` after for the checkbox to
-   paint.
-3. `element_state_get` on the iframe selector. Read `rect.viewport_location`
-   (not `location` — that's page-relative, and `page_click_xy` takes
-   viewport-relative coordinates).
-4. Compute the click point: the checkbox sits **~30px right, ~32px down**
-   from the widget's top-left corner for the default 300x65 size — it is
-   NOT at the widget's center (`midpoint`), don't use that.
-5. `page_click_xy` at `viewport_location.x + 30`, `viewport_location.y + 32`.
-6. `wait_time` ~2s for the challenge to resolve.
-7. Verify success from outside the frame: `page_snapshot` or
-   `page_evaluate` and check the hidden `input[name="cf-turnstile-response"]`
-   has a non-empty value. A screenshot showing the checked box + "Success!"
-   is good visual confirmation but the token is the reliable signal.
+1. Call `page_navigate`, resize if the fixture requires a fixed viewport, and
+   wait for the parent page to report `pending`, `interactive`, `passed`, or
+   `failed`. Record this pre-action status without recording the token value.
+2. If the parent page already reports the expected terminal state, do not click.
+   Official invisible keys require no checkbox action, and visible keys can
+   settle before the observation window completes.
+3. Discover the widget with `frame_list`. If it is not enumerated, use
+   `wait_for_element` with a specific selector such as
+   `iframe[src*='challenges.cloudflare.com']`.
+4. Call `element_state_get` for the resolved iframe and inspect
+   `rect.viewport_coordinate_space` plus
+   `presentation.coordinate_actionability`.
+   - `ready`: continue with the current viewport box.
+   - `off_viewport`: call `element_scroll_into_view`, then use its `after`
+     evidence or reacquire state.
+   - `hidden`: keep waiting within the attempt deadline.
+   - `covered` or `pointer_disabled`: wait for or operate the parent-page state
+     that removes the obstruction, then reacquire state.
+   - `transformed_3d`: wait for the animation or operate the page control that
+     rotates/presents the widget face; click only after fresh evidence becomes
+     actionable.
+   - `target_document_only`: do not pass those coordinates to
+     `page_click_xy`; reacquire the outer top-level iframe geometry.
+5. For the standard 300x65 checkbox widget, click approximately 32 CSS pixels
+   right and 32 CSS pixels down from `rect.viewport_location`. The component
+   checkbox is not the iframe midpoint. Recalculate from the current rect for
+   every attempt.
+6. Wait for the parent-page callback or status element. A successful fixture
+   may report `passed`; a negative official key must report `failed`. For a
+   forced-interactive key, also require evidence that the interactive callback
+   occurred.
+7. Store only a boolean token-presence signal or token length. Never return,
+   log, or persist the token value. Capture `page_screenshot` after the terminal
+   postcondition for visual evidence.
+8. On refresh, expiry, widget replacement, or layout change, start a new bounded
+   attempt from discovery. Do not reuse a prior selector object or coordinate.
 
+Example interaction branch:
+
+```text
+page_navigate
+  -> wait for parent status
+  -> frame_list or wait_for_element
+  -> element_state_get
+  -> element_scroll_into_view when off_viewport
+  -> element_state_get after any layout change
+  -> page_click_xy at viewport_location + (32, 32) when ready
+  -> wait for parent callback/status
+  -> page_screenshot
 ```
-page_navigate      -> target URL
-wait_for_element   -> selector: iframe, timeout: 10
-element_state_get  -> selector: iframe            (read rect.viewport_location)
-page_click_xy       -> x: loc.x + 30, y: loc.y + 32
-wait_time          -> seconds: 2
-page_snapshot      -> input[name="cf-turnstile-response"].value is non-empty  ✓ passed
+
+## Official Cloudflare test keys
+
+Use Cloudflare's dummy keys for deterministic integration tests. Set widget
+`retry` to `never` so the negative result remains observable.
+
+| Sitekey | Configuration | Required terminal evidence |
+| --- | --- | --- |
+| `1x00000000000000000000AA` | Visible, always pass | `passed`; token present |
+| `2x00000000000000000000AB` | Visible, always fail | `failed`; token absent |
+| `1x00000000000000000000BB` | Invisible, always pass | `passed`; token present; zero checkbox clicks |
+| `2x00000000000000000000BB` | Invisible, always fail | `failed`; token absent; zero checkbox clicks |
+| `3x00000000000000000000FF` | Forced interactive | interactive callback observed, then `passed` |
+
+The repository benchmark loads these keys only with explicit external-network
+opt-in:
+
+```bash
+DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
+python -m tests.evals.turnstile_testkey_benchmark \
+  --iterations 10 --allow-external
 ```
 
-## Verified against Cloudflare's official test sitekeys
+Cloudflare references:
 
-Cloudflare documents dummy sitekeys with deterministic behavior, exactly for
-this kind of automated testing (source: Cloudflare Turnstile docs,
-"Test your Turnstile implementation"). All five were run through the
-technique above:
+- https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+- https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/
+- https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/widget-configurations/
 
-| Sitekey | Behavior | Result |
-|---|---|---|
-| `1x00000000000000000000AA` | visible, always passes | Resolves on its own after the widget mounts — **no click needed**, just `wait_for_element` + a couple seconds of `wait_time`. |
-| `2x00000000000000000000AB` | visible, always fails | Correctly stays `pending` / hidden input stays empty — confirms negative-case handling works, don't mistake this for a broken test. |
-| `1x00000000000000000000BB` | invisible, always passes | No iframe checkbox to click at all; resolves purely by waiting. `element_find_all` still finds the (invisible) iframe in the DOM even though nothing is rendered. |
-| `2x00000000000000000000BB` | invisible, always fails | Same as above, stays unresolved. |
-| `3x00000000000000000000FF` | visible, **forces interactive challenge** | This is the one that needs the actual click. Confirmed via the coordinate-click technique above — this is also the sitekey seleniumbase.io/apps/turnstile uses. |
+## Production evidence contract
 
-Swap the sitekey into a minimal test page
-(`<div class="cf-turnstile" data-sitekey="...">`) plus
-`<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer>`
-to build a fast, deterministic local fixture instead of depending on a
-public demo site's availability.
+For an authorized production challenge, report the page and widget identifier,
+attempt count, action type, actionability transitions, parent-page
+postcondition, elapsed time, and final page state. A screenshot can supplement
+the report. Never include a raw token, Cookie, credential, private destination,
+or stale coordinate. A challenge is complete only when its parent-page
+postcondition succeeds and the requested browser task can continue.
 
-## Verified on a real production site: nowsecure.nl
+## Checklist
 
-[nowsecure.nl](https://nowsecure.nl/) is Cloudflare's own bot-detection demo
-site and embeds Turnstile directly (using the same `3x00...FF` forced-challenge
-key). Two widgets are present on the page. Results:
-
-- **First widget** (normal document flow, no exotic CSS): solved reliably
-  every run using the exact technique above — `element_state_get` →
-  `viewport_location + (30, 32)` → `page_click_xy`.
-- **Second widget**: embedded on the *back face of a live CSS 3D cube*
-  (`transform-style: preserve-3d`, `perspective`, an infinite rotation
-  animation, class names literally `cube` / `face front` / `face back`).
-  Its DOM element exists and `element_find_all` sees it, but:
-  - Its computed `rect.location` never enters the visible viewport — no
-    amount of `page_scroll`/`page_resize` fixes this, because the element
-    simply isn't part of the page's normal scrollable flow; it's positioned
-    by the 3D transform. Cloudflare's own bounding-box-based
-    `is_displayed` state reports `True` even though the face is rotated away
-    from the camera and isn't actually visible.
-  - **This is the one case coordinate-click cannot solve.** Don't burn
-    retries trying to scroll/resize your way to it — check for
-    `perspective`/`transform-style: preserve-3d` in the page's CSS (or just
-    notice a widget's `rect.viewport_location` never moves no matter what
-    you do) and treat it as out of reach for this technique. If the task
-    genuinely requires solving it, that needs either waiting for the cube's
-    own animation to rotate the target face toward the camera (fragile,
-    timing-dependent) or driving the interaction that specifically triggers
-    the front/back swap, not blind coordinate clicking.
-
-## Fixed upstream (this session)
-
-Three real bugs were found and patched while building this skill — all were
-"assumes every element has the same shape" bugs triggered specifically by
-`ChromiumFrame` objects (cross-origin iframes):
-
-1. `elements.py` `find()` / `text()` read `element.text` unconditionally →
-   `AttributeError` on frames. Fixed with `hasattr` guards.
-2. `elements.py` `state()` read `states.is_covered`, `rect.midpoint`,
-   `rect.click_point`, etc. unconditionally → `AttributeError` on frames
-   (`FrameStates`/`FrameRect` only expose a handful of attributes). Fixed
-   with `getattr` defaults for state flags, and a location+size-derived
-   fallback for midpoint/click_point so `element_state_get` on an iframe now
-   returns a usable `click_point` even though the native attribute doesn't
-   exist.
-3. `interaction.py` `scroll_element_into_view()` called
-   `element.scroll.to_see(center=center)` unconditionally → `TypeError` on
-   frames, because `ChromiumFrame.scroll` is a `FrameScroller` whose
-   `to_see()` requires a `loc_or_ele` positional argument rather than
-   accepting `center` alone (and passing the frame itself as `loc_or_ele`
-   also fails, with a `JavaScriptError`, since the underlying JS assumes a
-   normal DOM `this`). Fixed by catching the `TypeError` and falling back to
-   `page.scroll.to_location(*frame.rect.location)` — scrolling the page's
-   own viewport to the frame's location instead of asking the frame to
-   scroll itself into view.
-
-Regression tests: `tests/test_frame_element_state.py`,
-`tests/test_frame_scroll_into_view.py`.
-
-## Reusable checklist
-
-- [ ] Never expect `element_click`/`frame_find`/`frame_snapshot` to work on the Turnstile iframe directly — cross-origin, always fails or returns empty.
-- [ ] Use `element_get_property` (`src`) only to confirm the widget mounted.
-- [ ] Use `element_state_get` → `rect.viewport_location`, not `element_get_html`/guessed pixels, to compute the click point precisely.
-- [ ] Click ~30px right / ~32px down from the widget's top-left corner — NOT the midpoint.
-- [ ] Confirm success via the page-level hidden `cf-turnstile-response` input, not by trying to read inside the iframe.
-- [ ] "always-pass"/"invisible" sitekeys need no click at all — don't click reflexively, check if it already resolved after a short wait first.
-- [ ] If a widget's `rect.viewport_location` never changes no matter how you scroll/resize, check the page CSS for `perspective`/`transform-style: preserve-3d` before assuming it's a positioning bug on your end — it may be a 3D-transformed element genuinely out of reach for coordinate clicks.
+- [ ] Authorization and bounded attempt budget are explicit.
+- [ ] The pre-action parent status was checked before clicking.
+- [ ] Frame access was decided from `boundary` and `document_access`, not origin alone.
+- [ ] The click rect uses `top_level_viewport` and current `ready` actionability.
+- [ ] Off-viewport or transformed widgets were re-observed after the page changed.
+- [ ] Visible interactive widgets use a component offset, not the iframe midpoint.
+- [ ] Invisible keys receive no checkbox click.
+- [ ] The terminal parent-page callback/status matches the expected case.
+- [ ] Token evidence is limited to presence or length, followed by a screenshot.

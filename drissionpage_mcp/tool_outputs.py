@@ -784,6 +784,67 @@ class ElementClickAndUploadData(ElementTargetData):
     filenames: list[str]
 
 
+class PointData(ToolData):
+    x: float
+    y: float
+
+
+class SizeData(ToolData):
+    width: float
+    height: float
+
+
+class ElementRectData(ToolData):
+    location: PointData
+    size: SizeData
+    midpoint: PointData
+    click_point: PointData
+    viewport_location: PointData
+    viewport_midpoint: PointData
+    viewport_click_point: PointData
+    coordinate_space: Literal["target_document"]
+    viewport_coordinate_space: Literal[
+        "top_level_viewport", "target_document_viewport"
+    ]
+
+
+class ElementPresentationData(ToolData):
+    display: str
+    visibility: str
+    opacity: float | None
+    pointer_events: str
+    transform: str
+    transform_style: str
+    perspective: str
+    transformed: bool
+    ancestor_3d: bool
+    three_dimensional: bool
+    coordinate_actionability: Literal[
+        "ready",
+        "hidden",
+        "off_viewport",
+        "covered",
+        "pointer_disabled",
+        "transformed_3d",
+        "target_document_only",
+    ]
+
+
+class ElementViewportEvidenceData(ToolData):
+    displayed: bool
+    enabled: bool
+    alive: bool
+    clickable: bool
+    checked: bool
+    selected: bool
+    in_viewport: bool
+    whole_in_viewport: bool
+    covered: bool
+    covering_backend_node_id: int | None
+    rect: ElementRectData
+    presentation: ElementPresentationData
+
+
 class PageScrollData(ToolData):
     direction: str
     pixels: int
@@ -794,6 +855,9 @@ class PageScrollData(ToolData):
 
 class ElementScrollIntoViewData(ElementTargetData):
     center: bool
+    scroll_method: Literal["element", "page_fallback"]
+    before: ElementViewportEvidenceData
+    after: ElementViewportEvidenceData
     url: str
 
 
@@ -851,15 +915,27 @@ class PageDialogObserveData(ToolData):
     timeout: float
 
 
+class FrameSummaryData(ToolData):
+    index: int
+    selector: str
+    id: str
+    name: str
+    title: str
+    url: str
+    boundary: Literal["same_origin", "cross_origin", "unknown"]
+    document_access: Literal["readable", "outer_only", "unknown"]
+    outer: ElementViewportEvidenceData
+
+
 class FrameListData(ToolData):
     count: int
     returned: int
     limit: int
-    frames: list[dict[str, Any]]
+    frames: list[FrameSummaryData]
 
 
 class FrameSnapshotData(ToolData):
-    frame: dict[str, Any]
+    frame: FrameSummaryData
     url: str
     title: str
     text_excerpt: str
@@ -875,7 +951,7 @@ class FrameSnapshotData(ToolData):
 
 
 class FrameFindData(ToolData):
-    frame: dict[str, Any]
+    frame: FrameSummaryData
     element: dict[str, Any]
 
 
@@ -959,27 +1035,6 @@ class WaitForElementData(ElementTargetData):
     timeout: float
 
 
-class PointData(ToolData):
-    x: float
-    y: float
-
-
-class SizeData(ToolData):
-    width: float
-    height: float
-
-
-class ElementRectData(ToolData):
-    location: PointData
-    size: SizeData
-    midpoint: PointData
-    click_point: PointData
-    viewport_location: PointData
-    viewport_midpoint: PointData
-    viewport_click_point: PointData
-    coordinate_space: Literal["target_document"]
-
-
 class ElementStateData(ElementTargetData):
     tag: str
     text: str
@@ -994,6 +1049,7 @@ class ElementStateData(ElementTargetData):
     covered: bool
     covering_backend_node_id: int | None
     rect: ElementRectData
+    presentation: ElementPresentationData
 
 
 class AccessibilityNodeData(ToolData):

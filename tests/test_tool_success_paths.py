@@ -35,6 +35,59 @@ PNG_1X1 = base64.b64decode(
 PNG_1X1_B64 = base64.b64encode(PNG_1X1).decode()
 
 
+def _fake_viewport_evidence() -> dict[str, Any]:
+    return {
+        "displayed": True,
+        "enabled": True,
+        "alive": True,
+        "clickable": True,
+        "checked": False,
+        "selected": False,
+        "in_viewport": True,
+        "whole_in_viewport": True,
+        "covered": False,
+        "covering_backend_node_id": None,
+        "rect": {
+            "location": {"x": 10.0, "y": 20.0},
+            "size": {"width": 80.0, "height": 30.0},
+            "midpoint": {"x": 50.0, "y": 35.0},
+            "click_point": {"x": 50.0, "y": 23.0},
+            "viewport_location": {"x": 10.0, "y": 20.0},
+            "viewport_midpoint": {"x": 50.0, "y": 35.0},
+            "viewport_click_point": {"x": 50.0, "y": 23.0},
+            "coordinate_space": "target_document",
+            "viewport_coordinate_space": "top_level_viewport",
+        },
+        "presentation": {
+            "display": "block",
+            "visibility": "visible",
+            "opacity": 1.0,
+            "pointer_events": "auto",
+            "transform": "none",
+            "transform_style": "flat",
+            "perspective": "none",
+            "transformed": False,
+            "ancestor_3d": False,
+            "three_dimensional": False,
+            "coordinate_actionability": "ready",
+        },
+    }
+
+
+def _fake_frame_summary(*, index: int = 0, selector: str = "#fixture-frame") -> dict[str, Any]:
+    return {
+        "index": index,
+        "selector": selector,
+        "id": "fixture-frame",
+        "name": "fixture-frame",
+        "title": "Frame",
+        "url": "https://example.test/frame",
+        "boundary": "cross_origin",
+        "document_access": "readable",
+        "outer": _fake_viewport_evidence(),
+    }
+
+
 class FakeTab:
     """Small async PageTab stand-in for tool handler tests."""
 
@@ -597,6 +650,20 @@ class FakeTab:
                 "viewport_midpoint": {"x": 50.0, "y": 35.0},
                 "viewport_click_point": {"x": 50.0, "y": 35.0},
                 "coordinate_space": "target_document",
+                "viewport_coordinate_space": "top_level_viewport",
+            },
+            "presentation": {
+                "display": "block",
+                "visibility": "visible",
+                "opacity": 1.0,
+                "pointer_events": "auto",
+                "transform": "none",
+                "transform_style": "flat",
+                "perspective": "none",
+                "transformed": False,
+                "ancestor_3d": False,
+                "three_dimensional": False,
+                "coordinate_actionability": "ready",
             },
         }
 
@@ -624,6 +691,9 @@ class FakeTab:
             "selector_strategy": "css",
             "selector_normalized": True,
             "center": center,
+            "scroll_method": "element",
+            "before": _fake_viewport_evidence(),
+            "after": _fake_viewport_evidence(),
             "url": self.url,
         }
 
@@ -704,16 +774,7 @@ class FakeTab:
             "count": 1,
             "returned": 1,
             "limit": limit,
-            "frames": [
-                {
-                    "index": 0,
-                    "selector": "#fixture-frame",
-                    "id": "fixture-frame",
-                    "name": "fixture-frame",
-                    "title": "Frame",
-                    "url": "https://example.test/frame",
-                }
-            ],
+            "frames": [_fake_frame_summary()],
         }
 
     async def snapshot(
@@ -736,14 +797,10 @@ class FakeTab:
             timeout=timeout,
         )
         return {
-            "frame": {
-                "index": frame_index,
-                "selector": frame_selector or "#fixture-frame",
-                "id": "fixture-frame",
-                "name": "fixture-frame",
-                "title": "Frame",
-                "url": "https://example.test/frame",
-            },
+            "frame": _fake_frame_summary(
+                index=frame_index,
+                selector=frame_selector or "#fixture-frame",
+            ),
             "url": "https://example.test/frame",
             "title": "Frame",
             "text_excerpt": "Frame text",
@@ -773,14 +830,10 @@ class FakeTab:
             timeout=timeout,
         )
         return {
-            "frame": {
-                "index": frame_index,
-                "selector": frame_selector or "#fixture-frame",
-                "id": "fixture-frame",
-                "name": "fixture-frame",
-                "title": "Frame",
-                "url": "https://example.test/frame",
-            },
+            "frame": _fake_frame_summary(
+                index=frame_index,
+                selector=frame_selector or "#fixture-frame",
+            ),
             "element": {
                 "found": True,
                 "selector": selector,

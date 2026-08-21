@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-08-20
+
+### Added
+- Added explicit `boundary`, `document_access`, and outer iframe evidence to
+  `frame_list` and embedded frame summaries, including CSS presentation, 3D
+  ancestry, and coordinate actionability.
+- Added `viewport_coordinate_space` to element geometry and before/after
+  geometry plus `scroll_method` to `element_scroll_into_view`.
+- Added deterministic local challenge-surface fixtures and a ten-iteration
+  benchmark for normal, hidden, below-viewport, delayed, and transformed 3D
+  cross-origin widgets with parent-page postconditions and screenshot evidence.
+- Added an opt-in benchmark for Cloudflare's five official Turnstile dummy keys,
+  recording callback state and token presence/length without retaining tokens.
+
+### Changed
+- Updated `cross-origin-iframe-probe` and `turnstile-testing` Skills to choose
+  DOM, outer geometry, scroll, pointer, keyboard, and verification paths from
+  current capability evidence instead of treating cross-origin as always
+  unreadable.
+- Pinned the catalog to `skills-manager` `v0.8.4`, upgraded the two challenge
+  Skills to version `0.2.0`, and refreshed their SHA-256 integrity metadata.
+- Kept the legacy `rect.coordinate_space="target_document"` field while making
+  top-level and target-document viewport coordinates explicit.
+
+### Verification
+- Added unit, typed-success, schema, eval-contract, public-MCP, and real-browser
+  regressions for outer OOPIF geometry, actionability, scroll evidence, and
+  parent-page challenge postconditions.
+- Verified the local five-scenario challenge matrix and official visible,
+  invisible, pass, fail, and forced-interactive Turnstile keys.
+
+### Release Scope
+- No provider-specific public tool was added. The surface remains 69 tools,
+  zero MCP prompts, and one optional Skills catalog resource; provider workflow
+  decisions remain in external Skills.
+
 ## [0.8.3] - 2026-08-17
 
 ### Added
@@ -599,7 +635,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.3...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.4...HEAD
+[0.8.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.3...0.8.4
 [0.8.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.2...0.8.3
 [0.8.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.0...0.8.1

@@ -229,6 +229,99 @@ async def test_mcp_structured_targets_act_across_oopif_and_closed_shadow() -> No
         await server.cleanup()
 
 
+@pytest.mark.asyncio
+async def test_mcp_challenge_surfaces_expose_actionability_and_parent_postcondition() -> None:
+    """Cross-origin surfaces retain top-level geometry and explicit risk states."""
+
+    server = DrissionPageMCPServer()
+    try:
+        with local_http_fixture() as base_url:
+            await _call(server, "page_navigate", {"url": base_url + "/challenge-surfaces"})
+            await _call(server, "page_resize", {"width": 800, "height": 600})
+            await _call(
+                server,
+                "wait_for_element",
+                {"selector": "#delayed-widget", "timeout": 3},
+            )
+
+            frames = await _call(server, "frame_list", {"limit": 10})
+            by_id = {frame["id"]: frame for frame in frames["frames"]}
+            assert {
+                "normal-widget",
+                "hidden-widget",
+                "below-widget",
+                "transformed-widget",
+                "delayed-widget",
+            } <= set(by_id)
+            assert by_id["normal-widget"]["boundary"] == "cross_origin"
+            assert by_id["normal-widget"]["document_access"] == "readable"
+            assert by_id["normal-widget"]["outer"]["presentation"][
+                "coordinate_actionability"
+            ] == "ready"
+            assert by_id["hidden-widget"]["outer"]["presentation"][
+                "coordinate_actionability"
+            ] == "hidden"
+            assert by_id["below-widget"]["outer"]["presentation"][
+                "coordinate_actionability"
+            ] == "off_viewport"
+            assert by_id["transformed-widget"]["outer"]["presentation"][
+                "coordinate_actionability"
+            ] == "transformed_3d"
+
+            scrolled = await _call(
+                server,
+                "element_scroll_into_view",
+                {"selector": "#below-widget", "center": True, "timeout": 3},
+            )
+            assert scrolled["after"]["in_viewport"] is True
+            assert scrolled["after"]["rect"]["viewport_coordinate_space"] == (
+                "top_level_viewport"
+            )
+
+            await _call(
+                server,
+                "element_scroll_into_view",
+                {"selector": "#normal-widget", "center": True, "timeout": 3},
+            )
+            state = await _call(
+                server,
+                "element_state_get",
+                {"selector": "#normal-widget", "timeout": 3},
+            )
+            location = state["rect"]["viewport_location"]
+            await _call(
+                server,
+                "page_click_xy",
+                {
+                    "x": location["x"] + 32,
+                    "y": location["y"] + 32,
+                    "element": "fixture cross-origin challenge control",
+                },
+            )
+            await _call(
+                server,
+                "wait_until",
+                {
+                    "condition": "text_contains",
+                    "selector": "#challenge-status",
+                    "value": "normal:passed",
+                    "timeout": 3,
+                },
+            )
+            postcondition = await _call(
+                server,
+                "element_get_text",
+                {"selector": "#challenge-status"},
+            )
+            assert postcondition["text"] == "normal:passed"
+
+            screenshot = await _call(server, "page_screenshot", {})
+            assert screenshot["screenshot"]["mime_type"] == "image/png"
+            assert screenshot["screenshot"]["bytes"] > 0
+    finally:
+        await server.cleanup()
+
+
 async def _type_and_assert(
     server: DrissionPageMCPServer, selector: str, value: str
 ) -> None:

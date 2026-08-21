@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.8.3 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库与业务流程。
+**DrissionPage MCP 0.8.4 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库、挑战与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -73,7 +73,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.3 保持这套注册表稳定，通过 catalog 发布 Skill 版本、MCP 兼容范围、必需工具、固定来源 revision 和 SHA-256。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，可复用流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.4 保持这套注册表稳定，新增明确的 iframe 边界、文档可访问性、呈现状态、可操作性和 viewport 坐标证据，并发布匹配的版本化 Skills。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，挑战与站点流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -93,6 +93,7 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 - **95% 覆盖率底线**：CI 强制执行当前 95% 覆盖率门槛，并上传覆盖率报告。
 - **真实浏览器验证**：Chrome/Chromium 集成测试会直接调用暴露给客户端的 MCP 工具。
 - **文档边界验证**：聚焦浏览器测试证明公共工具可读取跨域 OOPIF 和 DrissionPage 暴露的 closed Shadow DOM，不使用 JavaScript 穿透 fallback。
+- **挑战表面验证**：本地 fixture 覆盖正常、隐藏、首屏外、延迟和 CSS 3D 跨域 widget；官方 Turnstile dummy key 覆盖 visible、invisible、pass、fail 和 forced-interactive callback，且不保留 token。
 - **场景化验证**：playground MCP Lab 覆盖表单、电商页面、社交 feed、时间线、动态等待、iframe 和失败恢复等场景，不依赖公共演示网站。
 
 ---
@@ -101,7 +102,7 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 
 ```bash
 # 从 PyPI 安装
-python -m pip install -U "drissionpage-mcp>=0.8.3"
+python -m pip install -U "drissionpage-mcp>=0.8.4"
 
 # 验证包和本地环境
 drissionpage-mcp --version
@@ -263,12 +264,12 @@ Claude Code、Claude Desktop 和其他 JSON 配置 MCP 客户端见[集成示例
 - Resource：`drissionpage://skills/catalog`
 - Prompts：无
 - 仓库示例：`cross-origin-iframe-probe`、`turnstile-testing`、`xiaohongshu-content-research`
-- 入口：`skills/<skill-name>/SKILL.md`；catalog schema v2 包含 Skill/MCP 版本、必需工具、fixture、固定 `v0.8.3` 来源 revision、验证状态和 SHA-256
+- 入口：`skills/<skill-name>/SKILL.md`；catalog schema v2 包含 Skill/MCP 版本、必需工具、fixture、固定 `v0.8.4` 来源 revision、验证状态和 SHA-256
 - Skills 是提供给 MCP host 的 Markdown 流程，不是 Python 模块，不由服务器执行，并且不会进入 wheel/sdist。
 
 源码目录可运行 `python playground/validate_skills.py --json` 进行校验。
 从
-[`skills-manager@v0.8.3`](https://github.com/jumodada/skills-manager/tree/v0.8.3)
+[`skills-manager@v0.8.4`](https://github.com/jumodada/skills-manager/tree/v0.8.4)
 安装固定版本：Codex 使用 `python install.py install --client codex --json`，
 Claude Code 使用 `python install.py install --client claude --json`。
 
@@ -465,7 +466,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.8.3`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.8.4`。
 
 `drissionpage-mcp doctor` 还必须将 `mcp_supported` 和
 `mcp_server_wiring` 都报告为 `ok`；只看到版本号并不能证明 MCP 客户端能够完成初始化。
@@ -497,13 +498,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.8.3 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.8.4 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.8.3)
+### 当前版本 (v0.8.4)
 - [x] 69 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -529,6 +530,8 @@ which chromium         # macOS
 - [x] 纯浏览器 Cookie set/get/delete/clear 流程，包括成功结果为 MCP callback 默认回显 value 的有界批量写入
 - [x] 在受支持浏览器矩阵中通过原生 DrissionPage 输入完成受控输入与验证输入的十轮替换回归
 - [x] `frame_*` 读取跨源 OOPIF、DrissionPage 支持的 `shadow_*` 查找 closed Shadow DOM，并单独记录更窄的指针目标边界
+- [x] 为生产挑战流程提供 frame 边界/文档访问分类，以及外层呈现、顶层 viewport 坐标、滚动回执和坐标可操作性证据
+- [x] 提供本地挑战表面和显式外网 opt-in 的官方 Turnstile 测试 key benchmark，验证父页面后置条件、截图和 token 脱敏证据
 - [x] element 读取、动作、等待、上传和点击下载均兼容字符串与结构化 selector/accessibility target，先依次进入 frame，再依次进入 Shadow DOM host
 - [x] 提供有界 accessibility snapshot、只观察不处理的原生 dialog 工具，以及元素实时状态/几何，支持自主定位-操作-验证闭环
 - [x] 浏览器权限查询/设置/重置、受管 PDF/MHTML、自动文件选择器，以及由可销毁 Chromium context 隔离且不回显凭证的 HTTP Auth
@@ -671,13 +674,13 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.8.3
+## 🆕 最新版本：v0.8.4
 
-发布日期：2026-08-17。本版本保持 69 工具合同稳定，让仓库示例 Skills 可版本化并校验完整性，但不打包或执行它们：
+发布日期：2026-08-20。本版本保持 69 工具合同稳定，补齐生产挑战 Skills 所需的通用浏览器证据：
 
-- 为三个仓库 Skill 发布 catalog schema v2 元数据。
-- 将每个 Skill 固定到 `skills-manager` 的 `v0.8.3` 来源 revision，并记录 SHA-256。
-- 声明每个 Skill 的 MCP 兼容范围、必需工具、fixture 和验证状态。
-- 新增确定性的源码目录 validator 和 CI 门禁，检查 Skill metadata、工具依赖、路径和 hash。
-- Skills 继续排除在 wheel/sdist 之外，服务器不下载或执行 Skill 内容。
-- 不增加 MCP 工具、Prompt、浏览器行为或工具 schema 变更。
+- 分类 frame 的来源边界，以及当前 DrissionPage 是否可读取 frame 文档或只能读取外层元素。
+- 输出外层 CSS 呈现、3D 祖先、坐标可操作性，以及顶层/目标文档 viewport 坐标空间。
+- `element_scroll_into_view` 返回动作前后 geometry 与原生或页面 fallback 方法。
+- 将跨域与 Turnstile Skills 固定到 `skills-manager` `v0.8.4` 来源并记录 SHA-256。
+- 新增本地挑战表面和显式外网 opt-in 的官方 Turnstile dummy key benchmark，验证父页面后置条件、截图和 token 脱敏证据。
+- 不增加供应商专用工具；公共面保持 69 tools、0 prompts、1 Skills catalog resource。

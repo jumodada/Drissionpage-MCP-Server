@@ -34,12 +34,52 @@ class _FrameRect:
     viewport_size = (300.0, 65.0)
 
 
+class _OuterFrameStates:
+    is_alive = True
+    is_displayed = True
+    is_enabled = True
+    is_clickable = True
+    is_checked = False
+    is_selected = False
+    is_in_viewport = True
+    is_whole_in_viewport = True
+    is_covered = False
+
+
+class _OuterFrameRect:
+    location = (8.0, 87.875)
+    size = (304.0, 69.0)
+    midpoint = (160.0, 122.375)
+    click_point = (160.0, 90.875)
+    viewport_location = (8.0, 87.875)
+    viewport_midpoint = (160.0, 122.375)
+    viewport_click_point = (160.0, 90.875)
+
+
+class _OuterFrameElement:
+    states = _OuterFrameStates()
+    rect = _OuterFrameRect()
+
+    def run_js(self, _script: str):
+        return {
+            "display": "inline",
+            "visibility": "visible",
+            "opacity": 1.0,
+            "pointer_events": "auto",
+            "transform": "none",
+            "transform_style": "flat",
+            "perspective": "none",
+            "ancestor_3d": False,
+        }
+
+
 class _ChromiumFrameLike:
     """Stand-in for a cross-origin iframe's ``ChromiumFrame`` object."""
 
     tag = "iframe"
     states = _FrameStates()
     rect = _FrameRect()
+    frame_ele = _OuterFrameElement()
 
     def attr(self, _name: str) -> None:
         return None
@@ -85,19 +125,22 @@ async def test_element_state_get_on_frame_like_element_falls_back_cleanly() -> N
     assert result["displayed"] is True
     assert result["alive"] is True
     assert result["checked"] is False
-    assert result["clickable"] is False
+    assert result["clickable"] is True
+    assert result["in_viewport"] is True
+    assert result["whole_in_viewport"] is True
     assert result["covered"] is False
     assert result["covering_backend_node_id"] is None
 
     rect = result["rect"]
     assert rect["location"] == {"x": 8.0, "y": 87.875}
-    assert rect["size"] == {"width": 300.0, "height": 65.0}
-    # Midpoint/click_point are derived from location+size when the frame
-    # object doesn't expose them natively.
-    assert rect["midpoint"] == {"x": 158.0, "y": 120.375}
-    assert rect["click_point"] == {"x": 158.0, "y": 120.375}
-    assert rect["viewport_midpoint"] == {"x": 158.0, "y": 120.375}
-    assert rect["viewport_click_point"] == {"x": 158.0, "y": 120.375}
+    # Geometry must describe the outer iframe element, not the inner document.
+    assert rect["size"] == {"width": 304.0, "height": 69.0}
+    assert rect["midpoint"] == {"x": 160.0, "y": 122.375}
+    assert rect["click_point"] == {"x": 160.0, "y": 90.875}
+    assert rect["viewport_midpoint"] == {"x": 160.0, "y": 122.375}
+    assert rect["viewport_click_point"] == {"x": 160.0, "y": 90.875}
+    assert rect["viewport_coordinate_space"] == "top_level_viewport"
+    assert result["presentation"]["coordinate_actionability"] == "ready"
 
 
 @pytest.mark.asyncio

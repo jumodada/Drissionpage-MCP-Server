@@ -18,13 +18,39 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.8.3. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.8.4. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
   MCP workflows to use the documented snake_case field names exactly.
 - Tool responses are text/image MCP content blocks. Human-readable wording may change, but success and error responses should remain explicit.
 - Browser behavior can vary by Chrome/Chromium version, site content, extensions, and local security settings.
+
+## 0.8.3 to 0.8.4 Migration
+
+0.8.4 keeps the 69-tool, zero-prompt, one-resource surface and adds
+backward-compatible output evidence for production challenge workflows.
+
+- `element_state_get.rect` retains
+  `coordinate_space="target_document"` and adds
+  `viewport_coordinate_space`. Only `top_level_viewport` coordinates can be
+  passed directly to top-level pointer tools; `target_document_viewport`
+  identifies a nested target-document viewport.
+- `element_state_get.presentation` reports bounded computed CSS evidence, 3D
+  ancestry, and `coordinate_actionability`: `ready`, `hidden`, `off_viewport`,
+  `covered`, `pointer_disabled`, `transformed_3d`, or `target_document_only`.
+- `frame_list` and embedded frame summaries add `boundary`, `document_access`,
+  and `outer` evidence. A cross-origin OOPIF can still be `readable` when the
+  supported DrissionPage bridge exposes its document; origin alone is not a
+  capability verdict.
+- `element_scroll_into_view` adds `scroll_method`, `before`, and `after`.
+  `page_fallback` identifies the supported outer-frame page-scroll path.
+- The versioned Skills catalog is pinned to `skills-manager` `v0.8.4`. The
+  challenge Skills require `drissionpage-mcp>=0.8.4,<0.9.0` so they can depend
+  on these evidence fields.
+
+No provider-specific challenge tool, token-returning field, or server-side
+Skill execution was added.
 
 ## 0.8.0 to 0.8.1 Migration
 
