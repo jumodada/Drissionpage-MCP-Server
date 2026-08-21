@@ -88,7 +88,7 @@ jobs:
           VERSION: ${{ github.ref_name }}
         run: |
           VERSION="${VERSION#v}"
-          for attempt in $(seq 1 24); do
+          for ((attempt = 1; attempt <= 24; attempt++)); do
             if curl --fail --silent --show-error \
               "https://pypi.org/pypi/drissionpage-mcp/${VERSION}/json" >/dev/null; then
               exit 0
