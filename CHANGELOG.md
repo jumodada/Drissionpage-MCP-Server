@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.5] - 2026-08-21
+
+### Added
+- Added the official MCP Registry ownership marker to the PyPI README and a
+  versioned `server.json` describing the public `drissionpage-mcp` PyPI package
+  and its `stdio` transport.
+- Added a tag-gated release workflow that validates the release metadata,
+  publishes the package to PyPI through trusted publishing, waits for PyPI
+  availability, then publishes the Registry entry through GitHub OIDC.
+- Added a distribution runbook covering the official Registry, Cursor Directory,
+  and TRAE installation-link paths.
+
+### Release Scope
+- No MCP tools, prompts, resources, schemas, browser behavior, or Skills were
+  changed. The public surface remains 69 tools, zero prompts, and one optional
+  Skills catalog resource.
+
 ## [0.8.4] - 2026-08-20
 
 ### Added
@@ -635,7 +652,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.4...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.5...HEAD
+[0.8.5]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.4...0.8.5
 [0.8.4]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.3...0.8.4
 [0.8.3]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.2...0.8.3
 [0.8.2]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.1...0.8.2

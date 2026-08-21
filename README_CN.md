@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.8.4 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库、挑战与业务流程。
+**DrissionPage MCP 0.8.5 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库、挑战与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -73,7 +73,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.4 保持这套注册表稳定，新增明确的 iframe 边界、文档可访问性、呈现状态、可操作性和 viewport 坐标证据，并发布匹配的版本化 Skills。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，挑战与站点流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.5 保持这套注册表稳定，并增加从 PyPI 到 MCP Registry 的可验证发布元数据和自动化。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，挑战与站点流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -102,7 +102,7 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 
 ```bash
 # 从 PyPI 安装
-python -m pip install -U "drissionpage-mcp>=0.8.4"
+python -m pip install -U "drissionpage-mcp>=0.8.5"
 
 # 验证包和本地环境
 drissionpage-mcp --version
@@ -466,7 +466,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.8.4`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.8.5`。
 
 `drissionpage-mcp doctor` 还必须将 `mcp_supported` 和
 `mcp_server_wiring` 都报告为 `ok`；只看到版本号并不能证明 MCP 客户端能够完成初始化。
@@ -498,13 +498,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.8.4 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.8.5 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.8.4)
+### 当前版本 (v0.8.5)
 - [x] 69 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -540,6 +540,7 @@ which chromium         # macOS
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] 一个包含仓库示例元数据的可选 Skills resource、零个 prompts，以及 Skills、eval、兼容性和故障排除文档
 - [x] PyPI 发布
+- [x] 官方 MCP Registry 包元数据和由版本标签触发的发布工作流
 
 ---
 
@@ -674,13 +675,11 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.8.4
+## 🆕 最新版本：v0.8.5
 
-发布日期：2026-08-20。本版本保持 69 工具合同稳定，补齐生产挑战 Skills 所需的通用浏览器证据：
+发布日期：2026-08-21。本版本让现有 PyPI 包可通过官方 MCP Registry 被发现，且不改变浏览器能力合同：
 
-- 分类 frame 的来源边界，以及当前 DrissionPage 是否可读取 frame 文档或只能读取外层元素。
-- 输出外层 CSS 呈现、3D 祖先、坐标可操作性，以及顶层/目标文档 viewport 坐标空间。
-- `element_scroll_into_view` 返回动作前后 geometry 与原生或页面 fallback 方法。
-- 将跨域与 Turnstile Skills 固定到 `skills-manager` `v0.8.4` 来源并记录 SHA-256。
-- 新增本地挑战表面和显式外网 opt-in 的官方 Turnstile dummy key benchmark，验证父页面后置条件、截图和 token 脱敏证据。
-- 不增加供应商专用工具；公共面保持 69 tools、0 prompts、1 Skills catalog resource。
+- 为 PyPI 包 README 增加 Registry 归属标记，并为 `stdio` PyPI 发行包增加类型化 `server.json`。
+- 增加由 GitHub 版本标签触发的发布链：先通过可信发布上传 PyPI，再通过 GitHub OIDC 发布到 MCP Registry。
+- 记录 Cursor Directory 与 TRAE 安装链接的发布后发现路径。
+- 公共面仍为 69 tools、0 prompts、1 Skills catalog resource；外部 Skills catalog 继续固定在 `skills-manager` `v0.8.4`。

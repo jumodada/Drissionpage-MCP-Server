@@ -16,7 +16,9 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.8.4 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, challenge, or business workflow.
+**DrissionPage MCP 0.8.5 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, challenge, or business workflow.
+
+<!-- mcp-name: io.github.jumodada/drissionpage-mcp -->
 
 > **The model decides what to do; the MCP executes the requested browser operation exactly.**
 
@@ -73,7 +75,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.8.4 keeps that registry stable, adds explicit iframe boundary, document-access, presentation, actionability, and viewport-coordinate evidence, and publishes matching versioned Skills. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable challenge and site procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.8.5 keeps that registry stable and adds verified PyPI-to-MCP-Registry release metadata and automation. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable challenge and site procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -102,7 +104,7 @@ DrissionPage MCP is backed by a strict regression suite and browser-backed scena
 
 ```bash
 # Install from PyPI
-python -m pip install -U "drissionpage-mcp>=0.8.4"
+python -m pip install -U "drissionpage-mcp>=0.8.5"
 
 # Verify package and environment
 drissionpage-mcp --version
@@ -468,7 +470,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.8.4`.
+Should output the installed package version, for example `drissionpage-mcp 0.8.5`.
 
 `drissionpage-mcp doctor` must also report both `mcp_supported` and
 `mcp_server_wiring` as `ok`; package-version output alone does not prove that an
@@ -501,13 +503,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.8.4 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.8.5 | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.8.4)
+### Current (v0.8.5)
 - [x] 69 atomic navigation, tab/frame/shadow, accessibility, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -543,6 +545,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] One optional-Skills catalog resource with repository example metadata, zero prompts, plus Skills, eval, compatibility, and troubleshooting documentation
 - [x] PyPI distribution
+- [x] Official MCP Registry package metadata and tag-gated publishing workflow
 
 ---
 
@@ -677,13 +680,11 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.8.4
+## 🆕 Latest Version: v0.8.5
 
-Released on 2026-08-20. This release keeps the 69-tool contract stable and adds the generic browser evidence required by production challenge Skills:
+Released on 2026-08-21. This release makes the existing PyPI package discoverable through the official MCP Registry without changing the browser capability contract:
 
-- Classifies frame origin boundaries and whether the supported DrissionPage runtime can read the frame document or only its outer element.
-- Reports outer CSS presentation, 3D ancestry, coordinate actionability, and explicit top-level versus target-document viewport spaces.
-- Returns before/after geometry and the native or page-fallback method from `element_scroll_into_view`.
-- Updates the cross-origin and Turnstile Skills at fixed `skills-manager` `v0.8.4` sources with SHA-256 integrity.
-- Adds local challenge-surface and opt-in official Turnstile dummy-key benchmarks with parent-page postconditions, screenshots, and token-safe evidence.
-- Adds no provider-specific tool: the public surface remains 69 tools, zero prompts, and one Skills catalog resource.
+- Adds the Registry ownership marker to the PyPI package README and a typed `server.json` for the `stdio` PyPI distribution.
+- Adds a tag-gated GitHub Actions release chain: trusted PyPI publishing first, then GitHub OIDC publication to the MCP Registry.
+- Documents the post-publication discovery paths for Cursor Directory and TRAE installation links.
+- Keeps the public surface at 69 tools, zero prompts, and one Skills catalog resource. The external Skills catalog remains pinned to `skills-manager` `v0.8.4`.

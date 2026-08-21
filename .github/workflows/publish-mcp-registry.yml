@@ -1,0 +1,108 @@
+name: Publish package and MCP Registry entry
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-build:
+    name: Verify and build release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install verification dependencies
+        run: python -m pip install -e ".[dev]"
+      - name: Verify release metadata and protocol surface
+        run: |
+          python -m ruff check drissionpage_mcp tests playground
+          python -m mypy drissionpage_mcp
+          python -m pytest \
+            tests/test_release_metadata.py \
+            tests/test_mcp_registry_metadata.py \
+            tests/test_mcp_protocol.py \
+            tests/test_mcp_resources.py \
+            tests/test_tool_schema_snapshot.py
+      - name: Build distribution
+        run: python -m build
+      - name: Upload distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-distribution
+          path: dist/
+          if-no-files-found: error
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: verify-and-build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/drissionpage-mcp
+    permissions:
+      id-token: write
+    steps:
+      - name: Download distribution
+        uses: actions/download-artifact@v4
+        with:
+          name: python-distribution
+          path: dist/
+      - name: Publish with PyPI trusted publishing
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-mcp-registry:
+    name: Publish to MCP Registry
+    needs: publish-pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify tag and metadata versions match
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION="${VERSION#v}"
+          python - "$VERSION" <<'PY'
+          import json
+          import sys
+          import tomllib
+          from pathlib import Path
+
+          version = sys.argv[1]
+          pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          server = json.loads(Path("server.json").read_text(encoding="utf-8"))
+          assert pyproject["project"]["version"] == version
+          assert server["version"] == version
+          assert server["packages"][0]["version"] == version
+          PY
+      - name: Wait for the PyPI release to become queryable
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          VERSION="${VERSION#v}"
+          for attempt in $(seq 1 24); do
+            if curl --fail --silent --show-error \
+              "https://pypi.org/pypi/drissionpage-mcp/${VERSION}/json" >/dev/null; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "PyPI did not expose drissionpage-mcp ${VERSION} within two minutes."
+          exit 1
+      - name: Install MCP Registry publisher
+        run: |
+          curl -L \
+            "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" \
+            | tar xz mcp-publisher
+      - name: Publish with GitHub OIDC
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish
