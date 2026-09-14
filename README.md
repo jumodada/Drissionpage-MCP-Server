@@ -16,7 +16,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.8.8 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, challenge, or business workflow.
+**DrissionPage MCP 0.8.9 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, challenge, or business workflow.
 
 <!-- mcp-name: io.github.jumodada/drissionpage-mcp -->
 
@@ -75,7 +75,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.8.8 keeps that registry stable while adding correlated network-listener generations, explicit packet cursors, timeout evidence, cancellation recovery, and tab-owned cleanup. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable challenge and site procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.8.9 keeps that registry stable while adding deadline-bounded waits, bounded snapshot search/continuation, and explicit navigation timing and readiness evidence. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable challenge and site procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -107,7 +107,7 @@ DrissionPage MCP is backed by a strict regression suite and browser-backed scena
 curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
 # Install from PyPI
-python -m pip install -U "drissionpage-mcp>=0.8.8"
+python -m pip install -U "drissionpage-mcp>=0.8.9"
 
 # Verify package and environment
 drissionpage-mcp --version
@@ -485,7 +485,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.8.8`.
+Should output the installed package version, for example `drissionpage-mcp 0.8.9`.
 
 `drissionpage-mcp doctor` must also report both `mcp_supported` and
 `mcp_server_wiring` as `ok`; package-version output alone does not prove that an
@@ -518,13 +518,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.8.8 | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.8.9 development candidate | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current (v0.8.8)
+### Current candidate (v0.8.9)
 - [x] 69 atomic navigation, tab/frame/shadow, accessibility, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -532,11 +532,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Structured recovery hints in `error.details.hints` for common failures
 - [x] Sanitized browser failures with `DIALOG_PENDING`/`DIALOG_NOT_FOUND` recovery and strict standards-compliant JSON for non-finite JavaScript values
 - [x] Balanced `page_snapshot` output so link-heavy pages still expose controls and forms
+- [x] Optional case-insensitive literal `page_snapshot(query=...)` search with bounded, replayable continuation cursors tied to one tab and document generation
 - [x] Atomic type, select, check, click, keyboard, upload, wait, and state-read tools cover native controls and framework-driven widgets without library-specific branches
 - [x] Stable optional `tab_id` targeting across 63 tab-scoped tools, per-tab action serialization, cross-tab parallelism, and draining close/cleanup semantics
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true, background=..., new_window=..., new_context=...)`
 - [x] Tab-owned network listener tokens, packet cursors, timeout evidence, cancellation-safe packet recovery, and deterministic close cleanup
 - [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
+- [x] Deadline-bounded `wait_until`, including `ready_state` waits, and optional `page_navigate(timeout=...)` evidence for final URL/readiness and non-negative navigation, settle, and total timing
 - [x] Console observability with `page_console_logs`, console summary in `page_observe`, and console change fields in `observe=true`
 - [x] Form, component-library, challenge, and convenience workflows remain outside the MCP core
 - [x] Repository example Skills for cross-origin iframes, authorized Turnstile fixtures, and bounded Xiaohongshu-like research are discoverable through the static catalog and excluded from wheel/sdist packages
@@ -562,8 +564,8 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] No retained action history, generated code snippets, or absolute screenshot paths in public results
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] One optional-Skills catalog resource with repository example metadata, zero prompts, plus Skills, eval, compatibility, and troubleshooting documentation
-- [x] PyPI distribution
-- [x] Official MCP Registry package metadata and tag-gated publishing workflow
+- [x] Local 0.8.9 package metadata and clean-installed-package smoke coverage
+- [ ] Publish 0.8.9 to PyPI and the MCP Registry after release gates complete
 
 ---
 
@@ -698,12 +700,12 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Latest Version: v0.8.8
+## 🆕 Current Candidate: v0.8.9
 
-Released on 2026-09-08. This release keeps the 69-tool registry while making network listener lifetimes explicit and recoverable:
+Candidate dated 2026-09-10. This is the current local implementation, not a claim of external publication or a completed hosted multi-platform CI run:
 
-- `network_listen_start` returns a new `listener_token`, lifecycle state, packet cursor, and startup timing for each listener generation.
-- `network_listen_wait` accepts the token and reports cumulative consumption, monotonic packet indices, elapsed time, explicit timeout status, and remaining timeout budget.
-- `network_listen_stop` rejects stale tokens with `LISTENER_NOT_FOUND`, preventing an old task from stopping a replacement listener on the same tab.
-- Cancelled waits preserve packets already removed by DrissionPage, and tab close performs best-effort listener stop/queue cleanup before native teardown.
-- Real Chromium tests isolate listeners across tabs and run 100 start/stop cycles without active driver or queue residue. The public surface remains 69 tools, zero prompts, and one Skills catalog resource.
+- `page_snapshot(query=...)` performs case-insensitive literal search over a bounded top-level-page capture and returns match counts, scan truncation, `observation_id`, and optional `next_cursor` continuation. Cursors are short-lived and tied to the session, tab, document, query, and output limits.
+- `wait_until(condition="ready_state", value="interactive"|"complete")` joins existing conditions, and all polling/stability waits share one monotonic timeout budget.
+- `page_navigate(timeout=...)` optionally budgets navigation plus stabilization. Browser startup, tab-lock queueing, and before/after observation are excluded. Results report the final URL, `ready_state`, non-negative stage timings, and `settled`: the native `doc_loaded` result when available, otherwise `null`.
+- Navigation completion or readiness does not establish business success, HTTP status, login success, or a complete redirect chain. Cancelled native navigation/stabilization work is drained before the tab action lock is released.
+- The public surface remains 69 tools, zero prompts, and one Skills catalog resource. Skills stay on schema v2 at the fixed `skills-manager` `v0.8.4` revision.

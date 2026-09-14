@@ -911,6 +911,41 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
+        if path == "/client-redirect":
+            self._send_html(
+                """
+                <!doctype html>
+                <html><head><title>Client redirect</title></head><body>
+                  <p id="redirecting">Redirecting</p>
+                  <script>setTimeout(() => location.replace('/redirect-target'), 10);</script>
+                </body></html>
+                """
+            )
+            return
+
+        if path == "/redirect-target":
+            self._send_html(
+                """
+                <!doctype html>
+                <html><head><title>Redirect target</title></head><body>
+                  <p id="redirect-target">Client redirect complete</p>
+                </body></html>
+                """
+            )
+            return
+
+        if path == "/delayed-new-tab":
+            self._send_html(
+                """
+                <!doctype html>
+                <html><head><title>Delayed new tab</title></head><body>
+                  <p id="opener">Opening a work item</p>
+                  <script>setTimeout(() => window.open('/new-tab', '_blank'), 10);</script>
+                </body></html>
+                """
+            )
+            return
+
         if path == "/status/404":
             self._send_text("fixture missing", status=404)
             return

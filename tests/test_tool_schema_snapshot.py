@@ -37,7 +37,15 @@ def test_every_public_timeout_uses_json_number_schema() -> None:
         if "timeout" not in properties:
             continue
         timeout_fields.append(tool["name"])
-        assert properties["timeout"].get("type") == "number", tool["name"]
+        timeout = properties["timeout"]
+        if tool["name"] == "page_navigate":
+            assert timeout["default"] is None
+            assert timeout["anyOf"] == [
+                {"exclusiveMinimum": 0, "maximum": 300, "type": "number"},
+                {"type": "null"},
+            ]
+        else:
+            assert timeout.get("type") == "number", tool["name"]
 
     assert len(timeout_fields) >= 18
 

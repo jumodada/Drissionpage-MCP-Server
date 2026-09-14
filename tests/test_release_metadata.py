@@ -12,11 +12,11 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
 import drissionpage_mcp
 
 
-def test_package_version_metadata_is_0_8_8() -> None:
+def test_package_version_metadata_is_0_8_9() -> None:
     pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
 
-    assert pyproject["project"]["version"] == "0.8.8"
-    assert drissionpage_mcp.__version__ == "0.8.8"
+    assert pyproject["project"]["version"] == "0.8.9"
+    assert drissionpage_mcp.__version__ == "0.8.9"
 
 
 def test_release_pins_mcp_sdk_to_supported_major_version() -> None:
@@ -36,10 +36,11 @@ def test_changelog_describes_breaking_alias_removal() -> None:
     assert "wait_sleep" in changelog
 
 
-def test_readmes_and_changelog_publish_latest_0_8_8_summary() -> None:
+def test_readmes_and_changelog_publish_current_0_8_9_candidate_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     readme_cn = Path("README_CN.md").read_text(encoding="utf-8")
     changelog = Path("CHANGELOG.md").read_text(encoding="utf-8")
+    candidate_changelog = changelog.split("## [0.8.9]", 1)[1].split("## [0.8.8]", 1)[0]
     latest_changelog = changelog.split("## [0.8.8]", 1)[1].split("## [0.8.7]", 1)[0]
     tab_changelog = changelog.split("## [0.8.7]", 1)[1].split("## [0.8.6]", 1)[0]
     security_changelog = changelog.split("## [0.8.6]", 1)[1].split("## [0.8.5]", 1)[0]
@@ -59,8 +60,9 @@ def test_readmes_and_changelog_publish_latest_0_8_8_summary() -> None:
     assert "website/public/og-browser-lab.png" not in readme_cn
     assert "Watch the original natural pointer demo" not in readme
     assert "观看原始自然指针演示" not in readme_cn
-    assert "## 🆕 Latest Version: v0.8.8" in readme
-    assert "Released on 2026-09-08" in readme
+    assert "## 🆕 Current Candidate: v0.8.9" in readme
+    assert "Candidate dated 2026-09-10" in readme
+    assert "not a claim of external publication" in readme
     assert "69 Typed Browser Tools" in readme
     assert "Form Operations" not in readme
     assert "page_dialog_respond" in readme
@@ -71,8 +73,9 @@ def test_readmes_and_changelog_publish_latest_0_8_8_summary() -> None:
     assert "### 📸 Page Operations (18 tools)" in readme
     assert "### 🌍 Browser Environment (6 tools)" in readme
     assert "### 🌐 Network Control & Observation (4 tools)" in readme
-    assert "## 🆕 最新版本：v0.8.8" in readme_cn
-    assert "发布日期：2026-09-08" in readme_cn
+    assert "## 🆕 当前候选版本：v0.8.9" in readme_cn
+    assert "候选日期：2026-09-10" in readme_cn
+    assert "不表示已经外部发布" in readme_cn
     assert "69 个类型化浏览器工具" in readme_cn
     assert "表单工具（3 个）" not in readme_cn
     assert "page_dialog_respond" in readme_cn
@@ -83,7 +86,14 @@ def test_readmes_and_changelog_publish_latest_0_8_8_summary() -> None:
     assert "### 📸 页面操作（18 个）" in readme_cn
     assert "### 🌍 浏览器环境（6 个）" in readme_cn
     assert "### 🌐 网络控制与观察（4 个）" in readme_cn
+    assert "## [0.8.9] - 2026-09-10" in changelog
     assert "## [0.8.8] - 2026-09-08" in changelog
+    assert "page_snapshot" in candidate_changelog
+    assert "ready_state" in candidate_changelog
+    assert "navigation_ms" in candidate_changelog
+    assert "69 tools, zero" in candidate_changelog
+    assert "`v0.8.4`" in candidate_changelog
+    assert "does not\nclaim that 0.8.9 has been published externally" in candidate_changelog
     assert "listener_token" in latest_changelog
     assert "LISTENER_NOT_FOUND" in latest_changelog
     assert "100 real listener start/stop cycles" in latest_changelog
@@ -134,7 +144,11 @@ def test_readmes_and_changelog_publish_latest_0_8_8_summary() -> None:
     assert "distance-aware timing" in changelog
     assert "layout-drift recovery" in changelog
     assert (
-        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.8...HEAD"
+        "[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.9...HEAD"
+        in changelog
+    )
+    assert (
+        "[0.8.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.8...0.8.9"
         in changelog
     )
     assert (
@@ -223,7 +237,7 @@ def test_readmes_and_changelog_publish_latest_0_8_8_summary() -> None:
     )
 
 
-def test_release_guides_publish_0_8_8_contract_state() -> None:
+def test_release_guides_describe_0_8_9_candidate_and_frozen_contract_snapshot() -> None:
     compatibility = Path("docs/compatibility.md").read_text(encoding="utf-8")
     contract = Path("docs/tool-contract.md").read_text(encoding="utf-8")
     troubleshooting = Path("docs/troubleshooting.md").read_text(encoding="utf-8")
@@ -233,11 +247,15 @@ def test_release_guides_publish_0_8_8_contract_state() -> None:
     assert "## Unreleased Contract Changes" not in compatibility
     assert "## 0.8.6 to 0.8.7 Migration" in compatibility
     assert "## 0.8.7 to 0.8.8 Migration" in compatibility
-    assert "The 0.8.8 registry contains 69 typed browser tools" in contract
-    assert "DrissionPage MCP 0.8.8 exposes no MCP prompts" in contract
-    assert "Challenge Surface 0.8.8 Checks" in troubleshooting
-    assert "benchmark-results/0.8.8-task-completion.json" in troubleshooting
-    assert "benchmark-results/0.8.8-task-completion.json" in eval_readme
+    assert "## 0.8.8 to 0.8.9 Migration" in compatibility
+    assert "current development candidate" in compatibility
+    assert "external publication" in compatibility
+    # docs/tool-contract.md is a frozen generated snapshot updated by its own gate.
+    assert "The 0.8.9 registry contains 69 typed browser tools" in contract
+    assert "DrissionPage MCP 0.8.9 exposes no MCP prompts" in contract
+    assert "Observation 0.8.9 Candidate Checks" in troubleshooting
+    assert "benchmark-results/0.8.9-task-completion.json" in troubleshooting
+    assert "benchmark-results/0.8.9-task-completion.json" in eval_readme
 
 
 def test_repository_example_skills_have_frontmatter_and_documented_entries() -> None:

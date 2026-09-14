@@ -258,6 +258,11 @@ class PageNavigateData(TabScopedData):
     active: bool = True
     tab_id: str
     changes: dict[str, Any] | None = None
+    ready_state: str | None = None
+    settled: bool | None = None
+    navigation_ms: int | None = Field(default=None, ge=0)
+    settle_ms: int | None = Field(default=None, ge=0)
+    total_ms: int | None = Field(default=None, ge=0)
 
 
 class PageNavigateWithHttpAuthData(ToolData):
@@ -362,6 +367,43 @@ class PageSnapshotData(TabScopedData):
     truncated: dict[str, Any]
     limits: dict[str, Any]
     meta: dict[str, Any]
+
+
+class SnapshotMatch(ToolData):
+    index: int = Field(ge=0)
+    text: str = Field(max_length=500)
+    tag: str
+    category: Literal["text", "headings", "links", "buttons"]
+    selector: str
+    truncated: bool
+
+
+class SnapshotScan(ToolData):
+    nodes: int = Field(ge=0, le=5000)
+    chars: int = Field(ge=0, le=100000)
+    truncated: bool
+    max_nodes: int
+    max_chars: int
+
+
+class PageSnapshotSearchData(TabScopedData):
+    url: str
+    title: str
+    observation_id: str
+    match_count: int = Field(ge=0, le=500)
+    matches: list[SnapshotMatch] = Field(max_length=200)
+    returned: int = Field(ge=0, le=200)
+    has_more: bool
+    next_cursor: str | None
+    scan: SnapshotScan
+    limits: dict[str, int | float]
+    meta: dict[str, Any]
+
+
+class PageSnapshotResultData(RootModel[PageSnapshotData | PageSnapshotSearchData]):
+    """Preserve the legacy outline, with an opt-in typed search result."""
+
+    model_config = ConfigDict(title="PageSnapshotData")
 
 
 class PageObservation(TabScopedData):

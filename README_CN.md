@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.8.8 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库、挑战与业务流程。
+**DrissionPage MCP 0.8.9 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库、挑战与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -73,7 +73,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.8 保持这套注册表稳定，同时加入可关联的网络监听代际、明确的 packet cursor、timeout 证据、取消恢复和 tab 自有清理。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，挑战与站点流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.9 保持这套注册表稳定，同时加入受 deadline 约束的等待、有界 snapshot 检索/续读，以及明确的导航耗时与就绪证据。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，挑战与站点流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -105,7 +105,7 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
 # 从 PyPI 安装
-python -m pip install -U "drissionpage-mcp>=0.8.8"
+python -m pip install -U "drissionpage-mcp>=0.8.9"
 
 # 验证包和本地环境
 drissionpage-mcp --version
@@ -475,7 +475,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.8.8`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.8.9`。
 
 `drissionpage-mcp doctor` 还必须将 `mcp_supported` 和
 `mcp_server_wiring` 都报告为 `ok`；只看到版本号并不能证明 MCP 客户端能够完成初始化。
@@ -507,13 +507,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.8.8 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.8.9 开发候选 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前版本 (v0.8.8)
+### 当前候选版本 (v0.8.9)
 - [x] 69 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -521,11 +521,13 @@ which chromium         # macOS
 - [x] 常见失败会在 `error.details.hints` 中返回结构化恢复建议
 - [x] 浏览器异常公开信息脱敏，提供 `DIALOG_PENDING`/`DIALOG_NOT_FOUND` 恢复路径，并为 JavaScript 非有限数提供严格 JSON 结果
 - [x] `page_snapshot` 会平衡输出预算，链接密集页面仍能暴露按钮、输入框和表单
+- [x] 可选的大小写不敏感字面量 `page_snapshot(query=...)` 检索，以及绑定单一 tab 和文档代次的有界、可重放续读 cursor
 - [x] 输入、选择、勾选、点击、键盘、上传、等待和状态读取原语覆盖原生控件与框架驱动组件，不包含组件库专用分支
 - [x] 63 个 tab-scoped 工具统一支持可选 `tab_id`，同 tab action 串行、跨 tab 并行，并为 close/cleanup 提供排空语义
 - [x] 标签页管理：`tab_list`、`tab_switch`、`tab_close` 和 `page_navigate(new_tab=true, background=..., new_window=..., new_context=...)`
 - [x] Tab 自有 network listener token、packet cursor、timeout 证据、取消安全的 packet 恢复和确定性 close 清理
 - [x] 可观察动作：`page_observe`、`page_evaluate`、`wait_until`，以及导航、点击、输入中的可选 `observe=true` 变化摘要
+- [x] 受 deadline 约束的 `wait_until`（含 `ready_state`），以及可选 `page_navigate(timeout=...)` 的最终 URL/就绪状态和非负导航、稳定化、总耗时证据
 - [x] Console 可观察性：`page_console_logs`、`page_observe` 中的 console 摘要，以及 `observe=true` 中的 console 变化字段
 - [x] 表单、组件库、验证挑战和便利工作流留在 MCP 核心之外
 - [x] 跨源 iframe、授权 Turnstile fixture、有界小红书类研究三个仓库示例 Skill 通过静态 catalog 发现，且不进入 wheel/sdist
@@ -551,8 +553,8 @@ which chromium         # macOS
 - [x] 不保留动作历史，不生成代码片段，公开截图结果不暴露绝对路径
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] 一个包含仓库示例元数据的可选 Skills resource、零个 prompts，以及 Skills、eval、兼容性和故障排除文档
-- [x] PyPI 发布
-- [x] 官方 MCP Registry 包元数据和由版本标签触发的发布工作流
+- [x] 本地 0.8.9 包元数据与从干净安装包执行的 smoke 覆盖
+- [ ] 发布门禁完成后再将 0.8.9 发布到 PyPI 和 MCP Registry
 
 ---
 
@@ -687,12 +689,12 @@ codex mcp list
 
 ---
 
-## 🆕 最新版本：v0.8.8
+## 🆕 当前候选版本：v0.8.9
 
-发布日期：2026-09-08。本版本保持 69 个工具注册表，同时明确网络监听生命周期并提供恢复证据：
+候选日期：2026-09-10。这是当前本地实现，不表示已经外部发布，也不表示托管的多平台 CI 已全部完成：
 
-- `network_listen_start` 为每个 listener 代际返回新的 `listener_token`、生命周期状态、packet cursor 和启动耗时。
-- `network_listen_wait` 接受 token，并返回累计消费数、单调 packet index、耗时、明确 timeout 状态与剩余 timeout budget。
-- `network_listen_stop` 使用 `LISTENER_NOT_FOUND` 拒绝旧 token，避免旧任务停止同一 tab 上的新 listener。
-- 被取消的 wait 会保留已由 DrissionPage 出队的 packet；tab close 会在 native teardown 前尽力停止 listener 并清理队列。
-- 真实 Chromium 测试验证跨 tab listener 隔离与 100 次 start/stop 后无活动 driver 或队列残留；公共面仍为 69 tools、0 prompts、1 Skills catalog resource。
+- `page_snapshot(query=...)` 对有界顶层页面采集执行大小写不敏感的字面量检索，并返回匹配数、扫描截断状态、`observation_id` 和可选 `next_cursor`。cursor 短期有效，并绑定 session、tab、文档、query 与输出限制。
+- `wait_until(condition="ready_state", value="interactive"|"complete")` 加入现有等待条件，所有轮询和稳定窗口共享一个单调 timeout budget。
+- `page_navigate(timeout=...)` 可选择只为导航与稳定化设置预算；browser startup、tab lock 排队和前后 observation 不计入其中。结果返回最终 URL、`ready_state`、非负分阶段耗时，以及 `settled`：原生 `doc_loaded` 可用时返回其布尔值，否则为 `null`。
+- 导航完成或 ready state 不代表业务成功、HTTP 状态、登录成功或完整 redirect chain。取消时会先 drain 原生导航/稳定化工作，再释放 tab action lock。
+- 公共面保持 69 tools、0 prompts、1 Skills catalog resource；Skills 继续使用 schema v2，并固定在 `skills-manager` `v0.8.4` revision。

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from DrissionPage.errors import ElementNotFoundError
 
+from ..response_json import redact_public_payload
 from ..selector import SelectorPlan, normalize_selector
 from ..target import ElementTargetArg, target_label
 from .page_state_scripts import _selector_state_script
@@ -18,6 +19,26 @@ if TYPE_CHECKING:
     from ..tab import PageTab
 
 logger = logging.getLogger(__name__)
+
+
+class WaitTimeoutError(TimeoutError):
+    """A wait deadline failure with bounded public diagnostics."""
+
+    code = "TIMEOUT"
+
+    def __init__(self, condition: str, elapsed_ms: int, state: dict[str, Any]) -> None:
+        super().__init__(f"Condition {condition!r} was not met before its deadline")
+        safe_state = redact_public_payload(state)
+        if isinstance(safe_state, dict):
+            safe_state = {
+                str(key)[:64]: value[:500] if isinstance(value, str) else value
+                for key, value in list(safe_state.items())[:16]
+            }
+        self.details = {
+            "condition": condition,
+            "elapsed_ms": elapsed_ms,
+            "last_state": safe_state,
+        }
 
 
 class WaitOperations:
@@ -42,7 +63,8 @@ class WaitOperations:
         stable_ms: int = 300,
     ) -> dict[str, Any]:
         start = time.monotonic()
-        deadline = start + max(0.0, float(timeout))
+        timeout_seconds = max(0.0, float(timeout))
+        deadline = start + timeout_seconds
         last_state: dict[str, Any] = {}
         while True:
             matched, last_state = await self._condition_matches(
@@ -51,8 +73,10 @@ class WaitOperations:
                 value=value,
                 name=name,
                 stable_ms=stable_ms,
+                deadline=deadline,
             )
-            if matched:
+            now = time.monotonic()
+            if matched and (timeout_seconds == 0 or now <= deadline):
                 return {
                     "condition": condition,
                     "selector": target_label(selector) if selector else "",
@@ -60,14 +84,16 @@ class WaitOperations:
                     "name": name,
                     "matched": True,
                     "timeout": timeout,
-                    "elapsed_ms": int((time.monotonic() - start) * 1000),
+                    "elapsed_ms": int((now - start) * 1000),
                     "state": last_state,
                 }
-            if time.monotonic() >= deadline:
-                raise TimeoutError(
-                    f"Condition {condition!r} was not met within {timeout} seconds"
+            if timeout_seconds == 0 or now >= deadline:
+                raise WaitTimeoutError(
+                    condition,
+                    int((now - start) * 1000),
+                    last_state,
                 )
-            await asyncio.sleep(interval)
+            await asyncio.sleep(min(interval, deadline - now))
 
     async def element(self, selector: ElementTargetArg, timeout: float = 10) -> bool:
         if isinstance(selector, str):
@@ -96,12 +122,15 @@ class WaitOperations:
 
     async def url(self, url_pattern: str, timeout: float = 10) -> bool:
         try:
-            start_time = time.time()
-            while time.time() - start_time < timeout:
+            timeout_seconds = max(0.0, float(timeout))
+            deadline = time.monotonic() + timeout_seconds
+            while True:
                 if url_pattern in self._tab.url:
-                    return True
-                await asyncio.sleep(0.5)
-            return False
+                    return timeout_seconds == 0 or time.monotonic() <= deadline
+                now = time.monotonic()
+                if timeout_seconds == 0 or now >= deadline:
+                    return False
+                await asyncio.sleep(min(0.5, deadline - now))
         except Exception as exc:
             logger.warning(
                 "URL wait failed within %ss (%s)",
@@ -118,6 +147,7 @@ class WaitOperations:
         value: str,
         name: str,
         stable_ms: int,
+        deadline: float,
     ) -> tuple[bool, dict[str, Any]]:
         if condition in {"url_contains", "url_matches"}:
             current_url = self._tab.url
@@ -136,6 +166,17 @@ class WaitOperations:
                 else re.search(value, text) is not None
             )
             return matched, {"text": text[:500]}
+
+        if condition == "ready_state":
+            if value not in {"interactive", "complete"}:
+                raise ValueError(
+                    "value must be 'interactive' or 'complete' for 'ready_state'"
+                )
+            ready_state = self._ready_state()
+            matched = ready_state == value or (
+                value == "interactive" and ready_state == "complete"
+            )
+            return matched, {"ready_state": ready_state}
 
         if not selector:
             raise ValueError(f"selector is required for {condition!r}")
@@ -178,10 +219,32 @@ class WaitOperations:
             first = state.get("signature")
             if not state.get("exists") or not first:
                 return False, state
-            await asyncio.sleep(max(0, stable_ms) / 1000)
-            second_state = await self._selector_state(selector)
-            return first == second_state.get("signature"), second_state
+            stable_seconds = max(0, stable_ms) / 1000
+            stable_until = time.monotonic() + stable_seconds
+            while True:
+                now = time.monotonic()
+                if now >= stable_until:
+                    return now <= deadline or stable_seconds == 0, state
+                if now >= deadline:
+                    return False, state
+                await asyncio.sleep(min(0.05, stable_until - now, deadline - now))
+                state = await self._selector_state(selector)
+                signature = state.get("signature")
+                if not state.get("exists") or not signature:
+                    return False, state
+                if signature != first:
+                    first = signature
+                    stable_until = time.monotonic() + stable_seconds
         raise ValueError(f"Unsupported wait condition: {condition}")
+
+    def _ready_state(self) -> str:
+        try:
+            return str(self._page.states.ready_state or "")
+        except Exception:
+            try:
+                return str(self._page.run_js("document.readyState", as_expr=True) or "")
+            except Exception:
+                return ""
 
     async def _condition_text(self, selector: ElementTargetArg) -> str:
         if not selector:

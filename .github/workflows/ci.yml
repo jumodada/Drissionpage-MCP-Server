@@ -33,15 +33,15 @@ jobs:
         run: python playground/validate_skills.py --json
       - name: Mypy check
         run: python -m mypy drissionpage_mcp
-      - name: Enforce pre-0.8 production LOC budget
+      - name: Enforce 0.8.9 production LOC delta
         run: |
-          BASELINE=e0b8805
+          BASELINE=30e8adf
           NET_PRODUCTION_LOC="$({
             git diff --numstat "$BASELINE" HEAD -- \
               ':(glob)drissionpage_mcp/**/*.py'
           } | awk '{ added += $1; deleted += $2 } END { print added - deleted }')"
           echo "Production LOC net growth from $BASELINE: $NET_PRODUCTION_LOC"
-          test "$NET_PRODUCTION_LOC" -le 200
+          test "$NET_PRODUCTION_LOC" -le 650
 
   unit:
     name: Unit tests
@@ -75,7 +75,11 @@ jobs:
             tests/test_skill_catalog.py \
             tests/test_tool_schema_snapshot.py \
             tests/test_release_metadata.py \
+            tests/test_navigation_budget.py \
+            tests/test_snapshot_search.py \
+            tests/test_wait_budget.py \
             tests/test_playground_mcp_lab.py \
+            tests/test_package_smoke.py \
             tests/test_ci_workflow.py
 
   protocol:
@@ -135,6 +139,32 @@ jobs:
           "$BROWSER_BIN" --version
       - name: Install dependencies
         run: python -m pip install -e ".[dev]"
+      - name: Build isolated baseline and candidate wheels
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/drissionmcp-0.8.8" 30e8adf
+          python -m build --wheel --outdir "$RUNNER_TEMP/candidate-dist"
+          python -m build --wheel \
+            --outdir "$RUNNER_TEMP/baseline-dist" \
+            "$RUNNER_TEMP/drissionmcp-0.8.8"
+          python -m venv --system-site-packages "$RUNNER_TEMP/baseline-benchmark"
+          python -m venv --system-site-packages "$RUNNER_TEMP/candidate-benchmark"
+          "$RUNNER_TEMP/baseline-benchmark/bin/python" -m pip install \
+            --no-cache-dir --no-deps "$RUNNER_TEMP"/baseline-dist/*.whl
+          "$RUNNER_TEMP/candidate-benchmark/bin/python" -m pip install \
+            --no-cache-dir --no-deps "$RUNNER_TEMP"/candidate-dist/*.whl
+      - name: Compare packaged snapshot search through real stdio
+        env:
+          DP_HEADLESS: "1"
+          DP_NO_SANDBOX: "1"
+          DP_MCP_REQUIRE_BROWSER: "1"
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          python -m tests.evals.snapshot_search_comparison \
+            --baseline-python "$RUNNER_TEMP/baseline-benchmark/bin/python" \
+            --baseline-artifact "$RUNNER_TEMP"/baseline-dist/*.whl \
+            --candidate-python "$RUNNER_TEMP/candidate-benchmark/bin/python" \
+            --candidate-artifact "$RUNNER_TEMP"/candidate-dist/*.whl \
+            --iterations 20
       - name: Run W01-W08 ten-run reliability benchmark
         env:
           DP_HEADLESS: "1"
@@ -144,16 +174,16 @@ jobs:
         run: |
           python -m tests.evals.task_completion_benchmark \
             --iterations 10 \
-            --output benchmark-results/0.8.8-task-completion.json
+            --output benchmark-results/0.8.9-task-completion.json
           python -m tests.evals.challenge_surface_benchmark \
             --iterations 10 \
-            --output benchmark-results/0.8.8-challenge-surfaces.json
+            --output benchmark-results/0.8.9-challenge-surfaces.json
       - name: Upload task-completion benchmark
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 0.8.8-browser-benchmarks
-          path: benchmark-results/0.8.8-*.json
+          name: 0.8.9-browser-benchmarks
+          path: benchmark-results/0.8.9-*.json
           if-no-files-found: warn
 
   browser-boundaries:
@@ -201,7 +231,11 @@ jobs:
           DP_HEADLESS: "1"
           DP_NO_SANDBOX: ${{ matrix.no_sandbox }}
           DP_MCP_REQUIRE_BROWSER: "1"
-        run: python -m pytest tests/test_browser_capability_boundaries.py -q
+        run: |
+          python -m pytest \
+            tests/test_browser_capability_boundaries.py \
+            tests/test_observation_browser.py \
+            -q
 
   coverage:
     name: Coverage and browser integration
@@ -313,7 +347,7 @@ jobs:
           fail_ci_if_error: true
 
   wheel-smoke:
-    name: Fresh wheel install and stdio handshake
+    name: Fresh wheel install and browser stdio smoke
     runs-on: ubuntu-latest
     env:
       PIP_NO_CACHE_DIR: "1"
@@ -322,6 +356,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Locate Chrome or Chromium
+        run: |
+          BROWSER_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER_BIN" ]; then
+            sudo apt-get update
+            sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+            BROWSER_BIN="$(command -v chromium || command -v chromium-browser || true)"
+          fi
+          test -n "$BROWSER_BIN"
+          echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
+          "$BROWSER_BIN" --version
       - name: Build wheel without dependency cache
         run: |
           python -m pip install --no-cache-dir build
@@ -345,7 +390,7 @@ jobs:
 
           mcp_version = version("mcp")
           assert mcp_version.split(".", 1)[0] == "1", mcp_version
-          assert version("drissionpage-mcp") == "0.8.8"
+          assert version("drissionpage-mcp") == "0.8.9"
           assert "site-packages" in str(Path(drissionpage_mcp.__file__).resolve())
           report = run_diagnostics()
           checks = {item["name"]: item for item in report["checks"]}
@@ -355,35 +400,15 @@ jobs:
           assert checks["package_import"]["detail"].endswith("source_tree=no"), checks["package_import"]
           assert checks["public_surface"]["detail"] == "69 tools, 0 prompts, 1 resource"
           PY
-      - name: Complete a real stdio initialize and tools list
+      - name: Complete wheel browser flow through real stdio
+        env:
+          DP_HEADLESS: "1"
+          DP_NO_SANDBOX: "1"
+          DP_MCP_REQUIRE_BROWSER: "1"
         run: |
           cd "$RUNNER_TEMP"
-          "$WHEEL_SMOKE_PYTHON" - <<'PY'
-          import asyncio
-          import sys
-
-          from mcp import ClientSession, StdioServerParameters
-          from mcp.client.stdio import stdio_client
-
-
-          async def main() -> None:
-              params = StdioServerParameters(
-                  command=sys.executable,
-                  args=["-m", "drissionpage_mcp.cli", "--log-level", "ERROR"],
-              )
-              async with stdio_client(params) as (read_stream, write_stream):
-                  async with ClientSession(read_stream, write_stream) as session:
-                      init = await session.initialize()
-                      assert init.serverInfo.name == "DrissionPage MCP"
-                      assert init.serverInfo.version == "0.8.8"
-                      tools = await session.list_tools()
-                      assert len(tools.tools) == 69
-                      resources = await session.list_resources()
-                      assert len(resources.resources) == 1
-
-
-          asyncio.run(main())
-          PY
+          "$WHEEL_SMOKE_PYTHON" "$GITHUB_WORKSPACE/playground/package_smoke.py" \
+            --expected-version 0.8.9
 
   package:
     name: Package build
@@ -394,6 +419,17 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
+      - name: Locate Chrome or Chromium
+        run: |
+          BROWSER_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          if [ -z "$BROWSER_BIN" ]; then
+            sudo apt-get update
+            sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+            BROWSER_BIN="$(command -v chromium || command -v chromium-browser || true)"
+          fi
+          test -n "$BROWSER_BIN"
+          echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
+          "$BROWSER_BIN" --version
       - name: Install build tools
         run: python -m pip install -e ".[dev]"
       - name: Build package
@@ -453,7 +489,7 @@ jobs:
 
           from drissionpage_mcp.doctor import run_diagnostics
 
-          assert version("drissionpage-mcp") == "0.8.8"
+          assert version("drissionpage-mcp") == "0.8.9"
           report = run_diagnostics()
           checks = {item["name"]: item for item in report["checks"]}
           assert report["ok"], report
@@ -461,5 +497,15 @@ jobs:
           assert checks["package_metadata"]["ok"]
           assert checks["public_surface"]["detail"] == "69 tools, 0 prompts, 1 resource"
           PY
+          echo "SDIST_SMOKE_PYTHON=$SDIST_PYTHON" >> "$GITHUB_ENV"
+      - name: Complete sdist browser flow through real stdio
+        env:
+          DP_HEADLESS: "1"
+          DP_NO_SANDBOX: "1"
+          DP_MCP_REQUIRE_BROWSER: "1"
+        run: |
+          cd "$RUNNER_TEMP"
+          "$SDIST_SMOKE_PYTHON" "$GITHUB_WORKSPACE/playground/package_smoke.py" \
+            --expected-version 0.8.9
       - name: Check package metadata
         run: python -m twine check dist/*

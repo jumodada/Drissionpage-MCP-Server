@@ -9,12 +9,18 @@ import json
 import re
 from pathlib import Path
 from typing import Any
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 
 from drissionpage_mcp.resources import SKILL_EXAMPLES, SKILLS_SOURCE_REVISION
 from drissionpage_mcp.tools import get_all_tools
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+REVISION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+REMOTE_REPOSITORY = "jumodada/skills-manager"
+REMOTE_TIMEOUT_SECONDS = 5.0
+REMOTE_MAX_BYTES = 256 * 1024
 
 
 def _frontmatter(text: str) -> dict[str, str]:
@@ -40,7 +46,60 @@ def _frontmatter(text: str) -> dict[str, str]:
     return values
 
 
-def validate_skills(root: Path = ROOT) -> dict[str, Any]:
+def remote_url(catalog_entry: dict[str, Any]) -> str:
+    """Build the only allowed remote source URL from pinned catalog fields."""
+
+    revision = str(catalog_entry["source_revision"])
+    if not REVISION_PATTERN.fullmatch(revision):
+        raise ValueError("remote source revision is invalid")
+    path = Path(str(catalog_entry["path"]))
+    if path.is_absolute() or ".." in path.parts or path.parts[:1] != ("skills",):
+        raise ValueError("remote Skill path is invalid")
+    return (
+        f"https://raw.githubusercontent.com/{REMOTE_REPOSITORY}/"
+        f"{revision}/{path.as_posix()}"
+    )
+
+
+def _validate_remote(catalog_entry: dict[str, Any]) -> dict[str, Any]:
+    try:
+        url = remote_url(catalog_entry)
+    except (KeyError, TypeError, ValueError) as exc:
+        return {"ok": False, "url": "", "error": str(exc)}
+
+    try:
+        with urlopen(url, timeout=REMOTE_TIMEOUT_SECONDS) as response:
+            content = response.read(REMOTE_MAX_BYTES + 1)
+    except (HTTPError, URLError, TimeoutError, OSError) as exc:
+        return {
+            "ok": False,
+            "url": url,
+            "error": f"remote fetch failed: {type(exc).__name__}",
+        }
+
+    if len(content) > REMOTE_MAX_BYTES:
+        return {
+            "ok": False,
+            "url": url,
+            "bytes": len(content),
+            "error": "remote Skill exceeds size limit",
+        }
+
+    digest = hashlib.sha256(content).hexdigest()
+    matches = digest == catalog_entry["sha256"]
+    result: dict[str, Any] = {
+        "ok": matches,
+        "url": url,
+        "bytes": len(content),
+        "sha256": digest,
+        "hash_matches": matches,
+    }
+    if not matches:
+        result["error"] = "remote SHA-256 does not match catalog"
+    return result
+
+
+def validate_skills(root: Path = ROOT, *, remote: bool = False) -> dict[str, Any]:
     """Return a deterministic report for all catalogued repository Skills."""
 
     tool_names = {tool.name for tool in get_all_tools()}
@@ -86,29 +145,46 @@ def validate_skills(root: Path = ROOT) -> dict[str, Any]:
         if f"/tree/{SKILLS_SOURCE_REVISION}/" not in source_url:
             errors.append("source URL is not pinned to the catalog revision")
 
-        results.append(
-            {
-                "name": name,
-                "ok": not errors,
-                "path": str(catalog_entry["path"]),
-                "required_tools": sorted(required_tools),
-                "errors": errors,
-            }
-        )
+        result: dict[str, Any] = {
+            "name": name,
+            "ok": not errors,
+            "path": str(catalog_entry["path"]),
+            "required_tools": sorted(required_tools),
+            "errors": errors,
+        }
+        if remote:
+            remote_result = _validate_remote(catalog_entry)
+            result["remote"] = remote_result
+            result["ok"] = result["ok"] and remote_result["ok"]
+        results.append(result)
 
-    return {
+    report = {
         "ok": all(item["ok"] for item in results),
         "source_revision": SKILLS_SOURCE_REVISION,
         "tool_count": len(tool_names),
         "skills": results,
     }
+    if remote:
+        report["remote"] = {
+            "enabled": True,
+            "source": "github_raw",
+            "revision": SKILLS_SOURCE_REVISION,
+            "timeout_seconds": REMOTE_TIMEOUT_SECONDS,
+            "max_bytes": REMOTE_MAX_BYTES,
+        }
+    return report
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="Print JSON output")
+    parser.add_argument(
+        "--remote",
+        action="store_true",
+        help="Also fetch and verify Skills from the pinned GitHub raw revision",
+    )
     args = parser.parse_args()
-    report = validate_skills()
+    report = validate_skills(remote=args.remote)
 
     if args.json:
         print(json.dumps(report, ensure_ascii=False, sort_keys=True))

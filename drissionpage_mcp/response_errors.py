@@ -34,6 +34,7 @@ class ErrorCode(str, Enum):
     LISTENER_NOT_FOUND = "LISTENER_NOT_FOUND"
     TAB_NOT_FOUND = "TAB_NOT_FOUND"
     TAB_CLOSED = "TAB_CLOSED"
+    SNAPSHOT_CURSOR_INVALID = "SNAPSHOT_CURSOR_INVALID"
 
 
 _UPSTREAM_EXCEPTION_CODES = {
@@ -163,6 +164,7 @@ _PUBLIC_EXCEPTION_MESSAGES: dict[ErrorCode, str] = {
     ErrorCode.LISTENER_NOT_FOUND: "The requested network listener is stale or not active.",
     ErrorCode.TAB_NOT_FOUND: "The requested browser tab was not found.",
     ErrorCode.TAB_CLOSED: "The requested browser tab is closed or closing.",
+    ErrorCode.SNAPSHOT_CURSOR_INVALID: "Invalid or expired snapshot cursor. Repeat the query without a cursor.",
 }
 
 _VERSION_SUFFIX_RE = re.compile(
@@ -249,6 +251,7 @@ DIALOG_PENDING|respond_to_pending_dialog|Accept or dismiss the pending native di
 DIALOG_NOT_FOUND|observe_pending_dialog|Check whether an alert, confirm, or prompt is currently pending.|page_dialog_observe||
 DIALOG_NOT_FOUND|retry_after_dialog_opens|Retry the response only after the browser action opens a native dialog.|page_dialog_respond||
 LISTENER_NOT_FOUND|restart_network_listener|Start a new network listener and use its returned listener_token.|network_listen_start||
+SNAPSHOT_CURSOR_INVALID|repeat_snapshot_query|Repeat the same query without a cursor on the intended tab.|page_snapshot||
 """
 
 

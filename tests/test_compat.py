@@ -102,6 +102,9 @@ def test_build_chromium_options_applies_environment_contract(monkeypatch) -> Non
     assert compat.build_chromium_options() is options
 
     assert ("auto_port", (), {}) in options.calls
+    assert [name for name, _args, _kwargs in options.calls].index(
+        "set_user_data_path"
+    ) < [name for name, _args, _kwargs in options.calls].index("auto_port")
     assert ("set_browser_path", ("/tmp/chrome",), {}) in options.calls
     assert ("set_user_data_path", ("/tmp/user-data",), {}) in options.calls
     assert ("headless", (True,), {}) in options.calls
@@ -114,6 +117,15 @@ def test_build_chromium_options_applies_environment_contract(monkeypatch) -> Non
     assert ("set_argument", ("--no-sandbox",), {}) in options.calls
     assert ("set_argument", ("--disable-dev-shm-usage",), {}) in options.calls
     assert ("set_argument", ("--disable-web-security",), {}) in options.calls
+
+
+def test_real_options_keep_auto_port_with_explicit_user_data_path(monkeypatch) -> None:
+    monkeypatch.setenv("DP_USER_DATA_PATH", "/tmp/drissionmcp-test-profile")
+
+    options = compat.build_chromium_options()
+
+    assert bool(getattr(options, "_auto_port", False)) is True
+    assert options.user_data_path
 
 
 def test_build_chromium_options_keeps_chrome_sandbox_enabled_by_default(

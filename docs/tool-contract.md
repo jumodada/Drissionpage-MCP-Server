@@ -108,7 +108,7 @@ Common runtime failures include structured recovery hints under
 `page_snapshot`, `element_find_all`, `wait_for_element`, and iframe/dynamic
 content checks.
 
-Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `DIALOG_PENDING`, `DIALOG_NOT_FOUND`, `TAB_NOT_FOUND`, `TAB_CLOSED`, `SCREENSHOT_FAILED`, `POLICY_DENIED`, `UNSUPPORTED_OPERATION`, and `UNKNOWN_ERROR`. Public messages are normalized by the MCP server and do not reflect DrissionPage version suffixes, localized runtime text, CDP object IDs, stack payloads, or raw internal exception dictionaries. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
+Stable tool-execution error codes include `BROWSER_START_FAILED`, `BROWSER_NOT_INITIALIZED`, `PAGE_NAVIGATION_FAILED`, `ELEMENT_NOT_FOUND`, `SELECTOR_INVALID`, `TIMEOUT`, `DIALOG_PENDING`, `DIALOG_NOT_FOUND`, `TAB_NOT_FOUND`, `TAB_CLOSED`, `SNAPSHOT_CURSOR_INVALID`, `SCREENSHOT_FAILED`, `POLICY_DENIED`, `UNSUPPORTED_OPERATION`, and `UNKNOWN_ERROR`. Public messages are normalized by the MCP server and do not reflect DrissionPage version suffixes, localized runtime text, CDP object IDs, stack payloads, or raw internal exception dictionaries. Protocol/validation diagnostics use `TOOL_NOT_FOUND` and `MCP_ARGUMENT_INVALID` where the SDK permits stable diagnostic data.
 
 ## Tool Annotations
 
@@ -212,6 +212,46 @@ Relative screenshot paths resolve beneath the configured root:
 {"path": "reports/home.png", "full_page": true}
 ```
 
+## 0.8.9 Observation, Wait, and Navigation Extensions
+
+`page_snapshot` without `query` keeps the existing outline. With a nonblank literal
+`query` (1–256 characters), it searches visible top-level text nodes case-insensitively,
+excluding form values, editable content, hidden text, scripts, frames, and shadow roots.
+`include_html` must be false and `max_text_chars` positive. Scanning stops after
+5,000 nodes, 100,000 text characters, 500 candidate matches, or about 100 ms;
+`scan.truncated` reports incomplete scanning. `match_count` counts matches in that
+bounded capture after redaction, not every occurrence on the whole page.
+
+Query results include `observation_id`, `matches`, `returned`, `has_more`, and
+`next_cursor`. Resume with the same `query`, `max_elements`, `max_text_chars`, and
+target tab. Each response respects both output limits. A cursor replays an immutable
+page even if the DOM changes; a fresh query captures new state. Cursors expire after
+30 seconds and are bound to this server, tab, document, URL, and query options.
+Navigation, tab close, cleanup, or cache eviction invalidates them with
+`SNAPSHOT_CURSOR_INVALID`; repeat the query without a cursor. Only redacted data is
+cached, limited to four captures / 256 KiB per tab and 2 MiB per context. Candidate
+selectors are hints to resolve again before acting, not durable element handles.
+
+`wait_until` and `wait_for_url` use a monotonic deadline and cap polling sleeps by
+the remaining budget. `timeout=0` samples once; a positive stable window cannot
+succeed immediately. Stability is sampled during the window and a changed signature
+restarts it. `wait_until` timeout errors include bounded, redacted `condition`,
+`elapsed_ms`, and `last_state` evidence. `ready_state` requires `value="interactive"`
+or `value="complete"`; complete also satisfies interactive.
+
+`page_navigate(timeout=...)` accepts a positive budget of at most 300 seconds for
+native navigation plus stabilization. Omitted/null preserves the native navigation
+settings. Startup, tab-lock queueing, and before/after `observe` work are outside this
+budget. Explicit budgets disable native retries. Cancellation and timeout wait for
+uncancellable native work to drain before releasing tab ownership, so wall time can
+exceed the budget; late completion is never reported as success.
+
+Navigation returns `navigation_ms`, `settle_ms`, `total_ms`, `ready_state`, and
+`settled`, alongside the existing requested `url` and actual `final_url`. `settled`
+is the native document-load wait result (true/false), or null when unavailable;
+an unavailable ready state is an empty string. These fields do not establish HTTP
+status, an HTTP redirect chain, login success, or any business postcondition.
+
 <!-- GENERATED:TOOL-PARAMETERS:START -->
 ## Schema-derived Tool Parameters
 
@@ -219,7 +259,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 
 | Tool | Required parameters | Optional parameters |
 | --- | --- | --- |
-| `page_navigate` | `url: string` | `tab_id: string / null = null`<br>`new_tab: boolean = false`<br>`background: boolean = false`<br>`new_window: boolean = false`<br>`new_context: boolean = false`<br>`observe: boolean = false` |
+| `page_navigate` | `url: string` | `tab_id: string / null = null`<br>`new_tab: boolean = false`<br>`background: boolean = false`<br>`new_window: boolean = false`<br>`new_context: boolean = false`<br>`observe: boolean = false`<br>`timeout: number / null = null` |
 | `page_navigate_with_http_auth` | `url: string`<br>`username: string`<br>`password: string` | `realm: string / null = null`<br>`timeout: number = 30.0` |
 | `page_go_back` | — | `tab_id: string / null = null` |
 | `page_go_forward` | — | `tab_id: string / null = null` |
@@ -231,7 +271,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 | `page_screenshot` | — | `tab_id: string / null = null`<br>`full_page: boolean = false` |
 | `page_screenshot_save` | `path: string` | `tab_id: string / null = null`<br>`full_page: boolean = false` |
 | `page_export_artifact` | `format: string` | `tab_id: string / null = null`<br>`filename: string / null = null`<br>`operation_key: string / null = null`<br>`landscape: boolean = false`<br>`print_background: boolean = true`<br>`scale: number = 1.0`<br>`paper_width: number / null = null`<br>`paper_height: number / null = null`<br>`margin_top: number = 0.4`<br>`margin_bottom: number = 0.4`<br>`margin_left: number = 0.4`<br>`margin_right: number = 0.4`<br>`page_ranges: string = ""`<br>`prefer_css_page_size: boolean = false` |
-| `page_snapshot` | — | `tab_id: string / null = null`<br>`include_html: boolean = false`<br>`max_elements: integer = 50`<br>`max_text_chars: integer = 4000` |
+| `page_snapshot` | — | `tab_id: string / null = null`<br>`include_html: boolean = false`<br>`max_elements: integer = 50`<br>`max_text_chars: integer = 4000`<br>`query: string / null = null`<br>`cursor: string / null = null` |
 | `page_accessibility_snapshot` | — | `tab_id: string / null = null`<br>`scope: string / SelectorTargetInput / AccessibilityTargetInput / null = null`<br>`max_nodes: integer = 200`<br>`include_ignored: boolean = false`<br>`include_values: boolean = false` |
 | `page_observe` | — | `tab_id: string / null = null`<br>`max_texts: integer = 20`<br>`max_text_chars: integer = 160` |
 | `page_evaluate` | `script: string` | `tab_id: string / null = null`<br>`args: array`<br>`max_chars: integer = 4000` |
@@ -292,7 +332,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 
 ## Tool Inventory
 
-The 0.8.8 registry contains 69 typed browser tools. Site, component, challenge,
+The 0.8.9 registry contains 69 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Tab Targeting And Scheduling
@@ -389,7 +429,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 
 | Tool | Type | Required input | Description |
 | --- | --- | --- | --- |
-| `page_navigate` | Destructive | `url` | Open a URL in the captured/existing target, or create a new target. Optional: `tab_id`, `new_tab`, `background`, `new_window`, `new_context`, `observe`. Creation options require `new_tab=true`; `tab_id` and `new_tab=true` are mutually exclusive. |
+| `page_navigate` | Destructive | `url` | Open a URL in the captured/existing target, or create a new target. Optional: `tab_id`, `new_tab`, `background`, `new_window`, `new_context`, `observe`, `timeout`. Creation options require `new_tab=true`; `tab_id` and `new_tab=true` are mutually exclusive. |
 | `page_navigate_with_http_auth` | Destructive | `url`, `username`, `password` | Create a dedicated Chromium BrowserContext, answer one bounded HTTP auth challenge, clean Fetch handlers, and retain the authenticated tab until `tab_close`. Credentials are never returned. Optional: `realm`, `timeout`. |
 | `page_go_back` | Destructive | none | Go back in browser history. |
 | `page_go_forward` | Destructive | none | Go forward in browser history. |
@@ -411,7 +451,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | `page_screenshot` | Read-only | none | Capture an inline viewport or full-page screenshot. Optional: `full_page`. |
 | `page_screenshot_save` | Destructive | `path` | Save a viewport or full-page screenshot under `DP_MCP_SCREENSHOT_ROOT`. Relative paths resolve beneath that root; absolute paths must already be contained by it. Optional: `full_page`. |
 | `page_export_artifact` | Destructive | `format` | Generate one PDF or MHTML file under `DP_MCP_ARTIFACT_ROOT`, returning a safe `ArtifactRef` and exact-once `ActionReceipt`. Optional: `filename`, `operation_key`, and bounded PDF print options. |
-| `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`. |
+| `page_snapshot` | Read-only | none | Return a bounded page outline with text excerpt, headings, links, buttons, inputs, forms, counts, truncation metadata, and recommended selectors. Optional: `include_html`, `max_elements`, `max_text_chars`, `query`, `cursor`. A query returns bounded literal text matches from the current top-level document with immutable continuation pages. |
 | `page_accessibility_snapshot` | Read-only | none | Return a bounded Chromium accessibility tree for the page or an optional scoped element target. Field values and value-like properties are redacted by default; `include_values=true` explicitly returns them. Optional: `scope`, `max_nodes`, `include_ignored`, `include_values`. |
 | `page_observe` | Read-only | none | Return a compact page fingerprint with URL, title, ready state, element counts, visible text samples, active element, recent console summary, and limits. Optional: `max_texts`, `max_text_chars`. |
 | `page_evaluate` | Destructive | `script` | Run a bounded JavaScript function body in the current page and return a JSON-safe result. Optional: `args`, `max_chars`. |
@@ -481,7 +521,7 @@ upload, scroll, hover, select, check, state, wait, and click-download tools.
 | --- | --- | --- | --- |
 | `wait_for_element` | Read-only | `selector` | Wait for an element to load. Bare selectors are treated as CSS. Optional: `timeout`. |
 | `wait_for_url` | Read-only | `url_pattern` | Wait until the current URL contains text. Optional: `timeout`. |
-| `wait_until` | Read-only | `condition` | Wait for observable conditions: `present`, `visible`, `hidden`, `detached`, `clickable`, `stable`, `text_contains`, `text_matches`, `url_contains`, or `url_matches`. Optional: `selector`, `value`, `timeout`, `interval`, `stable_ms`. |
+| `wait_until` | Read-only | `condition` | Wait for observable conditions: `present`, `visible`, `hidden`, `detached`, `clickable`, `stable`, `text_contains`, `text_matches`, `url_contains`, `url_matches`, or `ready_state` (`interactive` / `complete`). Optional: `selector`, `value`, `timeout`, `interval`, `stable_ms`. |
 | `wait_time` | Read-only | `seconds` | Sleep for a fixed duration. |
 
 ## Resources
@@ -499,7 +539,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.8.8 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.8.9 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 

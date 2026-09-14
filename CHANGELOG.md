@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.9] - 2026-09-10
+
+Development candidate implemented and validated locally. This entry does not
+claim that 0.8.9 has been published externally or that the full hosted CI
+matrix has completed.
+
+### Added
+- Extended `page_snapshot` with optional case-insensitive literal `query` and
+  bounded `cursor` continuation. Search results include an `observation_id`,
+  scanned-range metadata, match counts, truncation state, and stable replay of
+  the same cached observation while it remains valid.
+- Added `ready_state` (`interactive` or `complete`) to `wait_until`.
+- Added an optional total `timeout` budget to `page_navigate`, plus final
+  `ready_state`, `settled`, `navigation_ms`, `settle_ms`, and `total_ms`
+  evidence. These fields describe browser navigation and stabilization, not
+  business success or a complete HTTP redirect chain.
+- Added a clean-installed-package stdio browser smoke path and optional remote
+  validation of the fixed Skills catalog revision.
+- Added a release-relative production Python LOC gate: net growth from the
+  `0.8.8` baseline (`30e8adf`) must stay at or below 650 lines.
+
+### Fixed
+- Bound wait polling and stability windows to one monotonic deadline, including
+  zero-timeout sampling and sleeps shorter than the remaining budget.
+- Invalidated snapshot continuations on navigation, tab close, cleanup, expiry,
+  or cache eviction, and bound cursors to the session, tab, document, query,
+  and output limits.
+
+### Compatibility
+- Existing calls that omit the new search, ready-state, and navigation-budget
+  inputs retain their prior behavior. The public surface remains 69 tools, zero
+  prompts, and one optional Skills catalog resource.
+- The Skills catalog remains schema v2 and pinned to `skills-manager` `v0.8.4`;
+  this MCP candidate does not rename or republish that Skills release.
+
+### Verification
+- Focused local unit, contract, metadata, and package-smoke coverage was added
+  for the new behavior. The remote Skills download/hash check runs before a
+  tag release rather than in normal CI; external publication and the complete
+  hosted multi-platform CI matrix remain release-stage checks.
+
 ## [0.8.8] - 2026-09-08
 
 ### Added
@@ -728,7 +769,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.8...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.9...HEAD
+[0.8.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.8...0.8.9
 [0.8.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.7...0.8.8
 [0.8.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.6...0.8.7
 [0.8.6]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.5...0.8.6

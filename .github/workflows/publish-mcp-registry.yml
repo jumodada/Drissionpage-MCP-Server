@@ -19,6 +19,8 @@ jobs:
           cache: pip
       - name: Install verification dependencies
         run: python -m pip install -e ".[dev]"
+      - name: Validate pinned remote Skills release sources
+        run: python playground/validate_skills.py --json --remote
       - name: Verify release metadata and protocol surface
         run: |
           python -m ruff check drissionpage_mcp tests playground

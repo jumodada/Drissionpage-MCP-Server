@@ -1560,6 +1560,11 @@ async def test_navigation_tools_success_paths() -> None:
         "new_context": False,
         "active": True,
         "tab_id": "t0",
+        "ready_state": "",
+        "settled": False,
+        "navigation_ms": 0,
+        "settle_ms": 0,
+        "total_ms": 0,
     }
     assert "Successfully navigated" in _message(nav_response)
     assert ctx.tab.url == "https://example.test/next"

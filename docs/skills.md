@@ -47,6 +47,17 @@ Validate all repository examples and their catalog metadata with:
 python playground/validate_skills.py --json
 ```
 
+During a release check, optionally verify the remote files at the same fixed
+revision and compare their bounded downloads with the catalog SHA-256 values:
+
+```bash
+python playground/validate_skills.py --remote --json
+```
+
+Remote validation requires network access and is separate from the deterministic
+offline check. A successful local hash check is not evidence that the remote
+repository was reachable.
+
 Install the fixed 0.8.4 Skills release for Codex or Claude Code:
 
 ```bash
@@ -70,7 +81,7 @@ tool calls against the connected DrissionPage MCP server:
 ```text
 Repository: https://github.com/jumodada/skills-manager/tree/v0.8.4
 Skill: skills/xiaohongshu-content-research/SKILL.md
-Core server minimum: drissionpage-mcp 0.8.4; current release: 0.8.8
+Core server minimum: drissionpage-mcp 0.8.4; current candidate: 0.8.9
 ```
 
 For release validation, install a built wheel or sdist in a clean environment,

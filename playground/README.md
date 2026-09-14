@@ -7,6 +7,9 @@
 - `registry` — stdio MCP initialize/list/call check without opening a browser.
 - `site` — no-browser local HTTP fixture check.
 - Browser cases use atomic element discovery, property reads, clicks, and waits.
+- The 0.8.9 candidate can be exercised with bounded snapshot queries,
+  `ready_state` waits, and navigation readiness/timing evidence without changing
+  the 69-tool registry.
 - `commerce` — Taobao-like product search/cards/cart-oriented page understanding.
 - `social-notes` — Xiaohongshu-like mobile feed, note cards, search form, and detail links.
 - `timeline` — Twitter-like composer, timeline posts, dynamic load-more behavior.
@@ -69,6 +72,8 @@ The old playground only loaded tools or pointed people to public demo sites. Thi
 4. Can `element_find_all` extract repeated cards/posts?
 5. Can atomic element tools inspect and operate realistic controls?
 6. Can dynamic UI changes be verified through MCP tools instead of screenshots alone?
+7. Can a bounded `page_snapshot(query=...)` result be continued without mixing
+   a later document into the same observation?
 
 ## CI usage
 

@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.8.8. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.8.9. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -106,6 +106,44 @@ generation-safe coordination.
   or clearing/stopping the current listener discards that pending generation.
 - Listener state remains isolated per tab. Tab close waits for in-flight calls,
   then stops and clears the tab-owned listener before native teardown.
+
+## 0.8.8 to 0.8.9 Migration
+
+0.8.9 is the current development candidate. It keeps all 69 tool names, zero
+prompts, one Skills catalog resource, and the
+`DrissionPage>=4.1.1.4,<5` dependency range. The additions are optional and
+existing calls retain their prior input behavior.
+
+- `page_snapshot` accepts an optional nonblank `query` for case-insensitive
+  literal search across a bounded top-level visible-text capture. Search mode
+  requires positive `max_text_chars` and `include_html=false`.
+- Search results report `observation_id`, `match_count`, `matches`, `has_more`,
+  `next_cursor`, and scan/response limits. A continuation must repeat the same
+  query and limits. It replays one immutable cached observation rather than
+  mixing later DOM changes into earlier pages.
+- Cursors expire after 30 seconds and are invalidated by navigation, tab close,
+  cleanup, or cache eviction. They are also bound to the server session, tab,
+  document generation, query, and output options. Start a new query after an
+  invalid-cursor response.
+- `wait_until` accepts `condition="ready_state"` with `value="interactive"` or
+  `value="complete"`. Polling, stability windows, and sleeps use one monotonic
+  deadline; a positive stability window cannot succeed after its budget.
+- `page_navigate` accepts an optional positive `timeout` of at most 300 seconds.
+  It budgets only navigation and stabilization; browser startup, tab-lock
+  queueing, and before/after observation are excluded. Omitting it preserves
+  the native navigation behavior.
+- Successful navigation reports `ready_state`, `navigation_ms`, `settle_ms`,
+  and `total_ms`. `settled` is the native `doc_loaded` result when that result
+  is available and is `null` when it cannot be verified or a fallback path is
+  used. These fields do not establish HTTP status, business/login success, or a
+  complete redirect chain.
+- Native navigation and stabilization calls run off the event loop. On
+  cancellation, the server drains the native call before releasing the tab
+  action lock so a new action cannot race unfinished work.
+
+The Skills catalog remains schema v2 at the fixed `skills-manager` `v0.8.4`
+revision. This candidate status is local; external publication and the complete
+hosted multi-platform CI matrix remain separate release gates.
 
 ## 0.8.3 to 0.8.4 Migration
 

@@ -59,11 +59,6 @@ def build_chromium_options() -> ChromiumOptions:
 
     options = _new_chromium_options()
 
-    # Isolate MCP browser sessions by default. This avoids attaching to a user's
-    # existing browser/debug port and works in both DrissionPage 4.1 and 4.2.
-    if env_bool("DP_AUTO_PORT", True) and hasattr(options, "auto_port"):
-        options.auto_port()
-
     chrome_path = os.getenv("CHROME_PATH") or os.getenv("DP_BROWSER_PATH")
     if chrome_path and hasattr(options, "set_browser_path"):
         options.set_browser_path(chrome_path)
@@ -71,6 +66,11 @@ def build_chromium_options() -> ChromiumOptions:
     user_data_path = os.getenv("DP_USER_DATA_PATH")
     if user_data_path and hasattr(options, "set_user_data_path"):
         options.set_user_data_path(user_data_path)
+
+    # DrissionPage 4.1 set_user_data_path() disables auto-port mode, so apply
+    # session isolation after all path options have been configured.
+    if env_bool("DP_AUTO_PORT", True) and hasattr(options, "auto_port"):
+        options.auto_port()
 
     if hasattr(options, "headless"):
         options.headless(env_bool("DP_HEADLESS", False))

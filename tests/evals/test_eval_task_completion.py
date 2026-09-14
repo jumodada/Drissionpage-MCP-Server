@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
+from types import SimpleNamespace
 from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import urlencode
@@ -23,12 +24,16 @@ from tests.evals.challenge_surface_benchmark import (
 )
 from tests.evals.task_completion_benchmark import (
     SIDE_EFFECT_BASELINES,
+    TASK_COMPLETION_FIXTURE_ID,
     WORKLOAD_TOOL_REQUIREMENTS,
     WORKLOADS,
     _browser_evidence_complete,
     _console_report,
     _missing_required_tools,
+    _nearest_rank_percentile,
     _side_effect_evidence,
+    _source_sha256,
+    _strict_json_chars,
     _summarize,
 )
 from tests.evals.turnstile_testkey_benchmark import TEST_KEYS
@@ -149,6 +154,56 @@ def test_eval_task_completion_requires_browser_version_evidence() -> None:
 
 
 @pytest.mark.asyncio
+async def test_eval_task_completion_counts_model_visible_protocol_characters() -> None:
+    payloads = [
+        {"ok": True, "data": {"text": "上海"}},
+        {"ok": False, "message": "expected failure"},
+    ]
+
+    class FakeServer:
+        async def _call_tool_impl(self, _name, _arguments):
+            payload = payloads.pop(0)
+            return SimpleNamespace(
+                structuredContent=payload,
+                content=[
+                    SimpleNamespace(type="text", text="mirror 上海"),
+                    SimpleNamespace(type="image", data="ignored"),
+                ],
+            )
+
+    client = benchmark.BenchmarkClient(FakeServer())
+    first = await client.call("first")
+    second = await client.call("second", expect_ok=False)
+
+    assert client.response_char_counts == [
+        _strict_json_chars(first) + len("mirror 上海"),
+        _strict_json_chars(second) + len("mirror 上海"),
+    ]
+    assert client.response_char_counts[0] == len(
+        '{"ok":true,"data":{"text":"上海"}}mirror 上海'
+    )
+
+
+def test_eval_task_completion_records_source_and_optional_artifact_hashes(
+    tmp_path,
+) -> None:
+    artifact = tmp_path / "candidate.whl"
+    artifact.write_bytes(b"candidate package")
+
+    assert _source_sha256() == _source_sha256()
+    assert len(_source_sha256()) == 64
+    assert benchmark._file_sha256(artifact) == sha256(b"candidate package").hexdigest()
+
+
+def test_eval_task_completion_nearest_rank_includes_every_sample() -> None:
+    assert _nearest_rank_percentile([100, 20, 10, 40, 30], 50) == 30
+    assert _nearest_rank_percentile(list(range(1, 21)), 95) == 19
+    assert _nearest_rank_percentile([], 95) == 0
+    with pytest.raises(ValueError, match="between 1 and 100"):
+        _nearest_rank_percentile([1], 0)
+
+
+@pytest.mark.asyncio
 async def test_eval_task_completion_restarts_server_after_workload_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -195,6 +250,7 @@ async def test_eval_task_completion_restarts_server_after_workload_failure(
             "browser_revision": "@test",
         },
     )
+    monkeypatch.setattr(benchmark, "installed_mcp_sdk_version", lambda: "1.23.4")
 
     report = await benchmark.run_benchmark(iterations=1)
 
@@ -203,6 +259,9 @@ async def test_eval_task_completion_restarts_server_after_workload_failure(
     assert all(server.cleaned for server in created)
     assert report["runs"][0]["success"] is False
     assert report["runs"][1]["success"] is True
+    assert report["runs"][0]["response_chars"] == 0
+    assert report["environment"]["mcp_sdk"] == "1.23.4"
+    assert report["environment"]["fixture_id"] == TASK_COMPLETION_FIXTURE_ID
 
 
 def test_eval_task_completion_summary_requires_nine_of_ten_without_duplicates() -> None:
@@ -210,7 +269,9 @@ def test_eval_task_completion_summary_requires_nine_of_ten_without_duplicates() 
         {
             "workload_id": workload_id,
             "success": iteration != 10,
+            "duration_ms": iteration,
             "tool_call_count": 2,
+            "response_chars": iteration * 10,
             "duplicate_count": 0,
         }
         for workload_id in WORKLOADS
@@ -222,6 +283,17 @@ def test_eval_task_completion_summary_requires_nine_of_ten_without_duplicates() 
     assert summary["passed"] is True
     assert summary["total_runs"] == 80
     assert all(item["success_rate"] == 0.9 for item in summary["workloads"].values())
+    assert summary["percentile_method"] == "nearest-rank"
+    assert summary["metrics"] == {
+        "duration_ms": {"p50": 5, "p95": 10},
+        "tool_call_count": {"p50": 2, "p95": 2},
+        "response_chars": {"p50": 50, "p95": 100},
+    }
+    assert summary["workloads"]["W01"]["metrics"] == {
+        "duration_ms": {"p50": 5, "p95": 10},
+        "tool_call_count": {"p50": 2, "p95": 2},
+        "response_chars": {"p50": 50, "p95": 100},
+    }
 
     results[0]["duplicate_count"] = 1
     assert _summarize(results, 10)["passed"] is False

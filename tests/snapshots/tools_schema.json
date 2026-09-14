@@ -57,6 +57,21 @@
           "description": "Optional MCP or native DrissionPage tab id. When omitted, the current tab is captured at call start.",
           "title": "Tab Id"
         },
+        "timeout": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 300,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional total navigation and stabilization budget in seconds. Browser startup, tab-lock queueing, and the pre-navigation observation are excluded.",
+          "title": "Timeout"
+        },
         "url": {
           "description": "The URL to navigate to",
           "title": "Url",
@@ -105,6 +120,19 @@
                   "title": "Final Url",
                   "type": "string"
                 },
+                "navigation_ms": {
+                  "anyOf": [
+                    {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Navigation Ms"
+                },
                 "new_context": {
                   "default": false,
                   "title": "New Context",
@@ -119,11 +147,61 @@
                   "title": "New Window",
                   "type": "boolean"
                 },
+                "ready_state": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Ready State"
+                },
+                "settle_ms": {
+                  "anyOf": [
+                    {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Settle Ms"
+                },
+                "settled": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Settled"
+                },
                 "tab_id": {
                   "description": "MCP tab id captured for this operation.",
                   "maxLength": 128,
                   "minLength": 1,
                   "type": "string"
+                },
+                "total_ms": {
+                  "anyOf": [
+                    {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "default": null,
+                  "title": "Total Ms"
                 },
                 "url": {
                   "title": "Url",
@@ -2064,6 +2142,21 @@
       "additionalProperties": false,
       "description": "Input schema for page snapshot tool.",
       "properties": {
+        "cursor": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Resume the same query and limits on this tab; expires after 30 seconds or navigation.",
+          "title": "Cursor"
+        },
         "include_html": {
           "default": false,
           "description": "Include bounded outerHTML excerpts for summarized elements",
@@ -2086,6 +2179,21 @@
           "title": "Max Text Chars",
           "type": "integer"
         },
+        "query": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional case-insensitive literal text search over bounded visible top-level text nodes.",
+          "title": "Query"
+        },
         "tab_id": {
           "anyOf": [
             {
@@ -2107,111 +2215,306 @@
     },
     "name": "page_snapshot",
     "outputSchema": {
+      "$defs": {
+        "PageSnapshotData": {
+          "additionalProperties": false,
+          "properties": {
+            "buttons": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "title": "Buttons",
+              "type": "array"
+            },
+            "counts": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "title": "Counts",
+              "type": "object"
+            },
+            "forms": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "title": "Forms",
+              "type": "array"
+            },
+            "headings": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "title": "Headings",
+              "type": "array"
+            },
+            "inputs": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "title": "Inputs",
+              "type": "array"
+            },
+            "limits": {
+              "additionalProperties": true,
+              "title": "Limits",
+              "type": "object"
+            },
+            "links": {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "title": "Links",
+              "type": "array"
+            },
+            "meta": {
+              "additionalProperties": true,
+              "title": "Meta",
+              "type": "object"
+            },
+            "tab_id": {
+              "description": "MCP tab id captured for this operation.",
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "text_excerpt": {
+              "title": "Text Excerpt",
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "truncated": {
+              "additionalProperties": true,
+              "title": "Truncated",
+              "type": "object"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "title",
+            "text_excerpt",
+            "headings",
+            "links",
+            "buttons",
+            "inputs",
+            "forms",
+            "counts",
+            "truncated",
+            "limits",
+            "meta",
+            "tab_id"
+          ],
+          "title": "PageSnapshotData",
+          "type": "object"
+        },
+        "PageSnapshotSearchData": {
+          "additionalProperties": false,
+          "properties": {
+            "has_more": {
+              "title": "Has More",
+              "type": "boolean"
+            },
+            "limits": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "title": "Limits",
+              "type": "object"
+            },
+            "match_count": {
+              "maximum": 500,
+              "minimum": 0,
+              "title": "Match Count",
+              "type": "integer"
+            },
+            "matches": {
+              "items": {
+                "$ref": "#/$defs/SnapshotMatch"
+              },
+              "maxItems": 200,
+              "title": "Matches",
+              "type": "array"
+            },
+            "meta": {
+              "additionalProperties": true,
+              "title": "Meta",
+              "type": "object"
+            },
+            "next_cursor": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Next Cursor"
+            },
+            "observation_id": {
+              "title": "Observation Id",
+              "type": "string"
+            },
+            "returned": {
+              "maximum": 200,
+              "minimum": 0,
+              "title": "Returned",
+              "type": "integer"
+            },
+            "scan": {
+              "$ref": "#/$defs/SnapshotScan"
+            },
+            "tab_id": {
+              "description": "MCP tab id captured for this operation.",
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": {
+              "title": "Title",
+              "type": "string"
+            },
+            "url": {
+              "title": "Url",
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "title",
+            "observation_id",
+            "match_count",
+            "matches",
+            "returned",
+            "has_more",
+            "next_cursor",
+            "scan",
+            "limits",
+            "meta",
+            "tab_id"
+          ],
+          "title": "PageSnapshotSearchData",
+          "type": "object"
+        },
+        "SnapshotMatch": {
+          "additionalProperties": false,
+          "properties": {
+            "category": {
+              "enum": [
+                "text",
+                "headings",
+                "links",
+                "buttons"
+              ],
+              "title": "Category",
+              "type": "string"
+            },
+            "index": {
+              "minimum": 0,
+              "title": "Index",
+              "type": "integer"
+            },
+            "selector": {
+              "title": "Selector",
+              "type": "string"
+            },
+            "tag": {
+              "title": "Tag",
+              "type": "string"
+            },
+            "text": {
+              "maxLength": 500,
+              "title": "Text",
+              "type": "string"
+            },
+            "truncated": {
+              "title": "Truncated",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "index",
+            "text",
+            "tag",
+            "category",
+            "selector",
+            "truncated"
+          ],
+          "title": "SnapshotMatch",
+          "type": "object"
+        },
+        "SnapshotScan": {
+          "additionalProperties": false,
+          "properties": {
+            "chars": {
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Chars",
+              "type": "integer"
+            },
+            "max_chars": {
+              "title": "Max Chars",
+              "type": "integer"
+            },
+            "max_nodes": {
+              "title": "Max Nodes",
+              "type": "integer"
+            },
+            "nodes": {
+              "maximum": 5000,
+              "minimum": 0,
+              "title": "Nodes",
+              "type": "integer"
+            },
+            "truncated": {
+              "title": "Truncated",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "nodes",
+            "chars",
+            "truncated",
+            "max_nodes",
+            "max_chars"
+          ],
+          "title": "SnapshotScan",
+          "type": "object"
+        }
+      },
       "oneOf": [
         {
           "additionalProperties": false,
           "properties": {
             "data": {
-              "additionalProperties": false,
-              "properties": {
-                "buttons": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Buttons",
-                  "type": "array"
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/PageSnapshotData"
                 },
-                "counts": {
-                  "additionalProperties": {
-                    "type": "integer"
-                  },
-                  "title": "Counts",
-                  "type": "object"
-                },
-                "forms": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Forms",
-                  "type": "array"
-                },
-                "headings": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Headings",
-                  "type": "array"
-                },
-                "inputs": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Inputs",
-                  "type": "array"
-                },
-                "limits": {
-                  "additionalProperties": true,
-                  "title": "Limits",
-                  "type": "object"
-                },
-                "links": {
-                  "items": {
-                    "additionalProperties": true,
-                    "type": "object"
-                  },
-                  "title": "Links",
-                  "type": "array"
-                },
-                "meta": {
-                  "additionalProperties": true,
-                  "title": "Meta",
-                  "type": "object"
-                },
-                "tab_id": {
-                  "description": "MCP tab id captured for this operation.",
-                  "maxLength": 128,
-                  "minLength": 1,
-                  "type": "string"
-                },
-                "text_excerpt": {
-                  "title": "Text Excerpt",
-                  "type": "string"
-                },
-                "title": {
-                  "title": "Title",
-                  "type": "string"
-                },
-                "truncated": {
-                  "additionalProperties": true,
-                  "title": "Truncated",
-                  "type": "object"
-                },
-                "url": {
-                  "title": "Url",
-                  "type": "string"
+                {
+                  "$ref": "#/$defs/PageSnapshotSearchData"
                 }
-              },
-              "required": [
-                "url",
-                "title",
-                "text_excerpt",
-                "headings",
-                "links",
-                "buttons",
-                "inputs",
-                "forms",
-                "counts",
-                "truncated",
-                "limits",
-                "meta",
-                "tab_id"
               ],
-              "title": "PageSnapshotData",
-              "type": "object"
+              "description": "Preserve the legacy outline, with an opt-in typed search result.",
+              "title": "PageSnapshotData"
             },
             "message": {
               "type": "string"
@@ -18632,7 +18935,7 @@
       "readOnlyHint": true,
       "title": "Wait Until"
     },
-    "description": "Wait for observable page state: element present/visible/hidden/detached/clickable/stable, text contains/matches, or URL contains/matches.",
+    "description": "Wait for observable page state: document ready state, element present/visible/hidden/detached/clickable/stable, text contains/matches, or URL contains/matches.",
     "inputSchema": {
       "$defs": {
         "AccessibilityTargetInput": {
@@ -18764,7 +19067,8 @@
             "attribute_equals",
             "attribute_nonempty",
             "property_equals",
-            "property_nonempty"
+            "property_nonempty",
+            "ready_state"
           ],
           "title": "Condition",
           "type": "string"
@@ -18849,7 +19153,7 @@
         },
         "value": {
           "default": "",
-          "description": "Expected value or substring/regular expression, depending on condition",
+          "description": "Expected value, substring, regular expression, or ready state (interactive/complete), depending on condition",
           "title": "Value",
           "type": "string"
         }

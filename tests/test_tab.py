@@ -502,7 +502,7 @@ async def test_observe_evaluate_and_wait_until_return_observable_state() -> None
     stable_wait = await tab.waits.until(
         condition="stable",
         selector="#save",
-        timeout=0,
+        timeout=1,
         stable_ms=10,
     )
 

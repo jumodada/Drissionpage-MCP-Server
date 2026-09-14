@@ -18,6 +18,7 @@ from .runtime import (
     TaskLedgerFullError,
     TaskRuntime,
 )
+from .snapshot import SnapshotStore
 from .tab import PageTab, TabClosedError, TabNotFoundError
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ class DrissionPageContext(TaskRuntime):
             artifact_limit=artifact_limit,
         )
         self._browser: Any | None = None
+        self.snapshots = SnapshotStore()
         self._current_tab: PageTab | None = None
         self._tabs: list[PageTab] = []
         self._owned_browser_context_ids: set[str] = set()
@@ -465,6 +467,7 @@ class DrissionPageContext(TaskRuntime):
                     if callable(mark_closed):
                         await mark_closed(True)
                 self._tabs.clear()
+                self.snapshots.clear()
                 self._owned_browser_context_ids.clear()
                 self._current_tab = None
                 self._is_initialized = False

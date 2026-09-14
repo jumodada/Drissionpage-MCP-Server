@@ -29,6 +29,7 @@ from .browser import (
     TargetResolver,
     WaitOperations,
 )
+from .browser.navigation import _await_native_call
 from .selector import SelectorPlan
 
 if TYPE_CHECKING:
@@ -207,6 +208,7 @@ class PageTab:
     async def _mark_closed(self, closed: bool) -> None:
         async with self._lifecycle_condition:
             if closed:
+                self.observation.clear_snapshots()
                 self._closed = True
                 self._closing = True
             else:
@@ -229,12 +231,13 @@ class PageTab:
         *,
         timeout: float = 1.0,
         fallback_sleep: float = 0.02,
-    ) -> None:
+        strict_timeout: bool = False,
+    ) -> bool | None:
         """Prefer DrissionPage-native load waits with a bounded async fallback."""
 
         try:
             if bool(self.page.states.has_alert):
-                return
+                return None
         except Exception:
             pass
 
@@ -244,12 +247,13 @@ class PageTab:
             call_shapes: tuple[dict[str, Any], ...] = (
                 {"timeout": timeout, "raise_err": False},
                 {"timeout": timeout},
-                {},
             )
+            if not strict_timeout:
+                call_shapes += ({},)
             for kwargs in call_shapes:
                 try:
-                    doc_loaded(**kwargs)
-                    return
+                    result = await _await_native_call(doc_loaded, **kwargs)
+                    return result if isinstance(result, bool) else None
                 except TypeError:
                     continue
                 except Exception:
@@ -259,7 +263,8 @@ class PageTab:
                     )
                     break
 
-        await asyncio.sleep(fallback_sleep)
+        await asyncio.sleep(min(fallback_sleep, max(0, timeout)))
+        return None
 
     async def close(self) -> bool:
         """Close the tab."""

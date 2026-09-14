@@ -36,9 +36,14 @@ marketplace.
 3. Create and push the release tag, for example:
 
    ```bash
-   git tag v0.8.8
-   git push origin v0.8.8
+   git tag v0.8.9
+   git push origin v0.8.9
    ```
+
+   Do this only after local candidate checks and the required hosted release
+   gates pass. Version metadata dated 2026-09-10 describes the current 0.8.9
+   development candidate; it is not evidence that the tag, PyPI package, or
+   Registry record already exists.
 
 4. Approve the GitHub `pypi` environment if it is protected, then wait for the
    `Publish package and MCP Registry entry` workflow to finish.

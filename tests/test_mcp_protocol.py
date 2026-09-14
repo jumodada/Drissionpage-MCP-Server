@@ -307,10 +307,15 @@ async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     assert schemas["page_snapshot"]["oneOf"][0]["properties"]["data"]["title"] == (
         "PageSnapshotData"
     )
-    assert (
-        "links"
-        in schemas["page_snapshot"]["oneOf"][0]["properties"]["data"]["properties"]
-    )
+    snapshot_data = schemas["page_snapshot"]["oneOf"][0]["properties"]["data"]
+    variants = {item["$ref"] for item in snapshot_data["anyOf"]}
+    assert variants == {
+        "#/$defs/PageSnapshotData",
+        "#/$defs/PageSnapshotSearchData",
+    }
+    snapshot_defs = schemas["page_snapshot"]["$defs"]
+    assert "links" in snapshot_defs["PageSnapshotData"]["properties"]
+    assert "matches" in snapshot_defs["PageSnapshotSearchData"]["properties"]
     assert schemas["element_find_all"]["oneOf"][0]["properties"]["data"]["title"] == (
         "ElementFindAllData"
     )

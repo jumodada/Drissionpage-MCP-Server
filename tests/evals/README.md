@@ -17,7 +17,7 @@ benchmark is available as:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.8.8-task-completion.json
+  --output benchmark-results/0.8.9-task-completion.json
 ```
 
 It starts one isolated browser per iteration, runs W01-W08 through the MCP
@@ -26,9 +26,10 @@ side-effect counters, and fails unless every workload reaches 9/10 with zero
 duplicate side effects. When any run fails, the console output includes a
 bounded `failed_runs` list so CI diagnosis does not depend on artifact access.
 
-The local 0.8.8 report is written to
-`benchmark-results/0.8.8-task-completion.json`. The Ubuntu CI JSON artifact
-remains the release gate for the Linux browser matrix.
+The local 0.8.9 candidate report is written to
+`benchmark-results/0.8.9-task-completion.json`. It is local evidence only; the
+hosted Ubuntu artifact and the remaining platform jobs are separate release
+gates and are not implied by this document.
 
 The generic challenge-surface benchmark is local and deterministic:
 
@@ -36,6 +37,29 @@ The generic challenge-surface benchmark is local and deterministic:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.challenge_surface_benchmark --iterations 10
 ```
+
+The snapshot-search comparison runs two fixed local retrieval workloads 20
+times against isolated 0.8.8 baseline and candidate wheel environments through
+real stdio MCP. It counts model-visible response characters as compact strict
+JSON `structuredContent` plus every text content mirror. CI builds the baseline
+wheel from commit `30e8adf`, builds the candidate wheel from the checked-out
+tree, runs each server from a temporary working directory without forcing a
+profile-path override, and does not resolve either application package from PyPI. The gate
+requires 20/20 completion for both packages, no candidate tool-call increase,
+matching Python/MCP/DrissionPage/Chrome evidence, and at least 30% lower P50
+characters for both workloads:
+
+```bash
+python -m tests.evals.snapshot_search_comparison \
+  --baseline-python /path/to/baseline-venv/bin/python \
+  --baseline-artifact /path/to/drissionpage_mcp-0.8.8.whl \
+  --candidate-python /path/to/candidate-venv/bin/python \
+  --candidate-artifact /path/to/drissionpage_mcp-0.8.9.whl \
+  --iterations 20
+```
+
+The comparison prints its evidence report to stdout; CI does not create or
+upload a benchmark JSON file.
 
 The official Turnstile dummy-key benchmark loads Cloudflare's test script and
 therefore requires explicit external-network opt-in:

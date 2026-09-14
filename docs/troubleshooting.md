@@ -7,7 +7,7 @@ Use this guide when the MCP server does not start, tools do not appear, or brows
 Run these commands from a shell:
 
 ```bash
-python -m pip install -U "drissionpage-mcp>=0.8.8"
+python -m pip install -U "drissionpage-mcp>=0.8.9"
 drissionpage-mcp --version
 drissionpage-mcp doctor
 drissionpage-mcp doctor --launch-browser
@@ -35,7 +35,7 @@ If logs show tools loading and then fail with
 incompatible MCP Python SDK 2.x. Repair both packages explicitly:
 
 ```bash
-python -m pip install -U "drissionpage-mcp>=0.8.8" "mcp>=1.0.0,<2"
+python -m pip install -U "drissionpage-mcp>=0.8.9" "mcp>=1.0.0,<2"
 drissionpage-mcp doctor
 ```
 
@@ -114,10 +114,13 @@ user-agent, cache, and URL-blocking tools are included by default; no capability
 profile or `full` mode is required.
 
 
-## Task Completion / Challenge Surface 0.8.8 Checks
+## Task Completion / Observation 0.8.9 Candidate Checks
 
 - For vision-directed hover/reveal actions, use `page_pointer_move`; for activation, use `page_click_xy`; for a selector-backed element/track drag use `page_pointer_drag_element`; for a bounded visual-coordinate drag use `page_pointer_drag`. Add up to six ordered `waypoints` only when the held gesture must follow a multi-segment path. Pointer tools default to `profile="direct"`; set `profile="natural"` for a deterministic 24-step eased trajectory with an exact endpoint.
 - In a fresh session, call `page_navigate`, then collect `page_snapshot` or `page_observe` explicitly.
+- For long pages, call `page_snapshot(query="literal text")`. Follow `next_cursor` only with the same query and limits. A cursor is intentionally short-lived and fails after navigation, tab close, cleanup, expiry, or eviction; start a fresh query rather than treating it as a durable element handle.
+- Use `wait_until(condition="ready_state", value="interactive")` or `value="complete"` for document readiness. A timeout is one deadline shared by polling and any stability window; `timeout=0` is an immediate sample and cannot satisfy a positive `stable_ms` window.
+- Use `page_navigate(timeout=...)` only when navigation plus stabilization needs an explicit total budget. Browser startup, tab-lock queueing, and before/after observation are excluded. `settled` mirrors native `doc_loaded` when available and is `null` when unverified; neither it nor `ready_state` proves HTTP, login, or business success.
 - Discover controls with `page_snapshot`, `element_find_all`, and `element_find`. Operate them with explicit type, select, check, click, keyboard, and upload calls, then verify live properties, attributes, text, URL, or bounded wait conditions.
 - Use a structured selector target when the element is inside ordered frame or Shadow DOM scopes. The resolver enters all frames outer-to-inner before entering all Shadow DOM hosts outer-to-inner; it does not support arbitrary frame/shadow interleaving. Use a structured accessibility target for role/name lookup; narrow the name or scope when the server reports `AMBIGUOUS_TARGET`.
 - Use `page_accessibility_snapshot` to inspect a bounded AX tree and `element_state_get` to verify live state and geometry after an action. AX field values are redacted by default; set `include_values=true` only when the workflow needs them and treat the response as secret-bearing.
@@ -144,7 +147,7 @@ For the release reliability gate, run the deterministic public-tool benchmark:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.8.8-task-completion.json
+  --output benchmark-results/0.8.9-task-completion.json
 ```
 
 Run the local challenge-surface matrix and the explicitly opt-in official

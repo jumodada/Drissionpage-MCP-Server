@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Annotated, Any
 
-from pydantic import Field, StrictStr, StringConstraints
+from pydantic import Field, StrictStr, StringConstraints, model_validator
 
 from ..metadata import with_response_meta
 from ..policy import PolicyDeniedError, SafetyPolicy
@@ -21,7 +21,7 @@ from ..tool_outputs import (
     PageResizeData,
     PageScreenshotData,
     PageScreenshotSaveData,
-    PageSnapshotData,
+    PageSnapshotResultData,
 )
 from .base import (
     EmptyInput,
@@ -99,6 +99,30 @@ class PageSnapshotInput(TabScopedInput):
         le=20000,
         description="Maximum page text excerpt characters to return",
     )
+    query: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=256,
+        description="Optional case-insensitive literal text search over bounded visible top-level text nodes.",
+    )
+    cursor: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=128,
+        description="Resume the same query and limits on this tab; expires after 30 seconds or navigation.",
+    )
+
+    @model_validator(mode="after")
+    def validate_search(self) -> "PageSnapshotInput":
+        if self.cursor is not None and self.query is None:
+            raise ValueError("cursor requires query")
+        if self.query is not None and (
+            not self.query.strip() or self.include_html or self.max_text_chars == 0
+        ):
+            raise ValueError(
+                "query requires nonblank text, positive max_text_chars and include_html=false"
+            )
+        return self
 
 
 class PageAccessibilitySnapshotInput(TabScopedInput):
@@ -257,7 +281,7 @@ async def screenshot_save(
     input_schema=PageSnapshotInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
-    output_model=PageSnapshotData,
+    output_model=PageSnapshotResultData,
     failure_message=lambda args, exc: "Failed to build page snapshot: " + str(exc),
 )
 async def page_snapshot(
@@ -265,12 +289,30 @@ async def page_snapshot(
 ) -> "ToolOutcome":
     """Get a bounded page outline for LLM page understanding."""
     tab = context.current_tab_or_die()
+    if args.query is not None:
+        snapshot = await tab.observation.search_snapshot(
+            query=args.query,
+            max_elements=args.max_elements,
+            max_text_chars=args.max_text_chars,
+            cursor=args.cursor,
+        )
+        return ToolOutcome().add_result(
+            "Captured snapshot matches",
+            **with_response_meta(
+                snapshot,
+                truncated=snapshot["scan"]["truncated"]
+                or snapshot["has_more"]
+                or any(item["truncated"] for item in snapshot["matches"]),
+            ),
+        )
     snapshot = await tab.observation.snapshot(
         include_html=args.include_html,
         max_elements=args.max_elements,
         max_text_chars=args.max_text_chars,
     )
-    return ToolOutcome().add_result("Captured page snapshot", **with_response_meta(snapshot))
+    return ToolOutcome().add_result(
+        "Captured page snapshot", **with_response_meta(snapshot)
+    )
 
 
 @define_tool(
@@ -394,7 +436,9 @@ async def browser_headers_set(
 ) -> "ToolOutcome":
     tab = context.current_tab_or_die()
     result = await tab.page_ops.set_headers(args.headers)
-    return ToolOutcome().add_result(f"Set {result['count']} browser header(s)", **result)
+    return ToolOutcome().add_result(
+        f"Set {result['count']} browser header(s)", **result
+    )
 
 
 @define_tool(

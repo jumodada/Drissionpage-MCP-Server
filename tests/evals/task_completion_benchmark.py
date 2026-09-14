@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import hashlib
 import json
 import os
 import platform
@@ -20,6 +21,7 @@ from urllib.request import Request, urlopen
 
 from drissionpage_mcp import __version__
 from drissionpage_mcp.compat import DRISSIONPAGE_VERSION
+from drissionpage_mcp.mcp_compat import installed_mcp_sdk_version
 from drissionpage_mcp.server import DrissionPageMCPServer
 from tests.fixtures.http_fixture import (
     TASK_COMPLETION_DOWNLOAD,
@@ -51,6 +53,10 @@ SIDE_EFFECT_BASELINES = {
     "W08": {},
 }
 
+TASK_COMPLETION_FIXTURE_ID = "task-completion-w01-w08-v1"
+PERCENTILE_METHOD = "nearest-rank"
+SUMMARY_METRICS = ("duration_ms", "tool_call_count", "response_chars")
+
 
 class BenchmarkFailure(AssertionError):
     """One workload failed to produce its required business evidence."""
@@ -62,6 +68,7 @@ class BenchmarkClient:
     def __init__(self, server: DrissionPageMCPServer) -> None:
         self.server = server
         self.calls: list[str] = []
+        self.response_char_counts: list[int] = []
 
     async def call(
         self,
@@ -74,6 +81,12 @@ class BenchmarkClient:
         call_tool = self.server._call_tool_impl
         result = await call_tool(name, arguments or {})
         payload = dict(result.structuredContent or {})
+        text_chars = sum(
+            len(item.text)
+            for item in getattr(result, "content", ())
+            if getattr(item, "type", None) == "text"
+        )
+        self.response_char_counts.append(_strict_json_chars(payload) + text_chars)
         if bool(payload.get("ok")) is not expect_ok:
             raise BenchmarkFailure(
                 f"{name} returned ok={payload.get('ok')!r}: "
@@ -317,7 +330,9 @@ WORKLOADS: dict[str, Workload] = {
 }
 
 
-async def run_benchmark(iterations: int = 10) -> dict[str, Any]:
+async def run_benchmark(
+    iterations: int = 10, package_artifact: Path | None = None
+) -> dict[str, Any]:
     """Run every public-tool workload and return a bounded JSON report."""
 
     if iterations < 1:
@@ -389,6 +404,7 @@ async def run_benchmark(iterations: int = 10) -> dict[str, Any]:
                                 "duration_ms": round((monotonic() - started) * 1000),
                                 "tool_calls": list(client.calls),
                                 "tool_call_count": len(client.calls),
+                                "response_chars": sum(client.response_char_counts),
                                 "side_effect_counts": dict(
                                     evidence["side_effect_counts"]
                                 ),
@@ -422,7 +438,13 @@ async def run_benchmark(iterations: int = 10) -> dict[str, Any]:
         "environment": {
             "platform": platform.platform(),
             "python": platform.python_version(),
+            "mcp_sdk": installed_mcp_sdk_version(),
             "drissionpage": DRISSIONPAGE_VERSION,
+            "fixture_id": TASK_COMPLETION_FIXTURE_ID,
+            "package_artifact_sha256": (
+                _file_sha256(package_artifact) if package_artifact else None
+            ),
+            "package_source_sha256": _source_sha256(),
             "headless": _env_truthy("DP_HEADLESS"),
             "no_sandbox": _env_truthy("DP_NO_SANDBOX"),
             "runtimes": runtimes,
@@ -445,6 +467,7 @@ def _summarize(results: list[dict[str, Any]], iterations: int) -> dict[str, Any]
             "passed": successes >= required,
             "tool_calls": sum(int(item["tool_call_count"]) for item in selected),
             "duplicate_count": sum(int(item["duplicate_count"]) for item in selected),
+            "metrics": _metric_percentiles(selected),
         }
     duplicate_count = sum(int(item["duplicate_count"]) for item in results)
     return {
@@ -453,8 +476,63 @@ def _summarize(results: list[dict[str, Any]], iterations: int) -> dict[str, Any]
         "total_runs": len(results),
         "successful_runs": sum(bool(item["success"]) for item in results),
         "duplicate_count": duplicate_count,
+        "percentile_method": PERCENTILE_METHOD,
+        "metrics": _metric_percentiles(results),
         "workloads": workloads,
     }
+
+
+def _metric_percentiles(results: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    return {
+        metric: {
+            "p50": _nearest_rank_percentile(
+                [int(item[metric]) for item in results], 50
+            ),
+            "p95": _nearest_rank_percentile(
+                [int(item[metric]) for item in results], 95
+            ),
+        }
+        for metric in SUMMARY_METRICS
+    }
+
+
+def _nearest_rank_percentile(values: list[int], percentile: int) -> int:
+    """Return the nearest-rank percentile: sorted_values[ceil(p / 100 * n) - 1]."""
+
+    if not values:
+        return 0
+    if not 1 <= percentile <= 100:
+        raise ValueError("percentile must be between 1 and 100")
+    ordered = sorted(values)
+    rank = ceil(percentile / 100 * len(ordered))
+    return ordered[rank - 1]
+
+
+def _strict_json_chars(payload: dict[str, Any]) -> int:
+    return len(
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            allow_nan=False,
+            separators=(",", ":"),
+        )
+    )
+
+
+def _file_sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _source_sha256() -> str:
+    """Hash the production Python source actually imported by this benchmark."""
+
+    package_root = Path(__file__).parents[2] / "drissionpage_mcp"
+    digest = hashlib.sha256()
+    for path in sorted(package_root.rglob("*.py")):
+        digest.update(path.relative_to(package_root).as_posix().encode())
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
 
 
 def _missing_required_tools(workload_id: str, calls: list[str]) -> list[str]:
@@ -606,6 +684,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--iterations", type=int, default=10)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--package-artifact", type=Path)
     return parser.parse_args(argv)
 
 
@@ -628,7 +707,7 @@ def _console_report(report: dict[str, Any]) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(list(sys.argv[1:] if argv is None else argv))
-    report = asyncio.run(run_benchmark(args.iterations))
+    report = asyncio.run(run_benchmark(args.iterations, args.package_artifact))
     encoded = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output is not None:
         args.output.parent.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the DrissionPage MCP Lab playground."""
+"""Run the DrissionPage MCP Lab against the current local 0.8.9 candidate."""
 
 from __future__ import annotations
 

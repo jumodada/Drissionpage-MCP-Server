@@ -11,6 +11,7 @@ except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback.
     import tomli as tomllib
 
 CI_WORKFLOW = Path(".github/workflows/ci.yml")
+PUBLISH_WORKFLOW = Path(".github/workflows/publish-mcp-registry.yml")
 WORKFLOW_LINT = Path(".github/workflows/workflow-lint.yml")
 CODECOV_CONFIG = Path("codecov.yml")
 MANIFEST = Path("MANIFEST.in")
@@ -75,16 +76,16 @@ def test_ci_separates_required_quality_gates() -> None:
     assert "browser-integration" not in job_names
 
 
-def test_ci_enforces_pre_0_8_production_loc_budget() -> None:
+def test_ci_enforces_current_release_production_loc_budget() -> None:
     workflow = CI_WORKFLOW.read_text(encoding="utf-8")
     lint_job = workflow.split("  lint:\n", maxsplit=1)[1].split(
         "\n  unit:\n", maxsplit=1
     )[0]
 
     assert "fetch-depth: 0" in lint_job
-    assert "BASELINE=e0b8805" in lint_job
+    assert "BASELINE=30e8adf" in lint_job
     assert "drissionpage_mcp/**/*.py" in lint_job
-    assert 'test "$NET_PRODUCTION_LOC" -le 200' in lint_job
+    assert 'test "$NET_PRODUCTION_LOC" -le 650' in lint_job
 
 
 def test_ci_runs_mypy_as_a_required_lint_gate() -> None:
@@ -122,6 +123,7 @@ def test_ci_runs_focused_browser_boundaries_across_supported_runner_os() -> None
     assert "macos-latest" in boundary_job
     assert "windows-latest" in boundary_job
     assert "tests/test_browser_capability_boundaries.py" in boundary_job
+    assert "tests/test_observation_browser.py" in boundary_job
     assert "Locate Chrome or Chromium (Linux)" in boundary_job
     assert "if: runner.os == 'Linux'" in boundary_job
     assert "command -v google-chrome" in boundary_job
@@ -209,6 +211,13 @@ def test_ci_checks_wheel_package_contents() -> None:
     assert "Install sdist in a clean virtual environment" in package_job
     assert "--no-cache-dir dist/*.tar.gz" in package_job
     assert "source_tree=no" in package_job
+    assert "playground/validate_skills.py --json --remote" not in package_job
+    assert "Complete sdist browser flow through real stdio" in package_job
+    assert 'cd "$RUNNER_TEMP"' in package_job
+    assert '"$SDIST_SMOKE_PYTHON"' in package_job
+    assert '"$GITHUB_WORKSPACE/playground/package_smoke.py"' in package_job
+    assert "--expected-version 0.8.9" in package_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in package_job
 
 
 def test_ci_installs_built_wheel_without_cache_and_handshakes() -> None:
@@ -227,11 +236,34 @@ def test_ci_installs_built_wheel_without_cache_and_handshakes() -> None:
     assert "package_metadata" in wheel_job
     assert "source_tree=no" in wheel_job
     assert "public_surface" in wheel_job
-    assert "ClientSession" in wheel_job
-    assert "stdio_client" in wheel_job
-    assert "session.initialize()" in wheel_job
-    assert "session.list_tools()" in wheel_job
-    assert "session.list_resources()" in wheel_job
+    assert "Complete wheel browser flow through real stdio" in wheel_job
+    assert 'cd "$RUNNER_TEMP"' in wheel_job
+    assert '"$WHEEL_SMOKE_PYTHON"' in wheel_job
+    assert '"$GITHUB_WORKSPACE/playground/package_smoke.py"' in wheel_job
+    assert "--expected-version 0.8.9" in wheel_job
+    assert 'DP_MCP_REQUIRE_BROWSER: "1"' in wheel_job
+
+
+def test_ci_keeps_remote_skill_validation_out_of_normal_ci() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    before_package = workflow.split("\n  package:\n", maxsplit=1)[0]
+    package_job = workflow.split("\n  package:\n", maxsplit=1)[1]
+    unit_job = workflow.split("\n  unit:\n", maxsplit=1)[1].split(
+        "\n  protocol:\n", maxsplit=1
+    )[0]
+
+    assert "validate_skills.py --json --remote" not in before_package
+    assert "validate_skills.py --json --remote" not in package_job
+    assert "validate_skills.py --json --remote" in PUBLISH_WORKFLOW.read_text(
+        encoding="utf-8"
+    )
+    assert "tests/test_package_smoke.py" in unit_job
+    for path in (
+        "tests/test_navigation_budget.py",
+        "tests/test_snapshot_search.py",
+        "tests/test_wait_budget.py",
+    ):
+        assert path in unit_job
 
 
 def test_readmes_publish_ci_and_codecov_badges() -> None:
@@ -290,14 +322,33 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     assert "command -v google-chrome" in benchmark_job
     assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
-    assert "--output benchmark-results/0.8.8-task-completion.json" in benchmark_job
+    assert "--output benchmark-results/0.8.9-task-completion.json" in benchmark_job
     assert "tests.evals.challenge_surface_benchmark" in benchmark_job
-    assert "--output benchmark-results/0.8.8-challenge-surfaces.json" in benchmark_job
-    assert "name: 0.8.8-browser-benchmarks" in benchmark_job
+    assert "--output benchmark-results/0.8.9-challenge-surfaces.json" in benchmark_job
+    assert "name: 0.8.9-browser-benchmarks" in benchmark_job
+    assert "path: benchmark-results/0.8.9-*.json" in benchmark_job
     assert "0.7.2-task-completion" not in benchmark_job
     assert "tests.evals.task_completion_benchmark" not in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "0"' not in workflow
+
+
+def test_ci_compares_local_baseline_and_candidate_snapshot_search_wheels() -> None:
+    workflow = CI_WORKFLOW.read_text(encoding="utf-8")
+    benchmark_job = workflow.split("  benchmark:\n", maxsplit=1)[1].split(
+        "\n  browser-boundaries:\n", maxsplit=1
+    )[0]
+
+    assert "git worktree add --detach" in benchmark_job
+    assert "30e8adf" in benchmark_job
+    assert "baseline-dist" in benchmark_job
+    assert "candidate-dist" in benchmark_job
+    assert "baseline-benchmark" in benchmark_job
+    assert "candidate-benchmark" in benchmark_job
+    assert "tests.evals.snapshot_search_comparison" in benchmark_job
+    assert "--iterations 20" in benchmark_job
+    assert "pip install" in benchmark_job
+    assert "pypi" not in benchmark_job.lower()
 
 
 def test_codecov_policy_matches_current_project_baseline() -> None:
@@ -319,7 +370,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.8.8"
+    assert version == "0.8.9"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")

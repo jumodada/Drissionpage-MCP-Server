@@ -24,6 +24,45 @@ ELEMENT_TEXT_CHARS = 500
 ELEMENT_HTML_CHARS = 1000
 
 
+def build_snapshot_query_script(query: str) -> str:
+    """Scan bounded visible text nodes before response excerpts are truncated."""
+    return """(() => {
+      const query = QUERY.toLowerCase();
+      const documentId = String(performance.timeOrigin) + ':' + location.href;
+      const walker = document.createTreeWalker(document.body || document.documentElement, NodeFilter.SHOW_TEXT);
+      const candidates = [];
+      let scannedNodes = 0, scannedChars = 0, truncated = false;
+      const started = performance.now();
+      function selector(el) {
+        if (el.id) return '#' + CSS.escape(el.id);
+        return el.tagName.toLowerCase() + ':nth-child(' +
+          (Array.from(el.parentElement ? el.parentElement.children : []).indexOf(el) + 1) + ')';
+      }
+      let node;
+      while ((node = walker.nextNode())) {
+        if (scannedNodes >= 5000 || scannedChars >= 100000 || candidates.length >= 500 || performance.now() - started > 100) {
+          truncated = true; break;
+        }
+        scannedNodes++;
+        const parent = node.parentElement;
+        if (!parent || parent.closest('script,style,noscript,template,input,textarea,select,[hidden],[aria-hidden="true"]') ||
+            !parent.getClientRects().length || getComputedStyle(parent).visibility !== 'visible') continue;
+        const raw = node.textContent || '';
+        const available = 100000 - scannedChars;
+        scannedChars += Math.min(raw.length, available);
+        if (raw.length > available) { truncated = true; break; }
+        const text = raw.replace(/\\s+/g, ' ').trim();
+        if (!text.toLowerCase().includes(query)) continue;
+        const tag = parent.tagName.toLowerCase();
+        const category = /^h[1-6]$/.test(tag) ? 'headings' :
+          (tag === 'a' ? 'links' : (tag === 'button' || parent.getAttribute('role') === 'button' ? 'buttons' : 'text'));
+        candidates.push({text, tag, category, selector: selector(parent)});
+      }
+      return {url: location.href, title: document.title, document_id: documentId, candidates,
+              scanned_nodes: scannedNodes, scanned_chars: scannedChars, scan_truncated: truncated};
+    })()""".replace("QUERY", json.dumps(query))
+
+
 def build_page_snapshot_script(
     *,
     include_html: bool,

@@ -12,7 +12,10 @@ from ..observation import (
     result_type,
     safe_int,
 )
-from ..outline import build_page_snapshot_script
+from ..outline import (
+    build_page_snapshot_script,
+    build_snapshot_query_script,
+)
 from ..response_json import strict_json_dumps
 from ._scripts import run_structured_script
 
@@ -28,6 +31,41 @@ class ObservationOperations:
     def __init__(self, tab: PageTab) -> None:
         self._tab = tab
         self._console_log_cache: list[dict[str, Any]] = []
+
+    def clear_snapshots(self) -> None:
+        store = getattr(self._tab.context, "snapshots", None)
+        if store is not None:
+            store.clear_tab(self._tab.mcp_tab_id)
+
+    async def search_snapshot(
+        self,
+        *,
+        query: str,
+        max_elements: int,
+        max_text_chars: int,
+        cursor: str | None = None,
+    ) -> dict[str, Any]:
+        capture = None
+        if cursor is None:
+            capture = run_structured_script(
+                self._page,
+                build_snapshot_query_script(query),
+                "Snapshot query returned no structured data",
+            )
+            document_id = capture["document_id"]
+        else:
+            document_id = self._page.run_js(
+                "String(performance.timeOrigin) + ':' + location.href", as_expr=True
+            )
+        return self._tab.context.snapshots.search(
+            tab_id=self._tab.mcp_tab_id,
+            document_id=str(document_id),
+            query=query,
+            max_elements=max_elements,
+            max_text_chars=max_text_chars,
+            capture=capture,
+            cursor=cursor,
+        )
 
     @property
     def _page(self) -> Any:
@@ -247,7 +285,10 @@ def _empty_console_logs(*, available: bool) -> dict[str, Any]:
 
 
 def _decode_evaluate_result(value: Any) -> tuple[Any, str, str | None]:
-    if not isinstance(value, dict) or value.get("__drissionpage_mcp_result__") is not True:
+    if (
+        not isinstance(value, dict)
+        or value.get("__drissionpage_mcp_result__") is not True
+    ):
         return value, result_type(value), None
     if value.get("kind") == "non_finite_number":
         label = str(value.get("value") or "NaN")

@@ -5,7 +5,9 @@ from typing import TYPE_CHECKING, Literal
 from pydantic import Field
 
 from ..browser.targeting import DomTarget
+from ..browser.waits import WaitTimeoutError
 from ..limits import MAX_WAIT_SECONDS
+from ..response_errors import ErrorCode
 from ..target import ElementTargetArg, PageOrElementTargetArg, target_label
 from ..tool_outputs import (
     WaitForElementData,
@@ -68,6 +70,7 @@ class WaitUntilInput(TabScopedInput):
         "attribute_nonempty",
         "property_equals",
         "property_nonempty",
+        "ready_state",
     ] = Field(..., description="Condition to wait for")
     selector: PageOrElementTargetArg = Field(
         default="",
@@ -75,7 +78,7 @@ class WaitUntilInput(TabScopedInput):
     )
     value: str = Field(
         default="",
-        description="Expected value or substring/regular expression, depending on condition",
+        description="Expected value, substring, regular expression, or ready state (interactive/complete), depending on condition",
     )
     name: str = Field(
         default="",
@@ -175,7 +178,7 @@ async def wait_time(
 @define_tool(
     name="wait_until",
     title="Wait Until",
-    description="Wait for observable page state: element present/visible/hidden/detached/clickable/stable, text contains/matches, or URL contains/matches.",
+    description="Wait for observable page state: document ready state, element present/visible/hidden/detached/clickable/stable, text contains/matches, or URL contains/matches.",
     input_schema=WaitUntilInput,
     tool_type=ToolType.READ_ONLY,
     idempotent=True,
@@ -189,15 +192,25 @@ async def wait_until(
 ) -> "ToolOutcome":
     """Wait until an observable condition is satisfied."""
     tab = context.current_tab_or_die()
-    result = await tab.waits.until(
-        condition=args.condition,
-        selector=args.selector,
-        value=args.value,
-        name=args.name,
-        timeout=args.timeout,
-        interval=args.interval,
-        stable_ms=args.stable_ms,
-    )
+    try:
+        result = await tab.waits.until(
+            condition=args.condition,
+            selector=args.selector,
+            value=args.value,
+            name=args.name,
+            timeout=args.timeout,
+            interval=args.interval,
+            stable_ms=args.stable_ms,
+        )
+    except WaitTimeoutError as exc:
+        outcome = ToolOutcome()
+        outcome.add_error(
+            f"Condition '{args.condition}' was not met within {args.timeout:g} seconds",
+            ErrorCode.TIMEOUT,
+            tool_name="wait_until",
+            **exc.details,
+        )
+        return outcome
     return ToolOutcome().add_result(
         f"Condition '{args.condition}' matched within {args.timeout:g} seconds", **result
     )

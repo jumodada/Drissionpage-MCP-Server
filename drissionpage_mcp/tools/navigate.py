@@ -54,6 +54,15 @@ class NavigateInput(TabScopedInput):
     observe: bool = Field(
         default=False, description="Return a compact before/after page change summary."
     )
+    timeout: float | None = Field(
+        default=None,
+        gt=0,
+        le=300,
+        description=(
+            "Optional total navigation and stabilization budget in seconds. Browser "
+            "startup, tab-lock queueing, and the pre-navigation observation are excluded."
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_creation_options(self) -> "NavigateInput":
@@ -117,17 +126,26 @@ async def navigate(
         action = getattr(tab, "action", None)
         if callable(action):
             async with action():
-                before = await maybe_observe(tab, args.observe)
-                await tab.navigation.navigate(args.url)
-                changes = await observed_changes(tab, before)
+                data = await _navigate_and_build_result(context, tab, args)
         else:
-            before = await maybe_observe(tab, args.observe)
-            await tab.navigation.navigate(args.url)
-            changes = await observed_changes(tab, before)
+            data = await _navigate_and_build_result(context, tab, args)
     else:
-        before = await maybe_observe(tab, args.observe)
+        data = await _navigate_and_build_result(context, tab, args)
+    outcome.add_result(f"Successfully navigated to: {args.url}", **data)
+    return outcome
+
+
+async def _navigate_and_build_result(
+    context: "DrissionPageContext", tab: Any, args: NavigateInput
+) -> dict[str, Any]:
+    before = await maybe_observe(tab, args.observe)
+    evidence = (
         await tab.navigation.navigate(args.url)
-        changes = await observed_changes(tab, before)
+        if args.timeout is None
+        else await tab.navigation.navigate(args.url, timeout=args.timeout)
+    )
+    changes = await observed_changes(tab, before)
+    evidence = evidence if isinstance(evidence, dict) else {}
     data = {
         "url": args.url,
         "final_url": tab.url,
@@ -137,11 +155,15 @@ async def navigate(
         "new_context": args.new_context,
         "active": _is_active_tab(context, tab, background=args.background),
         "tab_id": _safe_tab_id(tab),
+        "ready_state": evidence.get("ready_state", ""),
+        "settled": evidence.get("settled", False),
+        "navigation_ms": evidence.get("navigation_ms", 0),
+        "settle_ms": evidence.get("settle_ms", 0),
+        "total_ms": evidence.get("total_ms", 0),
     }
     if changes is not None:
         data["changes"] = changes
-    outcome.add_result(f"Successfully navigated to: {args.url}", **data)
-    return outcome
+    return data
 
 
 @define_tool(
