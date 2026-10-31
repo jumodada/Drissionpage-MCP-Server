@@ -182,6 +182,8 @@ def test_ci_runs_focused_browser_boundaries_across_supported_runner_os() -> None
     assert "windows-latest" in boundary_job
     assert "tests/test_browser_capability_boundaries.py" in boundary_job
     assert "tests/test_observation_browser.py" in boundary_job
+    assert "python -m pytest tests/test_browser_capability_boundaries.py" in boundary_job
+    assert 'python -m pytest \\' not in boundary_job
     assert "Locate Chrome or Chromium (Linux)" in boundary_job
     assert "if: runner.os == 'Linux'" in boundary_job
     assert "command -v google-chrome" in boundary_job

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import socket
 from base64 import b64encode
 from collections.abc import Iterator
 from contextlib import contextmanager
@@ -122,7 +123,19 @@ class FixtureState:
 
 
 class FixtureHTTPServer(ThreadingHTTPServer):
+    address_family = socket.AF_INET6
+    allow_reuse_address = True
+    daemon_threads = True
     fixture_state: FixtureState
+    cross_origin_port: int
+
+    def server_bind(self) -> None:
+        # Accept IPv6 localhost and IPv4-mapped loopback connections alike.
+        try:
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        except OSError:
+            pass
+        super().server_bind()
 
 
 class FixtureRequestHandler(BaseHTTPRequestHandler):
@@ -523,14 +536,16 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/document-boundaries":
+            server = cast(FixtureHTTPServer, self.server)
             self._send_html(
-                _document_boundaries_html(int(self.server.server_address[1]))
+                _document_boundaries_html(server.cross_origin_port)
             )
             return
 
         if path == "/challenge-surfaces":
+            server = cast(FixtureHTTPServer, self.server)
             self._send_html(
-                _challenge_surfaces_html(int(self.server.server_address[1]))
+                _challenge_surfaces_html(server.cross_origin_port)
             )
             return
 
@@ -1042,8 +1057,9 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
 def local_http_fixture() -> Iterator[str]:
     """Run the deterministic fixture server and yield its base URL."""
 
-    server = FixtureHTTPServer(("127.0.0.1", 0), FixtureRequestHandler)
+    server = FixtureHTTPServer(("::", 0), FixtureRequestHandler)
     server.fixture_state = FixtureState()
+    server.cross_origin_port = server.server_port
     thread = Thread(target=server.serve_forever, daemon=True)
     thread.start()
     try:

@@ -235,11 +235,9 @@ jobs:
           DP_HEADLESS: "1"
           DP_NO_SANDBOX: ${{ matrix.no_sandbox }}
           DP_MCP_REQUIRE_BROWSER: "1"
-        run: |
-          python -m pytest \
-            tests/test_browser_capability_boundaries.py \
-            tests/test_observation_browser.py \
-            -q
+        run: >-
+          python -m pytest tests/test_browser_capability_boundaries.py
+          tests/test_observation_browser.py -q
 
   coverage:
     name: Coverage and browser integration
