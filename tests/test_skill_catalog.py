@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 from urllib.error import URLError
 
+import pytest
+
+from drissionpage_mcp import __version__
 from drissionpage_mcp.resources import SKILL_EXAMPLES
 from drissionpage_mcp.tools import get_all_tools
 from playground import validate_skills as validator
@@ -28,6 +31,45 @@ def test_skill_catalog_matches_repository_sources_and_public_tools() -> None:
         assert f"/tree/{skill['source_revision']}/" in skill["source_url"]
         assert skill["source_url"].endswith(path.parent.as_posix())
         assert skill["sha256"] == hashlib.sha256(content).hexdigest()
+
+
+def test_every_maintained_skill_range_includes_current_server_version() -> None:
+    for skill in SKILL_EXAMPLES:
+        assert validator.version_in_compatibility(
+            __version__, skill["mcp_compatibility"]
+        )
+
+
+def test_skill_compatibility_range_rejects_malformed_or_excluded_versions() -> None:
+    assert validator.version_in_compatibility("0.9.0", ">=0.8.4,<0.9.1")
+    assert not validator.version_in_compatibility("0.9.1", ">=0.8.4,<0.9.1")
+    with pytest.raises(ValueError, match="formatted"):
+        validator.version_in_compatibility("0.9.0", ">=0.8.4")
+
+
+def test_skill_validator_reports_current_version_excluded(monkeypatch) -> None:
+    monkeypatch.setattr(validator, "__version__", "0.9.1")
+
+    report = validator.validate_skills()
+
+    assert report["ok"] is False
+    assert all(
+        "MCP compatibility range excludes current server version" in item["errors"]
+        for item in report["skills"]
+    )
+
+
+def test_skill_validator_reports_invalid_compatibility_range(monkeypatch) -> None:
+    entry = dict(SKILL_EXAMPLES[0], mcp_compatibility="invalid")
+    monkeypatch.setattr(validator, "SKILL_EXAMPLES", (entry,))
+
+    report = validator.validate_skills()
+
+    assert report["ok"] is False
+    assert report["skills"][0]["errors"] == [
+        "invalid MCP compatibility range: "
+        "compatibility must be formatted as >=X.Y.Z,<X.Y.Z"
+    ]
 
 
 def test_skill_frontmatter_stays_cross_host_compatible() -> None:

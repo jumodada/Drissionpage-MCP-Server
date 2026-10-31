@@ -17,7 +17,7 @@ benchmark is available as:
 DP_HEADLESS=1 DP_NO_SANDBOX=1 DP_MCP_REQUIRE_BROWSER=1 \
 python -m tests.evals.task_completion_benchmark \
   --iterations 10 \
-  --output benchmark-results/0.8.9-task-completion.json
+  --output benchmark-results/0.9.0-task-completion.json
 ```
 
 It starts one isolated browser per iteration, runs W01-W08 through the MCP
@@ -26,10 +26,13 @@ side-effect counters, and fails unless every workload reaches 9/10 with zero
 duplicate side effects. When any run fails, the console output includes a
 bounded `failed_runs` list so CI diagnosis does not depend on artifact access.
 
-The local 0.8.9 candidate report is written to
-`benchmark-results/0.8.9-task-completion.json`. It is local evidence only; the
-hosted Ubuntu artifact and the remaining platform jobs are separate release
-gates and are not implied by this document.
+With `--output`, the command writes
+`benchmark-results/0.9.0-task-completion.json`; omit that option for stdout-only
+local validation. On 2026-10-21, the 0.9.0 candidate completed W01-W08 80/80
+with zero duplicate side effects and the local challenge surfaces 50/50.
+Hosted Ubuntu artifacts and the remaining platform jobs are separate release
+gates. See [the changelog](../../CHANGELOG.md#090---2026-10-20) for the environment
+and package comparison results.
 
 The generic challenge-surface benchmark is local and deterministic:
 
@@ -54,7 +57,7 @@ python -m tests.evals.snapshot_search_comparison \
   --baseline-python /path/to/baseline-venv/bin/python \
   --baseline-artifact /path/to/drissionpage_mcp-0.8.8.whl \
   --candidate-python /path/to/candidate-venv/bin/python \
-  --candidate-artifact /path/to/drissionpage_mcp-0.8.9.whl \
+  --candidate-artifact /path/to/drissionpage_mcp-0.9.0.whl \
   --iterations 20
 ```
 

@@ -16,7 +16,7 @@
 
 ## 🖱️ 带自然指针轨迹的原子化浏览器控制
 
-**DrissionPage MCP 0.8.9 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库、挑战与业务流程。
+**DrissionPage MCP 0.9.0 提供 69 个类型化浏览器能力。** MCP 服务负责准确的底层观察与操作，客户端或可选 Skill 负责组合站点、组件库、挑战与业务流程。
 
 > **模型决定做什么，MCP 严格执行请求的浏览器操作。**
 
@@ -73,7 +73,7 @@ page_click_xy(x=442, y=369, profile="natural")
 
 **DrissionPage MCP Server** 是一个本地模型上下文协议（MCP）服务器，为 Codex CLI/IDE、Claude Code、Claude Desktop 和其他 MCP 客户端提供 DrissionPage 浏览器自动化工具。
 
-独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.8.9 保持这套注册表稳定，同时加入受 deadline 约束的等待、有界 snapshot 检索/续读，以及明确的导航耗时与就绪证据。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，挑战与站点流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
+独立服务提供 69 个类型化工具、零个 MCP Prompt 和一个静态可选 Skills 目录资源。0.9.0 保持这套注册表稳定，收紧可选导航策略的结构化匹配，并在浏览器启动前拒绝不允许的目标。全部工具默认加载，不存在能力 profile 或需要选择的 `full` 模式。模型组合这些原子能力，挑战与站点流程以可选 Skill 形式放在发行包之外。浏览器执行由 [DrissionPage](https://github.com/g1879/DrissionPage) 提供。
 
 ### 🌟 为什么选择 DrissionPage MCP？
 
@@ -100,12 +100,15 @@ DrissionPage MCP 有严格的回归测试和真实浏览器场景验证：
 
 ## ⚡ 首次成功路径
 
+0.9.0 当前为本地候选版。发布前可在源码目录使用 `python -m pip install -e .`，
+或安装本地构建的 wheel。下方 PyPI 版本命令适用于正式发布后。
+
 ```bash
 # 安装或更新 Codex CLI（macOS/Linux）
 curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
 # 从 PyPI 安装
-python -m pip install -U "drissionpage-mcp>=0.8.9"
+python -m pip install -U "drissionpage-mcp>=0.9.0"
 
 # 验证包和本地环境
 drissionpage-mcp --version
@@ -475,7 +478,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-应输出已安装的包版本，例如：`drissionpage-mcp 0.8.9`。
+应输出已安装的包版本，例如：`drissionpage-mcp 0.9.0`。
 
 `drissionpage-mcp doctor` 还必须将 `mcp_supported` 和
 `mcp_server_wiring` 都报告为 `ok`；只看到版本号并不能证明 MCP 客户端能够完成初始化。
@@ -507,13 +510,13 @@ which chromium         # macOS
 | **包** | ✅ PyPI 元数据和构建检查 |
 | **状态** | 🟡 Beta；真实浏览器行为取决于本地 Chrome/Chromium 和目标站点 |
 
-**版本**: 0.8.9 开发候选 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
+**版本**: 0.9.0 开发候选 | **许可证**: Apache 2.0 | **维护**: ✅ 活跃
 
 ---
 
 ## 🗺️ 路线图
 
-### 当前候选版本 (v0.8.9)
+### 当前候选版本 (v0.9.0)
 - [x] 69 个默认加载的原子导航、标签页/frame/shadow、accessibility、观察、交互、浏览器环境、网络、Cookie/storage、等待与 console 工具
 - [x] stdio MCP 服务器集成
 - [x] 本地环境 doctor 诊断
@@ -553,8 +556,9 @@ which chromium         # macOS
 - [x] 不保留动作历史，不生成代码片段，公开截图结果不暴露绝对路径
 - [x] 针对导航和截图路径的可选本地安全策略
 - [x] 一个包含仓库示例元数据的可选 Skills resource、零个 prompts，以及 Skills、eval、兼容性和故障排除文档
-- [x] 本地 0.8.9 包元数据与从干净安装包执行的 smoke 覆盖
-- [ ] 发布门禁完成后再将 0.8.9 发布到 PyPI 和 MCP Registry
+- [x] 浏览器启动前的结构化导航策略、Skills 有界兼容及完整 CI 发布产物复用
+- [x] 本地 0.9.0 包元数据与从干净安装包执行的 smoke 覆盖
+- [ ] 发布门禁完成后再将 0.9.0 发布到 PyPI 和 MCP Registry
 
 ---
 
@@ -689,12 +693,13 @@ codex mcp list
 
 ---
 
-## 🆕 当前候选版本：v0.8.9
+## 🆕 当前候选版本：v0.9.0
 
-候选日期：2026-09-10。这是当前本地实现，不表示已经外部发布，也不表示托管的多平台 CI 已全部完成：
+候选日期：2026-10-20。这是当前本地实现，不表示已经外部发布，也不表示托管多平台 CI 已完成：
 
-- `page_snapshot(query=...)` 对有界顶层页面采集执行大小写不敏感的字面量检索，并返回匹配数、扫描截断状态、`observation_id` 和可选 `next_cursor`。cursor 短期有效，并绑定 session、tab、文档、query 与输出限制。
-- `wait_until(condition="ready_state", value="interactive"|"complete")` 加入现有等待条件，所有轮询和稳定窗口共享一个单调 timeout budget。
-- `page_navigate(timeout=...)` 可选择只为导航与稳定化设置预算；browser startup、tab lock 排队和前后 observation 不计入其中。结果返回最终 URL、`ready_state`、非负分阶段耗时，以及 `settled`：原生 `doc_loaded` 可用时返回其布尔值，否则为 `null`。
-- 导航完成或 ready state 不代表业务成功、HTTP 状态、登录成功或完整 redirect chain。取消时会先 drain 原生导航/稳定化工作，再释放 tab action lock。
-- 公共面保持 69 tools、0 prompts、1 Skills catalog resource；Skills 继续使用 schema v2，并固定在 `skills-manager` `v0.8.4` revision。
+- 可选导航 allow/block URL 规则改为匹配协议、主机、有效端口及路径段边界，而非原始字符串前缀；纯主机规则保留对子域的匹配。
+- `page_navigate` 与 `page_navigate_with_http_auth` 在初始化 Chromium、创建标签或应用认证凭据前返回 `POLICY_DENIED`。
+- 这属于操作者侧导航检查，不是完整网络沙箱；不限制重定向、页面脚本、iframe、DNS 重绑定及后续浏览器请求。
+- Skills 兼容范围包含 MCP 0.9.0，保留 schema v2、固定 `skills-manager` `v0.8.4` 修订和原始内容 hash。固定 raw GitHub URL 当前返回 HTTP 404，远程校验尚未通过。
+- 发布标签先运行完整 CI，上传时复用已通过安装包 smoke、经过 SHA256 校验的同一份 wheel 与 sdist。
+- 公共接口仍为 69 个工具、零个 Prompt、一个静态 Skills 目录资源；没有新增运行时依赖或能力 profile。

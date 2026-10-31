@@ -12,6 +12,7 @@ from mcp.types import (
     ReadResourceRequestParams,
 )
 
+from drissionpage_mcp import __version__
 from drissionpage_mcp.resources import (
     RESOURCE_JSON_MAX_CHARS,
     SKILL_EXAMPLES,
@@ -62,7 +63,7 @@ async def test_catalog_read_is_static_bounded_and_browser_independent(
     payload = json.loads(content.text)
     assert payload == {
         "schema_version": "2",
-        "mcp_version": "0.8.9",
+        "mcp_version": __version__,
         "optional": True,
         "catalog_url": "https://github.com/jumodada/skills-manager",
         "repository_url": "https://github.com/jumodada/skills-manager",

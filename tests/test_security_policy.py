@@ -49,6 +49,205 @@ def test_navigation_policy_uses_allowlist_first(monkeypatch) -> None:
         SafetyPolicy.from_env().validate_navigation("https://blocked.test/")
 
 
+@pytest.mark.parametrize(
+    ("target", "allowed"),
+    [
+        ("https://allowed.test/app", True),
+        ("https://allowed.test/app/child", True),
+        ("https://allowed.test/app?x=1", True),
+        ("https://allowed.test/app/my page", True),
+        ("https://allowed.test/app/my%20page", True),
+        ("https://allowed.test/app/café", True),
+        ("https://allowed.test/app/caf%C3%A9", True),
+        ("https://allowed.test/app/%70rivate", True),
+        ("https://allowed.test/app/%2fprivate", True),
+        ("https://allowed.test/application", False),
+        ("https://allowed.test.attacker.test/app", False),
+        ("https://allowed.test@attacker.test/app", False),
+        ("http://allowed.test/app", False),
+        ("https://allowed.test:444/app", False),
+        ("https://ALLOWED.TEST:443/app", True),
+        ("https://allowed.test./app", True),
+        ("https://allowed.test/App", False),
+        ("https://allowed.test/app/../private", False),
+        ("https://allowed.test/app/%2e%2e/private", False),
+        ("https://allowed.test/app%2f..%2fprivate", False),
+        ("https://allowed.test/app/private page", True),
+        ("https://allowed.test/app/private%20page", True),
+        ("https://allowed.test:invalid/app", False),
+        ("https://attacker.test\\@allowed.test/app", False),
+        ("https://allowed.test/app/\\../private", False),
+        ("https://[invalid/app", False),
+        ("https://allowed.test:0/app", False),
+        ("https://%61llowed.test/app", False),
+        ("https://allowed%2etest/app", False),
+        ("https://allowed．test/app", False),
+        ("https://allowed.test/app;outside", False),
+        ("https://allowed.test/app//../outside", True),
+        ("http://127.1/app", False),
+        ("http://2130706433/app", False),
+        ("http://0x7f000001/app", False),
+        ("http://0177.0.0.1/app", False),
+        ("http://example.123/app", False),
+    ],
+)
+def test_navigation_url_allowlist_uses_structured_origin_and_path_boundaries(
+    monkeypatch, target: str, allowed: bool
+) -> None:
+    _clear_policy_env(monkeypatch)
+    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "https://allowed.test/app")
+    validator = SafetyPolicy.from_env().validate_navigation
+    if allowed:
+        validator(target)
+    else:
+        with pytest.raises(PolicyDeniedError):
+            validator(target)
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "https://blocked.test.attacker.test/",
+        "https://blocked.test@attacker.test/",
+        "https://blocked.test:444/",
+    ],
+)
+def test_navigation_url_blocklist_does_not_match_lookalike_origin(
+    monkeypatch, target: str
+) -> None:
+    _clear_policy_env(monkeypatch)
+    monkeypatch.setenv("DP_MCP_NAV_BLOCKLIST", "https://blocked.test/")
+    SafetyPolicy.from_env().validate_navigation(target)
+
+
+@pytest.mark.parametrize(
+    ("pattern", "target", "allowed"),
+    [
+        ("https://allowed.test", "https://allowed.test.attacker.test/", False),
+        ("https://allowed.test", "https://allowed.test@attacker.test/", False),
+        ("https://allowed.test", "https://allowed.test:444/", False),
+        ("HTTPS://ALLOWED.TEST/App", "https://allowed.test/App", True),
+        ("https://allowed.test:443/", "https://allowed.test/", True),
+        ("http://allowed.test:80/", "http://allowed.test/", True),
+        ("https://[2001:db8::1]/app", "https://[2001:db8::1]:443/app", True),
+        ("https://[2001:db8::1]/app", "https://[2001:db8::2]/app", False),
+        (
+            "https://[2001:db8::1]/app",
+            "https://[2001:0db8:0:0:0:0:0:1]/app",
+            True,
+        ),
+        ("https://allowed.test/app/", "https://allowed.test/app/child", True),
+        ("https://allowed.test/app/", "https://allowed.test/application", False),
+        ("https://allowed.test/app", "https://allowed.test/app;outside", False),
+        ("https://allowed.test/app", "https://allowed.test/app//../outside", True),
+        ("https://allowed.test/app//../outside", "https://allowed.test/app/outside", True),
+        ("https://allowed.test/app//../outside", "https://allowed.test/outside", False),
+        ("https://allowed.test/app//", "https://allowed.test/app/child", False),
+        ("https://allowed.test/app/", "https://allowed.test/app/.", True),
+        ("https://allowed.test/app/", "https://allowed.test/app/child/..", True),
+        ("https://allowed.test/app%2ename", "https://allowed.test/app.name", True),
+    ],
+)
+def test_navigation_url_allowlist_preserves_url_component_semantics(
+    pattern: str, target: str, allowed: bool
+) -> None:
+    policy = SafetyPolicy(navigation_allowlist=(pattern,))
+    if allowed:
+        policy.validate_navigation(target)
+    else:
+        with pytest.raises(PolicyDeniedError):
+            policy.validate_navigation(target)
+
+
+@pytest.mark.parametrize(
+    "target",
+    ["https://blocked.test:443/app", "https://blocked.test/public/../app"],
+)
+def test_navigation_url_blocklist_matches_normalized_origin_and_path(target: str) -> None:
+    policy = SafetyPolicy(navigation_blocklist=("https://blocked.test/app",))
+    with pytest.raises(PolicyDeniedError):
+        policy.validate_navigation(target)
+
+
+@pytest.mark.parametrize(
+    ("pattern", "target"),
+    [
+        ("private page", "private page"),
+        ("private page", "private%20page"),
+        ("private", "%70rivate"),
+        ("pRIVATE", "%70RIVATE"),
+        ("café", "café"),
+        ("café", "caf%C3%A9"),
+    ],
+)
+def test_navigation_url_blocklist_matches_browser_serialized_paths(
+    pattern: str, target: str
+) -> None:
+    policy = SafetyPolicy(
+        navigation_blocklist=(f"https://blocked.test/{pattern}",)
+    )
+    with pytest.raises(PolicyDeniedError):
+        policy.validate_navigation(f"https://blocked.test/{target}")
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "https://%62locked.test/",
+        "https://blocked．test/",
+        "https://blocked。test/",
+        "https://%6cocalhost/",
+        "https://ｌｏｃａｌｈｏｓｔ/",
+    ],
+)
+@pytest.mark.parametrize("mode", ["url_blocklist", "host_blocklist", "private"])
+def test_active_navigation_policy_rejects_noncanonical_host_spellings(
+    target: str, mode: str
+) -> None:
+    policy = SafetyPolicy(
+        navigation_blocklist=("https://blocked.test/",) if mode == "url_blocklist" else
+        ("blocked.test",) if mode == "host_blocklist" else (),
+        block_private_network=mode == "private",
+    )
+    with pytest.raises(PolicyDeniedError):
+        policy.validate_navigation(target)
+
+
+@pytest.mark.parametrize("host", ["127.1", "2130706433", "0x7f000001", "0177.0.0.1"])
+@pytest.mark.parametrize("mode", ["private", "host_blocklist", "url_blocklist", "allowlist"])
+def test_active_policy_rejects_noncanonical_numeric_ipv4(host: str, mode: str) -> None:
+    policy = SafetyPolicy(
+        block_private_network=mode == "private",
+        navigation_blocklist=("127.0.0.1",) if mode == "host_blocklist" else
+        ("https://127.0.0.1/",) if mode == "url_blocklist" else (),
+        navigation_allowlist=(host,) if mode == "allowlist" else (),
+    )
+    with pytest.raises(PolicyDeniedError):
+        policy.validate_navigation(f"https://{host}/")
+
+
+@pytest.mark.parametrize(
+    ("pattern", "target", "blocked"),
+    [
+        ("https://blocked.test/app", "https://blocked.test/app//../outside", True),
+        ("https://blocked.test/app//../outside", "https://blocked.test/app/outside", True),
+        ("https://blocked.test/app//../outside", "https://blocked.test/outside", False),
+        ("https://blocked.test/app//", "https://blocked.test/app/child", False),
+        ("https://blocked.test/app", "https://blocked.test/app;outside", False),
+        ("https://blocked.test/app;outside", "https://blocked.test/app;outside", True),
+    ],
+)
+def test_navigation_url_blocklist_preserves_complete_paths_and_empty_segments(
+    pattern: str, target: str, blocked: bool
+) -> None:
+    policy = SafetyPolicy(navigation_blocklist=(pattern,))
+    if blocked:
+        with pytest.raises(PolicyDeniedError):
+            policy.validate_navigation(target)
+    else:
+        policy.validate_navigation(target)
+
+
 def test_navigation_policy_blocks_hosts_and_private_networks(monkeypatch) -> None:
     _clear_policy_env(monkeypatch)
     monkeypatch.setenv("DP_MCP_NAV_BLOCKLIST", "blocked.test")
@@ -60,6 +259,10 @@ def test_navigation_policy_blocks_hosts_and_private_networks(monkeypatch) -> Non
         "http://127.0.0.1:8000/",
         "http://10.0.0.1/",
         "http://192.168.1.1/",
+        "http://127.1/",
+        "http://2130706433/",
+        "http://0x7f000001/",
+        "http://0177.0.0.1/",
     ):
         with pytest.raises(PolicyDeniedError):
             SafetyPolicy.from_env().validate_navigation(url)

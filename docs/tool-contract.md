@@ -332,7 +332,7 @@ This table is generated from the strict Pydantic input schemas exposed by `tools
 
 ## Tool Inventory
 
-The 0.8.9 registry contains 69 typed browser tools. Site, component, challenge,
+The 0.9.0 registry contains 69 typed browser tools. Site, component, challenge,
 and business workflows are composed by clients or optional external Skills.
 
 ### Tab Targeting And Scheduling
@@ -539,7 +539,7 @@ Resource caps:
 
 ## Prompts
 
-DrissionPage MCP 0.8.9 exposes no MCP prompts. `tools/list`, typed schemas, and
+DrissionPage MCP 0.9.0 exposes no MCP prompts. `tools/list`, typed schemas, and
 typed errors describe the standalone core; procedural guidance belongs in
 optional Skills.
 
@@ -599,8 +599,8 @@ By default, DrissionPage MCP remains a local stdio browser automation server wit
 
 | Variable | Effect |
 | --- | --- |
-| `DP_MCP_NAV_ALLOWLIST` | Comma-separated host names or URL prefixes. When set, navigation is allowlist-first. |
-| `DP_MCP_NAV_BLOCKLIST` | Comma-separated host names or URL prefixes rejected after allowlist checks. |
+| `DP_MCP_NAV_ALLOWLIST` | Comma-separated host names or absolute HTTP(S) URL rules. When set, navigation is allowlist-first. |
+| `DP_MCP_NAV_BLOCKLIST` | Comma-separated host names or absolute HTTP(S) URL rules rejected after allowlist checks. |
 | `DP_MCP_BLOCK_PRIVATE_NETWORK` | Set to `1`, `true`, or `yes` to reject localhost/private/link-local navigation. |
 | `DP_MCP_SCREENSHOT_ROOT` | Required root directory for `page_screenshot_save` file writes. Relative tool paths resolve beneath this root; traversal and symlink escapes are rejected. |
 | `DP_MCP_UPLOAD_ROOT` | Required root directory for `element_upload_file` and `element_click_and_upload` input files. |
@@ -608,4 +608,24 @@ By default, DrissionPage MCP remains a local stdio browser automation server wit
 | `DP_MCP_ARTIFACT_ROOT` | Required approved root for `page_export_artifact` PDF/MHTML output. Public results expose safe relative paths only. |
 | `DP_MCP_DENY_DOWNLOAD` | Deny `element_click_and_download` before the native click or filesystem allocation. |
 
-Denied navigation is checked before `context.ensure_tab()`, so policy rejection does not start or initialize a browser.
+Denied `page_navigate` and `page_navigate_with_http_auth` calls return
+`POLICY_DENIED` before browser/context initialization or tab creation.
+
+Host-only rules match the host and its subdomains. URL rules match the exact
+scheme, hostname (case-insensitive, trailing dot normalized), effective port
+(default HTTP 80 / HTTPS 443), and case-sensitive path or descendant path segment.
+For example, `https://example.test/app` permits `/app` and `/app/child`, not
+`/application`, a lookalike hostname, HTTP, or port 444. Query and fragment do not
+restrict a rule. Dot segments are normalized; encoded slashes remain encoded.
+Under an active navigation policy, ambiguous/noncanonical hostname spellings and
+malformed HTTP(S) URLs are rejected; use ASCII/punycode hosts and canonical IP
+literal spellings. Raw spaces and Unicode path characters are compared in their
+browser-serialized percent-encoded form. Percent-escape hex digits are
+case-insensitive; escaped ASCII unreserved characters match their literal form
+(for example, `/%70rivate` matches `/private`). Reserved escapes such as `%2F`
+are not decoded. These are policy comparison rules, not server-side URL rewriting.
+
+This is an initial navigation policy, not a network sandbox. Redirects, page
+scripts, iframes, DNS resolution/rebinding, and later browser requests are not
+contained by these checks. The private-network switch checks literal hostnames
+and IP addresses, not resolved DNS addresses.

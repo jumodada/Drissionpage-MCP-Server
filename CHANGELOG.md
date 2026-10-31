@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-20
+
+Development candidate implemented and tested locally. This entry does not
+claim that 0.9.0 has been published externally or passed hosted CI and remote
+Skills source validation; the pinned upstream Skill URLs currently return HTTP 404.
+
+### Fixed
+- Replaced navigation rule URL-prefix matching with scheme, canonical origin,
+  effective-port, and path-segment matching. Denied navigation is rejected
+  before browser/context startup for both ordinary and HTTP-auth navigation,
+  returning redacted `POLICY_DENIED` results. Browser-normalized IPv4 aliases
+  and encoded/Unicode hostname spellings are rejected under active policy;
+  dot-segment and path escaping are normalized consistently.
+
+### Changed
+- Updated the static Skills catalog compatibility bounds to include MCP 0.9.0
+  with an upper bound of `<0.9.1`, while retaining schema v2, the pinned
+  `skills-manager` `v0.8.4` revision, and the existing source hashes.
+- Made the release workflow run the complete CI gate before publishing and
+  build, hash, smoke-test, and publish the same wheel and sdist artifacts using
+  `SHA256SUMS`.
+- Moved the release-relative production Python LOC gate to the 0.8.9 candidate
+  baseline (`c1f9dde`), capped at 150 net new lines. This measures only 0.9.0
+  growth rather than relaxing the previous release's cumulative allowance.
+- Kept the public registry unchanged at 69 tools, zero prompts, and one static
+  Skills catalog resource. No new runtime dependency or capability profile was
+  added.
+
+### Verification
+- Local validation on 2026-10-21: macOS 14.3.1 arm64, Python 3.11.11,
+  Chrome 155.0.8059.80, DrissionPage 4.1.1.4, and MCP SDK 1.12.4.
+- Full browser-backed regression suite with the shared test site: 962 passed,
+  zero skips, 97.05% production coverage (95% required).
+- W01-W08: 80/80 successful runs, each workload 10/10, zero duplicate side
+  effects. Local challenge surfaces: 50/50 expected outcomes; comparable first
+  geometry measurements had a maximum error of 0.0px.
+- Packaged real-stdio snapshot search versus the 0.8.8 baseline (`30e8adf`):
+  both packages completed each workload 20/20 with two calls per run. Candidate
+  P50 model-visible characters fell 91.75% for long documents and 91.06% for
+  repeated cards. This retains the 0.8.9 search improvement; it is not a new
+  speedup over 0.8.9.
+- Ruff, mypy, actionlint, build/Twine, package privacy checks, separate clean
+  wheel/sdist installs, `pip check`, doctor browser launch, and real-stdio
+  package smoke passed. Clean installs also passed with MCP SDK 1.30.0.
+- Hosted platform matrices and external publication were not run. Remote
+  Skills validation remains blocked by HTTP 404 for all three pinned sources;
+  the release workflow retains this failing gate.
+
 ## [0.8.9] - 2026-09-10
 
 Development candidate implemented and validated locally. This entry does not
@@ -769,7 +817,8 @@ matrix has completed.
 - `Fixed` for any bug fixes
 - `Security` in case of vulnerabilities
 
-[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.9...HEAD
+[Unreleased]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.9...0.9.0
 [0.8.9]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.8...0.8.9
 [0.8.8]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.7...0.8.8
 [0.8.7]: https://github.com/jumodada/Drissionpage-MCP-Server/compare/0.8.6...0.8.7

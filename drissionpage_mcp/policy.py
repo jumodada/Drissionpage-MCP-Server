@@ -9,10 +9,11 @@ from __future__ import annotations
 
 import ipaddress
 import os
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import SplitResult, quote, urlsplit
 
 from .env import env_bool
 from .response_errors import ErrorCode
@@ -84,14 +85,31 @@ class SafetyPolicy:
         ):
             return
 
-        parsed = urlparse(url)
-        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        try:
+            parsed = urlsplit(url)
+            _ = parsed.port
+        except ValueError as exc:
+            raise PolicyDeniedError(
+                "Navigation URL must be a valid absolute http(s) URL.",
+                rule="navigation_url",
+                value=url,
+            ) from exc
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
+            or "\\" in parsed.netloc + parsed.path
+        ):
             raise PolicyDeniedError(
                 "Navigation URL must be an absolute http(s) URL.",
                 rule="navigation_url",
                 value=url,
             )
-
+        if not _canonical_host_spelling(parsed.hostname or ""):
+            raise PolicyDeniedError(
+                "Navigation URL has a non-canonical hostname spelling.",
+                rule="navigation_url",
+                value=url,
+            )
         host = parsed.hostname or ""
         if self.navigation_allowlist and not _matches_any(
             url, host, self.navigation_allowlist
@@ -357,19 +375,132 @@ def _redacted_sequence(values: tuple[str, ...]) -> dict[str, object]:
 
 
 def _matches_any(url: str, host: str, patterns: Iterable[str]) -> bool:
-    normalized_host = host.lower().rstrip(".")
-    normalized_url = url.lower()
+    parsed = urlsplit(url)
+    normalized_host = _normalized_hostname(host)
     for pattern in patterns:
-        item = pattern.strip().lower().rstrip(".")
+        item = pattern.strip()
         if not item:
             continue
-        if item.startswith(("http://", "https://")):
-            if normalized_url.startswith(item):
+        if item.lower().startswith(("http://", "https://")):
+            if _matches_url_pattern(parsed, item):
                 return True
             continue
-        if normalized_host == item or normalized_host.endswith("." + item):
+        normalized_item = _normalized_hostname(item)
+        if normalized_host == normalized_item or normalized_host.endswith(
+            "." + normalized_item
+        ):
             return True
     return False
+
+
+def _matches_url_pattern(target: SplitResult, pattern: str) -> bool:
+    """Match an absolute URL rule by scheme, host, effective port, and path."""
+
+    try:
+        rule = urlsplit(pattern)
+        target_port = (
+            target.port if target.port is not None else _default_port(target.scheme)
+        )
+        rule_port = (
+            rule.port if rule.port is not None else _default_port(rule.scheme)
+        )
+    except ValueError:
+        return False
+    if (
+        rule.scheme not in {"http", "https"}
+        or not rule.hostname
+        or not _canonical_host_spelling(rule.hostname)
+    ):
+        return False
+    if target.scheme.lower() != rule.scheme.lower():
+        return False
+    if (
+        target.hostname is None
+        or _normalized_hostname(target.hostname)
+        != _normalized_hostname(rule.hostname)
+    ):
+        return False
+    if target_port != rule_port:
+        return False
+    target_path = _normalize_url_path(target.path or "/")
+    rule_path = _normalize_url_path(rule.path or "/")
+    path_prefix = rule_path if rule_path.endswith("/") else rule_path + "/"
+    return target_path == rule_path or target_path.startswith(path_prefix)
+
+
+def _default_port(scheme: str) -> int:
+    return 443 if scheme.lower() == "https" else 80
+
+
+def _normalize_url_path(path: str) -> str:
+    # Normalize browser-serialized spaces/Unicode and equivalent unreserved
+    # escapes while preserving reserved escapes and empty path segments.
+    path = quote(path, safe="/%:@!$&'()*+,;=-._~%")
+    path = re.sub(
+        r"%([0-9a-fA-F]{2})",
+        lambda match: _normalize_path_escape(match.group(1)),
+        path,
+    )
+    segments: list[str] = []
+    parts = path.split("/")[1:]
+    for index, segment in enumerate(parts):
+        dot_form = re.sub(r"%2e", ".", segment, flags=re.IGNORECASE)
+        if dot_form == ".":
+            if index == len(parts) - 1:
+                segments.append("")
+            continue
+        if dot_form == "..":
+            if segments:
+                segments.pop()
+            if index == len(parts) - 1:
+                segments.append("")
+            continue
+        segments.append(segment)
+    return "/" + "/".join(segments)
+
+
+def _normalize_path_escape(hex_value: str) -> str:
+    value = int(hex_value, 16)
+    character = chr(value)
+    if character.isascii() and (character.isalnum() or character in "-._~"):
+        return character
+    return f"%{value:02X}"
+
+
+def _canonical_host_spelling(host: str) -> bool:
+    """Reject encoded or Unicode host spellings under an active URL policy."""
+
+    if not host or not host.isascii() or "%" in host:
+        return False
+    bracketed = host.startswith("[") and host.endswith("]")
+    unbracketed = host[1:-1] if bracketed else host
+    try:
+        address = ipaddress.ip_address(unbracketed)
+    except ValueError:
+        # WHATWG URL parsing treats a numeric-looking final label as an IPv4
+        # host, including noncanonical integer, hex, and octal forms.
+        labels = unbracketed.rstrip(".").split(".")
+        numeric_or_hex = all(
+            re.fullmatch(r"(?:0x[0-9a-f]+|[0-9]+)", label, re.IGNORECASE)
+            for label in labels
+        )
+        if numeric_or_hex:
+            return False
+        return not bracketed
+    if address.version == 4:
+        return not bracketed and str(address) == unbracketed
+    return True
+
+
+def _normalized_hostname(host: str) -> str:
+    """Normalize DNS and IP literals for origin comparisons."""
+
+    unbracketed = host[1:-1] if host.startswith("[") and host.endswith("]") else host
+    try:
+        address = ipaddress.ip_address(unbracketed)
+    except ValueError:
+        return host.lower().rstrip(".")
+    return f"[{address.compressed}]" if address.version == 6 else str(address)
 
 
 def _is_private_or_local_host(host: str) -> bool:

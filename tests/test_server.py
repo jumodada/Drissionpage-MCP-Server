@@ -507,6 +507,57 @@ async def test_invalid_or_unknown_tool_does_not_initialize_context(monkeypatch) 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("name", "arguments"),
+    [
+        ("page_navigate", {"url": "https://denied.test/"}),
+        ("page_navigate", {"url": "https://denied.test/", "new_tab": True}),
+        (
+            "page_navigate_with_http_auth",
+            {"url": "https://denied.test/", "username": "user", "password": "secret"},
+        ),
+    ],
+)
+async def test_denied_navigation_is_rejected_before_context_initialization(
+    monkeypatch, name, arguments
+) -> None:
+    created = 0
+
+    class FakeContext:
+        def __init__(self) -> None:
+            nonlocal created
+            created += 1
+
+    monkeypatch.setattr(server_module, "DrissionPageContext", FakeContext)
+    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
+    server = DrissionPageMCPServer()
+
+    result = await server._call_tool_impl(name, arguments)
+
+    assert result.isError is True
+    assert result.structuredContent["error"]["code"] == "POLICY_DENIED"
+    assert created == 0
+    assert server.context is None
+
+
+@pytest.mark.asyncio
+async def test_denied_navigation_does_not_start_existing_context_browser(monkeypatch) -> None:
+    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "allowed.test")
+    server = DrissionPageMCPServer()
+    context = Mock()
+    context.ensure_tab = AsyncMock(side_effect=RuntimeError("browser launch failed"))
+    server.context = context
+
+    result = await server._call_tool_impl(
+        "page_navigate", {"url": "https://denied.test/"}
+    )
+
+    assert result.structuredContent["error"]["code"] == "POLICY_DENIED"
+    context.ensure_tab.assert_not_called()
+    assert server._active_tool_calls == 0
+
+
+@pytest.mark.asyncio
 async def test_context_initialization_failure_uses_tool_error_contract(
     monkeypatch,
 ) -> None:

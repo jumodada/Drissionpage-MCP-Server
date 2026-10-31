@@ -264,6 +264,55 @@ async def test_stdio_client_initialize_list_and_call_tool() -> None:
 
 
 @pytest.mark.asyncio
+async def test_stdio_policy_denial_precedes_browser_startup_and_redacts_target(
+    monkeypatch,
+) -> None:
+    """Reject denied URLs over stdio without launching Chromium or leaking input."""
+
+    monkeypatch.setenv("DP_MCP_NAV_ALLOWLIST", "https://allowed.test")
+    monkeypatch.setenv("CHROME_PATH", "/missing/chromium-for-policy-test")
+    monkeypatch.setenv("DP_HEADLESS", "1")
+    params = StdioServerParameters(
+        command="python",
+        args=["-m", "drissionpage_mcp.cli", "--log-level", "ERROR"],
+        env={
+            "DP_MCP_NAV_ALLOWLIST": "https://allowed.test",
+            "CHROME_PATH": "/missing/chromium-for-policy-test",
+            "DP_HEADLESS": "1",
+        },
+    )
+    private_url = "https://denied.test/private?token=stdio-secret"
+
+    async with stdio_client(params) as (read_stream, write_stream):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            for name, arguments in (
+                ("page_navigate", {"url": private_url}),
+                ("page_navigate", {"url": private_url, "new_tab": True}),
+                (
+                    "page_navigate_with_http_auth",
+                    {"url": private_url, "username": "user", "password": "stdio-secret"},
+                ),
+            ):
+                result = await session.call_tool(name, arguments)
+                payload = result.structuredContent
+                encoded = json.dumps(payload, ensure_ascii=False)
+                assert result.isError is True
+                text_result = result.content[0].text
+                mirror = json.loads(
+                    re.search(r"```json\n(.*?)\n```", text_result, re.S).group(1)
+                )
+                assert mirror == payload
+                assert payload["error"]["code"] == "POLICY_DENIED"
+                assert payload["error"]["details"]["value"] == "<redacted>"
+                assert "denied.test" not in encoded
+                assert "stdio-secret" not in encoded
+                assert "denied.test" not in text_result
+                assert "stdio-secret" not in text_result
+                assert "/missing/chromium" not in encoded
+
+
+@pytest.mark.asyncio
 async def test_list_tools_exposes_shared_output_schema_when_supported() -> None:
     """exposes the stable typed ToolResult envelope through MCP outputSchema."""
 

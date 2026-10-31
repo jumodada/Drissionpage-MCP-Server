@@ -18,7 +18,7 @@ DrissionPage MCP follows a conservative compatibility policy for Python, Drissio
   cleanup release that removes the two 0.3.x alias names listed below; future
   removals must be documented in release notes and migration guidance.
 - DrissionPage 5.x beta/internal builds are not supported by DrissionPage MCP
-  0.8.9. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
+  0.9.0. Keep MCP installs pinned to `DrissionPage>=4.1.1.4,<5` until a
   separate compatibility plan is implemented.
 - Input schema changes should be backward compatible when possible. The 0.4.1 `element_get_property` `property_name` -> `property` cleanup is a documented beta-stage breaking schema correction for LLM usability.
 - Unknown input fields are rejected rather than silently ignored. Update saved
@@ -107,9 +107,27 @@ generation-safe coordination.
 - Listener state remains isolated per tab. Tab close waits for in-flight calls,
   then stops and clears the tab-owned listener before native teardown.
 
+## 0.8.9 to 0.9.0 Migration
+
+0.9.0 is the current development candidate. It keeps all 69 tools, zero prompts,
+one static resource, and the existing dependency and input/output schemas.
+
+- URL navigation policy rules now use structural origin and path-segment matching,
+  not raw prefix matching. `/app` no longer permits `/application`, another port,
+  or a lookalike host. Use separate rules for different origins; host-only rules
+  still include subdomains. See [the policy contract](tool-contract.md#optional-local-safety-policy).
+- Denied ordinary and HTTP-auth navigation fails before browser initialization.
+  Ambiguous hostname spellings are rejected under active policy; use ASCII/punycode.
+- Skills compatibility ranges include 0.9.0 and stop at `<0.9.1`; source revision
+  and hashes remain unchanged. Pinned remote URLs currently return HTTP 404,
+  so source verification is a release blocker rather than a claimed success.
+- Publishing requires reusable full CI gates and reuses the exact hash-verified
+  wheel/sdist that passed package smoke tests. Local completion is not evidence
+  of hosted CI completion or external publication.
+
 ## 0.8.8 to 0.8.9 Migration
 
-0.8.9 is the current development candidate. It keeps all 69 tool names, zero
+0.8.9 keeps all 69 tool names, zero
 prompts, one Skills catalog resource, and the
 `DrissionPage>=4.1.1.4,<5` dependency range. The additions are optional and
 existing calls retain their prior input behavior.

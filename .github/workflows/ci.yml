@@ -5,6 +5,7 @@ on:
     branches: [main, master]
   pull_request:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
@@ -33,15 +34,16 @@ jobs:
         run: python playground/validate_skills.py --json
       - name: Mypy check
         run: python -m mypy drissionpage_mcp
-      - name: Enforce 0.8.9 production LOC delta
+      - name: Enforce 0.9.0 production LOC delta
         run: |
-          BASELINE=30e8adf
+          # Release-relative: 0.8.9 candidate, not cumulative 0.8.8 growth.
+          BASELINE=c1f9dde
           NET_PRODUCTION_LOC="$({
             git diff --numstat "$BASELINE" HEAD -- \
               ':(glob)drissionpage_mcp/**/*.py'
           } | awk '{ added += $1; deleted += $2 } END { print added - deleted }')"
           echo "Production LOC net growth from $BASELINE: $NET_PRODUCTION_LOC"
-          test "$NET_PRODUCTION_LOC" -le 650
+          test "$NET_PRODUCTION_LOC" -le 150
 
   unit:
     name: Unit tests
@@ -122,6 +124,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -174,16 +178,16 @@ jobs:
         run: |
           python -m tests.evals.task_completion_benchmark \
             --iterations 10 \
-            --output benchmark-results/0.8.9-task-completion.json
+            --output benchmark-results/0.9.0-task-completion.json
           python -m tests.evals.challenge_surface_benchmark \
             --iterations 10 \
-            --output benchmark-results/0.8.9-challenge-surfaces.json
+            --output benchmark-results/0.9.0-challenge-surfaces.json
       - name: Upload task-completion benchmark
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 0.8.9-browser-benchmarks
-          path: benchmark-results/0.8.9-*.json
+          name: 0.9.0-browser-benchmarks
+          path: benchmark-results/0.9.0-*.json
           if-no-files-found: warn
 
   browser-boundaries:
@@ -349,6 +353,7 @@ jobs:
   wheel-smoke:
     name: Fresh wheel install and browser stdio smoke
     runs-on: ubuntu-latest
+    needs: package
     env:
       PIP_NO_CACHE_DIR: "1"
     steps:
@@ -367,10 +372,14 @@ jobs:
           test -n "$BROWSER_BIN"
           echo "CHROME_PATH=$BROWSER_BIN" >> "$GITHUB_ENV"
           "$BROWSER_BIN" --version
-      - name: Build wheel without dependency cache
-        run: |
-          python -m pip install --no-cache-dir build
-          python -m build --wheel
+      - name: Download verified package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-distribution
+          path: dist/
+      - name: Verify package artifact hashes
+        working-directory: dist
+        run: sha256sum --check SHA256SUMS
       - name: Install wheel in a clean virtual environment
         run: |
           python -m venv "$RUNNER_TEMP/wheel-smoke"
@@ -390,7 +399,7 @@ jobs:
 
           mcp_version = version("mcp")
           assert mcp_version.split(".", 1)[0] == "1", mcp_version
-          assert version("drissionpage-mcp") == "0.8.9"
+          assert version("drissionpage-mcp") == "0.9.0"
           assert "site-packages" in str(Path(drissionpage_mcp.__file__).resolve())
           report = run_diagnostics()
           checks = {item["name"]: item for item in report["checks"]}
@@ -408,7 +417,7 @@ jobs:
         run: |
           cd "$RUNNER_TEMP"
           "$WHEEL_SMOKE_PYTHON" "$GITHUB_WORKSPACE/playground/package_smoke.py" \
-            --expected-version 0.8.9
+            --expected-version 0.9.0
 
   package:
     name: Package build
@@ -489,7 +498,7 @@ jobs:
 
           from drissionpage_mcp.doctor import run_diagnostics
 
-          assert version("drissionpage-mcp") == "0.8.9"
+          assert version("drissionpage-mcp") == "0.9.0"
           report = run_diagnostics()
           checks = {item["name"]: item for item in report["checks"]}
           assert report["ok"], report
@@ -506,6 +515,15 @@ jobs:
         run: |
           cd "$RUNNER_TEMP"
           "$SDIST_SMOKE_PYTHON" "$GITHUB_WORKSPACE/playground/package_smoke.py" \
-            --expected-version 0.8.9
+            --expected-version 0.9.0
       - name: Check package metadata
         run: python -m twine check dist/*
+      - name: Create distribution hashes
+        working-directory: dist
+        run: sha256sum -- ./*.whl ./*.tar.gz > SHA256SUMS
+      - name: Upload verified distribution
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-distribution
+          path: dist/
+          if-no-files-found: error

@@ -84,9 +84,9 @@ async def test_eval_skills_catalog_is_optional_and_static() -> None:
         for skill in catalog["skills"]
     }
     assert versions == {
-        "cross-origin-iframe-probe": ("0.2.0", ">=0.8.4,<0.9.0"),
-        "turnstile-testing": ("0.2.0", ">=0.8.4,<0.9.0"),
-        "xiaohongshu-content-research": ("0.1.0", ">=0.8.2,<0.9.0"),
+        "cross-origin-iframe-probe": ("0.2.0", ">=0.8.4,<0.9.1"),
+        "turnstile-testing": ("0.2.0", ">=0.8.4,<0.9.1"),
+        "xiaohongshu-content-research": ("0.1.0", ">=0.8.2,<0.9.1"),
     }
     for skill in catalog["skills"]:
         assert skill["required_tools"]

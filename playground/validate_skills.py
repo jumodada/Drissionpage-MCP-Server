@@ -12,16 +12,40 @@ from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
+from drissionpage_mcp import __version__
 from drissionpage_mcp.resources import SKILL_EXAMPLES, SKILLS_SOURCE_REVISION
 from drissionpage_mcp.tools import get_all_tools
 
 ROOT = Path(__file__).resolve().parents[1]
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 REVISION_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+VERSION_PATTERN = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
 REMOTE_REPOSITORY = "jumodada/skills-manager"
 REMOTE_TIMEOUT_SECONDS = 5.0
 REMOTE_MAX_BYTES = 256 * 1024
 
+
+def _version_tuple(value: str) -> tuple[int, int, int]:
+    match = VERSION_PATTERN.fullmatch(value)
+    if match is None:
+        raise ValueError(f"unsupported semantic version: {value}")
+    return tuple(int(part) for part in match.groups())
+
+
+def version_in_compatibility(version: str, compatibility: str) -> bool:
+    """Check the catalog's bounded >= lower, < upper version range."""
+
+    bounds = [part.strip() for part in compatibility.split(",")]
+    if (
+        len(bounds) != 2
+        or not bounds[0].startswith(">=")
+        or not bounds[1].startswith("<")
+    ):
+        raise ValueError("compatibility must be formatted as >=X.Y.Z,<X.Y.Z")
+    current = _version_tuple(version)
+    lower = _version_tuple(bounds[0][2:])
+    upper = _version_tuple(bounds[1][1:])
+    return lower <= current < upper
 
 def _frontmatter(text: str) -> dict[str, str]:
     lines = text.splitlines()
@@ -144,6 +168,15 @@ def validate_skills(root: Path = ROOT, *, remote: bool = False) -> dict[str, Any
         source_url = str(catalog_entry["source_url"])
         if f"/tree/{SKILLS_SOURCE_REVISION}/" not in source_url:
             errors.append("source URL is not pinned to the catalog revision")
+        try:
+            compatible = version_in_compatibility(
+                __version__, str(catalog_entry["mcp_compatibility"])
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            errors.append(f"invalid MCP compatibility range: {exc}")
+        else:
+            if not compatible:
+                errors.append("MCP compatibility range excludes current server version")
 
         result: dict[str, Any] = {
             "name": name,

@@ -20,7 +20,7 @@ SKILL_EXAMPLES = (
         "name": "cross-origin-iframe-probe",
         "description": "Classify frame access and choose DOM, outer geometry, pointer, keyboard, or parent-page paths.",
         "skill_version": "0.2.0",
-        "mcp_compatibility": ">=0.8.4,<0.9.0",
+        "mcp_compatibility": ">=0.8.4,<0.9.1",
         "required_tools": [
             "frame_list",
             "frame_snapshot",
@@ -50,7 +50,7 @@ SKILL_EXAMPLES = (
         "name": "turnstile-testing",
         "description": "Operate authorized Turnstile fixtures and production challenges with fresh geometry and token-safe verification.",
         "skill_version": "0.2.0",
-        "mcp_compatibility": ">=0.8.4,<0.9.0",
+        "mcp_compatibility": ">=0.8.4,<0.9.1",
         "required_tools": [
             "page_navigate",
             "page_resize",
@@ -78,7 +78,7 @@ SKILL_EXAMPLES = (
         "name": "xiaohongshu-content-research",
         "description": "Run bounded, read-only Xiaohongshu-like content research with explicit robots, login, and rate-limit checks.",
         "skill_version": "0.1.0",
-        "mcp_compatibility": ">=0.8.2,<0.9.0",
+        "mcp_compatibility": ">=0.8.2,<0.9.1",
         "required_tools": [
             "page_navigate",
             "page_observe",

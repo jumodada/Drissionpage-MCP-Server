@@ -10,10 +10,11 @@ postcondition checks for one bounded class of work.
 The repository contains example Skills under `skills/<name>/SKILL.md`. They are
 source documentation, not Python modules: the wheel and sdist intentionally do
 not include them. The MCP server exposes discovery metadata through
-`drissionpage://skills/catalog`. In 0.8.4, catalog schema v2 publishes a fixed
-`v0.8.4` source revision from `skills-manager`, a SHA-256 for each `SKILL.md`,
-the Skill and compatible MCP versions, required public tools, fixture, and
-verification status.
+`drissionpage://skills/catalog`. Catalog schema v2 publishes a fixed `v0.8.4`
+source revision from `skills-manager`, a SHA-256 for each `SKILL.md`, the Skill
+and compatible MCP versions, required public tools, fixture, and verification
+status. The 0.9.0 candidate is covered by bounded ranges ending at `<0.9.1`;
+this does not claim compatibility with later minor releases.
 
 ## Example catalog
 
@@ -56,7 +57,9 @@ python playground/validate_skills.py --remote --json
 
 Remote validation requires network access and is separate from the deterministic
 offline check. A successful local hash check is not evidence that the remote
-repository was reachable.
+repository was reachable. Tag publication requires this remote check. As of the
+0.9.0 candidate validation on 2026-10-21, all three pinned `v0.8.4` sources return
+HTTP 404, so remote installation and release source verification remain blocked.
 
 Install the fixed 0.8.4 Skills release for Codex or Claude Code:
 

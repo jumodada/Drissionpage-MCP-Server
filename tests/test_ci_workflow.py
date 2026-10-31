@@ -19,6 +19,64 @@ PYPROJECT = Path("pyproject.toml")
 README_FILES = (Path("README.md"), Path("README_CN.md"))
 
 
+def _job(workflow: str, name: str) -> str:
+    return re.split(
+        r"\n  [a-z0-9_-]+:\n", workflow.split(f"\n  {name}:\n", 1)[1], maxsplit=1
+    )[0]
+
+
+def test_tag_publication_requires_the_complete_reusable_ci() -> None:
+    ci = CI_WORKFLOW.read_text(encoding="utf-8")
+    publish = PUBLISH_WORKFLOW.read_text(encoding="utf-8")
+
+    assert "  workflow_call:" in ci
+    gate = _job(publish, "quality-gates")
+    assert "needs: release-metadata" in gate
+    assert "uses: ./.github/workflows/ci.yml" in gate
+    assert "secrets: inherit" in gate
+    verification = _job(publish, "verify-and-build")
+    assert "needs: quality-gates" in verification
+    assert "python -m build" not in verification
+    assert "name: python-distribution" in verification
+    assert "needs: verify-and-build" in _job(publish, "publish-pypi")
+
+
+def test_tag_and_all_package_versions_are_checked_before_release_gates() -> None:
+    publish = PUBLISH_WORKFLOW.read_text(encoding="utf-8")
+    metadata = _job(publish, "release-metadata")
+
+    assert "github.ref_name" in metadata
+    assert 'pyproject["project"]["version"] == version' in metadata
+    assert 'server["version"] == version' in metadata
+    assert 'package["version"] == version' in metadata
+    assert 'for package in server["packages"]' in metadata
+    assert "module_version == version" in metadata
+    assert 'Path("drissionpage_mcp/__init__.py")' in metadata
+
+
+def test_release_publishes_the_same_hashed_distributions_as_clean_smoke_tests() -> None:
+    ci = CI_WORKFLOW.read_text(encoding="utf-8")
+    publish = PUBLISH_WORKFLOW.read_text(encoding="utf-8")
+    package = _job(ci, "package")
+    wheel = _job(ci, "wheel-smoke")
+
+    assert "needs: package" in wheel
+    assert "python -m build" not in wheel
+    assert "name: python-distribution" in wheel
+    assert package.index("Complete sdist browser flow") < package.index(
+        "Upload verified distribution"
+    )
+    assert "sha256sum -- ./*.whl ./*.tar.gz > SHA256SUMS" in package
+    assert "name: python-distribution" in package
+    for job in (wheel, _job(publish, "verify-and-build"), _job(publish, "publish-pypi")):
+        assert "sha256sum --check SHA256SUMS" in job
+    pypi = _job(publish, "publish-pypi")
+    assert pypi.index("sha256sum --check SHA256SUMS") < pypi.index(
+        "pypa/gh-action-pypi-publish"
+    )
+    assert "rm SHA256SUMS" in pypi
+
+
 def test_repository_has_no_unresolved_merge_markers() -> None:
     """prevents conflicted source or workflow files from being committed."""
 
@@ -83,9 +141,9 @@ def test_ci_enforces_current_release_production_loc_budget() -> None:
     )[0]
 
     assert "fetch-depth: 0" in lint_job
-    assert "BASELINE=30e8adf" in lint_job
+    assert "BASELINE=c1f9dde" in lint_job
     assert "drissionpage_mcp/**/*.py" in lint_job
-    assert 'test "$NET_PRODUCTION_LOC" -le 650' in lint_job
+    assert 'test "$NET_PRODUCTION_LOC" -le 150' in lint_job
 
 
 def test_ci_runs_mypy_as_a_required_lint_gate() -> None:
@@ -216,7 +274,7 @@ def test_ci_checks_wheel_package_contents() -> None:
     assert 'cd "$RUNNER_TEMP"' in package_job
     assert '"$SDIST_SMOKE_PYTHON"' in package_job
     assert '"$GITHUB_WORKSPACE/playground/package_smoke.py"' in package_job
-    assert "--expected-version 0.8.9" in package_job
+    assert "--expected-version 0.9.0" in package_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in package_job
 
 
@@ -229,7 +287,7 @@ def test_ci_installs_built_wheel_without_cache_and_handshakes() -> None:
     )[0]
 
     assert 'PIP_NO_CACHE_DIR: "1"' in wheel_job
-    assert "python -m build --wheel" in wheel_job
+    assert "Download verified package artifacts" in wheel_job
     assert "python -m venv" in wheel_job
     assert "--no-cache-dir dist/*.whl" in wheel_job
     assert "mcp_server_wiring" in wheel_job
@@ -240,7 +298,7 @@ def test_ci_installs_built_wheel_without_cache_and_handshakes() -> None:
     assert 'cd "$RUNNER_TEMP"' in wheel_job
     assert '"$WHEEL_SMOKE_PYTHON"' in wheel_job
     assert '"$GITHUB_WORKSPACE/playground/package_smoke.py"' in wheel_job
-    assert "--expected-version 0.8.9" in wheel_job
+    assert "--expected-version 0.9.0" in wheel_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in wheel_job
 
 
@@ -322,11 +380,11 @@ def test_browser_availability_has_one_strict_gate_per_workload() -> None:
     assert "command -v google-chrome" in benchmark_job
     assert "TMPDIR: ${{ runner.temp }}" in benchmark_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in benchmark_job
-    assert "--output benchmark-results/0.8.9-task-completion.json" in benchmark_job
+    assert "--output benchmark-results/0.9.0-task-completion.json" in benchmark_job
     assert "tests.evals.challenge_surface_benchmark" in benchmark_job
-    assert "--output benchmark-results/0.8.9-challenge-surfaces.json" in benchmark_job
-    assert "name: 0.8.9-browser-benchmarks" in benchmark_job
-    assert "path: benchmark-results/0.8.9-*.json" in benchmark_job
+    assert "--output benchmark-results/0.9.0-challenge-surfaces.json" in benchmark_job
+    assert "name: 0.9.0-browser-benchmarks" in benchmark_job
+    assert "path: benchmark-results/0.9.0-*.json" in benchmark_job
     assert "0.7.2-task-completion" not in benchmark_job
     assert "tests.evals.task_completion_benchmark" not in coverage_job
     assert 'DP_MCP_REQUIRE_BROWSER: "1"' in coverage_job
@@ -341,6 +399,7 @@ def test_ci_compares_local_baseline_and_candidate_snapshot_search_wheels() -> No
 
     assert "git worktree add --detach" in benchmark_job
     assert "30e8adf" in benchmark_job
+    assert "fetch-depth: 0" in benchmark_job
     assert "baseline-dist" in benchmark_job
     assert "candidate-dist" in benchmark_job
     assert "baseline-benchmark" in benchmark_job
@@ -370,7 +429,7 @@ def test_release_versions_are_in_sync() -> None:
     pyproject = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))
     version = pyproject["project"]["version"]
 
-    assert version == "0.8.9"
+    assert version == "0.9.0"
     assert drissionpage_mcp.__version__ == version
     for readme in README_FILES:
         text = readme.read_text(encoding="utf-8")

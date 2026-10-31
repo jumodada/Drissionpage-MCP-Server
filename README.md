@@ -16,7 +16,7 @@
 
 ## 🖱️ Atomic Browser Control with Natural Pointer Motion
 
-**DrissionPage MCP 0.8.9 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, challenge, or business workflow.
+**DrissionPage MCP 0.9.0 exposes 69 typed browser capabilities.** The MCP server provides accurate low-level observation and interaction; the client or an optional Skill composes those capabilities for a site, component library, challenge, or business workflow.
 
 <!-- mcp-name: io.github.jumodada/drissionpage-mcp -->
 
@@ -75,7 +75,7 @@ Designed for authorized browser automation, testing, accessibility workflows, an
 
 **DrissionPage MCP Server** is a local Model Context Protocol (MCP) server that brings DrissionPage browser automation tools to Codex CLI/IDE, Claude Code, Claude Desktop, and other MCP clients.
 
-The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.8.9 keeps that registry stable while adding deadline-bounded waits, bounded snapshot search/continuation, and explicit navigation timing and readiness evidence. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable challenge and site procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
+The standalone server exposes 69 typed tools, zero MCP prompts, and one static optional-Skills catalog resource. Version 0.9.0 keeps that registry stable while tightening opt-in navigation policy matching and rejecting denied destinations before browser startup. Every tool loads by default; there is no capability profile or opt-in `full` mode. Models compose these atomic capabilities, while reusable challenge and site procedures live outside the distribution as optional Skills. Browser execution is powered by [DrissionPage](https://github.com/g1879/DrissionPage).
 
 ### 🌟 Why Choose DrissionPage MCP?
 
@@ -102,12 +102,16 @@ DrissionPage MCP is backed by a strict regression suite and browser-backed scena
 
 ## ⚡ First Success Path
 
+0.9.0 is currently a local candidate. Until it is published, validate it from a
+source checkout with `python -m pip install -e .` or install a locally built wheel.
+The PyPI version command below applies after publication.
+
 ```bash
 # Install or update Codex CLI (macOS/Linux)
 curl -fsSL https://chatgpt.com/codex/install.sh | sh
 
 # Install from PyPI
-python -m pip install -U "drissionpage-mcp>=0.8.9"
+python -m pip install -U "drissionpage-mcp>=0.9.0"
 
 # Verify package and environment
 drissionpage-mcp --version
@@ -485,7 +489,7 @@ DP_HEADLESS=1 python playground/run_mcp_lab.py --case form-inspect
 ```bash
 drissionpage-mcp --version
 ```
-Should output the installed package version, for example `drissionpage-mcp 0.8.9`.
+Should output the installed package version, for example `drissionpage-mcp 0.9.0`.
 
 `drissionpage-mcp doctor` must also report both `mcp_supported` and
 `mcp_server_wiring` as `ok`; package-version output alone does not prove that an
@@ -518,13 +522,13 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 | **Package** | ✅ PyPI metadata and build checks |
 | **Status** | 🟡 Beta; real browser behavior depends on local Chrome/Chromium and target sites |
 
-**Version**: 0.8.9 development candidate | **License**: Apache 2.0 | **Maintained**: ✅ Active
+**Version**: 0.9.0 development candidate | **License**: Apache 2.0 | **Maintained**: ✅ Active
 
 ---
 
 ## 🗺️ Roadmap
 
-### Current candidate (v0.8.9)
+### Current candidate (v0.9.0)
 - [x] 69 atomic navigation, tab/frame/shadow, accessibility, observation, interaction, browser-environment, network, Cookie/storage, wait, and console tools, all loaded by default
 - [x] stdio MCP server integration
 - [x] Doctor diagnostics for local setup
@@ -534,7 +538,7 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] Balanced `page_snapshot` output so link-heavy pages still expose controls and forms
 - [x] Optional case-insensitive literal `page_snapshot(query=...)` search with bounded, replayable continuation cursors tied to one tab and document generation
 - [x] Atomic type, select, check, click, keyboard, upload, wait, and state-read tools cover native controls and framework-driven widgets without library-specific branches
-- [x] Stable optional `tab_id` targeting across 63 tab-scoped tools, per-tab action serialization, cross-tab parallelism, and draining close/cleanup semantics
+- [x] Stable optional `tab_id` targeting across 63 tab-scoped tools, per-tab action serialization, target isolation, and draining close/cleanup semantics
 - [x] Tab management with `tab_list`, `tab_switch`, `tab_close`, and `page_navigate(new_tab=true, background=..., new_window=..., new_context=...)`
 - [x] Tab-owned network listener tokens, packet cursors, timeout evidence, cancellation-safe packet recovery, and deterministic close cleanup
 - [x] Observable actions with `page_observe`, `page_evaluate`, `wait_until`, and optional `observe=true` changes on navigation, click, and type
@@ -564,8 +568,9 @@ See [docs/troubleshooting.md](docs/troubleshooting.md) for the complete troubles
 - [x] No retained action history, generated code snippets, or absolute screenshot paths in public results
 - [x] Opt-in local safety policy for navigation and screenshot paths
 - [x] One optional-Skills catalog resource with repository example metadata, zero prompts, plus Skills, eval, compatibility, and troubleshooting documentation
-- [x] Local 0.8.9 package metadata and clean-installed-package smoke coverage
-- [ ] Publish 0.8.9 to PyPI and the MCP Registry after release gates complete
+- [x] Structured navigation policy checks before browser startup, bounded Skills compatibility, and full-CI release artifact reuse
+- [x] Local 0.9.0 package metadata and clean-installed-package smoke coverage
+- [ ] Publish 0.9.0 to PyPI and the MCP Registry after release gates complete
 
 ---
 
@@ -700,12 +705,13 @@ If you find this project useful, please consider:
 
 ---
 
-## 🆕 Current Candidate: v0.8.9
+## 🆕 Current Candidate: v0.9.0
 
-Candidate dated 2026-09-10. This is the current local implementation, not a claim of external publication or a completed hosted multi-platform CI run:
+Candidate dated 2026-10-20. This is the current local implementation, not a claim of external publication or a completed hosted multi-platform CI run:
 
-- `page_snapshot(query=...)` performs case-insensitive literal search over a bounded top-level-page capture and returns match counts, scan truncation, `observation_id`, and optional `next_cursor` continuation. Cursors are short-lived and tied to the session, tab, document, query, and output limits.
-- `wait_until(condition="ready_state", value="interactive"|"complete")` joins existing conditions, and all polling/stability waits share one monotonic timeout budget.
-- `page_navigate(timeout=...)` optionally budgets navigation plus stabilization. Browser startup, tab-lock queueing, and before/after observation are excluded. Results report the final URL, `ready_state`, non-negative stage timings, and `settled`: the native `doc_loaded` result when available, otherwise `null`.
-- Navigation completion or readiness does not establish business success, HTTP status, login success, or a complete redirect chain. Cancelled native navigation/stabilization work is drained before the tab action lock is released.
-- The public surface remains 69 tools, zero prompts, and one Skills catalog resource. Skills stay on schema v2 at the fixed `skills-manager` `v0.8.4` revision.
+- Opt-in navigation allow/block URL rules use structured origin and path-boundary matching instead of raw string prefixes. Host-only rules continue to include subdomains.
+- Denied `page_navigate` and `page_navigate_with_http_auth` calls return `POLICY_DENIED` before initializing Chromium, creating a tab, or applying auth credentials.
+- Matching is an operator-side navigation check, not a complete network sandbox: it does not constrain redirects, page scripts, iframes, DNS rebinding, or later browser requests.
+- Skills metadata accepts MCP 0.9.0 within bounded compatibility ranges while retaining schema v2, the fixed `skills-manager` `v0.8.4` revision, and existing content hashes. Remote validation currently fails because pinned raw GitHub URLs return HTTP 404.
+- Release tags run the complete CI workflow before upload and reuse the exact SHA256-verified wheel and sdist artifacts that passed package smoke tests.
+- The public surface remains 69 tools, zero prompts, and one static Skills catalog resource. No runtime dependency or capability profile was added.

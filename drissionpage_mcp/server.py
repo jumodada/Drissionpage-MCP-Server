@@ -23,6 +23,7 @@ from . import __version__
 from .context import DrissionPageContext
 from .guidance import server_instructions
 from .mcp_compat import ensure_supported_mcp_sdk
+from .policy import PolicyDeniedError, validate_navigation
 from .resources import list_resources as list_resource_definitions
 from .resources import read_resource as read_resource_definition
 from .response_errors import ErrorCode, classify_error, public_failure_message
@@ -111,6 +112,18 @@ class DrissionPageMCPServer:
 
             call_started = False
             try:
+                if name in {"page_navigate", "page_navigate_with_http_auth"}:
+                    try:
+                        validate_navigation(validated_args.url)
+                    except PolicyDeniedError as exc:
+                        outcome = ToolOutcome()
+                        outcome.add_error(
+                            str(exc),
+                            ErrorCode.POLICY_DENIED,
+                            rule=exc.rule,
+                            value=exc.value,
+                        )
+                        return self._call_result(outcome)
                 context = await self._begin_tool_call()
                 call_started = True
                 outcome = await self._execute_with_scope(
